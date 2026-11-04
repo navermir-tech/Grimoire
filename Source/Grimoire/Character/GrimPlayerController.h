@@ -18,7 +18,14 @@ class GRIMOIRE_API AGrimPlayerController : public APlayerController
 public:
 	AGrimPlayerController();
 
+	/** 슈퍼치트(UGrimCheatManager::GrimSuperCheat)의 서버 경로. 출시 빌드에서는 본문이 비어 아무것도 하지 않는다. */
+	UFUNCTION(Server, Reliable)
+	void Server_SetSuperCheat(bool bEnable);
+
 protected:
+	/** 개발 빌드에서는 멀티 클라이언트에도 CheatManager 를 만든다(엔진 기본은 싱글 · 에디터만). */
+	virtual void AddCheats(bool bForce) override;
+
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 

@@ -22,6 +22,7 @@ $UE = "C:\Program Files\Epic Games\UE_5.8"
 & "$UE\Engine\Binaries\Win64\UnrealEditor.exe" "$PWD\Grimoire.uproject"
 ```
 
+- 게임 안 콘솔 `GrimSuperCheat 1/0`: HP · 마나 · 배고픔 최대 · 체온 정상 고정(개발 빌드, 멀티는 서버 적용). `docs/dev/cheats.md`.
 - 빌드는 2분을 넘기므로 백그라운드로 돌리고 `Result:` 와 `exit=` 줄을 본다. 파이프 뒤의 종료 코드에 속지 않는다(`$LASTEXITCODE` · `PIPESTATUS`).
 - `UnrealBuildTool.exe` 직접 호출 금지(.NET 10 필요 — `Build.bat` 이 엔진 내장 .NET 을 잡아 준다).
 - `npx vitepress --version` 은 버전 대신 개발 서버를 띄운다. 쓰지 않는다.
