@@ -6,7 +6,7 @@
 
 - 「그리모리 (Grimoire)」: 마법세계 오픈월드 생존 게임. **Unreal Engine 5.8** · C++ 모듈 `Grimoire` + 블루프린트. 저장소 `github.com/navermir-tech/Grimoire`, 기본 브랜치 `main`.
 - 엔진 `C:\Program Files\Epic Games\UE_5.8`. 요구사항 원문은 `docs/spec/index.md` 의 R01~R16, 미결은 `docs/spec/decisions.md` 의 Q 번호로 가리킨다.
-- **경로 함정**: 현재 폴더(OneDrive · 한글 · 공백)에서는 C++ 빌드가 실패한다(cl.exe 가 응답 파일을 CP949 로 읽음 — `docs/dev/setup.md` 「프로젝트 경로」). 영문 경로로 옮기기 전에는 C++ 변경을 빌드로 검증할 수 없다. 정션 우회는 안 된다.
+- **경로**: 프로젝트는 `C:\Dev\Grimoire` 에 둔다(2026-11-05 이동). 한글 · 공백 · OneDrive 경로에서는 cl.exe 가 응답 파일을 CP949 로 읽어 C++ 빌드가 실패한다. 정션 우회도 안 된다(`docs/dev/setup.md` 「프로젝트 경로」).
 
 ## 자주 쓰는 명령
 
