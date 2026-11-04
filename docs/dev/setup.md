@@ -21,7 +21,16 @@ Git LFS 가 설치돼 있으면 `.uasset` 등 바이너리 에셋도 함께 내�
 ## 에디터 열기
 
 1. `Grimoire.uproject` 더블클릭. 처음엔 "모듈이 없거나 오래됐습니다. 다시 빌드할까요?" → **예**. C++ 모듈을 빌드하고 열린다.
-2. 더블클릭이 엔진을 못 찾으면 Epic Games Launcher → 라이브러리 → UE 5.8 **실행** → "프로젝트 찾아보기"로 `Grimoire.uproject` 선택.
+2. 더블클릭이 안 되거나 엔진을 못 찾으면 아래 「.uproject 연결」을 한 번 한다.
+
+### .uproject 연결 (이 PC 에서 한 번)
+
+이 PC 는 런처의 설치 목록(`C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat`)이 비어 있어서, 언리얼 버전 선택기가 `"EngineAssociation": "5.8"` 을 찾지 못했다. 그래서 두 가지를 **내 계정(HKCU)** 에 직접 등록했다(관리자 권한 불필요, 2026-11-05).
+
+- 엔진 위치: `HKCU\Software\Epic Games\Unreal Engine\Builds` 의 값 `5.8` = `C:/Program Files/Epic Games/UE_5.8`
+- 파일 연결: `HKCU\Software\Classes\.uproject` → `Unreal.ProjectFile`. 우클릭 메뉴(열기 · 게임 실행 · Visual Studio 프로젝트 생성 · 엔진 버전 바꾸기)는 `C:\Program Files\Epic Games\Launcher\Engine\Binaries\Win64\UnrealVersionSelector.exe` 를 부른다.
+
+선택기의 `/fileassociations` 는 관리자 권한이 없으면 조용히 실패한다(종료 코드 1). Git Bash 에서 `reg add /v …` 를 부르면 `/v` 가 경로로 바뀌어 실패하므로 PowerShell 로 한다.
 
 ## Visual Studio 로 작업하기
 
