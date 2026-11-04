@@ -37,8 +37,10 @@
 
 | 폴더 (→ 장차 모듈) | 내용 |
 |---|---|
-| `Source/Grimoire/Core` | 게임 모드 · 상태 · 플레이어 상태 · 공용 타입 · 로그 |
-| `Source/Grimoire/Magic` | ASC · 어트리뷰트 · 마법 정의 · 완드 · 시전 어빌리티 · 상호작용 엔진 |
+| `Source/Grimoire/Core` | 게임 모드 · 상태 · 플레이어 상태 · ASC · 공용 태그 · 속성 자극 인터페이스 |
+| `Source/Grimoire/Character` | 플레이어 캐릭터 · 컨트롤러 · 입력 |
+| `Source/Grimoire/Magic` | 마법 어트리뷰트 · 마법 정의 · 완드 · 시전 어빌리티 · 상성 |
+| `Source/Grimoire/Interaction` | 속성 상태 컴포넌트 · 반응 규칙 · 상호작용 사물 |
 | `Source/Grimoire/Survival` | 생존 어트리뷰트 · 주기 효과 · 체온 |
 | `Source/Grimoire/Environment` | 시간 · 날씨 · 기후 서브시스템, 하늘 컨트롤러 |
 | `Source/Grimoire/Creatures` | 생물 · 종 · 유전 · 생태계 스폰 · AI 브리지 · 길들이기 · 탑승 · 노동 |

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-모든 세션에 필요한 것만 둔다. 기획(무엇)은 `docs/spec/`, 기술 설계(어떻게)는 `docs/systems/`, 사람용 절차는 `docs/dev/` 다. 문서 사이트는 VitePress(`npm run docs:dev`)로 보고 Netlify 가 배포한다.
+모든 세션에 필요한 것만 둔다. 기획(무엇)은 `docs/spec/`, 기술 설계(어떻게)는 `docs/systems/`, 사람용 절차는 `docs/dev/` 다. 문서 사이트는 VitePress(`npm run docs:dev`)로 보고 Netlify(https://grimoire2026.netlify.app)가 배포한다. M1 갈래별 파일 소유는 `docs/systems/m1-plan.md`.
 
 ## 프로젝트
 

@@ -46,6 +46,7 @@ export default defineConfig({
             { text: '건축 · 농사 · 생산', link: '/systems/building' },
             { text: '월드 · 멀티플레이 · 세이브', link: '/systems/world-multiplayer' },
             { text: '로드맵 · 리스크', link: '/systems/roadmap' },
+            { text: 'M1 작업 분할', link: '/systems/m1-plan' },
           ],
         },
       ],

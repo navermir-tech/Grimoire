@@ -2,7 +2,7 @@
 
 마법세계를 무대로 한 오픈월드 생존 게임. **Unreal Engine 5.8 · C++ + 블루프린트**.
 
-- **문서 사이트** — 스펙(기획) · 시스템(기술 설계) · 개발 가이드. `docs/` 의 Markdown 을 VitePress 로 만들고 Netlify 가 배포한다. 로컬에서 보려면 `npm install` 뒤 `npm run docs:dev` → http://localhost:5173
+- **문서 사이트** — https://grimoire2026.netlify.app — 스펙(기획) · 시스템(기술 설계) · 개발 가이드. `docs/` 의 Markdown 을 VitePress 로 만들고 Netlify 가 배포한다. 로컬에서 보려면 `npm install` 뒤 `npm run docs:dev` → http://localhost:5173
 - **저장소** — https://github.com/navermir-tech/Grimoire
 
 ## 빠른 시작

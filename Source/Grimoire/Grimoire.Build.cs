@@ -6,21 +6,28 @@ public class Grimoire : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		// Include as "Core/GrimGameMode.h", "Magic/...", etc. relative to this module folder.
+		PublicIncludePaths.Add(ModuleDirectory);
+
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"UMG"
+			"UMG",
+			"GameplayAbilities",
+			"GameplayTags",
+			"GameplayTasks",
+			"NetCore",
+			"Niagara",
+			"DeveloperSettings",
+			"PhysicsCore"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Slate",
 			"SlateCore"
 		});
-
-		// Magic system: if we adopt the Gameplay Ability System, add
-		// "GameplayAbilities", "GameplayTags", "GameplayTasks" here and enable the plugin in Grimoire.uproject.
 	}
 }
