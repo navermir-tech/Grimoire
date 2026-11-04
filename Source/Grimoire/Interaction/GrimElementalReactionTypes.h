@@ -164,12 +164,16 @@ struct GRIMOIRE_API FGrimElementalStateArray : public FFastArraySerializer
 	const FGrimElementalState* Find(const FGameplayTag& StateTag) const;
 	FGrimElementalState* Find(const FGameplayTag& StateTag);
 	float GetIntensity(const FGameplayTag& StateTag) const;
-	bool Has(const FGameplayTag& StateTag) const { return Find(StateTag) != nullptr; }
+	/** 세기가 0 인 항목(클라이언트에서 지워지는 중)은 없는 것으로 본다 */
+	bool Has(const FGameplayTag& StateTag) const { const FGrimElementalState* Item = Find(StateTag); return Item && Item->Intensity > 0.f; }
 
 	/** 세기를 바꾼다. 0 이하면 지운다. 바뀌면 OutChanges 에 한 건 더한다 */
 	void SetIntensity(const FGameplayTag& StateTag, float NewIntensity, TArray<FGrimElementalStateChange>& OutChanges);
 	/** 지운다. 있었으면 OutChanges 에 한 건 더한다 */
 	void Remove(const FGameplayTag& StateTag, TArray<FGrimElementalStateChange>& OutChanges);
+
+	/** 서버: 복제되는 값을 바꾸기 "직전"에 부른다 → Owner 가 휴면을 깨운다(UGrimElementalStateComponent::HandlePreStateChange) */
+	void NotifyPreChange();
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
 	{

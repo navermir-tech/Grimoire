@@ -70,6 +70,9 @@ public:
 	bool HasActivePropagation() const;
 	bool IsStateTimerActive() const;
 
+	/** 서버: 상태 배열이 바뀌기 직전(FGrimElementalStateArray::NotifyPreChange)에 휴면을 깨운다 */
+	void HandlePreStateChange();
+
 	/** 복제 콜백(FGrimElementalState)에서 부른다 */
 	void HandleReplicatedStateChange(const FGameplayTag& StateTag, float OldIntensity, float NewIntensity);
 
