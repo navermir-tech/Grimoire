@@ -73,51 +73,99 @@ class UGrimSpellDefinition : public UPrimaryDataAsset
 
 ## 속성 상호작용 엔진 (R16)
 
+> 코드: `Source/Grimoire/Interaction/` · 규칙표 원본: `Content/Grimoire/Data/ElementalReactions.csv` · 테스트: `Grimoire.Interaction.*`
+
 ### 구성
 
-- `UGrimElementalStateComponent` — 사물 · 생물 · 플레이어가 가진다.
-  - `TArray<FGrimElementalState> States` : `{ FGameplayTag StateTag; float Intensity; float RemainingTime; }` — 예: `State.Burning(2.0)`, `State.Wet(1.0)`
-  - `FGameplayTagContainer Material` : `Material.Flammable`, `Material.Conductive`, `Material.Absorbent` …(반응 조건)
-  - `ApplyStimulus(const FGrimElementalStimulus&, AActor* Instigator)` — 서버. 규칙표를 조회해 상태를 바꾸고 `OnStateChanged` 브로드캐스트.
-  - 복제: `States` 배열(FastArraySerializer). 클라이언트는 `OnRep` 에서 연출(파티클 · 머티리얼 파라미터).
-- `FGrimElementalStimulus` : `{ FGameplayTag Element; float Intensity; EGrimStimulusSource Source; }` — Source 는 Spell · Weather · Propagation · Creature.
-- `UGrimElementalReactionLibrary` : 규칙 조회 · 적용 · 전파(타이머로 반경 오버랩 → 이웃에 `ApplyStimulus(Source = Propagation)`).
+| 클래스 | 하는 일 |
+|---|---|
+| `UGrimElementalStateComponent` | 기반 `IGrimElementalReceiver` 구현. 사물 · 생물 · 플레이어가 가진다. 서버에서 자극 → 규칙 → 상태 변화, 복제, 델리게이트 |
+| `FGrimElementalState` / `FGrimElementalStateArray` | 상태 하나 `{ StateTag, Intensity, RemainingTime }`(음수 = 무한) · FastArraySerializer 배열 |
+| `FGrimElementalReactionRow` | 규칙표 행(`FTableRowBase`) |
+| `FGrimElementalReactionLibrary` | 규칙 조회 · 적용 · 시간 진행. 액터 · 월드를 모르는 순수 로직(테스트가 직접 부른다) |
+| `UGrimElementalPropagationSubsystem` | 전파 스케줄러(TickableWorldSubsystem, 게임 · PIE 월드). 출처가 없으면 틱하지 않는다 |
+| `UGrimInteractionSettings` | 전역 예산 · 상한(`DefaultGame.ini` 의 `[/Script/Grimoire.GrimInteractionSettings]`) |
+| `AGrimElementalObject` → `AGrimCandle` · `AGrimCampfire` · `AGrimDryGrass` | 엔진 기본 도형 + 상태 컴포넌트 + 불꽃(원뿔) + 포인트 라이트 |
+| `GrimInteractionTags` | `Material.Flammable / Consumable / Conductive / Absorbent`, `State.Charred` |
 
-### 반응 규칙표 `DT_ElementalReactions`
+- 자극은 기반의 `FGrimElementalStimulus { Element, Intensity, Source }` 하나. 마법 · 날씨는 `UGrimElementalStatics::ApplyStimulusToActor` 로만 보낸다(구현체를 몰라도 된다).
+- 컴포넌트 `Material`(태그 컨테이너)이 재질 조건, `InitialStates` 는 BeginPlay 때 서버가 넣는 상태(처음부터 켜진 모닥불 등), `ReactionTable` 을 비우면 기본 규칙표.
+- 상태 변화 델리게이트 `OnStateChanged`(BP) · `OnStateChangedNative`(C++): `(Component, StateTag, Old, New)`, New 0 = 사라짐. **서버는 계산 직후, 클라이언트는 FastArray 복제 콜백**(`PostReplicatedAdd / Change`, `PreReplicatedRemove`)에서 불린다 → 연출은 이 델리게이트 하나에 묶는다.
+- `RemainingTime` 은 서버에서 계속 줄지만 항목을 더럽히지 않는다. 복제되는 값은 세기가 바뀔 때의 스냅숏(연출 참고용)이다.
+
+### 반응 규칙표
+
+**원본은 CSV, 런타임에 DataTable 로 읽는다**(`UDataTable::CreateTableFromCSVString`). 파이썬 헤드리스 임포트 대신 이 길을 고른 이유:
+
+- 원본이 하나다 — `.uasset` 결과물이 없어 CSV 와 에셋이 어긋날 일이 없고, 바이너리 충돌도 없다(갈래 병렬 작업 · 리뷰가 텍스트 diff).
+- 테스트가 게임과 똑같은 파일을 읽는다. 에디터 · 헤드리스 단계 없이 빌드만 하면 규칙이 바뀐다. 개발 중에는 콘솔 `Grim.Interaction.ReloadReactions` 로 다시 읽는다.
+- 나중에 에디터에서 다루고 싶으면 CSV 를 `DT_ElementalReactions` 로 임포트하고 설정 `ReactionTableAsset` 에 지정하면 그쪽을 쓴다(행 구조체가 같다).
+- 대가: 패키징 시 CSV 를 함께 넣어야 한다 — `DefaultGame.ini` `[/Script/UnrealEd.ProjectPackagingSettings]` 에 `+DirectoriesToAlwaysStageAsUFS=(Path="Grimoire/Data")`(통합 때).
 
 | 열 | 뜻 |
 |---|---|
-| `RequiredState` | 현재 상태 태그(없음 = 어떤 상태든) |
-| `RequiredMaterial` | 재질 조건 |
-| `Element` | 들어온 자극 속성 |
-| `MinIntensity` | 자극 세기 하한 |
-| `ResultState` / `IntensityDelta` / `ClearStates` | 결과 |
-| `Propagate` | 주변 반경 · 전파 자극(불이 옆으로 번짐) |
-| `Cue` | GameplayCue 태그(연출) |
+| `Name` · `Note` | 행 이름 · 사람용 설명 |
+| `Trigger` | `Stimulus`(자극이 들어올 때) · `Expire`(시간이 다 된 상태가 사라질 때 — `RequiredState` 가 그 상태) |
+| `RequiredState` | 이 상태가 있어야 한다(`None` = 상관없음) |
+| `BlockedByStates` | 이 중 하나라도 있으면 안 맞는다 — 예: 젖으면 불이 안 붙는다. `(State.Wet,State.Charred)` |
+| `RequiredMaterial` | 재질 조건(`None` = 상관없음) |
+| `Element` · `MinIntensity` | 들어온 자극 속성(하위 태그도 맞음) · 세기 하한 |
+| `ClearStates` | 먼저 지울 상태들 |
+| `ResultState` · `IntensityDelta` · `MaxIntensity` | 결과 상태 세기 += Delta(상한 0 = 없음). 0 이하면 사라진다 |
+| `Duration` | 결과 상태의 남은 시간(초). 0 = 새 상태는 무한, 있던 상태는 그대로 |
+| `Propagate` | `(Element, TargetMaterial, Radius, IntensityScale)` — 결과 상태가 살아 있는 동안 이웃에 줄 자극 |
+| `Cue` | GameplayCue 태그(M1 은 비움) |
 
-### 양초 예시 데이터
+**위에서부터 검사해 처음 맞는 행 하나만 적용한다.** 그래서 강한 조건(돌풍)을 약한 조건(바람) 위에 두고, "젖은 것에 센 불"은 마르기만 하고 같은 자극으로 불이 붙지 않는다.
 
-| RequiredState | Material | Element | Min | 결과 |
-|---|---|---|---|---|
-| — | Flammable | Fire | 0.5 | `State.Burning` +1 |
-| Burning | — | Wind | 0.3 | Intensity +1 (최대 3) |
-| Burning | — | Wind | 2.5 | Clear Burning (돌풍에 꺼짐) |
-| Burning | — | Water | 0.3 | Clear Burning, `State.Wet` +1 |
-| Wet | — | Fire | 1.0 | Wet −1 (마름) |
-| Burning | — | Dark | 0.5 | Intensity −1 |
+M1 규칙(11행 — 원본은 CSV):
 
-양초 블루프린트 `BP_Candle` 은 **코드가 없다**: 메시 + `GrimElementalState`(Material = Flammable) + 상태 → 연출 바인딩(불꽃 Niagara 크기 = Burning Intensity).
+| 행 | 조건 | 결과 |
+|---|---|---|
+| `Gust_Extinguish` | Burning + Wind ≥ 2.5 | Burning 지움(돌풍에 꺼짐) |
+| `Wind_Feed` | Burning + Wind ≥ 0.3 | Burning +1, 최대 3 |
+| `Water_Douse` | Burning + Water ≥ 0.3 | Burning 지움, Wet +1(최대 3, 20초) |
+| `Earth_Smother` | Burning + Earth ≥ 0.5 | Burning 지움 |
+| `Dark_Dim` | Burning + Dark ≥ 0.5 | Burning −1 |
+| `Fire_Dry` | Wet + Fire ≥ 1.0 | Wet −1(마름) |
+| `Wind_Dry` | Wet + Wind ≥ 0.5 | Wet −1 |
+| `Water_Soak` | Water ≥ 0.3 | Wet +1(최대 3, 20초) |
+| `Grass_Ignite` | Consumable, Wet · Burning · Charred 아님, Fire ≥ 0.5 | Burning +1(8초), 2.5m 전파 ×1.0 |
+| `Flammable_Ignite` | Flammable, Wet · Burning · Charred 아님, Fire ≥ 0.5 | Burning +1(무한), 1.2m 전파 ×0.5 |
+| `Grass_BurnOut` | Expire Burning, Consumable | Charred 1(다시 안 탄다) |
 
-### 날씨 · 생물과의 연결
+스펙의 「양초 예시」는 모두 이 표로 나온다: 켜짐 · 바람으로 커짐(최대 3) · 돌풍에 꺼짐 · 물로 꺼지고 젖음 · 젖으면 불 안 붙음 · 불 · 바람 · 시간(20초)으로 마름 · 어둠에 작아짐. `Grimoire.Interaction.CandleExample` 이 한 줄씩 확인한다.
+
+### 전파
+
+- 규칙의 `Propagate` 가 있는 결과 상태를 가진 컴포넌트가 `UGrimElementalPropagationSubsystem` 에 출처로 등록된다(상태가 사라지면 빠진다).
+- 출처마다 `PropagationInterval`(1초)마다 한 번, 몸 위치에서 구 오버랩(모든 오브젝트 타입) → `TargetMaterial` 을 가진 이웃에 `{ Element, 세기 × IntensityScale, Source = Propagation }` 자극.
+- 예산: 프레임당 쿼리 `MaxPropagationQueriesPerFrame`(200), 쿼리당 이웃 `MaxNeighborsPerQuery`(16), 반경 상한 `MaxPropagationRadius`(10m). 예산이 모자라면 다음 프레임에 이어 간다(라운드 로빈).
+- 처음 번지는 건 불이 붙고 한 간격 뒤. 이미 타는 이웃은 `BlockedByStates` 로 막혀 되먹임이 없다 → 마른 풀 불은 8초 뒤 꺼지고 탄다.
+- 전용 콜리전 채널(`ECC_Elemental`)은 M1 에서 쓰지 않는다(`DefaultEngine.ini` 를 건드리지 않으려고). 사물이 많아지면 채널을 만들어 쿼리를 좁힌다.
+
+### 사물 액터
+
+| 액터 | 모양 | 재질 | 특징 |
+|---|---|---|---|
+| `AGrimCandle` | 원기둥 지름 6cm · 높이 20cm | Flammable | 빛 15cd × 불꽃 세기 |
+| `AGrimCampfire` | 원기둥 지름 80cm · 높이 15cm | Flammable | 빛 120cd × 세기. 생존 쪽 열원(`GetStateIntensity(State.Burning)`) |
+| `AGrimDryGrass` | 1m × 1m × 10cm 판 | Flammable + Consumable | 폰은 겹쳐 지나가고 그 밖은 막는다(마법 판정 · 전파 쿼리를 받음). 8초 타고 Charred |
+
+- 공통(`AGrimElementalObject`): 루트 아래 `BodyMesh` · `FlameMesh`(원뿔, 충돌 없음, 크기 = 기준 × √세기) · `FlameLight`(포인트 라이트, 세기 = Burning × cd) · `ElementalState`. `OnStateChanged` → `RefreshElementalVisuals()`(서버 · 클라이언트 공통, 데디케이티드 서버는 건너뜀).
+- 젖음: 몸체 `BasicShapeMaterial` 의 `Color` 파라미터를 `WetColor` 쪽으로(젖음 2 에서 끝까지). 탐 = `CharredColor`.
+- 수치(크기 · 빛 · 색)는 액터 기본값(UPROPERTY)이라 블루프린트 자식이나 배치 인스턴스에서 바꾼다. 나중에 불꽃은 Niagara(`NS_Flame_Small`)로 갈아 끼운다.
+
+### 성능 · 네트워크 규칙
+
+- 컴포넌트는 **틱하지 않는다**. 시간 제한 상태(젖음 · 풀 불)가 있을 때만 `StateUpdateInterval`(0.25초) 루핑 타이머, 없어지면 끈다. 무한 상태(켜진 양초)만 있으면 타이머도 없다.
+- 사물 액터는 `DORM_DormantAll` 로 시작하고, 상태가 바뀐 프레임에만 컴포넌트가 `FlushNetDormancy` 로 깨워 보낸다. 플레이어 · 생물(휴면 안 함)에 달아도 같은 코드다.
+- 상태를 바꾸는 건 서버뿐(`HasAuthority` 아니면 무시).
+
+### 날씨 · 생물과의 연결 (통합 이후)
 
 - `UGrimWeatherSubsystem` 은 비가 올 때 **야외**(지붕 없음: 위로 트레이스) 사물에 주기적으로 `Water` 자극을 준다 → 불이 꺼진다. 번개는 낙뢰 지점에 `Wind + Light` 고강도 자극.
-- 생물 · 플레이어도 같은 컴포넌트: `State.Wet` 이면 `UGrimDamageExecution` 이 번개 · 얼음 피해를 올린다. `State.Burning` 은 주기 피해 GE 를 ASC 에 적용한다(컴포넌트가 ASC 를 찾아 브리지).
-
-### 성능 규칙
-
-- 사물 컴포넌트는 **상태가 없을 땐 틱하지 않는다**. 상태가 생길 때만 타이머 등록.
-- 전파 오버랩은 전용 채널 `ECC_Elemental`, 반경 상한 · 틱당 처리 상한(예산 200/프레임 — 측정 후 조정).
-- Net Dormancy `DORM_DormantAll` 기본, 상태 변화 시 `FlushNetDormancy`.
+- 생물 · 플레이어도 같은 컴포넌트: `State.Wet` 이면 `UGrimDamageExecution` 이 번개 · 얼음 피해를 올린다. `State.Burning` 은 주기 피해 GE 를 ASC 에 적용한다(컴포넌트가 ASC 를 찾아 브리지 — 아직 없음).
 
 ## UI
 
