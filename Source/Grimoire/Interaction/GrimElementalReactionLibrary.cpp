@@ -45,6 +45,7 @@ void FGrimElementalStateArray::SetIntensity(const FGameplayTag& StateTag, float 
 	{
 		if (!FMath::IsNearlyEqual(Existing->Intensity, NewIntensity))
 		{
+			NotifyPreChange();
 			OutChanges.Add({ StateTag, Existing->Intensity, NewIntensity });
 			Existing->Intensity = NewIntensity;
 			MarkItemDirty(*Existing);
@@ -52,6 +53,7 @@ void FGrimElementalStateArray::SetIntensity(const FGameplayTag& StateTag, float 
 		return;
 	}
 
+	NotifyPreChange();
 	FGrimElementalState& Added = Items.AddDefaulted_GetRef();
 	Added.StateTag = StateTag;
 	Added.Intensity = NewIntensity;
@@ -67,9 +69,18 @@ void FGrimElementalStateArray::Remove(const FGameplayTag& StateTag, TArray<FGrim
 	{
 		return;
 	}
+	NotifyPreChange();
 	OutChanges.Add({ StateTag, Items[Index].Intensity, 0.f });
 	Items.RemoveAt(Index);
 	MarkArrayDirty();
+}
+
+void FGrimElementalStateArray::NotifyPreChange()
+{
+	if (Owner)
+	{
+		Owner->HandlePreStateChange();
+	}
 }
 
 // 클라이언트 복제 콜백 → 컴포넌트 델리게이트
@@ -94,9 +105,14 @@ void FGrimElementalState::PostReplicatedChange(const FGrimElementalStateArray& I
 
 void FGrimElementalState::PreReplicatedRemove(const FGrimElementalStateArray& InArray)
 {
+	// 이 콜백은 항목이 배열에서 빠지기 "전"에 불린다. 세기를 먼저 0 으로 두어야
+	// 델리게이트를 받은 연출(RefreshElementalVisuals)이 GetIntensity · Has 로 "꺼짐"을 읽는다.
+	const float OldIntensity = LastNotifiedIntensity;
+	Intensity = 0.f;
+	LastNotifiedIntensity = 0.f;
 	if (InArray.Owner)
 	{
-		InArray.Owner->HandleReplicatedStateChange(StateTag, LastNotifiedIntensity, 0.f);
+		InArray.Owner->HandleReplicatedStateChange(StateTag, OldIntensity, 0.f);
 	}
 }
 

@@ -255,7 +255,9 @@ void UGrimSpellbookComponent::EquipWand(APawn* Pawn)
 		PawnMesh = Pawn->FindComponentByClass<USkeletalMeshComponent>();
 	}
 
-	const FAttachmentTransformRules Rules = FAttachmentTransformRules::KeepRelativeTransform;
+	// Snap: 완드 루트를 소켓 위치 · 회전에 그대로 맞춘다(상대 변환 = 단위). 쥐는 자세는 완드 안의 Grip 이 가진다.
+	// KeepRelativeTransform 으로 붙이면 스폰한 월드 좌표가 그대로 손 기준 오프셋이 되어 완드가 몸에서 떨어진다.
+	const FAttachmentTransformRules Rules = FAttachmentTransformRules::SnapToTargetNotIncludingScale;
 	if (PawnMesh && PawnMesh->DoesSocketExist(SocketName))
 	{
 		Wand->AttachToComponent(PawnMesh, Rules, SocketName);

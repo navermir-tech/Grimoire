@@ -101,11 +101,6 @@ void UGrimElementalStateComponent::CommitChanges(const TArray<FGrimElementalStat
 {
 	if (Changes.Num() > 0)
 	{
-		if (AActor* Owner = GetOwner())
-		{
-			// 사물은 DORM_DormantAll 로 잠들어 있다 → 바뀐 프레임에만 깨워 보낸다.
-			Owner->FlushNetDormancy();
-		}
 		for (const FGrimElementalStateChange& Change : Changes)
 		{
 			OnStateChanged.Broadcast(this, Change.StateTag, Change.OldIntensity, Change.NewIntensity);
@@ -236,6 +231,18 @@ void UGrimElementalStateComponent::PropagateToNeighbors(int32& InOutBudget)
 				break;
 			}
 		}
+	}
+}
+
+void UGrimElementalStateComponent::HandlePreStateChange()
+{
+	// 사물은 DORM_DormantAll 로 잠들어 있다 → 바뀌기 "전"에 깨운다.
+	// 깨울 때 엔진이 지금 값을 클라이언트가 가진 기준으로 삼으므로(UNetConnection::FlushDormancyForObject),
+	// 바꾼 "뒤"에 깨우면 그 변화는 기준에 묻혀 보내지지 않는다 — 원격 클라이언트에서 불이 안 보이던 원인.
+	AActor* Owner = GetOwner();
+	if (Owner && Owner->HasAuthority())
+	{
+		Owner->FlushNetDormancy();
 	}
 }
 

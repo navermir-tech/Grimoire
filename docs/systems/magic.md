@@ -80,7 +80,8 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 `AGrimPlayerState` 의 하위 객체. `BeginPlay` 에서 `OnAbilityActorInfoReady` 를 구독한다(이미 초기화돼 있으면 바로 처리).
 
 - **처음 한 번(서버)**: `Circle = StartingCircle`, `MaxMana = Mana = MaxManaByCircle[서클]`, 마나 회복 `UGrimGE_ManaRegen`(무한 · 1초 주기 `Mana += ManaRegenPerSecond`), 선택 어빌리티 `UGrimSpellSelectAbility` 를 `Input.Spell.Next` · `Input.Spell.Prev` 태그로 두 번, `StartingSpells` 를 `LearnSpell`.
-- **폰이 바뀔 때마다(서버)**: 완드가 없으면 스폰하고 `Owner = 폰`, 폰 스켈레탈 메시의 `WandSocketName`(본 · 소켓 모두)에 `KeepRelativeTransform` 으로 부착. 메시 · 소켓이 없으면 폰 루트. 부착은 완드의 움직임 복제로 클라이언트에 간다.
+- **폰이 바뀔 때마다(서버)**: 완드가 없으면 스폰하고 `Owner = 폰`, 폰 스켈레탈 메시의 `WandSocketName`(본 · 소켓 모두)에 `SnapToTargetNotIncludingScale` 로 부착(완드 루트 = 소켓, 상대 변환 없음). 메시 · 소켓이 없으면 폰 루트. 부착은 완드의 움직임 복제로 클라이언트에 간다.
+  - `KeepRelativeTransform` 을 쓰면 안 된다 — 스폰한 월드 좌표가 그대로 손 기준 오프셋이 되어 완드가 몸에서 떨어진다(M1 통합 때 실제로 난 버그).
 - `LearnSpell(Spell)` — 서클 확인 → `GiveAbility(SourceObject = Spell)` → `KnownSpells` 에 추가(복제). 첫 마법이면 선택.
 - `CycleSelection(±1)` · `SelectSpell(i)` — 선택 Spec 에만 `Input.Spell.Cast` 를 넣고 바뀐 Spec 을 `MarkAbilitySpecDirty`. `SelectedIndex` 복제, `OnSelectedSpellChanged`(서버 · 클라이언트) 로 HUD 갱신.
 - `UGrimSpellSelectAbility` 는 ServerOnly — 입력은 클라이언트, 선택 변경은 서버, 결과는 복제.
@@ -91,7 +92,9 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 ## 완드 `AGrimWand`
 
-- 장비 액터(복제 · 움직임 복제). M1 모양은 엔진 기본 실린더(가늘게), 끝에 `Muzzle` 컴포넌트.
+- 장비 액터(복제 · 움직임 복제). M1 모양은 엔진 기본 실린더(가늘게, 길이 35cm).
+- 컴포넌트: `Root`(Scene, 변환 없음 — 소켓에 그대로 붙는다) → `Grip`(손 안에서 쥐는 자세, +X = 완드 끝) → `Mesh`(회전 · 비균일 스케일은 여기만) · `Muzzle`(Grip 아래 +X 27.5cm). 루트나 Muzzle 의 부모에 스케일을 걸지 않는다 — 자식이 찌그러진다.
+- `Grip` 기본값은 마네킹 `hand_r` 축을 재서 정했다: 손가락 −X, 손바닥 +Y, 엄지 쪽 +Z → 위치 (−9, 3.5, 0), 회전 Pitch 90(완드가 주먹에서 엄지 쪽으로 나옴). 캐릭터 뼈대 · 완드 모양이 바뀌면 블루프린트 자식에서 `Grip` 변환을 고친다. 콘솔 `Grim.Magic.DumpWands [지연초]` 가 부착 부모 · 손에서 떨어진 거리 · 손 공간 축을 찍는다.
 - 보정은 클래스 기본값: `ElementPower`(`TMap<Element, 배율>`, 없으면 1) · `ManaEfficiency`(0~1) · `CastSpeed`(쿨다운을 나눔). 완드 종류는 블루프린트 자식으로 만든다.
 - 나중(▢): `UGrimWandDefinition`(아이템 정의의 하위) · 등급 · 내구도, 장착 시 `GE_WandBonus` 로 어트리뷰트에 싣기.
 
@@ -210,7 +213,10 @@ M1 규칙(11행 — 원본은 CSV):
 ### 성능 · 네트워크 규칙
 
 - 컴포넌트는 **틱하지 않는다**. 시간 제한 상태(젖음 · 풀 불)가 있을 때만 `StateUpdateInterval`(0.25초) 루핑 타이머, 없어지면 끈다. 무한 상태(켜진 양초)만 있으면 타이머도 없다.
-- 사물 액터는 `DORM_DormantAll` 로 시작하고, 상태가 바뀐 프레임에만 컴포넌트가 `FlushNetDormancy` 로 깨워 보낸다. 플레이어 · 생물(휴면 안 함)에 달아도 같은 코드다.
+- 사물 액터는 `DORM_DormantAll` 로 시작하고, 상태가 바뀔 때만 컴포넌트가 `FlushNetDormancy` 로 깨워 보낸다. 플레이어 · 생물(휴면 안 함)에 달아도 같은 코드다.
+- **깨우기는 값을 바꾸기 "전"에 한다.** 엔진은 깨울 때 그 순간의 값을 "클라이언트가 이미 가진 값"으로 삼는다(`UNetConnection::FlushDormancyForObject` 가 현재 상태로 새 복제자를 만든다). 바꾼 뒤에 깨우면 변화가 기준에 묻혀 원격 클라이언트에 영영 가지 않는다 — M1 2인 PIE 에서 "호스트에는 불빛이 보이는데 원격 클라이언트에는 하나도 안 보이던" 원인. 그래서 상태 배열의 `SetIntensity` · `Remove` 가 실제로 바꾸기 직전에 `NotifyPreChange` → 컴포넌트 `HandlePreStateChange` → `FlushNetDormancy` 를 부른다. 접속 전에 바뀐 상태(처음부터 켠 모닥불)는 첫 복제에 실려 가서 이 버그가 가려졌다.
+- 클라이언트 제거 콜백 `PreReplicatedRemove` 는 항목이 배열에서 빠지기 전에 불린다 → 세기를 먼저 0 으로 두고 델리게이트를 부른다(`Has` 도 세기 0 을 없는 것으로 본다). 안 그러면 원격 클라이언트에서 꺼진 불이 계속 보인다.
+- 확인: `Scripts/Integration/net_check.ps1` — 헤드리스 리슨 서버 + 클라이언트를 띄워 서버에서 `Grim.Interaction.Stimulus <속성> <세기> [지연초] [클래스]` 로 점화 · 바람 · 물을 주고, 양쪽 `Grim.Interaction.Dump [지연초]`(상태 · 불꽃 · 빛) 줄이 같은지 본다. 결과 로그는 `Saved/NetCheck/`.
 - 상태를 바꾸는 건 서버뿐(`HasAuthority` 아니면 무시).
 
 ### 날씨 · 생물과의 연결 (통합 이후)

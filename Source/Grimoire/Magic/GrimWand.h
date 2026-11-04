@@ -32,10 +32,18 @@ public:
 	float GetCastSpeed() const { return CastSpeed; }
 
 protected:
+	/** 루트. 손 소켓에 그대로(Snap) 붙으므로 변환이 없다 — 회전 · 스케일은 아래 컴포넌트에 둔다. */
+	UPROPERTY(VisibleAnywhere, Category = "Wand")
+	TObjectPtr<USceneComponent> Root;
+
+	/** 손 안에서 쥐는 자세. +X 가 완드 끝 방향. 완드 종류 · 캐릭터 뼈대가 바뀌면 블루프린트 자식에서 이 컴포넌트의 변환을 고친다. */
+	UPROPERTY(VisibleAnywhere, Category = "Wand")
+	TObjectPtr<USceneComponent> Grip;
+
 	UPROPERTY(VisibleAnywhere, Category = "Wand")
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
-	/** 투사체가 나가는 지점. */
+	/** 투사체가 나가는 지점. 스케일된 메시가 아니라 Grip 아래에 둔다. */
 	UPROPERTY(VisibleAnywhere, Category = "Wand")
 	TObjectPtr<USceneComponent> Muzzle;
 
