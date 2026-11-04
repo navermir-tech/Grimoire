@@ -60,6 +60,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
+	/** 속성 상태(젖음 · 불붙음) — 사물과 같은 규칙표를 쓴다 (R16). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Elemental")
+	TObjectPtr<class UGrimElementalStateComponent> ElementalState;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Camera")
 	TObjectPtr<UCameraComponent> FollowCamera;
 

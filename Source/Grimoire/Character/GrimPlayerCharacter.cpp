@@ -2,6 +2,7 @@
 #include "Core/GrimAbilitySystemComponent.h"
 #include "Core/GrimGameplayTags.h"
 #include "Core/GrimPlayerState.h"
+#include "Interaction/GrimElementalStateComponent.h"
 #include "Grimoire.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
@@ -45,6 +46,8 @@ AGrimPlayerCharacter::AGrimPlayerCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	ElementalState = CreateDefaultSubobject<UGrimElementalStateComponent>(TEXT("ElementalState"));
 
 	// 템플릿 마네킹(Content/Characters). 다른 몸은 BP 자식에서 바꾼다.
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> BodyMesh(TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple"));

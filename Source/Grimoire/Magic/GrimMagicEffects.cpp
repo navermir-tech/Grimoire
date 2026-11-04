@@ -2,6 +2,8 @@
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimMagicTags.h"
 #include "Magic/GrimDamageExecution.h"
+#include "Survival/GrimSurvivalTags.h"
+#include "GameplayEffectComponents/TargetTagRequirementsGameplayEffectComponent.h"
 
 namespace
 {
@@ -50,4 +52,10 @@ UGrimGE_ManaRegen::UGrimGE_ManaRegen()
 	Period = 1.f;
 	bExecutePeriodicEffectOnApplication = false;
 	Modifiers.Add(MakeAddModifier(UGrimMagicAttributeSet::GetManaAttribute(), GrimMagicTags::SetByCaller_ManaRegen));
+
+	// 배고프면 마나 회복이 멈춘다(스펙 생존 표). 태그가 사라지면 다시 돈다.
+	UTargetTagRequirementsGameplayEffectComponent* Requirements =
+		CreateDefaultSubobject<UTargetTagRequirementsGameplayEffectComponent>(TEXT("HungerStopsRegen"));
+	Requirements->OngoingTagRequirements.IgnoreTags.AddTag(GrimSurvivalTags::Status_Hungry);
+	GEComponents.Add(Requirements);
 }

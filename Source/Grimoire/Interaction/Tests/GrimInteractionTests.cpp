@@ -18,7 +18,7 @@
 
 namespace GrimInteractionTest
 {
-	constexpr EAutomationTestFlags Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+	constexpr EAutomationTestFlags GrimInteractionTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
 	FGrimElementalStimulus Stim(const FGameplayTag& Element, float Intensity)
 	{
@@ -103,7 +103,7 @@ namespace GrimInteractionTest
 
 using namespace GrimInteractionTest;
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionReactionTableTest, "Grimoire.Interaction.ReactionTable", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionReactionTableTest, "Grimoire.Interaction.ReactionTable", GrimInteractionTestFlags)
 bool FGrimInteractionReactionTableTest::RunTest(const FString& Parameters)
 {
 	const UDataTable* Table = LoadRepoTable(*this);
@@ -135,7 +135,7 @@ bool FGrimInteractionReactionTableTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionCandleExampleTest, "Grimoire.Interaction.CandleExample", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionCandleExampleTest, "Grimoire.Interaction.CandleExample", GrimInteractionTestFlags)
 bool FGrimInteractionCandleExampleTest::RunTest(const FString& Parameters)
 {
 	FTestObject Candle;
@@ -213,7 +213,7 @@ bool FGrimInteractionCandleExampleTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionDryGrassTest, "Grimoire.Interaction.DryGrassBurnsOut", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionDryGrassTest, "Grimoire.Interaction.DryGrassBurnsOut", GrimInteractionTestFlags)
 bool FGrimInteractionDryGrassTest::RunTest(const FString& Parameters)
 {
 	FTestObject Grass;
@@ -244,7 +244,7 @@ bool FGrimInteractionDryGrassTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionComponentTest, "Grimoire.Interaction.Component", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionComponentTest, "Grimoire.Interaction.Component", GrimInteractionTestFlags)
 bool FGrimInteractionComponentTest::RunTest(const FString& Parameters)
 {
 	FScopedGameWorld TestWorld;
@@ -281,7 +281,7 @@ bool FGrimInteractionComponentTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionPropagationTest, "Grimoire.Interaction.Propagation", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimInteractionPropagationTest, "Grimoire.Interaction.Propagation", GrimInteractionTestFlags)
 bool FGrimInteractionPropagationTest::RunTest(const FString& Parameters)
 {
 	FScopedGameWorld TestWorld;

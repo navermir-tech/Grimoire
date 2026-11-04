@@ -164,6 +164,8 @@ bool FGrimMagicEffectsTest::RunTest(const FString& Parameters)
 		Source->ApplyGameplayEffectSpecToTarget(*Damage.Data.Get(), Target);
 	};
 
+	// 생존 갈래가 Health 를 MaxHealth 로 묶으므로 상한을 먼저 정한다.
+	Target->SetNumericAttributeBase(UGrimVitalAttributeSet::GetMaxHealthAttribute(), 100.f);
 	Target->SetNumericAttributeBase(UGrimVitalAttributeSet::GetHealthAttribute(), 100.f);
 	Target->AddLooseGameplayTag(GrimTags::Element_Fire);
 
