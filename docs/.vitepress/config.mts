@@ -14,6 +14,7 @@ export default defineConfig({
     nav: [
       { text: '스펙', link: '/spec/', activeMatch: '/spec/' },
       { text: '시스템', link: '/systems/', activeMatch: '/systems/' },
+      { text: '아트', link: '/art/costumes-tutorial', activeMatch: '/art/' },
       { text: '개발', link: '/dev/setup', activeMatch: '/dev/' },
     ],
 
@@ -47,6 +48,14 @@ export default defineConfig({
             { text: '월드 · 멀티플레이 · 세이브', link: '/systems/world-multiplayer' },
             { text: '로드맵 · 리스크', link: '/systems/roadmap' },
             { text: 'M1 작업 분할', link: '/systems/m1-plan' },
+          ],
+        },
+      ],
+      '/art/': [
+        {
+          text: '아트 디자인',
+          items: [
+            { text: '마법사 의상 — 튜토리얼 NPC 시안', link: '/art/costumes-tutorial' },
           ],
         },
       ],

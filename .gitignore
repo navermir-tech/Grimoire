@@ -58,3 +58,7 @@ docs/.vitepress/cache/
 
 # Claude Code 병렬 세션 워크트리
 .claude/worktrees/
+
+# 그림 작업 원본 · 로그 (codex 산출물, 다시 만들 수 있다)
+art/**/raw/
+art/**/logs/
