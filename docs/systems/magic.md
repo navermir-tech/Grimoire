@@ -18,41 +18,82 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 ## 마법 정의 `UGrimSpellDefinition`
 
-```cpp
-UCLASS()
-class UGrimSpellDefinition : public UPrimaryDataAsset
-{
-	FText Name, Description;
-	UTexture2D* Icon;
-	FGameplayTag Element;                    // Element.Fire …
-	int32 Circle;                            // 1~10
-	TSubclassOf<UGrimSpellAbility> AbilityClass;
-	float ManaCost, Cooldown, CastTime;
-	EGrimSpellDelivery Delivery;             // Projectile · Beam · Area · Self · Touch
-	TSubclassOf<AActor> ProjectileClass;
-	TSubclassOf<UGameplayEffect> ImpactEffect;
-	FGrimElementalStimulus Stimulus;         // 사물에 주는 속성 자극(종류 · 세기)
-	FPrimaryAssetId SkillbookItem;           // 이 마법을 가르치는 스킬북
-};
-```
+`Source/Grimoire/Magic/GrimSpellDefinition.h` — `UPrimaryDataAsset`, Asset Manager 타입 `Spell`.
 
-- Asset Manager 타입 `Spell`. 콘텐츠를 넣는 쪽은 `DA_Spell_Fireball` 같은 에셋만 추가하면 마법이 생긴다.
-- `AbilityClass` 는 대부분 공용(`GA_Spell_Projectile`, `GA_Spell_Beam` …)이고, 특수 마법만 전용 블루프린트.
+| 속성 | 뜻 |
+|---|---|
+| `DisplayName` · `Description` · `Icon` | 표시용 |
+| `SpellTag` | `Spell.*` 이름 태그. 피해 GE 의 에셋 태그로 붙는다 |
+| `Element` | 공격 속성 `Element.*` — 상성 계산 |
+| `Circle` | 필요 서클 1~10. 배울 때 · 시전할 때 확인 |
+| `AbilityClass` | 비우면 공용 `UGrimSpellAbility` |
+| `ManaCost` · `Cooldown` · `CooldownTag` · `CastTime` | 비용 · 쿨다운(`Cooldown.Spell.*`, 마법마다 달라야 서로 막지 않음) · 시전 지연 |
+| `Delivery` | `Projectile` · `Beam`(M1). Area · Self · Touch 는 나중에 |
+| `ProjectileClass` · `ProjectileSpeed` · `Radius` · `Range` | 비우면 `AGrimSpellProjectile`. 광선은 `Radius` 구 스윕 |
+| `Damage` · `ImpactEffect` | 기본 피해(0 이면 피해 없음). 비우면 `UGrimGE_SpellDamage` |
+| `Stimulus` | 사물에 주는 속성 자극 `FGrimElementalStimulus`(속성 · 세기 · 출처) |
+| `Color` | 투사체 색(엔진 기본 구 + `BasicShapeMaterial` 의 `Color`) |
+
+- 에셋 `Content/Grimoire/Magic/Spells/DA_Spell_*` 은 `Scripts/Magic/make_spells.py` 가 만든다 — **스크립트가 수치의 정본**이다.
+- 하나의 `UGrimSpellAbility` 클래스가 여러 마법을 낸다: 마법서가 `GiveAbility` 할 때 Spec 의 `SourceObject` 에 정의를 넣고, 어빌리티는 Spec 에서 정의를 꺼낸다.
+
+### M1 마법 (스펙 「제안」값)
+
+| 에셋 | 마법 | 속성 | 전달 | 마나 | 쿨다운 | 피해 | 자극 세기 | 사거리 |
+|---|---|---|---|---|---|---|---|---|
+| `DA_Spell_Ember` | 불씨 | 불 | 투사체 1800cm/s, 반지름 12 | 10 | 1.0s | 10 | 1.0 | 25m |
+| `DA_Spell_WaterJet` | 물줄기 | 물 | 투사체 2400cm/s, 반지름 15 | 8 | 0.6s | 6 | 1.0 | 18m |
+| `DA_Spell_Breeze` | 미풍 | 바람 | 광선(구 스윕 반지름 40) | 6 | 0.8s | 3 | 1.0 | 12m |
+
+미풍 세기 1.0 은 양초 규칙(바람 0.3 이상 키움, 2.5 이상 꺼짐)의 "키움" 구간이다.
+
+## 수치 설정 `UGrimMagicSettings`
+
+`Config/DefaultGame.ini` 의 `[/Script/Grimoire.GrimMagicSettings]`(프로젝트 설정 > Game > Grimoire Magic).
+
+| 키 | M1 값 |
+|---|---|
+| `StartingSpells` | 불씨 · 물줄기 · 미풍 |
+| `StartingWandClass` · `WandSocketName` | `AGrimWand` · `hand_r` |
+| `StartingCircle` · `MaxManaByCircle` | 1 · 100 / 130 / 160 / 200 / 250 / 300 / 360 / 430 / 510 / 600 |
+| `ManaRegenPerSecond` | 2 |
+| `bFriendlyFire` | false — 플레이어끼리는 피해 없음(속성 자극은 준다) |
+| `DefaultAffinity` · `ElementAffinities` | 1.0 · 상성 표(아래) |
 
 ## 시전 흐름
 
-1. 입력(Enhanced Input `IA_Cast`) → `AGrimPlayerCharacter` 가 현재 슬롯의 마법 태그로 `ASC->TryActivateAbilitiesByTag`.
-2. `UGrimSpellAbility::ActivateAbility`(예측 가능): 완드 확인(`AGrimWand` 장착 없으면 실패 — Q4), 비용 · 쿨다운 체크, 시전 몽타주 재생, `CastTime` 뒤 `Deliver()`.
-3. `Deliver()` — 서버: 투사체 스폰 / 라인 트레이스 / 범위 쿼리 → 맞은 대상마다 **두 가지**를 한다:
-   - ASC 가 있으면 `ImpactEffect` 적용(피해 · 상태). `UGrimDamageExecution` 이 상성 · 완드 · 서클 보정을 계산.
-   - `UGrimElementalStateComponent` 가 있으면 `ApplyStimulus(Stimulus, Instigator)` 호출 → 반응 규칙.
-4. 클라이언트: 투사체는 예측 스폰하지 않고 서버 스폰 복제 + 로컬 머즐 이펙트만 즉시(체감 지연 줄이기).
+1. 입력: 캐릭터가 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.Cast)`. **선택된 마법 Spec 만** `Input.Spell.Cast` 를 동적 태그로 가지므로 그 마법만 발동한다.
+2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
+   - `CanActivateAbility` — 정의 있음 · 완드 있음(맨손 시전 없음, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
+   - `CommitAbility` — 비용 `UGrimGE_SpellCost`(즉시, `Mana += SetByCaller.Magic.ManaCost`), 쿨다운 `UGrimGE_SpellCooldown`(지속 `SetByCaller.Magic.Cooldown` 초, `CooldownTag` 를 Spec 의 `DynamicGrantedTags` 로). 클라이언트도 예측 적용한다.
+   - 완드 보정: 비용 = `ManaCost × (1 − ManaEfficiency)`, 쿨다운 = `Cooldown ÷ CastSpeed`(`GrimMagicMath`).
+   - `CastTime` > 0 이면 `WaitDelay` 뒤, 아니면 바로 `Deliver()`.
+3. `Deliver()` — **서버만**. 조준점 = 플레이어 시점(`GetPlayerViewPoint`)에서 `Range` 앞으로 Visibility 트레이스한 점. 완드 `Muzzle` 에서 그쪽으로:
+   - 투사체: `AGrimSpellProjectile` 스폰(복제 · 위치 복제, 클라이언트 예측 스폰 없음). 지형 · 사물(WorldStatic/Dynamic)에 막히고 폰 · 물리체는 겹쳐 맞는다. 시전자는 무시. 수명 = `Range ÷ ProjectileSpeed`.
+   - 광선: 구 스윕(`SweepMultiByObjectType`) — 폰 · 물리체는 지나가며 맞히고, 첫 지형 · 사물에서 멈춘다. 연출 없음(바람이라 보이지 않는다 — M2 에서 Niagara).
+4. 맞은 대상마다 `UGrimSpellAbility::ApplySpellHit`:
+   - 대상 ASC(액터 → 폰이면 PlayerState 순으로 찾음)가 있으면 피해 GE 적용. 피해 Spec 은 `SetByCaller.Magic.Damage = Damage × 완드 속성 위력` 과 에셋 태그 `Element.*` · `Spell.*` 를 가진다.
+   - `UGrimElementalStatics::ApplyStimulusToActor(대상, Stimulus, 시전 폰)` — 받는 쪽(`IGrimElementalReceiver`)이 있으면 반응 규칙. Magic 은 구현체를 모른다.
+
+## 마법서 `UGrimSpellbookComponent`
+
+`AGrimPlayerState` 의 하위 객체. `BeginPlay` 에서 `OnAbilityActorInfoReady` 를 구독한다(이미 초기화돼 있으면 바로 처리).
+
+- **처음 한 번(서버)**: `Circle = StartingCircle`, `MaxMana = Mana = MaxManaByCircle[서클]`, 마나 회복 `UGrimGE_ManaRegen`(무한 · 1초 주기 `Mana += ManaRegenPerSecond`), 선택 어빌리티 `UGrimSpellSelectAbility` 를 `Input.Spell.Next` · `Input.Spell.Prev` 태그로 두 번, `StartingSpells` 를 `LearnSpell`.
+- **폰이 바뀔 때마다(서버)**: 완드가 없으면 스폰하고 `Owner = 폰`, 폰 스켈레탈 메시의 `WandSocketName`(본 · 소켓 모두)에 `KeepRelativeTransform` 으로 부착. 메시 · 소켓이 없으면 폰 루트. 부착은 완드의 움직임 복제로 클라이언트에 간다.
+- `LearnSpell(Spell)` — 서클 확인 → `GiveAbility(SourceObject = Spell)` → `KnownSpells` 에 추가(복제). 첫 마법이면 선택.
+- `CycleSelection(±1)` · `SelectSpell(i)` — 선택 Spec 에만 `Input.Spell.Cast` 를 넣고 바뀐 Spec 을 `MarkAbilitySpecDirty`. `SelectedIndex` 복제, `OnSelectedSpellChanged`(서버 · 클라이언트) 로 HUD 갱신.
+- `UGrimSpellSelectAbility` 는 ServerOnly — 입력은 클라이언트, 선택 변경은 서버, 결과는 복제.
+
+## 마법 어트리뷰트 `UGrimMagicAttributeSet`
+
+`Mana` · `MaxMana` · `Circle`(복제). `Mana` 는 현재값 · 기본값 모두 `[0, MaxMana]` 로 자르고, `MaxMana` 가 줄면 `Mana` 도 줄인다. `CastSpeed` · `SpellPower` · 속성별 위력 어트리뷰트는 아직 없다 — 완드 보정은 완드 액터 값을 직접 읽는다.
 
 ## 완드 `AGrimWand`
 
-- 장비 액터. 손 소켓에 부착, `MuzzleSocket` 에서 투사체가 나간다.
-- 데이터 `UGrimWandDefinition`(아이템 정의의 하위): 속성 친화(`TMap<FGameplayTag, float>` 위력 보정), 시전 속도, 마나 효율, 등급, 내구도(▢).
-- 장착 시 ASC 에 `GE_WandBonus`(무한 지속, 장착 해제 시 제거)로 보정을 어트리뷰트에 싣는다 → 피해 계산이 자연스럽게 반영.
+- 장비 액터(복제 · 움직임 복제). M1 모양은 엔진 기본 실린더(가늘게), 끝에 `Muzzle` 컴포넌트.
+- 보정은 클래스 기본값: `ElementPower`(`TMap<Element, 배율>`, 없으면 1) · `ManaEfficiency`(0~1) · `CastSpeed`(쿨다운을 나눔). 완드 종류는 블루프린트 자식으로 만든다.
+- 나중(▢): `UGrimWandDefinition`(아이템 정의의 하위) · 등급 · 내구도, 장착 시 `GE_WandBonus` 로 어트리뷰트에 싣기.
 
 ## 스킬북 · 배우기
 
@@ -68,8 +109,18 @@ class UGrimSpellDefinition : public UPrimaryDataAsset
 
 ## 속성 태그 · 상성 표
 
-- `Config/Tags/Element.ini` 에 `Element.Water / Fire / Wind / Earth / Light / Dark`.
-- 상성은 `DT_ElementAffinity`(행: 공격 속성, 열: 대상 속성, 값: 배율). 기본값은 스펙의 제안(순환 ×1.5 / ×0.75, 빛 ↔ 어둠 ×1.5, 그 외 ×1.0). 표만 바꾸면 밸런스가 바뀐다(Q2 · Q3).
+- 속성 태그 `Element.Water / Fire / Wind / Earth / Light / Dark` 는 `Core/GrimGameplayTags`(네이티브). Magic 전용 태그(`SetByCaller.Magic.*` · `Cooldown.Spell.*` · `Spell.*`)는 `Magic/GrimMagicTags`.
+- 피해 계산 `UGrimDamageExecution`(`UGrimGE_SpellDamage` 의 실행): `Health −= SetByCaller.Magic.Damage × 상성(공격 속성, 대상 속성)`. 공격 속성 = Spec 에셋 태그의 `Element.*`, 대상 속성 = 대상 ASC 태그의 `Element.*`(없으면 무속성 ×1).
+- 상성 표는 `UGrimMagicSettings::ElementAffinities`(ini). 표만 바꾸면 밸런스가 바뀐다(Q2 · Q3). 현재 값(스펙 제안):
+
+| 공격 → 대상 | 배율 |
+|---|---|
+| 물 → 불 · 불 → 바람 · 바람 → 땅 · 땅 → 물 | ×1.5 |
+| 불 → 물 · 바람 → 불 · 땅 → 바람 · 물 → 땅 | ×0.75 |
+| 빛 → 어둠 · 어둠 → 빛 | ×1.5 |
+| 그 외(같은 속성 포함) | ×1.0 (`DefaultAffinity`) |
+
+- 테스트: `Grimoire.Magic.Affinity` · `Grimoire.Magic.Cost` · `Grimoire.Magic.Effects`(GE 실제 적용) · `Grimoire.Magic.StartingSpells`(에셋 값) — `Source/Grimoire/Magic/Tests/`.
 
 ## 속성 상호작용 엔진 (R16)
 
@@ -127,3 +178,5 @@ class UGrimSpellDefinition : public UPrimaryDataAsset
 ## M1 범위
 
 불씨 · 물줄기 · 미풍 3개 마법, 완드 1종, 양초 · 모닥불 · 마른 풀 3개 사물, 반응 규칙표 10행, 상성 표. 서클 UI 는 숫자만.
+
+아직 없는 것: 시전 몽타주 · 머즐 이펙트 · 광선 연출, 그리모어 UI, 스킬북 아이템, 완드 정의 데이터 · 장착 해제, 서클 승급.
