@@ -4,6 +4,7 @@
 #include "Survival/GrimSurvivalTags.h"
 #include "Survival/GrimSurvivalTickEffect.h"
 #include "Survival/GrimVitalAttributeSet.h"
+#include "Core/Cheats/GrimCheatTags.h"
 #include "Core/GrimElementalTypes.h"
 #include "Core/GrimGameplayTags.h"
 #include "Core/GrimPlayerState.h"
@@ -313,5 +314,10 @@ void UGrimSurvivalComponent::DrawDebug(UCanvas* Canvas, APlayerController* Playe
 		Canvas->SetDrawColor(FColor::White);
 		Canvas->DrawText(Font, Line, 40.f, Y);
 		Y += 20.f;
+	}
+	if (ASC->HasMatchingGameplayTag(GrimCheatTags::Cheat_Super))
+	{
+		Canvas->SetDrawColor(FColor::Yellow);
+		Canvas->DrawText(Font, TEXT("CHEAT Super ON"), 40.f, Y);
 	}
 }

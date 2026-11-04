@@ -66,6 +66,7 @@ export default defineConfig({
             { text: '시작하기', link: '/dev/setup' },
             { text: '규칙 · 명명', link: '/dev/conventions' },
             { text: '문서 사이트 · 배포', link: '/dev/docs-site' },
+            { text: '테스트 치트', link: '/dev/cheats' },
           ],
         },
       ],
