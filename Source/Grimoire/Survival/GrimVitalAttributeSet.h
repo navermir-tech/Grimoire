@@ -6,7 +6,10 @@
 #include "Core/GrimAttributeMacros.h"
 #include "GrimVitalAttributeSet.generated.h"
 
-/** 생존 어트리뷰트 (R03). 플레이어 · 생물 공용. 초기값 · 클램프 · 주기 감소는 Survival 시스템이 채운다. */
+/**
+ * 생존 어트리뷰트 (R03). 플레이어 · 생물 공용.
+ * 클램프 범위는 UGrimSurvivalSettings, 초기값 · 주기 변화는 UGrimSurvivalComponent 가 서버에서 넣는다.
+ */
 UCLASS()
 class GRIMOIRE_API UGrimVitalAttributeSet : public UAttributeSet
 {
@@ -16,6 +19,8 @@ public:
 	UGrimVitalAttributeSet();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Vital", ReplicatedUsing = OnRep_Health)
 	FGameplayAttributeData Health;
@@ -36,6 +41,9 @@ public:
 	GRIM_ATTRIBUTE_ACCESSORS(UGrimVitalAttributeSet, BodyTemperature)
 
 protected:
+	/** Health 0~MaxHealth, MaxHealth ≥ 1, Hunger 0~MaxHunger, BodyTemperature Min~Max(설정). */
+	void ClampAttribute(const FGameplayAttribute& Attribute, float& NewValue) const;
+
 	UFUNCTION()
 	void OnRep_Health(const FGameplayAttributeData& OldValue);
 
