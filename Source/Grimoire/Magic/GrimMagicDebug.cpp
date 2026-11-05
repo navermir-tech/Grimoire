@@ -21,7 +21,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogGrimMagicDebug, Log, All);
 
-namespace
+namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의 같은 이름 도우미와 부딪히지 않게 이름을 붙인다
 {
 	const TCHAR* NetModeName(const UWorld* World)
 	{
