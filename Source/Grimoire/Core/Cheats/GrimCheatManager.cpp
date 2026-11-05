@@ -1,5 +1,7 @@
 #include "Core/Cheats/GrimCheatManager.h"
 #include "Character/GrimPlayerController.h"
+#include "Appearance/GrimCharacterCreatorWidget.h"
+#include "Appearance/GrimPlayerAppearanceComponent.h"
 
 void UGrimCheatManager::GrimSuperCheat(int32 bEnable)
 {
@@ -7,5 +9,19 @@ void UGrimCheatManager::GrimSuperCheat(int32 bEnable)
 	if (AGrimPlayerController* PlayerController = Cast<AGrimPlayerController>(GetOuterAPlayerController()))
 	{
 		PlayerController->Server_SetSuperCheat(bEnable != 0);
+	}
+}
+
+void UGrimCheatManager::GrimCreator()
+{
+	UGrimCharacterCreatorWidget::Open(GetOuterAPlayerController());
+}
+
+void UGrimCheatManager::GrimAppearanceRandom(const FString& Seed)
+{
+	// 서버 RPC 는 UGrimPlayerAppearanceComponent(PlayerState) 에 있다 — 호스트면 그 자리에서
+	if (UGrimPlayerAppearanceComponent* Appearance = UGrimPlayerAppearanceComponent::FindForController(GetOuterAPlayerController()))
+	{
+		Appearance->RequestRandomize(FCString::Atoi(*Seed));
 	}
 }

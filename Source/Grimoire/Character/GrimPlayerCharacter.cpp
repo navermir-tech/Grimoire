@@ -3,6 +3,7 @@
 #include "Core/GrimGameplayTags.h"
 #include "Core/GrimPlayerState.h"
 #include "Interaction/GrimElementalStateComponent.h"
+#include "Appearance/GrimAppearanceComponent.h"
 #include "Magic/GrimFistAbility.h"
 #include "Magic/GrimProficiencySettings.h"
 #include "Magic/GrimSpellbookComponent.h"
@@ -69,6 +70,9 @@ AGrimPlayerCharacter::AGrimPlayerCharacter()
 	FollowCamera->SetFieldOfView(85.f);
 
 	ElementalState = CreateDefaultSubobject<UGrimElementalStateComponent>(TEXT("ElementalState"));
+
+	// 외형(R38): 정본은 PlayerState 의 UGrimPlayerAppearanceComponent — 서버가 여기에 넣고 복제한다
+	Appearance = CreateDefaultSubobject<UGrimAppearanceComponent>(TEXT("Appearance"));
 
 	// 템플릿 마네킹(Content/Characters). 다른 몸은 BP 자식에서 바꾼다.
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> BodyMesh(TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny_Simple.SKM_Manny_Simple"));

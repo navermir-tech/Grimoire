@@ -137,6 +137,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Elemental")
 	TObjectPtr<class UGrimElementalStateComponent> ElementalState;
 
+	/** 외형 조립 — 몸 · 얼굴 · 옷 조각 (R38, docs/systems/customization) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Appearance")
+	TObjectPtr<class UGrimAppearanceComponent> Appearance;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Camera")
 	TObjectPtr<UCameraComponent> FollowCamera;
 

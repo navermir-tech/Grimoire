@@ -40,9 +40,28 @@
 
 생물은 서식 구역(수백 m)에 무리로 기록만 되어 있다가 **플레이어 60m 안**에 들어오면 나온다(설정 `Ecosystem.SpawnRadius`). 구역 한가운데에 서도 무리가 멀면 아무것도 안 보인다 — `Grim.Creature.Mark 1` 의 노란 기둥을 따라가거나 `Grim.Go <종>` 을 쓴다.
 
+## 캐릭터 외형
+
+[커스터마이징](../spec/customization) (R38) 확인용. 코드는 `Source/Grimoire/Appearance/`, 표는 `Content/Grimoire/Data/Appearance/*.csv`.
+
+| 명령 | 어디서 | 효과 |
+|---|---|---|
+| `GrimCreator` | 누구나(자기 콘솔) | 캐릭터 생성 화면을 연다. 고르는 동안은 내 화면에만 보이고, 「확인」하면 서버가 검사해 모두에게 보인다. Esc · 「취소」 = 되돌림 |
+| `GrimAppearanceRandom [씨앗]` | 누구나 | 친 사람 외형을 무작위 견습생 한 벌로(서버). 씨앗을 주면 늘 같은 한 벌 |
+| `Grim.Appearance.Lineup <규칙> [수=5] [씨앗=1]` | 서버 | 첫 플레이어 5m 앞에 규칙대로 사람을 줄 세운다. 인자 없이 치면 규칙 목록. 예: `Grim.Appearance.Lineup Tower_Examiner 3` |
+| `Grim.Appearance.Randomize [씨앗]` | 서버 | 모든 플레이어 외형을 무작위로(씨앗 + 순번) |
+| `Grim.Appearance.Dump` | 아무 데나 | 외형마다 열쇠(플레이어 이름 · 규칙#씨앗) · 해시 · 조각 수 · 고리 수를 로그(`LogGrimAppearance`)에 |
+| `Grim.Appearance.Reload` | 아무 데나 | 외형 CSV 를 다시 읽고 월드의 외형을 다시 조립한다 — 자리 표시 오프셋을 고치며 볼 때 |
+
+- 규칙: `Player_Start`(플레이어 시작) · `Tower_Apprentice` · `Tower_Instructor` · `Tower_Librarian` · `Tower_Examiner`.
+- 지금 옷 · 머리는 엔진 기본 도형 자리 표시다. 서클 고리는 스톨 오른쪽 띠의 작은 원판 — 서클이 오르면 하나씩 는다.
+- 2인 복제 확인: `powershell -File Scripts\Character\net_check_appearance.ps1 [-Start 35]` → 끝에 `PASS` / `FAIL`. 다른 에디터가 여럿 떠 있어 맵이 늦게 뜨면 `-Start 90`.
+
 ## 테스트
 
 `Grimoire.Cheat.Super`(`Source/Grimoire/Core/Cheats/Tests/`) — 켜면 최대로 고정(비용 · 감소 뒤에도), 상태 태그 해제, MaxHealth 변화 추종, 끄면 최대에서 감소 재개.
+
+`Grimoire.Appearance.*`(`Source/Grimoire/Appearance/Tests/`) — 표 읽기, 저장 · 복제 직렬화 왕복, NPC 씨앗 결정성, 서버 검사(Sanitize), 조립(고리 수 · 미리보기 · 체형).
 
 ```powershell
 # 에디터 없이 전체 자동화 테스트

@@ -39,6 +39,7 @@
 |---|---|
 | `Source/Grimoire/Core` | 게임 모드 · 상태 · 플레이어 상태 · ASC · 공용 태그 · 속성 자극 인터페이스 |
 | `Source/Grimoire/Character` | 플레이어 캐릭터 · 컨트롤러 · 입력 |
+| `Source/Grimoire/Appearance` | 외형(커스터마이징) — 카탈로그 · 조립 · NPC 생성 · 생성 화면 ([커스터마이징](./customization)) |
 | `Source/Grimoire/Magic` | 마법 어트리뷰트 · 마법 정의 · 완드 · 시전 어빌리티 · 상성 |
 | `Source/Grimoire/Interaction` | 속성 상태 컴포넌트 · 반응 규칙 · 상호작용 사물 |
 | `Source/Grimoire/Survival` | 생존 어트리뷰트 · 주기 효과 · 체온 |
