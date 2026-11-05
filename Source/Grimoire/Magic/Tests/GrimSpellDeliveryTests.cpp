@@ -259,4 +259,23 @@ bool FGrimDeliveryStartingSpellsTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDeliveryZoomAimTest, "Grimoire.Magic.Delivery.ZoomAim", GrimDeliveryTestFlags)
+bool FGrimDeliveryZoomAimTest::RunTest(const FString& Parameters)
+{
+	// 줌인 조준(R24)은 대상이 있어도 따라가지 않는다 — 겨눈 지점으로 곧게.
+	AActor* Dummy = NewObject<AActor>();
+	FGrimAimResult Aim;
+	Aim.Target = Dummy;
+	Aim.Mode = EGrimAimMode::Soft;
+	TestTrue(TEXT("소프트 락온은 대상을 따라간다"), UGrimSpellAbility::FollowsTarget(Aim));
+	Aim.Mode = EGrimAimMode::Locked;
+	TestTrue(TEXT("고정 락온은 대상을 따라간다"), UGrimSpellAbility::FollowsTarget(Aim));
+	Aim.Mode = EGrimAimMode::Zoom;
+	TestFalse(TEXT("줌인 조준은 따라가지 않는다"), UGrimSpellAbility::FollowsTarget(Aim));
+	Aim.Target = nullptr;
+	Aim.Mode = EGrimAimMode::Free;
+	TestFalse(TEXT("대상이 없으면 따라가지 않는다"), UGrimSpellAbility::FollowsTarget(Aim));
+	return true;
+}
+
 #endif

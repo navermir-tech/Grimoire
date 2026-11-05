@@ -661,6 +661,12 @@ FGrimAimResult UGrimSpellAbility::ComputeViewAim(const UGrimSpellDefinition* Def
 	return Aim;
 }
 
+bool UGrimSpellAbility::FollowsTarget(const FGrimAimResult& Aim)
+{
+	// 줌인 조준은 대상이 조준점 아래에 있어도 따라가지 않는다 — 유도 없이 겨눈 곳으로 곧게(R24).
+	return Aim.HasTarget() && Aim.Mode != EGrimAimMode::Zoom;
+}
+
 bool UGrimSpellAbility::ValidateClientAim(const UGrimSpellDefinition* Definition, FGrimAimResult& InOutAim) const
 {
 	const APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
@@ -690,9 +696,9 @@ bool UGrimSpellAbility::ValidateClientAim(const UGrimSpellDefinition* Definition
 			InOutAim.TargetKind = EGrimTargetKind::None;
 			InOutAim.Mode = EGrimAimMode::Free;
 		}
-		else
+		else if (InOutAim.Mode != EGrimAimMode::Zoom)
 		{
-			InOutAim.AimPoint = TargetPoint;
+			InOutAim.AimPoint = TargetPoint; // 줌인 조준은 겨눈 「바로 그 지점」을 그대로 쓴다(R24)
 		}
 	}
 	return true;
@@ -707,8 +713,8 @@ GrimSpellDelivery::FLaunch UGrimSpellAbility::ComputeLaunch(const UGrimSpellDefi
 	const FVector PawnLocation = Pawn ? Pawn->GetActorLocation() : FVector::ZeroVector;
 	const FVector Muzzle = Wand ? Wand->GetMuzzleTransform().GetLocation() : PawnLocation;
 	const FVector Chest = PawnLocation + FVector(0.f, 0.f, Settings->ChestHeight);
-	// 대상이 있으면 지금 대상 위치(Windup 동안 움직였을 수 있다).
-	const FVector AimPoint = Aim.HasTarget() ? GetTargetPointOf(Aim.Target.Get()) : Aim.AimPoint;
+	// 대상이 있으면 지금 대상 위치(Windup 동안 움직였을 수 있다). 줌인 조준은 겨눈 지점 그대로(R24).
+	const FVector AimPoint = FollowsTarget(Aim) ? GetTargetPointOf(Aim.Target.Get()) : Aim.AimPoint;
 
 	FVector ViewDirection = (AimPoint - Aim.ViewOrigin).GetSafeNormal();
 	if (ViewDirection.IsNearlyZero() && Pawn)
@@ -757,7 +763,7 @@ void UGrimSpellAbility::DeliverBolt(const UGrimSpellDefinition* Definition, AGri
 	{
 		return;
 	}
-	Projectile->InitSpell(Definition, GetAbilitySystemComponentFromActorInfo(), DamageSpec, Definition->HomingStrength > 0.f ? Aim.Target.Get() : nullptr);
+	Projectile->InitSpell(Definition, GetAbilitySystemComponentFromActorInfo(), DamageSpec, Definition->HomingStrength > 0.f && FollowsTarget(Aim) ? Aim.Target.Get() : nullptr);
 	Projectile->FinishSpawning(SpawnTransform);
 	Projectile->CatchUp(AdvanceSeconds);
 }
@@ -780,7 +786,7 @@ void UGrimSpellAbility::SpawnFakeBolt()
 	{
 		return;
 	}
-	Fake->InitFake(Definition, Definition->HomingStrength > 0.f ? CastAim.Target.Get() : nullptr);
+	Fake->InitFake(Definition, Definition->HomingStrength > 0.f && FollowsTarget(CastAim) ? CastAim.Target.Get() : nullptr);
 	Fake->FinishSpawning(SpawnTransform);
 	UE_LOG(LogGrimMagic, Display, TEXT("[Client] %s 가짜 볼트 발사 %s → %s"), *Definition->GetName(), *Launch.Start.ToCompactString(), *Launch.Direction.ToCompactString());
 }
@@ -1013,7 +1019,7 @@ void UGrimSpellAbility::StreamTick()
 	}
 
 	const GrimSpellDelivery::FLaunch Launch = ComputeLaunch(Definition, CastAim);
-	const FVector AimPoint = CastAim.HasTarget() ? GetTargetPointOf(CastAim.Target.Get()) : CastAim.AimPoint;
+	const FVector AimPoint = FollowsTarget(CastAim) ? GetTargetPointOf(CastAim.Target.Get()) : CastAim.AimPoint;
 
 	TArray<FVector> Points;
 	TArray<FHitResult> Hits;

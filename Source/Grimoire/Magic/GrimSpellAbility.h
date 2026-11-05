@@ -62,6 +62,9 @@ public:
 	 * Stream 포물선을 월드에서 따라간다 — 서버 판정과 연출(MagicFX)이 같은 모양을 쓰도록 공개.
 	 * OutPoints = 실제로 지나간 점들(막힌 곳에서 끝), OutHits = 구간 스윕에 걸린 것(가까운 순, 액터 중복 제거). 막혀 끝났으면 true.
 	 */
+	/** 조준 결과가 대상을 따라가야 하나(대상 있음 · 줌인 조준 아님). 유도 · 조준점 덮어쓰기에 쓴다. */
+	static bool FollowsTarget(const FGrimAimResult& Aim);
+
 	static bool TraceStreamArc(const UWorld* World, const UGrimSpellDefinition* Definition, const FVector& Start, const FVector& AimPoint, const AActor* IgnoreActor, TArray<FVector>& OutPoints, TArray<FHitResult>* OutHits);
 
 	/** 완드 보정까지 넣은 마나 비용. */
