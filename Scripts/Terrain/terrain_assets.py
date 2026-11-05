@@ -43,6 +43,19 @@ LANDMARK_COLORS = {
     "Dirt": ("MI_Terrain_Dirt", (0.16, 0.10, 0.05)),
     "Bone": ("MI_Terrain_Bone", (0.75, 0.72, 0.65)),
     "Herb": ("MI_Terrain_Herb", (0.15, 0.35, 0.06)),
+    # 마탑 구간(docs/dev/level-design.md 「7」): 부유석 · POI 종류 블록 · 공사 중 표시
+    "FloatRock": ("MI_Terrain_FloatRock", (0.26, 0.24, 0.30)),
+    "ManaGlow": ("MI_Terrain_ManaGlow", (0.35, 0.70, 1.00)),
+    "KindPuzzle": ("MI_Terrain_KindPuzzle", (0.85, 0.28, 0.02)),
+    "KindResource": ("MI_Terrain_KindResource", (0.10, 0.55, 0.06)),
+    "KindCreature": ("MI_Terrain_KindCreature", (0.55, 0.08, 0.05)),
+    "KindRuin": ("MI_Terrain_KindRuin", (0.40, 0.34, 0.55)),
+    "KindViewpoint": ("MI_Terrain_KindViewpoint", (0.95, 0.78, 0.08)),
+    "KindStory": ("MI_Terrain_KindStory", (0.12, 0.42, 0.80)),
+    "KindBaseSite": ("MI_Terrain_KindBaseSite", (0.05, 0.16, 0.75)),
+    "KindDungeon": ("MI_Terrain_KindDungeon", (0.22, 0.05, 0.32)),
+    "Warning": ("MI_Terrain_Warning", (0.95, 0.50, 0.02)),
+    "WarningDark": ("MI_Terrain_WarningDark", (0.02, 0.02, 0.02)),
 }
 
 

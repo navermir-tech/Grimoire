@@ -56,6 +56,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
 	static bool ExportPreviewImage(const FString& FilePath, int32 Downsample = 4);
 
+	/**
+	 * 한 구역을 크게 본 미리보기(PNG, 북쪽이 위): 높이 색 + 음영 + 등고선(ContourStep m 마다) + 물 · 길 + 구간 경계(빨간 선) ·
+	 * 랜드마크(큰 점) · POI(작은 점) · 언덕 가운데(검은 점). 마탑 구간처럼 작은 언덕이 촘촘한 곳을 사람이 확인할 때
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
+	static bool ExportRegionPreviewImage(const FString& FilePath, FVector2D MapMin, FVector2D MapMax, float MetersPerPixel = 1.f, float ContourStep = 2.f);
+
 	/** 랜드스케이프 레이어 정보 에셋(무게 섞지 않음 — 레이어마다 따로 0~1) */
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
 	static UObject* CreateLayerInfoAsset(const FString& PackagePath, FName LayerName, FLinearColor DebugColor);

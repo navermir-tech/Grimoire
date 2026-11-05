@@ -1,5 +1,5 @@
 {
-  "_comment": "오픈 베타 지역 1(마법탑 · 온난 지대) 레이아웃 — 지형 다시 만들기(docs/dev/level-design.md 「6」). 구조체 FGrimTerrainLayout(Source/Grimoire/World/GrimTerrainTypes.h)의 JSON. 지도 좌표(m): 남서 모서리 (0, 0), X = 동쪽, Y = 북쪽. 설명은 docs/systems/terrain.md",
+  "_comment": "오픈 베타 지역 1(마법탑 · 온난 지대) 레이아웃 — 지형 다시 만들기(docs/dev/level-design.md 「6」), 마탑 구간 먼저 완성(「7」, Analysis.Sector). 구조체 FGrimTerrainLayout(Source/Grimoire/World/GrimTerrainTypes.h)의 JSON. 지도 좌표(m): 남서 모서리 (0, 0), X = 동쪽, Y = 북쪽. 설명은 docs/systems/terrain.md",
   "Seed": 3601,
 
   "SectionQuads": 127,
@@ -20,6 +20,10 @@
   "DetailScale": 14,
 
   "Zones": [
+    { "Name": "TowerSector", "BaseHeight": 27, "NorthRise": 0, "BlendWidth": 160, "EdgeWobble": 30, "ExtraRollingAmplitude": 2.0, "ExtraRollingScale": 55,
+      "Polygon": [ { "X": 420, "Y": 120 }, { "X": 420, "Y": 640 }, { "X": 470, "Y": 820 }, { "X": 560, "Y": 950 }, { "X": 700, "Y": 1030 }, { "X": 860, "Y": 1075 },
+                   { "X": 1000, "Y": 1080 }, { "X": 1150, "Y": 1085 }, { "X": 1300, "Y": 1060 }, { "X": 1450, "Y": 1012 }, { "X": 1580, "Y": 972 }, { "X": 1700, "Y": 942 },
+                   { "X": 1765, "Y": 930 }, { "X": 1745, "Y": 700 }, { "X": 1775, "Y": 450 }, { "X": 1800, "Y": 300 }, { "X": 1830, "Y": 100 }, { "X": 1000, "Y": 60 } ] },
     { "Name": "Pasture", "BaseHeight": 27, "NorthRise": 0, "BlendWidth": 200, "EdgeWobble": 40,
       "Polygon": [ { "X": 230, "Y": 380 }, { "X": 1560, "Y": 380 }, { "X": 1560, "Y": 1330 }, { "X": 230, "Y": 1330 } ] },
     { "Name": "CentralHills", "BaseHeight": 60, "NorthRise": 0, "BlendWidth": 220, "EdgeWobble": 40,
@@ -44,11 +48,34 @@
     { "Name": "Hill_Windmill", "Center": { "X": 1400, "Y": 870 }, "Height": 24, "Diameter": 300, "Aspect": 1.0, "Yaw": 0 },
     { "Name": "Hill_Lookout", "Center": { "X": 1380, "Y": 1580 }, "Height": 36, "Diameter": 330, "Aspect": 1.2, "Yaw": 20 },
     { "Name": "Hill_StoneCircle", "Center": { "X": 560, "Y": 3700 }, "Height": 28, "Diameter": 340, "Aspect": 1.0, "Yaw": 0 },
-    { "Name": "Hill_Watchtower", "Center": { "X": 1620, "Y": 2120 }, "Height": 26, "Diameter": 240, "Aspect": 1.2, "Yaw": 90 }
+    { "Name": "Hill_Watchtower", "Center": { "X": 1620, "Y": 2120 }, "Height": 26, "Diameter": 240, "Aspect": 1.2, "Yaw": 90 },
+    { "Name": "Hill_FloatingRock", "Center": { "X": 560, "Y": 800 }, "Height": 26, "Diameter": 240, "Aspect": 1.1, "Yaw": 30 },
+    { "Name": "Hill_Beacon", "Center": { "X": 880, "Y": 960 }, "Height": 28, "Diameter": 220, "Aspect": 1.15, "Yaw": 120 }
   ],
+  "_HillFieldsComment": "TowerSector_* = 마탑 구간(docs/dev/level-design.md 「7」): 작은 언덕이 촘촘히(지름 55~150 m · 높이 8~26 m, 가파른 곳 27° 까지) + 둔덕 · 골(음수 높이) · 바위. 구간 언덕을 먼저 놓는다",
   "HillFields": [
-    { "Name": "Field_Pasture", "Count": 72, "MinHeight": 10, "MaxHeight": 24, "MinDiameter": 150, "MaxDiameter": 320, "SizeBias": 2.2, "MaxAspect": 1.5, "MinSpacing": 0.42,
-      "Polygon": [ { "X": 300, "Y": 470 }, { "X": 1560, "Y": 470 }, { "X": 1560, "Y": 1330 }, { "X": 820, "Y": 1330 }, { "X": 780, "Y": 1020 }, { "X": 300, "Y": 1000 } ] },
+    { "Name": "TowerSector_Hills", "Count": 160, "MinHeight": 8, "MaxHeight": 26, "MinDiameter": 70, "MaxDiameter": 150, "SizeBias": 1.2, "MaxAspect": 1.35, "MinSpacing": 0.55,
+      "Sharpness": 1.8, "MaxSlopeDeg": 23, "LineClearance": 0.3, "HandHillSpacing": 0.8,
+      "Polygon": [ { "X": 440, "Y": 300 }, { "X": 440, "Y": 640 }, { "X": 490, "Y": 810 }, { "X": 575, "Y": 930 }, { "X": 705, "Y": 1005 }, { "X": 860, "Y": 1050 },
+                   { "X": 1000, "Y": 1055 }, { "X": 1150, "Y": 1062 }, { "X": 1300, "Y": 1040 }, { "X": 1450, "Y": 992 }, { "X": 1580, "Y": 952 }, { "X": 1680, "Y": 925 },
+                   { "X": 1690, "Y": 700 }, { "X": 1700, "Y": 330 }, { "X": 440, "Y": 330 } ] },
+    { "Name": "TowerSector_Mounds", "Count": 35, "MinHeight": 1.2, "MaxHeight": 3.5, "MinDiameter": 14, "MaxDiameter": 34, "SizeBias": 1.3, "MaxAspect": 1.6, "MinSpacing": 1.0,
+      "Sharpness": 1.8, "bSmallShape": true,
+      "Polygon": [ { "X": 440, "Y": 300 }, { "X": 440, "Y": 640 }, { "X": 490, "Y": 810 }, { "X": 575, "Y": 930 }, { "X": 705, "Y": 1005 }, { "X": 860, "Y": 1050 },
+                   { "X": 1000, "Y": 1055 }, { "X": 1150, "Y": 1062 }, { "X": 1300, "Y": 1040 }, { "X": 1450, "Y": 992 }, { "X": 1580, "Y": 952 }, { "X": 1680, "Y": 925 },
+                   { "X": 1690, "Y": 700 }, { "X": 1700, "Y": 330 }, { "X": 440, "Y": 330 } ] },
+    { "Name": "TowerSector_Hollows", "Count": 30, "MinHeight": -3.0, "MaxHeight": -1.2, "MinDiameter": 20, "MaxDiameter": 50, "SizeBias": 1.2, "MaxAspect": 2.4, "MinSpacing": 1.0,
+      "Sharpness": 1.6, "bSmallShape": true,
+      "Polygon": [ { "X": 440, "Y": 300 }, { "X": 440, "Y": 640 }, { "X": 490, "Y": 810 }, { "X": 575, "Y": 930 }, { "X": 705, "Y": 1005 }, { "X": 860, "Y": 1050 },
+                   { "X": 1000, "Y": 1055 }, { "X": 1150, "Y": 1062 }, { "X": 1300, "Y": 1040 }, { "X": 1450, "Y": 992 }, { "X": 1580, "Y": 952 }, { "X": 1680, "Y": 925 },
+                   { "X": 1690, "Y": 700 }, { "X": 1700, "Y": 330 }, { "X": 440, "Y": 330 } ] },
+    { "Name": "TowerSector_Rocks", "Count": 30, "MinHeight": 1.5, "MaxHeight": 4.0, "MinDiameter": 6, "MaxDiameter": 16, "SizeBias": 1.5, "MaxAspect": 1.8, "MinSpacing": 1.0,
+      "Sharpness": 1.3, "bSmallShape": true,
+      "Polygon": [ { "X": 440, "Y": 300 }, { "X": 440, "Y": 640 }, { "X": 490, "Y": 810 }, { "X": 575, "Y": 930 }, { "X": 705, "Y": 1005 }, { "X": 860, "Y": 1050 },
+                   { "X": 1000, "Y": 1055 }, { "X": 1150, "Y": 1062 }, { "X": 1300, "Y": 1040 }, { "X": 1450, "Y": 992 }, { "X": 1580, "Y": 952 }, { "X": 1680, "Y": 925 },
+                   { "X": 1690, "Y": 700 }, { "X": 1700, "Y": 330 }, { "X": 440, "Y": 330 } ] },
+    { "Name": "Field_Pasture", "Count": 30, "MinHeight": 10, "MaxHeight": 24, "MinDiameter": 150, "MaxDiameter": 320, "SizeBias": 2.2, "MaxAspect": 1.5, "MinSpacing": 0.42,
+      "Polygon": [ { "X": 820, "Y": 1110 }, { "X": 1300, "Y": 1100 }, { "X": 1560, "Y": 1030 }, { "X": 1560, "Y": 1330 }, { "X": 820, "Y": 1330 } ] },
     { "Name": "Field_Central", "Count": 50, "MinHeight": 12, "MaxHeight": 48, "MinDiameter": 160, "MaxDiameter": 440, "SizeBias": 2.0, "MaxAspect": 1.5, "MinSpacing": 0.42,
       "Polygon": [ { "X": 760, "Y": 1330 }, { "X": 1560, "Y": 1330 }, { "X": 1560, "Y": 2480 }, { "X": 1100, "Y": 2780 }, { "X": 700, "Y": 3000 }, { "X": 300, "Y": 3250 },
                    { "X": 260, "Y": 2350 }, { "X": 800, "Y": 2280 } ] },
@@ -97,7 +124,7 @@
   "HeadlandWidth": 160,
   "CliffWidth": 55,
 
-  "TowerHill": { "Center": { "X": 1000, "Y": 380 }, "PlateauRadius": 45, "Radius": 260, "Height": 45, "Irregularity": 0.15 },
+  "TowerHill": { "Center": { "X": 1000, "Y": 380 }, "PlateauRadius": 45, "Radius": 170, "Height": 45, "Irregularity": 0.15 },
 
   "Valley": {
     "Name": "Valley",
@@ -135,8 +162,13 @@
     },
     {
       "Name": "Creek_Pasture",
-      "Points": [ { "X": 1262, "Y": 1185 }, { "X": 1420, "Y": 1120 }, { "X": 1560, "Y": 1080 }, { "X": 1700, "Y": 1020 }, { "X": 1790, "Y": 1000 } ],
+      "Points": [ { "X": 1010, "Y": 1072 }, { "X": 1150, "Y": 1085 }, { "X": 1300, "Y": 1060 }, { "X": 1450, "Y": 1012 }, { "X": 1580, "Y": 972 }, { "X": 1700, "Y": 942 }, { "X": 1790, "Y": 925 } ],
       "Width": 4, "Depth": 0.6, "BankWidth": 4, "WaterBelowGround": 0.8
+    },
+    {
+      "Name": "Creek_TowerBrook",
+      "Points": [ { "X": 900, "Y": 845 }, { "X": 860, "Y": 775 }, { "X": 800, "Y": 715 }, { "X": 755, "Y": 650 }, { "X": 730, "Y": 594 } ],
+      "Width": 3, "Depth": 0.5, "BankWidth": 4, "WaterBelowGround": 0.8
     }
   ],
 
@@ -154,7 +186,8 @@
     {
       "Name": "Path_Main",
       "Points": [
-        { "X": 1000, "Y": 398 }, { "X": 1005, "Y": 520 }, { "X": 1050, "Y": 700 }, { "X": 1110, "Y": 900 }, { "X": 1130, "Y": 1100 },
+        { "X": 1000, "Y": 398 }, { "X": 1004, "Y": 470 }, { "X": 1040, "Y": 545 }, { "X": 1015, "Y": 625 }, { "X": 965, "Y": 705 },
+        { "X": 985, "Y": 800 }, { "X": 1060, "Y": 860 }, { "X": 1110, "Y": 900 }, { "X": 1105, "Y": 990 }, { "X": 1130, "Y": 1100 },
         { "X": 1060, "Y": 1300 }, { "X": 960, "Y": 1520 }, { "X": 880, "Y": 1760 }, { "X": 840, "Y": 2000 }, { "X": 880, "Y": 2250 },
         { "X": 960, "Y": 2480 }, { "X": 1060, "Y": 2700 }, { "X": 1140, "Y": 2790 }, { "X": 1180, "Y": 2880 }, { "X": 1140, "Y": 2955 },
         { "X": 1010, "Y": 3056 }, { "X": 896, "Y": 3141 }, { "X": 782, "Y": 3236 }, { "X": 671, "Y": 3335 }, { "X": 720, "Y": 3440 },
@@ -187,6 +220,11 @@
       "Name": "Path_StoneCircle",
       "Points": [ { "X": 800, "Y": 3570 }, { "X": 690, "Y": 3640 }, { "X": 600, "Y": 3695 } ],
       "Width": 3, "Depth": 0, "BankWidth": 11, "WaterBelowGround": 0
+    },
+    {
+      "Name": "Path_PondLoop",
+      "Points": [ { "X": 1015, "Y": 625 }, { "X": 935, "Y": 655 }, { "X": 860, "Y": 700 }, { "X": 790, "Y": 700 }, { "X": 700, "Y": 660 }, { "X": 630, "Y": 700 }, { "X": 600, "Y": 735 } ],
+      "Width": 3, "Depth": 0, "BankWidth": 11, "WaterBelowGround": 0
     }
   ],
 
@@ -205,30 +243,74 @@
     { "Name": "Habitat_BlackDog", "Tag": "Habitat.BlackDog", "Center": { "X": 1000, "Y": 3000 }, "Radius": 220 }
   ],
 
+  "_LandmarksComment": "Label · Note 는 개발 표시 글씨(AGrimDevLabel)에 쓴다 — C++ 구조체에는 없고 build_openbeta.py 가 JSON 을 바로 읽는다",
   "Landmarks": [
-    { "Name": "Landmark_Tower", "Kind": "Tower", "Tier": "Global", "Center": { "X": 1000, "Y": 380 }, "Yaw": 0, "Height": 38, "ViewDistance": 4500 },
-    { "Name": "Landmark_GiantTree", "Kind": "GiantTree", "Tier": "Global", "Center": { "X": 1100, "Y": 1980 }, "Yaw": 0, "Height": 47, "ViewDistance": 4500 },
-    { "Name": "Landmark_RockGate", "Kind": "RockGate", "Tier": "Global", "Center": { "X": 1000, "Y": 3890 }, "Yaw": 90, "Height": 40, "ViewDistance": 4500 },
-    { "Name": "Landmark_StoneCircle", "Kind": "StoneCircle", "Tier": "District", "Center": { "X": 560, "Y": 3700 }, "Yaw": 0, "Height": 9, "ViewDistance": 3500 },
-    { "Name": "Landmark_Waterfall", "Kind": "Waterfall", "Tier": "District", "Center": { "X": 1340, "Y": 2880 }, "Yaw": 0, "Height": 4, "ViewDistance": 1500 },
-    { "Name": "Landmark_Watchtower", "Kind": "Watchtower", "Tier": "District", "Center": { "X": 1620, "Y": 2120 }, "Yaw": 0, "Height": 18, "ViewDistance": 1500 },
-    { "Name": "Landmark_Windmill", "Kind": "Windmill", "Tier": "District", "Center": { "X": 1400, "Y": 870 }, "Yaw": 180, "Height": 21, "ViewDistance": 1500 }
+    { "Name": "Landmark_Tower", "Kind": "Tower", "Tier": "Global", "Center": { "X": 1000, "Y": 380 }, "Yaw": 0, "Height": 90, "ViewDistance": 4500, "LabelHeight": 46,
+      "Label": "마법탑", "Note": "가는 수직 탑(높이 38 m) · 시작 지점. 꼭대기에서 하늘로 솟는 마나 빛줄기(90 m)로 구간 어디서나 방향을 잡는다" },
+    { "Name": "Landmark_GiantTree", "Kind": "GiantTree", "Tier": "Global", "Center": { "X": 1100, "Y": 1980 }, "Yaw": 0, "Height": 47, "ViewDistance": 4500,
+      "Label": "거대 고목", "Note": "높이 40 m 넘는 둥근 초록 덩어리. 오르면 전망 — 지역 전체가 보인다" },
+    { "Name": "Landmark_RockGate", "Kind": "RockGate", "Tier": "Global", "Center": { "X": 1000, "Y": 3890 }, "Yaw": 90, "Height": 40, "ViewDistance": 4500,
+      "Label": "북쪽 고개 바위 문", "Note": "두 바위 기둥(40 m) 사이 틈 — 다음 지역 입구" },
+    { "Name": "Landmark_StoneCircle", "Kind": "StoneCircle", "Tier": "District", "Center": { "X": 560, "Y": 3700 }, "Yaw": 0, "Height": 9, "ViewDistance": 3500,
+      "Label": "선돌 고리", "Note": "반지름 14 m 선돌 12 · 가운데 제단 — 네 속성 룬 퍼즐" },
+    { "Name": "Landmark_Waterfall", "Kind": "Waterfall", "Tier": "District", "Center": { "X": 1340, "Y": 2880 }, "Yaw": 0, "Height": 4, "ViewDistance": 1500,
+      "Label": "폭포", "Note": "고지에서 계곡으로 떨어지는 흰 띠(약 76 m) — 뒤에 동굴(예정)" },
+    { "Name": "Landmark_Watchtower", "Kind": "Watchtower", "Tier": "District", "Center": { "X": 1620, "Y": 2120 }, "Yaw": 0, "Height": 18, "ViewDistance": 1500,
+      "Label": "폐허 감시탑", "Note": "부러진 돌 원통(18 m) — 강 · 계곡 어귀 전망" },
+    { "Name": "Landmark_Windmill", "Kind": "Windmill", "Tier": "District", "Center": { "X": 1400, "Y": 870 }, "Yaw": 180, "Height": 21, "ViewDistance": 1500,
+      "Label": "풍차", "Note": "언덕 위 돌 풍차(21 m) — 날개가 돌아간다(정식 에셋 때). 바람 마법으로 방아를 돌리는 퍼즐" },
+    { "Name": "Landmark_FloatingRock", "Kind": "FloatingRock", "Tier": "District", "Center": { "X": 560, "Y": 800 }, "Yaw": 30, "Height": 52, "ViewDistance": 1500,
+      "Label": "부유석", "Note": "공중에 뜬 바위섬(언덕 위 38~51 m, 지름 18 m) — 바람 룬으로 디딤돌을 띄워 오른다. 위에 보물 상자" }
   ],
   "LandmarkClearance": 25,
 
+  "_PoisComment": "마탑 구간 POI(묶음 S1~S8, 이름 Poi_<자리>_<것>)는 60~120 m 간격 — Label 은 개발 표시 글씨 제목(C++ 구조체에 없음), Note 는 설명",
   "Pois": [
-    { "Name": "Poi_TowerMeadow_Brazier", "Kind": "Puzzle", "Cluster": "C1_TowerMeadow", "Center": { "X": 1120, "Y": 620 }, "Yaw": 200, "Radius": 10, "Note": "꺼진 화로가 있는 무너진 제단 — 플라미스로 켜면 길 표지가 밝아진다" },
-    { "Name": "Poi_TowerMeadow_Herbs", "Kind": "Resource", "Cluster": "C1_TowerMeadow", "Center": { "X": 870, "Y": 760 }, "Yaw": 0, "Radius": 14, "Note": "약초 밭(마나초 · 쑥)" },
-    { "Name": "Poi_TowerMeadow_Burrow", "Kind": "Creature", "Cluster": "C1_TowerMeadow", "Center": { "X": 770, "Y": 505 }, "Yaw": 30, "Radius": 10, "Note": "재칼로프 굴 — 탑에서 가장 가까운 생물" },
-    { "Name": "Poi_TowerMeadow_Cairn", "Kind": "Story", "Cluster": "C1_TowerMeadow", "Center": { "X": 1170, "Y": 790 }, "Yaw": 250, "Radius": 8, "Note": "길손의 돌무더기와 꺼진 모닥불 — 첫 여행 흔적" },
-
-    { "Name": "Poi_Windmill_Field", "Kind": "Resource", "Cluster": "C2_Windmill", "Center": { "X": 1300, "Y": 690 }, "Yaw": 10, "Radius": 16, "Note": "밀밭 · 건초 더미" },
-    { "Name": "Poi_Windmill_Hut", "Kind": "Ruin", "Cluster": "C2_Windmill", "Center": { "X": 1490, "Y": 840 }, "Yaw": 160, "Radius": 10, "Note": "무너진 방앗간 오두막 — 돌 상자" },
-    { "Name": "Poi_Windmill_Burrow", "Kind": "Creature", "Cluster": "C2_Windmill", "Center": { "X": 1290, "Y": 1010 }, "Yaw": 90, "Radius": 10, "Note": "재칼로프 굴 무리" },
-    { "Name": "Poi_Windmill_Flowers", "Kind": "Resource", "Cluster": "C2_Windmill", "Center": { "X": 1450, "Y": 985 }, "Yaw": 0, "Radius": 12, "Note": "풍차 언덕 꽃밭(염료 · 꿀)" },
+    { "Name": "Poi_Yard_Brazier", "Kind": "Puzzle", "Cluster": "S1_TowerYard", "Center": { "X": 1060, "Y": 470 }, "Yaw": 200, "Radius": 10,
+      "Label": "꺼진 화로 제단", "Note": "플라미스로 불을 붙이면 탑 앞 길 표지가 차례로 밝아진다 — 첫 속성 퍼즐" },
+    { "Name": "Poi_Yard_Cairn", "Kind": "Story", "Cluster": "S1_TowerYard", "Center": { "X": 1075, "Y": 585 }, "Yaw": 250, "Radius": 8,
+      "Label": "길손의 돌무더기", "Note": "꺼진 모닥불 · 낡은 지도 조각 — 탑을 찾아온 첫 여행자의 흔적" },
+    { "Name": "Poi_PondEast_Herbs", "Kind": "Resource", "Cluster": "S2_PondEast", "Center": { "X": 925, "Y": 590 }, "Yaw": 0, "Radius": 14,
+      "Label": "약초 밭", "Note": "마나초 · 쑥 — 첫 채집. 뜯어도 다시 자란다" },
+    { "Name": "Poi_PondEast_Camp", "Kind": "BaseSite", "Cluster": "S2_PondEast", "Center": { "X": 820, "Y": 640 }, "Yaw": 0, "Radius": 28,
+      "Label": "연못가 거점 터", "Note": "평지 · 물 가까움 · 탑이 보인다 — 첫 집 짓기 자리(M4)" },
+    { "Name": "Poi_Pond_Burrow", "Kind": "Creature", "Cluster": "S3_Pond", "Center": { "X": 800, "Y": 470 }, "Yaw": 30, "Radius": 10,
+      "Label": "재칼로프 굴", "Note": "탑에서 가장 가까운 생물 — 길들이기 연습" },
+    { "Name": "Poi_Pond_Reeds", "Kind": "Resource", "Cluster": "S3_Pond", "Center": { "X": 650, "Y": 610 }, "Yaw": 0, "Radius": 12,
+      "Label": "갈대 군락", "Note": "갈대 · 물풀 — 바구니 · 화살 재료" },
+    { "Name": "Poi_Pond_IceStones", "Kind": "Puzzle", "Cluster": "S3_Pond", "Center": { "X": 748, "Y": 548 }, "Yaw": 180, "Radius": 8,
+      "Label": "가라앉은 징검돌", "Note": "물을 얼려 징검돌 위로 건너면 연못 가운데 작은 상자" },
+    { "Name": "Poi_Float_Shards", "Kind": "Resource", "Cluster": "S4_FloatingRock", "Center": { "X": 620, "Y": 720 }, "Yaw": 0, "Radius": 12,
+      "Label": "부유석 조각", "Note": "떨어진 조각에서 마나 결정을 캔다(빛나는 돌)" },
+    { "Name": "Poi_Float_Ruin", "Kind": "Ruin", "Cluster": "S4_FloatingRock", "Center": { "X": 520, "Y": 690 }, "Yaw": 60, "Radius": 10,
+      "Label": "무너진 관측소", "Note": "부유석을 연구하던 마법사의 집 — 일지 · 돌 상자" },
+    { "Name": "Poi_Float_Rune", "Kind": "Puzzle", "Cluster": "S4_FloatingRock", "Center": { "X": 600, "Y": 820 }, "Yaw": 210, "Radius": 8,
+      "Label": "바람 룬 돌", "Note": "바람 마법으로 돌리면 부유석으로 오르는 디딤돌이 떠오른다" },
+    { "Name": "Poi_Beacon_Top", "Kind": "Viewpoint", "Cluster": "S5_Beacon", "Center": { "X": 880, "Y": 960 }, "Yaw": 300, "Radius": 8,
+      "Label": "봉화 언덕 꼭대기", "Note": "마탑 구간 전체 · 풍차 · 부유석 · 멀리 거대 고목이 보인다. 꺼진 봉화대에 불을 붙인다" },
+    { "Name": "Poi_Beacon_Burrow", "Kind": "Creature", "Cluster": "S5_Beacon", "Center": { "X": 955, "Y": 880 }, "Yaw": 90, "Radius": 10,
+      "Label": "재칼로프 굴 무리", "Note": "언덕 기슭 굴 셋 — 무리 사냥" },
+    { "Name": "Poi_Beacon_Chest", "Kind": "Ruin", "Cluster": "S5_Beacon", "Center": { "X": 800, "Y": 880 }, "Yaw": 120, "Radius": 10,
+      "Label": "비탈의 돌집 터", "Note": "무너진 돌집 — 돌 상자 속 첫 스킬북" },
+    { "Name": "Poi_Meadow_Cart", "Kind": "Story", "Cluster": "S6_Meadow", "Center": { "X": 1060, "Y": 760 }, "Yaw": 70, "Radius": 8,
+      "Label": "부서진 짐수레", "Note": "탑으로 가던 마법 재료 상자 — 흩어진 물건 줍기" },
+    { "Name": "Poi_Meadow_Bees", "Kind": "Creature", "Cluster": "S6_Meadow", "Center": { "X": 1150, "Y": 820 }, "Yaw": 0, "Radius": 10,
+      "Label": "들벌 둥지", "Note": "꿀벌 떼 — 가까이 가면 쏜다. 연기(불)로 쫓으면 꿀" },
+    { "Name": "Poi_Windmill_Field", "Kind": "Resource", "Cluster": "S7_Windmill", "Center": { "X": 1345, "Y": 745 }, "Yaw": 10, "Radius": 16,
+      "Label": "밀밭 · 건초 더미", "Note": "밀 · 건초 — 요리 재료. 불이 잘 붙는다(주의)" },
+    { "Name": "Poi_Windmill_Mill", "Kind": "Puzzle", "Cluster": "S7_Windmill", "Center": { "X": 1430, "Y": 800 }, "Yaw": 270, "Radius": 10,
+      "Label": "멈춘 방아", "Note": "바람 마법으로 풍차 날개를 돌리면 방아가 돌고 곳간 문이 열린다" },
+    { "Name": "Poi_Windmill_Hut", "Kind": "Ruin", "Cluster": "S7_Windmill", "Center": { "X": 1530, "Y": 790 }, "Yaw": 160, "Radius": 10,
+      "Label": "무너진 방앗간 오두막", "Note": "돌 상자 · 방앗간지기의 쪽지" },
+    { "Name": "Poi_Windmill_Burrow", "Kind": "Creature", "Cluster": "S7_Windmill", "Center": { "X": 1575, "Y": 885 }, "Yaw": 90, "Radius": 10,
+      "Label": "재칼로프 굴", "Note": "풍차 언덕 동쪽 기슭" },
+    { "Name": "Poi_Brook_Vines", "Kind": "Puzzle", "Cluster": "S8_NorthBrook", "Center": { "X": 1160, "Y": 1000 }, "Yaw": 300, "Radius": 10,
+      "Label": "마른 덩굴 돌문", "Note": "태우면 열린다 — 개울가 지하 저장고" },
+    { "Name": "Poi_Brook_Spring", "Kind": "Resource", "Cluster": "S8_NorthBrook", "Center": { "X": 1050, "Y": 1035 }, "Yaw": 0, "Radius": 12,
+      "Label": "개울 머리 샘", "Note": "맑은 샘 · 물풀 — 물 긷기. 여기서 개울이 강으로 흐른다" },
 
     { "Name": "Poi_Pasture_Vines", "Kind": "Puzzle", "Cluster": "C3_Pasture", "Center": { "X": 846, "Y": 1350 }, "Yaw": 300, "Radius": 10, "Note": "마른 덩굴로 막힌 돌문 — 태우면 열린다" },
-    { "Name": "Poi_Pasture_Spring", "Kind": "Resource", "Cluster": "C3_Pasture", "Center": { "X": 1220, "Y": 1250 }, "Yaw": 0, "Radius": 12, "Note": "샘 · 물풀(개울 머리)" },
+    { "Name": "Poi_Pasture_Spring", "Kind": "Resource", "Cluster": "C3_Pasture", "Center": { "X": 1220, "Y": 1250 }, "Yaw": 0, "Radius": 12, "Note": "샘 · 물풀(습지)" },
     { "Name": "Poi_Pasture_Cart", "Kind": "Story", "Cluster": "C3_Pasture", "Center": { "X": 1170, "Y": 1420 }, "Yaw": 70, "Radius": 8, "Note": "부서진 짐수레 — 탑으로 가던 물건" },
     { "Name": "Poi_Pasture_BoundaryStone", "Kind": "Ruin", "Cluster": "C3_Pasture", "Center": { "X": 824, "Y": 1407 }, "Yaw": 20, "Radius": 8, "Note": "쓰러진 경계석과 무너진 담 — 저지대 갈림길 표지" },
 
@@ -253,7 +335,7 @@
     { "Name": "Poi_River_TowerTop", "Kind": "Viewpoint", "Cluster": "C7_Watchtower", "Center": { "X": 1595, "Y": 2100 }, "Yaw": 200, "Radius": 6, "Note": "감시탑 언덕 위 — 강 · 계곡 어귀 · 풍차가 보인다" },
 
     { "Name": "Poi_Valley_Mushroom", "Kind": "Resource", "Cluster": "C8_Valley", "Center": { "X": 1105, "Y": 2765 }, "Yaw": 0, "Radius": 12, "Note": "그늘 버섯 군락(계곡 들머리 숲)" },
-    { "Name": "Poi_Valley_Den", "Kind": "Creature", "Cluster": "C8_Valley", "Center": { "X": 935, "Y": 2875 }, "Yaw": 20, "Radius": 10, "Note": "검은 개 굴(계곡 남쪽 비탈 어두운 숲 — 절벽 길에서 내려다보인다)" },
+    { "Name": "Poi_Valley_Den", "Kind": "Creature", "Cluster": "C8_Valley", "Center": { "X": 780, "Y": 2950 }, "Yaw": 20, "Radius": 10, "Note": "검은 개 굴(계곡 남쪽 가장자리 어두운 숲 — 절벽 길에서 건너다보인다)" },
     { "Name": "Poi_Valley_Cave", "Kind": "Dungeon", "Cluster": "C8_Valley", "Center": { "X": 930, "Y": 3130 }, "Yaw": 230, "Radius": 10, "Note": "절벽 길 옆 동굴 입구 — 인스턴스 던전(M6)" },
     { "Name": "Poi_Valley_Ledge", "Kind": "Viewpoint", "Cluster": "C8_Valley", "Center": { "X": 1110, "Y": 3000 }, "Yaw": 230, "Radius": 5, "Note": "절벽 길 전망 바위 — 계곡 바닥 · 폭포가 내려다보인다" },
 
@@ -262,7 +344,7 @@
     { "Name": "Poi_High_Ore", "Kind": "Resource", "Cluster": "C9_Highland", "Center": { "X": 630, "Y": 3355 }, "Yaw": 0, "Radius": 12, "Note": "고지 광석 노두" },
     { "Name": "Poi_High_Frostflower", "Kind": "Resource", "Cluster": "C9_Highland", "Center": { "X": 1040, "Y": 3345 }, "Yaw": 0, "Radius": 12, "Note": "서리꽃 군락(고원 바람받이)" },
 
-    { "Name": "Poi_Pass_Watchpost", "Kind": "Ruin", "Cluster": "C10_NorthPass", "Center": { "X": 690, "Y": 3478 }, "Yaw": 60, "Radius": 10, "Note": "무너진 초소 — 고개를 지키던 자리" },
+    { "Name": "Poi_Pass_Watchpost", "Kind": "Ruin", "Cluster": "C10_NorthPass", "Center": { "X": 690, "Y": 3463 }, "Yaw": 60, "Radius": 10, "Note": "무너진 초소 — 고개를 지키던 자리" },
     { "Name": "Poi_Pass_StoneRune", "Kind": "Puzzle", "Cluster": "C10_NorthPass", "Center": { "X": 610, "Y": 3620 }, "Yaw": 30, "Radius": 10, "Note": "선돌 아래 룬 — 네 속성을 차례로" },
     { "Name": "Poi_Pass_Nest", "Kind": "Creature", "Cluster": "C10_NorthPass", "Center": { "X": 1090, "Y": 3790 }, "Yaw": 220, "Radius": 10, "Note": "바위 둥지(고개 바위 능선 아래)" },
     { "Name": "Poi_Pass_Cairn", "Kind": "Story", "Cluster": "C10_NorthPass", "Center": { "X": 975, "Y": 3845 }, "Yaw": 90, "Radius": 8, "Note": "고개 앞 길손의 돌무더기 — 다음 지역 이야기" }
@@ -288,8 +370,44 @@
     "PathMaxGradeDeg": 15,
     "ViewChecks": [
       { "Name": "TowerDoor", "From": { "X": 1000, "Y": 415 }, "EyeHeight": 1.7, "MustSee": [ "Landmark_GiantTree", "Landmark_Windmill", "Landmark_StoneCircle" ] },
-      { "Name": "GiantTreeTop", "From": { "X": 1096, "Y": 1976 }, "EyeHeight": 4.3, "MustSee": [ "Landmark_Waterfall", "Landmark_Watchtower", "Landmark_RockGate" ] }
-    ]
+      { "Name": "GiantTreeTop", "From": { "X": 1096, "Y": 1976 }, "EyeHeight": 4.3, "MustSee": [ "Landmark_Waterfall", "Landmark_Watchtower", "Landmark_RockGate" ] },
+      { "Name": "BeaconTop", "From": { "X": 880, "Y": 960 }, "EyeHeight": 1.8, "MustSee": [ "Landmark_Tower", "Landmark_Windmill", "Landmark_FloatingRock", "Landmark_GiantTree" ] }
+    ],
+    "Sector": {
+      "Name": "TowerSector",
+      "_comment": "마탑 구간(docs/dev/level-design.md 「7」). Polygon = 분석 경계(바다 · 강 쪽은 물 가운데까지). Fence = 공사 중 표시를 놓는 땅 경계(서쪽 들 · 북쪽 개울) — build_openbeta.py 만 읽는다",
+      "Polygon": [
+        { "X": 420, "Y": 120 }, { "X": 420, "Y": 640 }, { "X": 470, "Y": 820 }, { "X": 560, "Y": 950 }, { "X": 700, "Y": 1030 }, { "X": 860, "Y": 1075 },
+        { "X": 1000, "Y": 1080 }, { "X": 1150, "Y": 1085 }, { "X": 1300, "Y": 1060 }, { "X": 1450, "Y": 1012 }, { "X": 1580, "Y": 972 }, { "X": 1700, "Y": 942 },
+        { "X": 1765, "Y": 930 }, { "X": 1745, "Y": 700 }, { "X": 1775, "Y": 450 }, { "X": 1800, "Y": 300 }, { "X": 1830, "Y": 100 }, { "X": 1000, "Y": 60 }
+      ],
+      "Fence": [
+        { "X": 420, "Y": 250 }, { "X": 420, "Y": 640 }, { "X": 470, "Y": 820 }, { "X": 560, "Y": 950 }, { "X": 700, "Y": 1030 }, { "X": 860, "Y": 1075 },
+        { "X": 1000, "Y": 1088 }, { "X": 1150, "Y": 1095 }, { "X": 1300, "Y": 1070 }, { "X": 1450, "Y": 1022 }, { "X": 1580, "Y": 982 }, { "X": 1700, "Y": 952 }, { "X": 1735, "Y": 945 }
+      ],
+      "RollingMinFraction": 0.7,
+      "PathSampleStep": 25,
+      "EyeHeight": 1.8,
+      "PoiMaxDistance": 120,
+      "PoiSpacingMin": 60,
+      "PoiSpacingMax": 120,
+      "MinPois": 15,
+      "MaxPois": 25,
+      "OcclusionDirections": 24,
+      "OcclusionMinDistance": 100,
+      "OcclusionMaxDistance": 300,
+      "OcclusionStep": 50,
+      "OcclusionTargetHeight": 1.0,
+      "OcclusionMinFraction": 0.7,
+      "OcclusionPointMinFraction": 0.4,
+      "MinLandmarksVisible": 2,
+      "LandmarkMinFraction": 0.9,
+      "MinHills": 30,
+      "HillSpacingMin": 50,
+      "HillSpacingMax": 120,
+      "HillDiameterRange": { "X": 40, "Y": 150 },
+      "HillHeightRange": { "X": 8, "Y": 30 }
+    }
   },
 
   "ForestNoiseScale": 340,

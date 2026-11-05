@@ -479,6 +479,7 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 	const FVector2D BumpOff = SeedOffset(L.Seed, 9);
 	const FVector2D GullyOff = SeedOffset(L.Seed, 10);
 	const FVector2D GullyDepthOff = SeedOffset(L.Seed, 11);
+	const FVector2D ExtraOff = SeedOffset(L.Seed, 12);
 
 	FPolyline Valley;
 	Valley.Init(L.Valley.Points);
@@ -536,7 +537,7 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			AddHill(Hill);
 		}
 
-		auto IsClear = [&](const FVector2D& C, double R, bool bSmall, float Spacing)
+		auto IsClear = [&](const FVector2D& C, double R, bool bSmall, float Spacing, float LineClearance, float HandSpacing)
 		{
 			if (C.X < 0.0 || C.Y < 0.0 || C.X > MapW || C.Y > MapH)
 			{
@@ -545,7 +546,7 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			double Distance = 0.0, Arc = 0.0;
 			for (const FAvoidLine& Line : Avoid)
 			{
-				const double Need = Line.Half + (bSmall ? R + 3.0 : R * L.HillLineClearance + 6.0);
+				const double Need = Line.Half + (bSmall ? R + 3.0 : R * LineClearance + 6.0);
 				if (Line.Line->Closest(C, Need, Distance, Arc))
 				{
 					return false;
@@ -579,7 +580,8 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			}
 			for (const FHillPrep& Other : Hills)
 			{
-				if (Other.Hill.bSmallShape == bSmall && FVector2D::Distance(C, Other.Hill.Center) < (R + Other.Hill.Radius) * Spacing)
+				const float Factor = (Other.Hill.bHandPlaced && HandSpacing > 0.f) ? HandSpacing : Spacing;
+				if (Other.Hill.bSmallShape == bSmall && FVector2D::Distance(C, Other.Hill.Center) < (R + Other.Hill.Radius) * Factor)
 				{
 					return false;
 				}
@@ -645,10 +647,11 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 				if (!Field.bSmallShape)
 				{
 					// 가장 가파른 곳(타원의 짧은 쪽)이 HillMaxSlopeDeg 를 넘지 않게 — 둔턱 · 침식 골이 더해져도 25° 안팎(언덕 = 10~25°, docs/dev/level-design.md 「4」)
-					const float MaxGrade = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(L.HillMaxSlopeDeg, 5.f, 60.f)));
+					const float SlopeCap = Field.MaxSlopeDeg > 0.f ? Field.MaxSlopeDeg : L.HillMaxSlopeDeg;
+					const float MaxGrade = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(SlopeCap, 5.f, 60.f)));
 					Height = FMath::Max(FMath::Min(Height, Radius * MaxGrade / (HillMaxSlopeFactor(K) * Aspect)), FMath::Min(Field.MinHeight, Field.MaxHeight));
 				}
-				if (!IsClear(Center, Radius, Field.bSmallShape, Field.MinSpacing))
+				if (!IsClear(Center, Radius, Field.bSmallShape, Field.MinSpacing, Field.LineClearance >= 0.f ? Field.LineClearance : L.HillLineClearance, Field.HandHillSpacing))
 				{
 					continue;
 				}
@@ -733,8 +736,9 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			const int32 I = Out.Index(X, Y);
 			double H = L.BaseHeight + L.NorthRise * SmoothStep(L.NorthRiseStart, L.NorthRiseEnd, V);
 
-			// 구역 바닥(뒤가 앞을 덮는다) — 경계는 노이즈로 들쭉날쭉하게
+			// 구역 바닥(뒤가 앞을 덮는다) — 경계는 노이즈로 들쭉날쭉하게. 구역 잔물결(ExtraRolling*)도 같은 무게로 섞는다
 			const double Wobble = Fbm(U / 260.0, V / 260.0, 2, ZoneOff);
+			double ExtraAmplitude = 0.0, ExtraScale = 60.0;
 			for (const FZonePrep& Zone : Zones)
 			{
 				if (U < Zone.Bounds.Min.X - Zone.Reach || U > Zone.Bounds.Max.X + Zone.Reach || V < Zone.Bounds.Min.Y - Zone.Reach || V > Zone.Bounds.Max.Y + Zone.Reach)
@@ -748,7 +752,17 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 				{
 					const double ZoneHeight = Spec.BaseHeight + Spec.NorthRise * Smooth01((V - Zone.Bounds.Min.Y) / FMath::Max(Zone.Bounds.Max.Y - Zone.Bounds.Min.Y, 1.0));
 					H = FMath::Lerp(H, ZoneHeight, Weight);
+					// 잔물결은 덮는 순서와 상관없이 가장 센 구역 것 — 높이만 맡는 구역이 뒤에 와도 지워지지 않게
+					if (Weight * Spec.ExtraRollingAmplitude > ExtraAmplitude)
+					{
+						ExtraAmplitude = Weight * Spec.ExtraRollingAmplitude;
+						ExtraScale = FMath::Max(Spec.ExtraRollingScale, 5.f);
+					}
 				}
+			}
+			if (ExtraAmplitude > 0.0)
+			{
+				H += ExtraAmplitude * Fbm(U / ExtraScale, V / ExtraScale, 3, ExtraOff);
 			}
 
 			H += L.NoiseAmplitude * Fbm(U / L.NoiseScale, V / L.NoiseScale, L.NoiseOctaves, BaseOff)

@@ -434,6 +434,8 @@ bool FGrimTerrainDesignShapeTest::RunTest(const FString& Parameters)
 	}
 
 	// 언덕 군: 크기가 섞이고(작은 것이 많고 큰 것이 적게), 10~60 m · 지름 150~500 m, 가장 가파른 곳 ≤ 약 27°
+	// 마탑 구간(Analysis.Sector)의 시드 언덕은 더 작고 촘촘하다 — 구간 기준(지름 · 높이 범위)으로 본다
+	const FGrimTerrainSectorSpec& SectorSpec = L.Analysis.Sector;
 	int32 HillCount = 0, Small = 0, Big = 0, Outcrops = 0, OutOfRange = 0, TooSteep = 0;
 	for (const FGrimTerrainPlacedHill& Hill : M.PlacedHills)
 	{
@@ -446,14 +448,22 @@ bool FGrimTerrainDesignShapeTest::RunTest(const FString& Parameters)
 		const float Diameter = Hill.Radius * 2.f;
 		Small += Diameter < 250.f ? 1 : 0;
 		Big += Diameter >= 350.f ? 1 : 0;
-		OutOfRange += (Hill.Height < 9.99f || Hill.Height > 60.01f || Diameter < 149.9f || Diameter > 500.1f) ? 1 : 0;
+		if (!Hill.bHandPlaced && FGrimTerrainAnalysis::IsInSector(SectorSpec, Hill.Center))
+		{
+			OutOfRange += (Hill.Height < SectorSpec.HillHeightRange.X - 0.01 || Hill.Height > SectorSpec.HillHeightRange.Y + 0.01
+				|| Diameter < SectorSpec.HillDiameterRange.X - 0.1 || Diameter > SectorSpec.HillDiameterRange.Y + 0.1) ? 1 : 0;
+		}
+		else
+		{
+			OutOfRange += (Hill.Height < 9.99f || Hill.Height > 60.01f || Diameter < 149.9f || Diameter > 500.1f) ? 1 : 0;
+		}
 		const float MaxSlope = FMath::RadiansToDegrees(FMath::Atan(Hill.Height / Hill.Radius * Hill.Aspect * FGrimTerrainGenerator::HillMaxSlopeFactor(Hill.Sharpness)));
 		TooSteep += MaxSlope > 35.f ? 1 : 0;
 	}
 	AddInfo(FString::Printf(TEXT("언덕 %d(지름 250 m 아래 %d · 350 m 이상 %d), 바위 노두 %d"), HillCount, Small, Big, Outcrops));
 	TestTrue(FString::Printf(TEXT("언덕이 40 개 넘게(%d)"), HillCount), HillCount >= 40);
 	TestTrue(FString::Printf(TEXT("작은 언덕(%d)이 큰 언덕(%d)보다 많다"), Small, Big), Small > Big * 2 && Big >= 3);
-	TestEqual(TEXT("언덕 높이 10~60 m · 지름 150~500 m"), OutOfRange, 0);
+	TestEqual(TEXT("언덕 높이 10~60 m · 지름 150~500 m(마탑 구간 시드 언덕은 구간 범위)"), OutOfRange, 0);
 	TestEqual(TEXT("언덕 가장 가파른 곳 ≤ 35°(타원 짧은 쪽 포함)"), TooSteep, 0);
 	TestTrue(FString::Printf(TEXT("바위 노두(%d)"), Outcrops), Outcrops >= 20);
 	for (const TCHAR* Name : { TEXT("Hill_GiantTree"), TEXT("Hill_StoneCircle"), TEXT("Hill_Windmill"), TEXT("Hill_Lookout") })
@@ -588,22 +598,22 @@ bool FGrimTerrainDesignPoiTest::RunTest(const FString& Parameters)
 	}
 	const FGrimTerrainMaps& M = *MapsPtr;
 
-	// 랜드마크 7 — 종류가 모두 다르다(실루엣이 겹치지 않게)
+	// 랜드마크 7 + 마탑 구간 것 — 종류가 모두 다르다(실루엣이 겹치지 않게)
 	TSet<FName> LandmarkKinds;
 	for (const FGrimTerrainLandmark& Landmark : L.Landmarks)
 	{
 		LandmarkKinds.Add(Landmark.Kind);
 		TestTrue(FString::Printf(TEXT("랜드마크 %s 는 땅 위"), *Landmark.Name.ToString()), FGrimTerrainGenerator::SampleHeight(M, Landmark.Center.X, Landmark.Center.Y) > L.SeaLevel + 1.f);
 	}
-	TestEqual(TEXT("랜드마크 7"), L.Landmarks.Num(), 7);
+	TestTrue(FString::Printf(TEXT("랜드마크 7~10 (%d)"), L.Landmarks.Num()), L.Landmarks.Num() >= 7 && L.Landmarks.Num() <= 10);
 	TestEqual(TEXT("랜드마크 종류가 모두 다르다"), LandmarkKinds.Num(), L.Landmarks.Num());
 	for (const TCHAR* Kind : { TEXT("Tower"), TEXT("GiantTree"), TEXT("RockGate"), TEXT("StoneCircle"), TEXT("Waterfall"), TEXT("Watchtower"), TEXT("Windmill") })
 	{
 		TestTrue(FString::Printf(TEXT("랜드마크 %s"), Kind), LandmarkKinds.Contains(Kind));
 	}
 
-	// POI 30~45 · 묶음 8~10(묶음마다 2~4) · 종류가 섞인다
-	TestTrue(FString::Printf(TEXT("POI 30~45 (%d)"), L.Pois.Num()), L.Pois.Num() >= 30 && L.Pois.Num() <= 45);
+	// POI — 큰 땅 30 곳 안팎 + 마탑 구간 15~25 곳(촘촘) · 묶음(묶음마다 2~4) · 종류가 섞인다
+	TestTrue(FString::Printf(TEXT("POI 40~70 (%d)"), L.Pois.Num()), L.Pois.Num() >= 40 && L.Pois.Num() <= 70);
 	TMap<FName, int32> Clusters, Kinds;
 	TSet<FName> Names;
 	for (const FGrimTerrainPoi& Poi : L.Pois)
@@ -615,7 +625,7 @@ bool FGrimTerrainDesignPoiTest::RunTest(const FString& Parameters)
 		const int32 I = M.NearestIndex(Poi.Center.X, Poi.Center.Y);
 		TestTrue(FString::Printf(TEXT("POI %s 는 물 밖 땅 위"), *Poi.Name.ToString()), M.Heights[I] > L.SeaLevel + 0.5f && M.WaterDistance[I] > 1.f);
 	}
-	TestTrue(FString::Printf(TEXT("묶음 8~10 (%d)"), Clusters.Num()), Clusters.Num() >= 8 && Clusters.Num() <= 10);
+	TestTrue(FString::Printf(TEXT("묶음 8~18 (%d)"), Clusters.Num()), Clusters.Num() >= 8 && Clusters.Num() <= 18);
 	for (const TPair<FName, int32>& Cluster : Clusters)
 	{
 		TestTrue(FString::Printf(TEXT("묶음 %s 는 2~4 개(%d)"), *Cluster.Key.ToString(), Cluster.Value), Cluster.Value >= 2 && Cluster.Value <= 4);
@@ -632,6 +642,88 @@ bool FGrimTerrainDesignPoiTest::RunTest(const FString& Parameters)
 		TestTrue(FString::Printf(TEXT("POI 종류 %s 수 %d ≈ 계획 %.1f"), *Each.Key.ToString(), Have ? *Have : 0, Want), Have && FMath::Abs(*Have - Want) <= 1.5f);
 	}
 	AddInfo(TEXT("POI 종류:") + KindText);
+	return true;
+}
+
+// ───── 마탑 구간(docs/dev/level-design.md 「7」) — 먼저 완성하는 구간의 더 촘촘한 기준(레이아웃 Analysis.Sector) ─────
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainDesignTowerSectorTest, "Grimoire.Terrain.Design.TowerSector", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainDesignTowerSectorTest::RunTest(const FString& Parameters)
+{
+	using namespace GrimTerrainTestLocal;
+	FGrimTerrainLayout L;
+	const FGrimTerrainMaps* MapsPtr = nullptr;
+	const FGrimTerrainAnalysisResult* Result = GetOpenBetaAnalysis(*this, L, MapsPtr);
+	if (!Result)
+	{
+		return false;
+	}
+	const FGrimTerrainSectorSpec& S = L.Analysis.Sector;
+	const FGrimTerrainSectorResult& R = Result->Sector;
+	if (!TestTrue(TEXT("마탑 구간 다각형이 있다(Analysis.Sector.Polygon)"), R.bValid))
+	{
+		return false;
+	}
+	AddInfo(R.ToString());
+
+	// 탑이 구간 안, 구간은 탑에서 반경 약 500~700 m
+	TestTrue(TEXT("마법탑이 구간 안"), FGrimTerrainAnalysis::IsInSector(S, L.TowerHill.Center));
+	TestTrue(FString::Printf(TEXT("구간 땅 0.3~1.2 km² (%.2f)"), R.LandArea / 1.0e6), R.LandArea >= 0.3e6 && R.LandArea <= 1.2e6);
+
+	// 1. 경사 — 구간 땅의 70% 이상이 5~25°
+	TestTrue(FString::Printf(TEXT("구간 땅의 %.0f%% 이상이 %.0f~%.0f° (지금 %.1f%%)"), S.RollingMinFraction * 100.f, L.Analysis.RollingMinDeg, L.Analysis.RollingMaxDeg, R.RollingFraction * 100.0),
+		R.RollingFraction >= S.RollingMinFraction);
+
+	// 2. 언덕 — 작은 언덕이 촘촘히(가장 가까운 언덕까지 가운데값 50~120 m), 크기 범위, 작은 모양(둔덕 · 골 · 바위)
+	TestTrue(FString::Printf(TEXT("구간 언덕 %d 개 이상(%d)"), S.MinHills, R.HillCount), R.HillCount >= S.MinHills);
+	TestTrue(FString::Printf(TEXT("큰 언덕(손) 2 개 이상(%d)"), R.HandHillCount), R.HandHillCount >= 2);
+	TestEqual(TEXT("구간 시드 언덕 크기가 범위 안"), R.HillOutOfRange, 0);
+	TestTrue(FString::Printf(TEXT("언덕 사이(가장 가까운 언덕까지 가운데값) %.0f m 가 %.0f~%.0f m"), R.HillSpacingMedian, S.HillSpacingMin, S.HillSpacingMax),
+		R.HillSpacingMedian >= S.HillSpacingMin && R.HillSpacingMedian <= S.HillSpacingMax);
+	TestTrue(FString::Printf(TEXT("작은 모양(둔덕 · 골 · 바위) 20 개 이상(%d)"), R.SmallShapeCount), R.SmallShapeCount >= 20);
+
+	// 3. 물 — 연못 하나 이상 · 개울 하나 이상이 구간 안
+	int32 Ponds = 0, Creeks = 0;
+	for (const FGrimTerrainPond& Pond : L.Ponds)
+	{
+		Ponds += FGrimTerrainAnalysis::IsInSector(S, Pond.Center) ? 1 : 0;
+	}
+	for (const FGrimTerrainChannel& Creek : L.Creeks)
+	{
+		bool bInside = false;
+		for (const FVector2D& Point : Creek.Points)
+		{
+			bInside |= FGrimTerrainAnalysis::IsInSector(S, Point);
+		}
+		Creeks += bInside ? 1 : 0;
+	}
+	TestTrue(FString::Printf(TEXT("구간 안 연못(%d) · 개울(%d) 하나 이상"), Ponds, Creeks), Ponds >= 1 && Creeks >= 1);
+
+	// 4. POI — 15~25 곳, 가장 가까운 다른 POI 까지 60~120 m, 길 위 어느 점에서도 120 m 안
+	TestTrue(FString::Printf(TEXT("구간 POI %d~%d (%d)"), S.MinPois, S.MaxPois, R.PoiCount), R.PoiCount >= S.MinPois && R.PoiCount <= S.MaxPois);
+	FString SpacingFails;
+	for (const FName& Name : R.PoiSpacingFailNames)
+	{
+		SpacingFails += TEXT(" ") + Name.ToString();
+	}
+	TestEqual(FString::Printf(TEXT("POI 간격 %.0f~%.0f m (지금 %.0f~%.0f) 밖:%s"), S.PoiSpacingMin, S.PoiSpacingMax, R.PoiSpacingMin, R.PoiSpacingMax, *SpacingFails), R.PoiSpacingFailures, 0);
+	TestTrue(FString::Printf(TEXT("구간 길 %.0f m 이상(%.0f)"), 1000.0, R.PathLength), R.PathLength >= 1000.0);
+	TestEqual(FString::Printf(TEXT("길 위 어디서나 %.0f m 안에 POI (가장 먼 곳 %.0f m, %.0f, %.0f)"), S.PoiMaxDistance, R.MaxPoiDistance, R.MaxPoiDistanceAt.X, R.MaxPoiDistanceAt.Y), R.DensityFailures, 0);
+
+	// 5. 사람 눈높이(1.8 m)에서 다음 언덕 너머가 가려지는가
+	TestTrue(FString::Printf(TEXT("가림 %.1f%% ≥ %.0f%%(길 위 %d 점 × %d 방향 × %.0f~%.0f m)"), R.Occlusion * 100.0, S.OcclusionMinFraction * 100.f, R.PathSamples, S.OcclusionDirections, S.OcclusionMinDistance, S.OcclusionMaxDistance),
+		R.Occlusion >= S.OcclusionMinFraction);
+	TestEqual(FString::Printf(TEXT("가림이 %.0f%% 아래인 길 위 점 없음(가장 낮은 곳 %.0f%%, %.0f, %.0f)"), S.OcclusionPointMinFraction * 100.f, R.OcclusionPointMin * 100.0, R.OcclusionPointMinAt.X, R.OcclusionPointMinAt.Y),
+		R.OcclusionPointFailures, 0);
+
+	// 6. 그래도 길 위 어디서나 랜드마크 2 개 이상이 보인다(방향을 잃지 않게)
+	FString LandmarkFails;
+	for (int32 Index = 0; Index < FMath::Min(R.LandmarkFailPoints.Num(), 12); ++Index)
+	{
+		LandmarkFails += FString::Printf(TEXT(" (%.0f, %.0f)"), R.LandmarkFailPoints[Index].X, R.LandmarkFailPoints[Index].Y);
+	}
+	TestTrue(FString::Printf(TEXT("길 위 점의 %.0f%% 이상에서 랜드마크 %d 개 이상(지금 %.0f%%, 평균 %.1f) 모자란 곳:%s"), S.LandmarkMinFraction * 100.f, S.MinLandmarksVisible, R.LandmarkFraction * 100.0, R.LandmarksMean, *LandmarkFails),
+		R.LandmarkFraction >= S.LandmarkMinFraction - 1e-6);
+	TestTrue(FString::Printf(TEXT("길 위 어디서나 랜드마크 하나는 보인다(최소 %d)"), R.LandmarksMin), R.LandmarksMin >= 1);
 	return true;
 }
 
@@ -682,6 +774,9 @@ bool FGrimTerrainOpenBetaMapTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("하늘 하나"), CountOf(TEXT("GrimSkyController")), 1);
 	TestEqual(TEXT("탑 스승 하나"), CountOf(TEXT("GrimTowerNPC")), 1);
 	TestTrue(TEXT("표식 여러 개"), CountOf(TEXT("GrimTerrainMarker")) >= 8);
+	// 개발 표시 글씨(랜드마크 · 마탑 구간 POI · 공사 중) — docs/dev/level-design.md 「7」
+	AddInfo(FString::Printf(TEXT("개발 표시 글씨 %d"), CountOf(TEXT("GrimDevLabel"))));
+	TestTrue(TEXT("개발 표시 글씨(랜드마크 · POI · 공사 중) 20 개 이상"), CountOf(TEXT("GrimDevLabel")) >= 20);
 	for (const TCHAR* Tag : { TEXT("Terrain.Site.Tower"), TEXT("Terrain.Site.TowerYard"), TEXT("Terrain.Site.Base"), TEXT("Terrain.Path"),
 		TEXT("Habitat.Jackalope"), TEXT("Habitat.Kelpie"), TEXT("Habitat.BlackDog") })
 	{

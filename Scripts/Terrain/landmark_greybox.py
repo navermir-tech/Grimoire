@@ -1,7 +1,8 @@
 # 랜드마크 · POI 그레이박스(엔진 기본 도형) — build_openbeta.py 가 부른다.
 # 레이아웃(openbeta_layout.json)의 Landmarks · Pois 를 읽어 자리마다 실루엣이 서로 다른 모양을 놓는다(docs/dev/level-design.md 「2」「5」).
-#   고목 = 둥근 큰 덩어리, 바위 문 = 두 기둥 사이 틈, 선돌 = 고리, 폭포 = 흰 띠, 감시탑 = 부러진 원통, 풍차 = 날개, 마법탑 = 가는 수직(tower_greybox).
+#   고목 = 둥근 큰 덩어리, 바위 문 = 두 기둥 사이 틈, 선돌 = 고리, 폭포 = 흰 띠, 감시탑 = 부러진 원통, 풍차 = 날개, 부유석 = 공중에 뜬 바위섬, 마법탑 = 가는 수직(tower_greybox).
 # 모양만 잡는 자리다 — 놀이(퍼즐 · 채집 · 생물 · 던전)는 각 마일스톤이 같은 표식(Landmark.* · Poi.*) 자리에 채운다.
+# 마탑 구간(「7」): 랜드마크 · 구간 POI 위에 「무엇이 들어갈 자리인가」 떠 있는 글씨(AGrimDevLabel) + 종류 색 블록, 구간 경계에 「공사 중」 기둥 · 띠 · 글씨.
 #
 # 좌표: 레이아웃 Yaw 는 지도 각도(지도 +X = 동쪽에서 반시계). 「앞」= 그 방향, 「왼쪽」= 반시계 90°.
 # 월드(cm): X = 북쪽, Y = 동쪽 → 월드 Yaw = 90 − 지도 각도.
@@ -186,12 +187,26 @@ def waterfall(p, falls, world_to_local_height):
     return mid, yaw, flat, -dz
 
 
+def floating_rock(p):
+    """부유석(마탑 구간) — 언덕 꼭대기 위 공중에 뜬 바위섬(땅 위 약 38~51 m — 작은 언덕들 너머로 보이게) + 아래로 뾰족한 밑동 + 떠 있는 조각 + 마나 빛줄기 + 땅의 부서진 조각"""
+    p.shape(SPHERE, "FloatRock", "Island", 0, 0, 0, 18, 16, 9, block=True, z_center=46.5)
+    p.shape(CONE, "FloatRock", "Underside", 0, 0, 0, 15, 13, 10, pitch=180, block=True, z_center=39.5)
+    p.shape(CUBE, "Herb", "Grass", 0, 0, 0, 12, 10, 0.6, block=False, z_center=50.6)
+    p.shape(CUBE, "Stone", "Chest", 2.0, 1.0, 0, 1.4, 0.9, 0.9, z_center=51.3)
+    for i, (lx, ly, z, d) in enumerate([(13, 4, 41, 4.5), (-11, 9, 44, 3.5), (-6, -14, 36, 3.0), (9, -10, 30, 2.4), (-4, 6, 22, 2.0)]):
+        p.shape(SPHERE, "FloatRock", f"Fragment_{i}", lx, ly, 0, d, d * 0.9, d * 0.8, block=False, z_center=z)
+    p.shape(CYLINDER, "ManaGlow", "ManaBeam", 0, 0, 0, 1.6, 1.6, 36, block=False, shadow=False, z_center=17.0)
+    for i, (lx, ly) in enumerate([(7, 3), (-6, 6), (2, -8)]):
+        p.shape(SPHERE, "FloatRock", f"Shard_{i}", lx, ly, 0, 2.6, 2.2, 1.6, z_center=0.4)
+
+
 LANDMARK_BUILDERS = {
     "GiantTree": (giant_tree, True),
     "RockGate": (rock_gate, False),
     "StoneCircle": (stone_circle, False),
     "Watchtower": (watchtower, True),
     "Windmill": (windmill, True),
+    "FloatingRock": (floating_rock, True),
 }
 
 
@@ -324,6 +339,14 @@ def build_landmarks(placer, raw, falls_by_name, spawn_water_volume):
         name = spec["Name"]
         u, v = spec["Center"]["X"], spec["Center"]["Y"]
         if kind == "Tower":
+            # 탑 몸은 tower_greybox(L_Tower 와 같음). 여기서는 꼭대기에서 하늘로 솟는 마나 빛줄기만 — 작은 언덕 골 안에서도 방향을 잡게(높이 = 레이아웃 Height)
+            top = 38.0
+            height = max(spec.get("Height", top) - top, 0.0)
+            if height > 1.0:
+                placer.at(u, v, 0.0, f"Landmarks/{name}", name)
+                placer.shape(CYLINDER, "ManaGlow", "ManaBeam", 0, 0, 0, 2.2, 2.2, height, block=False, shadow=False, z_center=top + height * 0.5)
+                placer.shape(SPHERE, "ManaGlow", "ManaBeamTop", 0, 0, 0, 5.0, 5.0, 5.0, block=False, shadow=False, z_center=top + height)
+                built.append(name)
             continue
         if kind == "Waterfall":
             # 생성기는 개울마다 큰 단차를 폭포로 낸다(강으로 떨어지는 어귀 등) — 랜드마크 자리에 가장 가까운 것
@@ -347,6 +370,162 @@ def build_landmarks(placer, raw, falls_by_name, spawn_water_volume):
         builder(placer)
         built.append(name)
     return built
+
+
+# ───────────── 개발 표시(마탑 구간 — docs/dev/level-design.md 「7」): 종류 블록 · 떠 있는 글씨 · 공사 중 ─────────────
+
+DEV_LABEL_CLASS = "/Script/Grimoire.GrimDevLabel"
+
+# POI 종류 → (한글 이름, 블록 색 머티리얼, 글씨 제목 색)
+POI_KIND_INFO = {
+    "Puzzle": ("속성 퍼즐", "KindPuzzle", (1.00, 0.55, 0.15)),
+    "Resource": ("자원", "KindResource", (0.50, 0.95, 0.35)),
+    "Creature": ("생물", "KindCreature", (1.00, 0.45, 0.40)),
+    "Ruin": ("폐허 · 보물", "KindRuin", (0.82, 0.74, 1.00)),
+    "Viewpoint": ("전망대", "KindViewpoint", (1.00, 0.90, 0.30)),
+    "Story": ("이야기 흔적", "KindStory", (0.55, 0.80, 1.00)),
+    "BaseSite": ("거점 터", "KindBaseSite", (0.60, 0.70, 1.00)),
+    "Dungeon": ("던전 입구", "KindDungeon", (0.85, 0.60, 1.00)),
+}
+TIER_NAMES = {"Global": "전역 랜드마크", "District": "구역 랜드마크"}
+LANDMARK_LABEL_COLOR = (1.00, 0.35, 0.25)
+WARNING_LABEL_COLOR = (1.00, 0.62, 0.10)
+
+
+def point_in_polygon(u, v, polygon):
+    inside = False
+    n = len(polygon)
+    for i in range(n):
+        ax, ay = polygon[i - 1]["X"], polygon[i - 1]["Y"]
+        bx, by = polygon[i]["X"], polygon[i]["Y"]
+        if (by > v) != (ay > v) and u < (ax - bx) * (v - by) / (ay - by) + bx:
+            inside = not inside
+    return inside
+
+
+def _segment_distance(px, py, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    length2 = dx * dx + dy * dy
+    t = 0.0 if length2 <= 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / length2))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def distance_to_paths(u, v, raw):
+    best = 1e9
+    for path in raw.get("Paths", []):
+        pts = path["Points"]
+        for i in range(len(pts) - 1):
+            best = min(best, _segment_distance(u, v, pts[i]["X"], pts[i]["Y"], pts[i + 1]["X"], pts[i + 1]["Y"]))
+    return best
+
+
+def spawn_label(placer, name, folder, u, v, z_above_ground_m, title, body, color, scale, wrap=900.0, base_z_cm=None):
+    """떠 있는 글씨(AGrimDevLabel). 글씨 아래 가운데가 (u, v, 땅 + z) — 한글은 Slate 폴백 폰트로 그린다"""
+    x, y = placer.map_to_world(u, v)
+    ground = base_z_cm if base_z_cm is not None else placer.ground_cm(x, y)
+    cls = unreal.load_class(None, DEV_LABEL_CLASS)
+    if cls is None:
+        raise RuntimeError(f"클래스 없음: {DEV_LABEL_CLASS}")
+    actor = placer.actors.spawn_actor_from_class(cls, unreal.Vector(x, y, ground + z_above_ground_m * 100.0), unreal.Rotator(0, 0, 0))
+    actor.set_actor_label(name)
+    actor.set_folder_path(folder)
+    actor.set_editor_property("title", unreal.Text(title))
+    actor.set_editor_property("body", unreal.Text(body))
+    actor.set_editor_property("title_color", unreal.LinearColor(color[0], color[1], color[2], 1.0))
+    actor.set_editor_property("world_scale", scale)
+    actor.set_editor_property("wrap_width", wrap)
+    actor.set_editor_property("tags", [unreal.Name("DevLabel")])
+    placer.on_spawn(actor)
+    return actor
+
+
+def build_dev_labels(placer, raw):
+    """랜드마크(전부) · 마탑 구간 POI 의 종류 블록(바닥 원판 + 기둥) + 떠 있는 글씨. 돌려준 값 = 글씨 수"""
+    sector = raw.get("Analysis", {}).get("Sector", {})
+    polygon = sector.get("Polygon", [])
+    count = 0
+    for spec in raw.get("Landmarks", []):
+        u, v = spec["Center"]["X"], spec["Center"]["Y"]
+        title = f"{TIER_NAMES.get(spec.get('Tier'), '랜드마크')} — {spec.get('Label', spec['Name'])}"
+        spawn_label(placer, f"Label_{spec['Name']}", "DevLabels/Landmarks", u, v, spec.get("LabelHeight", spec.get("Height", 20.0) + 7.0),
+                    title, spec.get("Note", ""), LANDMARK_LABEL_COLOR, 4.0, wrap=1000.0)
+        count += 1
+    for spec in raw.get("Pois", []):
+        u, v = spec["Center"]["X"], spec["Center"]["Y"]
+        if not polygon or not point_in_polygon(u, v, polygon):
+            continue
+        kind_name, material, color = POI_KIND_INFO.get(spec["Kind"], (spec["Kind"], "Stone", (1, 1, 1)))
+        name = spec["Name"]
+        placer.at(u, v, 0.0, f"DevLabels/Poi/{name}", f"Block_{name}")
+        radius = min(spec.get("Radius", 10.0), 14.0)   # 거점 터(28 m)도 원판은 작게 — 멀리서 연못처럼 보이지 않게
+        # 블록: 자리 크기(반지름) 원판(반쯤 묻힘) + 종류 색 기둥 — 멀리서도 「무엇이 들어갈 자리」인지 색으로 읽힌다
+        placer.shape(CYLINDER, material, "Footprint", 0, 0, 0, radius * 2.0, radius * 2.0, 1.0, block=False, shadow=False, z_center=0.0)
+        placer.shape(CYLINDER, material, "Post", 0, 0, -0.5, 0.45, 0.45, 7.0, block=False)
+        spawn_label(placer, f"Label_{name}", f"DevLabels/Poi/{name}", u, v, 6.8,
+                    f"{kind_name} — {spec.get('Label', name)}", spec.get("Note", ""), color, 1.8, wrap=820.0)
+        count += 1
+    return count
+
+
+def build_construction_fence(placer, raw, spacing_m=40.0, sign_every=4):
+    """마탑 구간 밖을 알리는 「공사 중」 표시 — Analysis.Sector.Fence 꺾은선을 따라 기둥(주황 · 검정 띠) + 줄 + 글씨.
+    길이 지나는 곳은 비우고 그 옆에 글씨를 둔다. 모두 막지 않음(지나갈 수 있다). 돌려준 값 = (기둥, 글씨)"""
+    fence = raw.get("Analysis", {}).get("Sector", {}).get("Fence", [])
+    if len(fence) < 2:
+        return 0, 0
+    # 꺾은선을 spacing 마다 점으로
+    points = []
+    carry = 0.0
+    for i in range(len(fence) - 1):
+        ax, ay, bx, by = fence[i]["X"], fence[i]["Y"], fence[i + 1]["X"], fence[i + 1]["Y"]
+        length = math.hypot(bx - ax, by - ay)
+        d = carry
+        while d <= length:
+            t = d / length
+            points.append((ax + t * (bx - ax), ay + t * (by - ay), math.degrees(math.atan2(by - ay, bx - ax))))
+            d += spacing_m
+        carry = d - length
+    posts, signs = 0, 0
+    placed = []
+    title = "공사 중 — 마탑 구간 밖"
+    body = "이 너머는 아직 다듬지 않은 땅(지형 2차 그대로). 마탑 구간을 완성한 뒤 한 구역씩 넓힌다."
+    for index, (u, v, angle) in enumerate(points):
+        near_path = distance_to_paths(u, v, raw) < 14.0
+        if near_path:
+            placed.append(None)
+            # 길 바로 옆(길을 비켜 12 m)에 글씨 — 지나가는 사람이 꼭 본다
+            side = math.radians(angle)
+            su, sv = u + 18.0 * math.cos(side), v + 18.0 * math.sin(side)
+            spawn_label(placer, f"Label_Construction_Path_{index:02d}", "Construction", su, sv, 6.5, title, body, WARNING_LABEL_COLOR, 2.4, wrap=820.0)
+            signs += 1
+            continue
+        placer.at(u, v, angle, "Construction/Posts", f"ConstructionPost_{index:02d}")
+        placer.shape(CYLINDER, "Warning", "Pole", 0, 0, -0.6, 0.7, 0.7, 7.6, block=False)
+        placer.shape(CYLINDER, "WarningDark", "Ring_0", 0, 0, 2.0, 0.78, 0.78, 0.8, block=False)
+        placer.shape(CYLINDER, "WarningDark", "Ring_1", 0, 0, 4.6, 0.78, 0.78, 0.8, block=False)
+        placer.shape(CUBE, "Warning", "Cap", 0, 0, 7.0, 1.2, 1.2, 0.5, block=False)
+        x, y = placer.map_to_world(u, v)
+        placed.append((u, v, placer.ground_cm(x, y)))
+        posts += 1
+        if index % sign_every == 0:
+            spawn_label(placer, f"Label_Construction_{index:02d}", "Construction", u, v, 8.2, title, body, WARNING_LABEL_COLOR, 2.4, wrap=820.0)
+            signs += 1
+    # 띠: 이웃한 두 기둥 사이(둘 다 있을 때만) — 주황 줄 위, 검정 줄 아래
+    for index in range(len(placed) - 1):
+        a, b = placed[index], placed[index + 1]
+        if a is None or b is None:
+            continue
+        (au, av, az), (bu, bv, bz) = a, b
+        length = math.hypot(bu - au, bv - av)
+        if length < 1.0:
+            continue
+        angle = math.degrees(math.atan2(bv - av, bu - au))
+        placer.at((au + bu) / 2, (av + bv) / 2, angle, "Construction/Tape", f"ConstructionTape_{index:02d}")
+        placer.base_z = (az + bz) / 2
+        pitch = math.degrees(math.atan2((bz - az) / 100.0, length))
+        placer.shape(CUBE, "Warning", "Upper", 0, 0, 0, length, 0.14, 0.45, pitch=pitch, block=False, shadow=False, z_center=5.6)
+        placer.shape(CUBE, "WarningDark", "Lower", 0, 0, 0, length, 0.14, 0.35, pitch=pitch, block=False, shadow=False, z_center=3.2)
+    return posts, signs
 
 
 def build_bridges(placer, raw, path_points_by_name):

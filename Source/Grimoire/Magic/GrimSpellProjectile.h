@@ -42,15 +42,15 @@ public:
 	bool IsFake() const { return bFake; }
 	const UGrimSpellDefinition* GetDefinition() const { return Definition; }
 
+	/** 맞은 것이 아니라 감지용 영역(트리거 상자)인가 — 질의 전용이고 아무것도 막지 않는 도형. 기본 공격 · 즉시 시전(GrimSpellAbility)도 쓴다 */
+	static bool IsSensorComponent(const UPrimitiveComponent* Component);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Destroyed() override;
 
 	UFUNCTION()
 	void OnRep_Definition();
-	/** 맞은 것이 아니라 감지용 영역(트리거 상자)인가 — 질의 전용이고 아무것도 막지 않는 도형 */
-	static bool IsSensorComponent(const UPrimitiveComponent* Component);
-
 
 	UFUNCTION()
 	void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
