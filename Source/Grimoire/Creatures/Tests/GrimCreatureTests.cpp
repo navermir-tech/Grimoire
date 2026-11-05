@@ -26,7 +26,7 @@
 
 namespace GrimCreatureTest // 유니티 빌드 이름 충돌 방지
 {
-	constexpr EAutomationTestFlags Flags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+	constexpr EAutomationTestFlags CreatureTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
 	/** 시험용 종(에셋 없이) — 색 영역 3 · 변이 팔레트 · 수컷 뿔 */
 	UGrimCreatureSpecies* MakeTestSpecies()
@@ -92,7 +92,7 @@ namespace GrimCreatureTest // 유니티 빌드 이름 충돌 방지
 using namespace GrimCreatureTest;
 
 // 개체 굴림: 같은 씨앗 = 같은 개체, 크기 · 색 흔들림 범위, 거대 · 돌연변이 · 성별 팔레트 · 성별 부위.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureRollTest, "Grimoire.Creatures.Roll", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureRollTest, "Grimoire.Creatures.Roll", CreatureTestFlags)
 bool FGrimCreatureRollTest::RunTest(const FString& Parameters)
 {
 	UGrimCreatureSpecies* Species = MakeTestSpecies();
@@ -170,7 +170,7 @@ bool FGrimCreatureRollTest::RunTest(const FString& Parameters)
 }
 
 // 두 속성 상성(Q35): 식 · 주 · 부 가리기 · 실제 GE.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureDualAffinityTest, "Grimoire.Creatures.DualAffinity", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureDualAffinityTest, "Grimoire.Creatures.DualAffinity", CreatureTestFlags)
 bool FGrimCreatureDualAffinityTest::RunTest(const FString& Parameters)
 {
 	// 스펙 표(공격 = 물, 강함 1.5 · 막힘 0.75 · 보통 1, 부속성 절반)
@@ -283,7 +283,7 @@ bool FGrimCreatureDualAffinityTest::RunTest(const FString& Parameters)
 }
 
 // 전리품: 확률 · 개수 · 거대 배율 · 같은 아이템 합치기.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureLootTest, "Grimoire.Creatures.Loot", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureLootTest, "Grimoire.Creatures.Loot", CreatureTestFlags)
 bool FGrimCreatureLootTest::RunTest(const FString& Parameters)
 {
 	TArray<FGrimCreatureLootEntry> Table;
@@ -306,7 +306,7 @@ bool FGrimCreatureLootTest::RunTest(const FString& Parameters)
 }
 
 // 활동 시간 · AI 판단(순수).
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureAIDecideTest, "Grimoire.Creatures.AIDecide", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureAIDecideTest, "Grimoire.Creatures.AIDecide", CreatureTestFlags)
 bool FGrimCreatureAIDecideTest::RunTest(const FString& Parameters)
 {
 	using namespace GrimCreatureMath;
@@ -379,7 +379,7 @@ bool FGrimCreatureAIDecideTest::RunTest(const FString& Parameters)
 }
 
 // 개체군: 회복 · 접기 · 펼치기 · 무리 크기.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreaturePopulationTest, "Grimoire.Creatures.Population", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreaturePopulationTest, "Grimoire.Creatures.Population", CreatureTestFlags)
 bool FGrimCreaturePopulationTest::RunTest(const FString& Parameters)
 {
 	using namespace GrimCreatureMath;
@@ -412,7 +412,7 @@ bool FGrimCreaturePopulationTest::RunTest(const FString& Parameters)
 }
 
 // 종 에셋 3종(make_creature_species.py) · 먹이 관계 표 · 설정.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureSpeciesAssetsTest, "Grimoire.Creatures.SpeciesAssets", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureSpeciesAssetsTest, "Grimoire.Creatures.SpeciesAssets", CreatureTestFlags)
 bool FGrimCreatureSpeciesAssetsTest::RunTest(const FString& Parameters)
 {
 	const UGrimCreatureSettings* Settings = UGrimCreatureSettings::Get();
@@ -486,7 +486,7 @@ bool FGrimCreatureSpeciesAssetsTest::RunTest(const FString& Parameters)
 }
 
 // 생물 액터: 스폰 → 태그 · 체력 · 재질 → 피해 → 약해짐 → 죽음 · 전리품 이벤트.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureActorTest, "Grimoire.Creatures.Actor", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureActorTest, "Grimoire.Creatures.Actor", CreatureTestFlags)
 bool FGrimCreatureActorTest::RunTest(const FString& Parameters)
 {
 	UGrimCreatureSpecies* Species = UGrimCreatureSettings::Get()->FindSpecies(TEXT("Jackalope"));
@@ -536,7 +536,7 @@ bool FGrimCreatureActorTest::RunTest(const FString& Parameters)
 }
 
 // 서식 구역 → 개체군 기록 → 플레이어가 없으면 펼치지 않는다(접힌 기록만).
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureEcosystemTest, "Grimoire.Creatures.Ecosystem", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureEcosystemTest, "Grimoire.Creatures.Ecosystem", CreatureTestFlags)
 bool FGrimCreatureEcosystemTest::RunTest(const FString& Parameters)
 {
 	UGrimCreatureSpecies* Species = UGrimCreatureSettings::Get()->FindSpecies(TEXT("Jackalope"));

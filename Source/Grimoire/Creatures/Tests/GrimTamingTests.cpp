@@ -26,8 +26,8 @@
 
 namespace GrimTamingTest // 유니티 빌드 이름 충돌 방지
 {
-	constexpr EAutomationTestFlags PureFlags = EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter;
-	constexpr EAutomationTestFlags WorldFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
+	constexpr EAutomationTestFlags TamingPureFlags = EAutomationTestFlags_ApplicationContextMask | EAutomationTestFlags::ProductFilter;
+	constexpr EAutomationTestFlags TamingWorldFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
 	/** 시험용 충성도 수치(ini 에 기대지 않는다) */
 	FGrimLoyaltyTuning MakeLoyaltyTuning()
@@ -133,7 +133,7 @@ namespace GrimTamingTest // 유니티 빌드 이름 충돌 방지
 using namespace GrimTamingTest;
 
 // 포획 확률: 몫마다 더하고 등급을 빼고 자른다(스펙 「길들이기 — 확률에 더해지는 것」).
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingChanceTest, "Grimoire.Taming.Chance", PureFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingChanceTest, "Grimoire.Taming.Chance", TamingPureFlags)
 bool FGrimTamingChanceTest::RunTest(const FString& Parameters)
 {
 	const FGrimCaptureTuning Tuning = MakeCaptureTuning();
@@ -212,7 +212,7 @@ bool FGrimTamingChanceTest::RunTest(const FString& Parameters)
 }
 
 // 충성도: 사건 → 0~100, 단계, 최근 까닭 세 줄.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingLoyaltyTest, "Grimoire.Taming.Loyalty", PureFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingLoyaltyTest, "Grimoire.Taming.Loyalty", TamingPureFlags)
 bool FGrimTamingLoyaltyTest::RunTest(const FString& Parameters)
 {
 	const FGrimLoyaltyTuning Tuning = MakeLoyaltyTuning();
@@ -275,7 +275,7 @@ bool FGrimTamingLoyaltyTest::RunTest(const FString& Parameters)
 }
 
 // 성격(Q27): 사건별 배율 → 없으면 오름 · 내림 배율.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingPersonalityTest, "Grimoire.Taming.Personality", PureFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingPersonalityTest, "Grimoire.Taming.Personality", TamingPureFlags)
 bool FGrimTamingPersonalityTest::RunTest(const FString& Parameters)
 {
 	const FGrimLoyaltyTuning Tuning = MakeLoyaltyTuning();
@@ -326,7 +326,7 @@ bool FGrimTamingPersonalityTest::RunTest(const FString& Parameters)
 }
 
 // 명령 · 탑승: 길들인 AI 판단 · 순종 · 거부 · 떨어뜨림 · 속도 · 이름.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingCommandsTest, "Grimoire.Taming.Commands", PureFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingCommandsTest, "Grimoire.Taming.Commands", TamingPureFlags)
 bool FGrimTamingCommandsTest::RunTest(const FString& Parameters)
 {
 	FGrimTamedSenses S;
@@ -384,7 +384,7 @@ bool FGrimTamingCommandsTest::RunTest(const FString& Parameters)
 }
 
 // 세이브 왕복: Creatures.Owned 기록을 쓰고 읽으면 같다. 깨진 수는 읽지 않는다.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingSaveRoundTripTest, "Grimoire.Taming.SaveRoundTrip", PureFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingSaveRoundTripTest, "Grimoire.Taming.SaveRoundTrip", TamingPureFlags)
 bool FGrimTamingSaveRoundTripTest::RunTest(const FString& Parameters)
 {
 	TArray<FGrimOwnedCreatureRecord> Records = { MakeRecord(11), MakeRecord(12) };
@@ -451,7 +451,7 @@ bool FGrimTamingSaveRoundTripTest::RunTest(const FString& Parameters)
 }
 
 // 데이터: 파크툼 정의 · 스킬북 아이템 · 탈것 · 먹이 · 종의 길들이기 자리.
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingAssetsTest, "Grimoire.Taming.Assets", WorldFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingAssetsTest, "Grimoire.Taming.Assets", TamingWorldFlags)
 bool FGrimTamingAssetsTest::RunTest(const FString& Parameters)
 {
 	struct FExpected
@@ -518,7 +518,7 @@ bool FGrimTamingAssetsTest::RunTest(const FString& Parameters)
 }
 
 // 생물 액터: 길들임 → 태그 · 충성도 · 기절(죽지 않음) → 떠남(충성도 0).
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingActorTest, "Grimoire.Taming.Actor", WorldFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingActorTest, "Grimoire.Taming.Actor", TamingWorldFlags)
 bool FGrimTamingActorTest::RunTest(const FString& Parameters)
 {
 	UGrimCreatureSpecies* Species = UGrimCreatureSettings::Get()->FindSpecies(TEXT("Jackalope"));
