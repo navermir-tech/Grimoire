@@ -170,6 +170,8 @@ point_light("Light_Library", -1000, 0)
 marker("Tut_Kitchen", 1100, 800)
 box("Kitchen_Hearth", 1300, 1050, 25, 200, 140, 50, folder="Tower/Kitchen")
 spawn("/Script/Grimoire.GrimCampfire", 1300, 1050, 50, label="Tut_Stove", folder="Tower/Kitchen", tags=["Tut_Stove"])
+# 아궁이 위 냄비(M3 갈래 I — 요리 시설). 원점 = 냄비 바닥, 결과(스튜)는 주방 쪽(+X 앞) 아궁이 위에 놓인다.
+spawn("/Script/Grimoire.GrimCookingPot", 1300, 1050, 105, yaw=-128.7, label="Tut_CookingPot", folder="Tower/Kitchen", tags=["Tut_CookingPot"])
 box("Kitchen_Counter", 800, 1120, 45, 260, 70, 90, folder="Tower/Kitchen")
 point_light("Light_Kitchen", 1100, 800)
 

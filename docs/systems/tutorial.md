@@ -36,17 +36,17 @@
 | `Event` | 신호 — 다른 시스템이 `UGrimQuestComponent::NotifyQuestEvent(플레이어, 이벤트 ID)` | 이벤트 ID |
 
 - 새 단계는 **다음 주기부터** 조회한다 — 단계 시작의 세계 쪽 일(소품 되돌리기)이 끝난 뒤에 보려고(되돌리기 전의 켜진 양초로 시험이 바로 끝나지 않게).
-- **Give**(단계 시작에 주는 것, `|` 로 여럿): `Skillbook:<마법 ID>`(월드에 스킬북을 놓는다 — 다가가면 읽힌다, 태그 `Given_Skillbook_<ID>`), `Bedroll`(침낭, 태그 `Given_Bedroll`), `Item:<ID>`(인벤토리 M4 전이라 기록만 — TODO(M4)). 뒤에 `@<태그>` 를 붙이면 그 액터 곁, 없으면 플레이어 앞 1.5m. 정의가 없는 마법(기본 공격 · 파크툼)은 경고만 하고 넘어간다.
+- **Give**(단계 시작에 주는 것, `|` 로 여럿): `Skillbook:<마법 ID>`(월드에 스킬북을 놓는다 — 다가가면 읽힌다, 태그 `Given_Skillbook_<ID>`), `Bedroll`(침낭, 태그 `Given_Bedroll`), `Item:<ID>`(플레이어 가방에 하나 — `UGrimItemStatics::GiveItem`, 표에 없는 아이템(거점 핵 M4)은 기록만). 뒤에 `@<태그>` 를 붙이면 그 액터 곁, 없으면 플레이어 앞 1.5m. 정의가 없는 마법(기본 공격 · 파크툼)은 경고만 하고 넘어간다.
 
 ### 이벤트(아직 없는 시스템이 부를 자리)
 
 | 이벤트 ID | 부를 곳 | 마일스톤 |
 |---|---|---|
 | `Creature.Killed.Small` | 소형 생물을 잡았을 때 | M3 |
-| `Item.Obtained.Meat` | 전리품 고기를 주웠을 때 | M3 · M4 |
+| `Item.Obtained.Meat` | 고기 묶음(`Meat`) 아이템을 가방에 넣었을 때 — 줍기 · 지급 모두(`Item.Obtained.<ID>` 도 같이) | M3 — 있음(갈래 I) |
 | `Creature.Weakened.Small` | 길들일 생물의 체력이 30% 이하 | M3 |
 | `Creature.Tamed.Small` | 파크툼(길들이기) 성공 | M3 |
-| `Cooking.IngredientsAdded` · `Cooking.Completed` · `Food.Eaten` | 아궁이에 재료를 넣음 · 요리 완성 · 먹음 | M4 |
+| `Cooking.IngredientsAdded` · `Cooking.Completed` · `Food.Eaten` | 아궁이 위 냄비(`Tut_CookingPot`)에 재료를 넣음 · 요리 완성(넣은 사람들) · 음식을 먹음 | M3 — 있음(갈래 I) |
 | `Base.Founded` | 거점 핵으로 첫 거점을 세움 | M4 |
 
 그 전에는 콘솔 `Grim.Quest.At <초> Event <ID>` 로 채운다.
@@ -65,11 +65,11 @@
 | 5~7 | 양초 켜기 → 벤투스로 키우기(세기 2) → 아쿠엘로 끄기(꺼짐 + 젖음) | ElementalState Tut_Candle | 진짜 |
 | 8 | 홀 화단 작물 셋에 물 | ElementalState Tut_Crop State.Wet × 3 | 진짜(작물 자리 — 작물 M4) |
 | 9 | 앞마당으로 | ReachLocation Tut_Yard | 진짜 |
-| 10 · 11 | 소형 생물 사냥 · 고기 줍기 | Event | M3 |
+| 10 · 11 | 소형 생물 사냥 · 고기 줍기 | Event | M3 — 사냥은 갈래 C, 줍기(`Item.Obtained.Meat`)는 갈래 I(있음) |
 | 12 | 파크툼 스킬북 읽기 | KnowSpell Pactum (Give) | 진짜 — 정의는 M3 |
 | 13 · 14 | 체력 30% 이하 · 파크툼으로 길들이기 | Event | M3 |
 | 15 · 16 | 주방으로 · 플라미스로 아궁이 | ReachLocation · ElementalState Tut_Stove | 진짜 |
-| 17 · 18 | 재료 받기(Item) · 넣고 완성 · 먹기 | Event | M4 |
+| 17 · 18 | 재료 받기(Give `Item:Herb · Salt · Grain`) · 냄비에 넣고 완성 · 스튜 먹기 | Event | 진짜(갈래 I) |
 | 19 | 스승에게(체온 · 피로 소개) | TalkToNpc | 진짜 |
 | 20 | (해넘이로) 앞마당 모닥불 피우기 — 곁에 침낭(Give `Bedroll@Tut_CampSite`) | ElementalState Tut_Campfire | 진짜 |
 | 21 | 침낭에서 밤 넘기기 · 피로 풀기 | SleepThroughNight + Attribute Fatigue ≤ 10 | 진짜 |

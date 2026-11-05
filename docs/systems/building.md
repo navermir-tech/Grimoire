@@ -77,9 +77,70 @@
 
 ## 인벤토리 · 아이템
 
-- `UGrimItemDefinition`(PrimaryDataAsset `Item`): `Type(Material · Food · Seed · Skillbook · Wand · Tool · Placeable), Stack, Weight, Icon, 사용 효과`.
-- `UGrimInventoryComponent`(플레이어 · 저장고 · 시설): `TArray<FGrimItemSlot>`(FastArray 복제, 소유자 / 열람자에게만). 서버 함수 `Add / Remove / Move`, 클라이언트는 `Server_MoveItem` 요청.
-- 무게 제한(제안) → 운반 일꾼의 쓸모.
+M3 기초(갈래 I)가 들어갔다 — 플레이어 가방(칸 수 고정) · 줍기 · 버리기 · 먹기 · 스킬북 읽기 · 아궁이/모닥불 요리. 저장고 · 시설 인벤토리, 무게 제한, 장비(내구도 · 인챈트), 아이콘은 M4. 코드는 `Source/Grimoire/Items/`.
+
+### 표 — `Content/Grimoire/Data/Items.csv` · `Recipes.csv` (정본, 런타임에 읽는다)
+
+- 퀘스트 표와 같은 방식: `UGrimItemSettings::GetDatabase()` 가 한 번 읽어 `FGrimItemDatabase` 로 둔다. 문제는 로그(Error) · 테스트 `Grimoire.Items.Table`. 콘솔 `Grim.Items.Reload`.
+- 아이템 행(행 이름 = 아이템 ID, `FGrimItemRow`): `DisplayName · Description · Kind(Material · Food · Skillbook · Tool) · MaxStack · Weight(자리만) · Groups(묶음, `|`)` · 음식 `HungerRestore · bRaw · DiseaseChance(음수 = 생존 기본) · BuffSeconds · BuffColdResist · BuffHeatResist · BuffDiseaseResist` · 요리 `CookResult · CookSeconds` · 스킬북 `TeachesSpell(DA_Spell_<ID>)` · 바닥 모양 `Shape · Size · Color`(엔진 기본 도형 — 아트 전).
+- 묶음(Groups): 레시피 재료 `#Meat` 와 퀘스트 이벤트 `Item.Obtained.<묶음>` 에 쓴다. 고기 계열은 `Meat`(튜토리얼 `Item.Obtained.Meat`).
+- 레시피 행(`FGrimRecipeRow`): `DisplayName · Station(시설 ID) · Inputs("#Meat:1|Herb:1|Salt:1|Grain:1") · Output · OutputCount · CookSeconds`. 재료는 ID 재료를 먼저, 묶음 재료를 나중에 채운다. 내용물이 **정확히** 맞아야(남는 것 없음) 끓는다.
+
+| 아이템 ID | 이름 | 종류 | 메모 |
+|---|---|---|---|
+| `JackalopeMeat` | 재칼로프 고기(날) | 음식 · 날것 | 배고픔 +8, 배탈(생존 기본 30%), 12초 익으면 `RoastedJackalopeMeat`. 묶음 Meat |
+| `RoastedJackalopeMeat` | 구운 재칼로프 고기 | 음식 | 배고픔 +30. 묶음 Meat |
+| `JackalopeFur` · `JackalopeAntler` | 재칼로프 털 · 뿔 | 재료 | 재칼로프 전리품 |
+| `KelpieMane` · `KelpieWaterEssence` | 켈피 갈기 · 물 정수 | 재료 | 켈피 전리품(켈피 고기는 없음 — 생물 스펙). 묶음 Water |
+| `Waterweed` | 수초 | 음식 · 날것 | 물가 채집 자리(전리품 아님). 배고픔 +3, 배탈 5% |
+| `BlackDogHide` · `BlackDogFang` | 검은 개 가죽 · 송곳니 | 재료 | 검은 개 전리품 |
+| `Herb` · `Salt` · `Grain` | 허브 · 소금 · 곡물 | 재료 | 요리 재료(튜토리얼 17단계 지급) |
+| `Stew` | 고기 스튜 | 음식 | 배고픔 +55, 버프 추위 저항 +1 · 300초. 레시피 `MeatStew`(냄비) |
+| `Skillbook_Ember` · `_WaterJet` · `_Breeze` | 스킬북 | 스킬북 | 쓰면 `UseSkillbook` |
+
+### 아이템 인스턴스 `FGrimItemInstance`
+
+`ItemId · Count` + M4 자리 `Durability(음수 = 없음) · Enchantments`. 내구도 · 인챈트가 있으면 쌓이지 않는다. 직렬화 `Serialize(FArchive&)` 하나를 가방 · 픽업 · 냄비가 같이 쓴다.
+
+### 가방 `UGrimInventoryComponent` (PlayerState, 런타임에 붙임)
+
+- **붙이는 곳**: `UGrimItemSubsystem`(월드, 서버)이 PlayerState 가 스폰되자마자 붙인다(이름 고정 `GrimInventory`, 복제되는 동적 컴포넌트). PlayerState 파일(Core)을 고치지 않으려고 퀘스트 컴포넌트와 같은 방식을 썼다 — 스폰 콜백에서 붙이므로 PostLogin 의 세이브 읽기보다 먼저 있다. 서브시스템만 두지 않은 까닭: 소유 클라이언트 복제 · 서버 RPC 는 소유자 체인(PlayerState)의 컴포넌트여야 한다.
+- 칸 수 고정 `PlayerSlotCount`(24). 칸은 FastArray(`FGrimInventoryList`, 항목에 칸 번호)로 **소유 클라이언트에게만** 복제. 칸 계산은 순수 `FGrimInventoryModel`(쌓을 수 있는 칸 먼저 → 빈 칸, 옮기기 = 합치기 / 바꾸기).
+- 서버 함수: `AddItem · RemoveItem · RemoveFromSlot · MoveItem · UseItem · DropItem · PickUp · InteractWithPot`. 클라이언트 RPC: `Server_MoveItem · Server_UseItem · Server_DropItem · Server_PickUp · Server_InteractPot`(서버가 거리 검사 — `PickupRadius` · `PotInteractRadius` + `ServerReachSlack`). 알림은 `Client_Notice` → `OnNotice`.
+- 쓰기: 음식 = 먹기(아래 · [생존 — 먹기 · 요리](./survival#먹기-·-요리)), 스킬북 = `UGrimSpellbookComponent::UseSkillbook`(배우거나 숙련도를 받으면 하나 소모), 재료 · 도구 = 못 쓴다.
+- 퀘스트 이벤트(`UGrimQuestComponent::NotifyQuestEvent`): 얻으면 `Item.Obtained.<ID>` 와 묶음마다 `Item.Obtained.<묶음>`, 먹으면 `Food.Eaten`, 냄비에 넣으면 `Cooking.IngredientsAdded`, 완성되면 넣은 사람들에게 `Cooking.Completed`. 퀘스트 `Give` 의 `Item:<ID>` 는 `UGrimItemStatics::GiveItem` 으로 가방에 하나 넣는다(표에 없는 거점 핵은 기록만).
+- 세이브: `IGrimSaveParticipant`(Player, `Items.Inventory` v1 — 칸 수 + 칸마다 인스턴스). 읽을 때 표에 없는 아이템은 버리고, 칸이 줄었으면 넘친 것을 빈 칸에 넣어 본다.
+
+### 월드 아이템 `AGrimItemPickup` · `UGrimItemStatics::SpawnPickup`
+
+- `UGrimItemStatics::SpawnPickup(World, ItemId, Count, Location)` — 서버 전용. 아래 바닥(WorldStatic)을 찾아 그 위에 놓는다. 생물 전리품(갈래 C)이 이 이름 · 인자 그대로 부른다. 모르는 ID · 개수 0 · 클라이언트면 nullptr.
+- 줍기: **다가가 F**(`InteractKey`, 침대 · NPC 와 같은 방식 — 마법 상호작용의 예외). 설정 `bAutoPickupOnOverlap` 이면 닿기만 해도 줍는다(버린 사람은 `DropAutoPickupDelay` 동안 제외). 가방이 차면 들어간 만큼만 줍고 나머지는 남는다.
+- 콜리전: 투사체(WorldDynamic)에 맞고 시야 추적에 걸리며 폰은 겹쳐 지나간다. 속성 자극을 받는다(`IGrimElementalReceiver`) — 요리.
+- 세이브: World `Item.Pickup.<이름>` v1(인스턴스 + 요리 진행). 게임 중 스폰된 것은 다시 스폰된다.
+
+### 조리 시설 `AGrimCookingPot`
+
+아궁이(불붙는 사물 — 튜토리얼은 `AGrimCampfire` 「Tut_Stove」) 위의 냄비. 튜토리얼 맵 `L_Tower` 에 `Tut_CookingPot`(`build_tower_map.py`). 다가가 F = 가방에서 레시피 재료를 넣기(넣을 게 없고 끓기 전이면 도로 꺼내기). 끓기 · 완성은 [생존 — 먹기 · 요리](./survival#먹기-·-요리). 콜리전이 없다(불 마법이 아래 아궁이에 닿게). 세이브: World `CookingPot.<이름>` v1(내용물 · 진행).
+
+### 화면 `UGrimInventoryWidget` (C++ 위젯 트리)
+
+- 아래 가운데: 줍기 · 냄비 안내(「[F] 줍기 — 재칼로프 고기(날)」, 「고기 스튜: 고기 1/1 · 허브 0/1 …」, 「익는 중 40%」 · 「불이 필요하다」), 그 위 알림 한 줄(`NoticeSeconds`).
+- **가방 키 L**(`BagKey`): 칸 격자(6열) + 고른 칸 설명 + 사용(먹기 · 읽기) · 하나 버리기 · 모두 버리기 · 옮기기(칸 고르고 [옮기기] → 놓을 칸). 열린 동안 커서 · 시점 고정(그리모어 화면과 같은 방식, 그리모어가 열려 있으면 닫는다).
+- 키 조사: 호그와트 레거시 PC 기본 배치는 **소지품(Inventory) = L · 장비(Gear) = I** · 지도 = M · 아이템 버리기 = C. 그래서 가방은 L, I 는 장비 화면(M4)에 남긴다. 키는 PlayerController 키 상태로 본다(정식 입력 액션은 조작 갈래 몫).
+
+### 설정 `UGrimItemSettings` — `[/Script/Grimoire.GrimItemSettings]`
+
+`ItemsCSV · RecipesCSV · PlayerSlotCount(24) · BagKey(L) · InteractKey(F) · PickupRadius(220) · ServerReachSlack(150) · bAutoPickupOnOverlap(False) · DropAutoPickupDelay(2) · DropDistance(120) · CookHeatRadius(170) · CookCheckInterval(0.5) · ExtraCookRatePerIntensity(0.5) · DirectFireHeatSeconds(4) · DirectFireMinIntensity(0.3) · PotInteractRadius(260) · PotHeatRadius(150) · NoticeSeconds(3) · GroupDisplayNames`.
+
+### 콘솔 (개발 빌드, 친 플레이어의 가방 → 서버)
+
+`Grim.Items.Give <ID> [수]` · `Spawn <ID> [수]`(앞 1.5m 픽업) · `PickUp` · `Use <칸>` · `Eat <ID>` · `Drop <칸> [수]` · `DropId <ID> [수]` · `Move <칸> <칸>` · `Fire [세기]`(가까운 픽업에 불 자극) · `SpawnFire`(앞 2m 불붙은 모닥불) · `SpawnPot`(가까운 모닥불 위 냄비) · `Pot` · `Hunger <값>` · `Clear` · `Dump` · `Reload` · `At <초> <명령> [인자…]`. 2인 확인: `Scripts/Items/net_check_items.ps1`(L_Tower, 튜토리얼 11 · 17 · 18 단계까지).
+
+### 남은 것 (M4)
+
+- 저장고 · 시설 인벤토리(열람자 복제), 무게 제한(→ 운반 일꾼의 쓸모), 아이콘 · 끌어 놓기 UI, 단축 아이템(물약 휠).
+- 죽으면 가방 일부(자원)를 그 자리에 떨군다(생존 스펙 「죽음」) — `UGrimSurvivalComponent::OnDied` 에 묶을 자리.
+- 불에 오래 두면 타는 것(숯), 생산 시설(`AGrimCraftStation`)의 레시피 표 통합.
 
 ## 세이브
 

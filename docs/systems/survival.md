@@ -112,7 +112,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 
 | 질병 | 원인 | 효과 |
 |---|---|---|
-| 배탈 `UGrimDiseaseStomachEffect` → `Status.Sick.Stomach` | 날것 섭취(`NotifyFoodEaten(true)`) 30% | 배고픔 감소 ×2, 180초 |
+| 배탈 `UGrimDiseaseStomachEffect` → `Status.Sick.Stomach` | 날것 섭취(아이템 표 `DiseaseChance`, 기본 30% — 아래 「먹기」) | 배고픔 감소 ×2, 180초 |
 | 감기 `UGrimDiseaseColdEffect` → `Status.Sick.Cold` | 젖은 채 추위 모자람 ≥ 1 이 60초 쌓일 때마다 35% | 마나 회복 −1/초, 300초. 「시전 가끔 끊김」은 태그만 — 마법 쪽이 읽는다 |
 
 - 확률 × (1 − `DiseaseResist`/100). 원인 확률 · 지속은 `UGrimSurvivalSettings.Disease`.
@@ -121,8 +121,24 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 
 ## 먹기 · 요리
 
-- 음식 아이템 정의에 `HungerRestore`, `bRaw`, `DiseaseChance`, `Buffs`. 먹으면 `UGrimSurvivalComponent::NotifyFoodEaten(bRaw)`(M4 인벤토리 뒤).
-- 요리는 사물 상태로 한다: 날고기를 땅이나 모닥불 위에 두고 불 자극 → `State.Cooked` → 요리 아이템으로 바뀐다(R16).
+아이템 · 가방은 [건축 시스템 — 인벤토리 · 아이템](./building#인벤토리-·-아이템)(M3 갈래 I, `Source/Grimoire/Items/`).
+
+### 먹기 (서버 — `UGrimInventoryComponent::UseItem` → 음식)
+
+- 배고픔 회복: 생존 틱 GE(`UGrimSurvivalTickEffect`, SetByCaller `Survival.Hunger` = 표의 `HungerRestore`) — 상한은 어트리뷰트 셋이 `MaxHunger` 로 자른다. 익힌 것이 날것보다 훨씬 많이 채운다(구운 고기 30 · 날고기 8).
+- 날것(`bRaw`)이면 배탈 굴림: 표의 `DiseaseChance`(음수면 `Disease.RawFoodStomachChance` 30%) × (1 − `DiseaseResist`/100) → `ApplyDisease(Stomach)`. 굴림은 아이템 쪽이 하고 생존 쪽은 `ApplyDisease` 만 부른다(아이템마다 확률이 달라서 — `NotifyFoodEaten(bRaw)` 은 콘솔 `EatRaw` 용으로 남는다).
+- 버프(`BuffSeconds` > 0): `UGrimFoodBuffEffect`(지속형, SetByCaller 시간 · 추위 · 더위 · 질병 저항, 태그 `Status.Buff.Food`). 새로 먹으면 전 버프를 떼고 다시 건다(겹치지 않음). 스튜 = 추위 저항 +1 · 5분.
+- 하나 소모 → 퀘스트 `Food.Eaten` → 소유 클라이언트에 알림(「배탈이 났다!」).
+
+### 요리 (R16 — 불 자극)
+
+- **바닥 · 불 위의 날것**(`AGrimItemPickup`, 표에 `CookResult`): 서버 타이머(`CookCheckInterval`)마다 열을 본다 —
+  - 근처 불: 반경 `CookHeatRadius` 안 `State.Burning` 세기가 있는 사물(모닥불 · 아궁이 · 타는 풀. 양초 · 폰 · 픽업 제외)의 가장 센 세기.
+  - 직접 불: 불 마법(투사체가 픽업에 맞음 → `IGrimElementalReceiver`)이 닿으면 `DirectFireHeatSeconds` 동안 그 세기(1~3)로. 물 · 흙 자극은 식힌다.
+  - 진행 += 초 × (1 + (세기 − 1) × `ExtraCookRatePerIntensity`) — 바람으로 키운 불(세기 3)은 두 배 빠르다. 불이 없으면 멈추고 진행은 남는다(색이 결과 색으로 조금씩 바뀐다).
+  - 진행 ≥ `CookSeconds` → `State.Cooked`(픽업이 세기 1 로 알림) → 같은 개수의 `CookResult` 로 바뀐다. 결과는 더 익지 않는다(태우기는 M4).
+- **냄비**(`AGrimCookingPot`, 아궁이 위): 내용물이 레시피(`Recipes.csv`, Station = `CookingPot`)와 정확히 맞고 아래(`PotHeatRadius`)에 불이 있으면 같은 식으로 끓는다(레시피의 `CookSeconds`). 불이 꺼지면 멈춘다. 다 끓으면 재료가 사라지고 결과(스튜)가 냄비 앞(`OutputOffset`)에 픽업으로 놓이며 넣은 사람들에게 `Cooking.Completed`. 끓는 중에는 꺼낼 수 없다.
+- 튜토리얼 6단계(15~18): 주방 → 플라미스로 아궁이(`Tut_Stove`) 불 → 지급(허브 · 소금 · 곡물이 가방에) → 냄비에 F(고기와 재료 — `Cooking.IngredientsAdded`) → 완성(`Cooking.Completed`) → 스튜 줍기 · 먹기(`Food.Eaten`).
 
 ## 잠 · 밤 건너뛰기
 
@@ -138,7 +154,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 
 - `Health ≤ 0`(어트리뷰트 변화 · 틱) → `Status.Downed` `DownedSeconds`(60초), 진행 중 능력 취소, 이동 ×0.25, HP 회복 · 피해 멈춤. 남은 시간은 `GetDownedSecondsRemaining()`(복제).
 - 그 안에 `Revive()` → MaxHealth × 0.3 으로 일어난다. 지금은 콘솔 `grim.Survival.Revive` — 동료의 빛 마법 치료가 생기면 그쪽이 부른다.
-- 시간이 끝나면 사망(`OnDied` — 가방 일부 드롭 `AGrimLootBag` 은 인벤토리 M4 뒤) → 부활: 마지막 침대 옆, 없으면 `GameMode->FindPlayerStart`. **폰을 새로 만들지 않고 옮긴다**(PlayerState · 마법서 유지). HP = MaxHealth × 0.5, 체온 정상, 배고픔 최소 30. `OnRespawned`.
+- 시간이 끝나면 사망(`OnDied` — 가방 일부 드롭은 M4. 가방 기초는 M3 에 들어갔다) → 부활: 마지막 침대 옆, 없으면 `GameMode->FindPlayerStart`. **폰을 새로 만들지 않고 옮긴다**(PlayerState · 마법서 유지). HP = MaxHealth × 0.5, 체온 정상, 배고픔 최소 30. `OnRespawned`.
 - 거점 핵 · 마법탑 부활 지점 고르기는 거점 시스템 뒤.
 
 ## 슈퍼치트

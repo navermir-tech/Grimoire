@@ -67,8 +67,9 @@ public:
 	/**
 	 * 서버: 다른 시스템이 퀘스트 이벤트를 알린다 → Event 목표(Target = EventId)를 센다.
 	 * 아직 없는 시스템이 생기면 부를 자리(이름은 docs/systems/tutorial 「이벤트」 표):
-	 *  TODO(M3): Creature.Killed.Small(소형 생물 처치) · Item.Obtained.Meat(전리품 고기) · Creature.Weakened.Small(체력 30% 이하) · Creature.Tamed.Small(길들이기 성공)
-	 *  TODO(M4): Cooking.IngredientsAdded · Cooking.Completed · Food.Eaten(요리 · 먹기) · Base.Founded(거점 핵으로 첫 거점)
+	 *  TODO(M3): Creature.Killed.Small(소형 생물 처치) · Creature.Weakened.Small(체력 30% 이하) · Creature.Tamed.Small(길들이기 성공)
+	 *  있음(M3 갈래 I — Items/): Item.Obtained.<ID · 묶음>(Item.Obtained.Meat) · Cooking.IngredientsAdded · Cooking.Completed · Food.Eaten
+	 *  TODO(M4): Base.Founded(거점 핵으로 첫 거점)
 	 * PlayerActor 는 폰 · 컨트롤러 · PlayerState 어느 것이든.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Quest")
