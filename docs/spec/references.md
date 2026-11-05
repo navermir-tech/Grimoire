@@ -67,6 +67,15 @@
 | 조준 옵션 | 조준 누르기 / 토글 선택, 조준 보조 기본 켬 |
 | 불확실 | 고정 중 카메라가 얼마나 따라가는지, 투사체 유도 세기(체감상 거의 필중이라는 말뿐), 자동 대상을 완전히 끄는 옵션 |
 
+**조준 모드 (R24 조사, 2026-11-05)** — 공략 사이트 기준, 버튼 목록이 사이트마다 조금 다르다.
+
+| 항목 | 호그와트 레거시 |
+|---|---|
+| 조준(줌인) | **누르는 동안** PC 오른쪽 마우스 · 패드 L2/LT. 화면에 원 조준점이 뜨고 아무 곳이나 겨눈다 |
+| 옵션 | 접근성의 「조준 모드 토글」(누르기 / 토글), 「조준 가속」(조준 감도) |
+| 대상 표시 | 아씨오 같은 마법은 겨눈 대상이 하얀 외곽선으로 빛날 때 쏜다 |
+| 탈것 · 빗자루 | 타고 있어도 시전할 수 있다는 글이 있다(그래폰 위 전투 등) — 근거가 적어 불확실 |
+
 → 그리모리 적용: 고정 락온 = **R3 · Caps Lock 토글**, 고정 중 오른쪽 스틱 튕김 · 마우스로 전환, 카메라는 대상을 부드럽게 따라감(이 부분은 레퍼런스 자료가 없어 우리 안). 「카메라 기준 / 스틱 기준」 옵션도 따른다.
 
 ## 마법 이펙트 에셋 (Q20)
@@ -111,6 +120,7 @@
 - 브이 라이징: [서버 설정](https://low.ms/knowledgebase/v-rising-server-configuration) · [공식 FAQ](https://guides.playvrising.com/hc/en-us/articles/28588823248029-Can-You-Transfer-Characters-or-Change-Servers-in-V-Rising)
 - 코난 엑자일: [공지](https://www.conanexiles.com/?p=21107)
 - 돈스타브 · 테라리아: [DST Wiki](https://dontstarve.wiki.gg/wiki/Day-Night_Cycle) · [Terraria Wiki](https://terraria.wiki.gg/wiki/Server)
+- 호그와트 레거시 조준: [GameSkinny 조작 목록](https://www.gameskinny.com/b7804/all-hogwarts-legacy-controls-list-for-pc-playstation-xbox) · [CyberPost 탈것 전투](https://cyberpost.co/?p=1207300)
 - 호그와트 레거시: [Fextralife 조작](https://hogwartslegacy.wiki.fextralife.com/Controls) · [Twinfinite](https://twinfinite.net/guides/how-to-lock-on-in-hogwarts-legacy/) · [GameSkinny 설정](https://www.gameskinny.com/tips/hogwarts-legacy-how-to-change-controller-settings-guide/) · [WB 접근성](https://portkeygamessupport.wbgames.com/hc/en-us/articles/11893402078355)
 - 내구도: [팰월드 건축 피해 설정](https://xgamingserver.com/docs/palworld/structure-damage) · [팰월드 수리](https://vandal.elespanol.com/en/palworld/palworld-how-to-repair-weapons-armor-tools-and-base-structures.html) · [팰월드 수리대](https://gamewith.net/palworld/44330) · [인슈라오디드 수리](https://primagames.com/gaming/how-to-repair-weapons-and-tools-in-enshrouded) · [Destructoid](https://destructoid.com/?p=454095)
 - 이펙트: [Niagara Examples Pack 발표](https://www.unrealengine.com/en-US/news/discover-over-50-free-niagara-systems-ready-to-use-in-unreal-engine-5-7) · [Fab 라이선스](https://dev.epicgames.com/documentation/en-us/fab/licenses-and-pricing-in-fab) · [Paragon](https://www.pcgamer.com/epic-has-released-dollar12-million-worth-of-paragon-assets-free-of-charge) · [Fab 격주 무료](https://www.cgchannel.com/2024/11/epic-games-to-share-new-free-assets-on-fab-every-two-weeks)
