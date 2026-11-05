@@ -17,7 +17,7 @@ SPELL_DIR = "/Game/Grimoire/Magic/Spells"
 SPELLS = [
     dict(
         asset="DA_Spell_Ember",
-        name="불씨",
+        name="플라미스",
         description="빠른 불꽃 화살을 쏜다. 양초 · 모닥불 · 마른 풀에 불을 붙인다.",
         spell_tag="Spell.Ember",
         element="Element.Fire",
@@ -36,7 +36,7 @@ SPELLS = [
     ),
     dict(
         asset="DA_Spell_WaterJet",
-        name="물줄기",
+        name="아쿠엘",
         description="누르고 있는 동안 물줄기를 뿜는다. 불을 끄고 대상을 적신다.",
         spell_tag="Spell.WaterJet",
         element="Element.Water",
@@ -61,7 +61,7 @@ SPELLS = [
     ),
     dict(
         asset="DA_Spell_Breeze",
-        name="미풍",
+        name="벤투스",
         description="바람을 원뿔로 쓸어 보낸다. 멀리서는 불꽃을 키우고, 바로 앞에서는 돌풍이 되어 끈다.",
         spell_tag="Spell.Breeze",
         element="Element.Wind",
@@ -82,8 +82,8 @@ SPELLS = [
     # M2 시험용 스킬북 마법(2서클) — 불씨를 Bolt 그대로 수치만 키웠다. 스킬북으로만 배운다(StartingSpells 에 없음).
     dict(
         asset="DA_Spell_Fireball",
-        name="화염구",
-        description="묵직한 불덩이를 쏜다. 불씨보다 느리지만 더 세게 태운다. 2서클 스킬북으로 배운다.",
+        name="이그니스",
+        description="화염 구체를 쏜다. 플라미스보다 느리지만 더 세게 태운다. 2서클 스킬북으로 배운다.",
         spell_tag="Spell.Fireball",
         element="Element.Fire",
         cooldown_tag="Cooldown.Spell.Fireball",

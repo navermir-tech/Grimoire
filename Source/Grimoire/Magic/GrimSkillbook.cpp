@@ -39,7 +39,8 @@ AGrimSkillbook::AGrimSkillbook()
 	PickupZone->SetRelativeLocation(FVector(0.f, 0.f, 90.f));
 	PickupZone->SetSphereRadius(PickupRadius);
 	PickupZone->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	PickupZone->SetCollisionObjectType(ECC_WorldDynamic);
+	// 마법 판정(Stream · Cone 의 오브젝트 질의: WorldStatic · WorldDynamic · Pawn · PhysicsBody)에 걸리지 않게 잘 안 쓰는 종류로 둔다.
+	PickupZone->SetCollisionObjectType(ECC_Destructible);
 	PickupZone->SetCollisionResponseToAllChannels(ECR_Ignore);
 	PickupZone->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	PickupZone->SetGenerateOverlapEvents(true);
@@ -69,6 +70,14 @@ void AGrimSkillbook::BeginPlay()
 	if (HasAuthority() && PickupRadius > 0.f)
 	{
 		PickupZone->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::HandlePickupOverlap);
+		// 플레이어와 겹친 채 스폰되면 시작 겹침 이벤트를 놓친다 — 지금 겹친 폰을 한 번 확인한다.
+		PickupZone->UpdateOverlaps();
+		TArray<AActor*> Overlapping;
+		PickupZone->GetOverlappingActors(Overlapping, APawn::StaticClass());
+		for (AActor* Actor : Overlapping)
+		{
+			HandlePickupOverlap(PickupZone, Actor, nullptr, INDEX_NONE, false, FHitResult());
+		}
 	}
 	else
 	{
