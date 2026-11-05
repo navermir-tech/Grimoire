@@ -86,6 +86,46 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 - `CycleSelection(±1)` · `SelectSpell(i)` — 선택 Spec 에만 `Input.Spell.Cast` 를 넣고 바뀐 Spec 을 `MarkAbilitySpecDirty`. `SelectedIndex` 복제, `OnSelectedSpellChanged`(서버 · 클라이언트) 로 HUD 갱신.
 - `UGrimSpellSelectAbility` 는 ServerOnly — 입력은 클라이언트, 선택 변경은 서버, 결과는 복제.
 
+## 숙련도 (Q26)
+
+> 스펙: [마법 — 숙련도](../spec/magic#숙련도-q26-확정). 구현 예정 **M2**(스킬북 · 서클 1→3 과 함께).
+
+**밸런스는 표 두 개와 설정 하나로만 바꾼다.** 코드에는 등급 수 · 수치를 적지 않는다.
+
+### 데이터
+
+| 무엇 | 형식 | 내용 |
+|---|---|---|
+| `DT_ProficiencyGrades` | DataTable `FGrimProficiencyGradeRow` | 행 = 등급 하나. `Grade`(D · C · B · A · S), `DisplayName`(입문 … 마스터), `XPToReach`(누적), `ManaCostMultiplier`, `CooldownMultiplier`, `ExtraEffectScale`(계약 확률 같은 마법별 추가 효과 배율). 행 순서가 등급 순서 — 등급을 늘리거나 줄여도 코드는 그대로 |
+| `UGrimProficiencyProfile` | DataAsset | 마법 묶음별 경험 곡선 바꾸기: `GradeTable`(위 표 참조, 기본은 공용), `XPScale`(필요 경험 배율 — 높은 서클 마법은 크게), `XPPerCast` · `XPPerMeaningfulHit` |
+| `UGrimSpellDefinition` 추가 필드 | | `ProficiencyProfile`(비우면 서클별 기본 프로필), `ProficiencyExtraEffect`(선택: 예 `Taming.CaptureBonus` 와 그 최대값) |
+| `UGrimProficiencySettings` | DeveloperSettings (`DefaultGame.ini`) | `GlobalXPRate`(서버 옵션으로도 노출), `RepeatTargetDecay`(같은 대상 반복 감쇠, 예 0.5 → 두 번째부터 절반씩), `RepeatWindowSeconds`, `DefaultProfileByCircle[1..10]` |
+
+예시 `DT_ProficiencyGrades` (CSV 로도 관리 — `Content/Grimoire/Data/ProficiencyGrades.csv`):
+
+```
+Grade,DisplayName,XPToReach,ManaCostMultiplier,CooldownMultiplier,ExtraEffectScale
+D,입문,0,1.00,1.00,0.0
+C,익숙,100,0.95,0.95,0.25
+B,숙달,300,0.90,0.90,0.5
+A,능숙,700,0.85,0.85,0.75
+S,마스터,1500,0.75,0.80,1.0
+```
+
+### 계산 · 적용
+
+- 저장: `UGrimSpellbookComponent` 에 `TArray<FGrimSpellProficiency { SpellId, XP }>`(FastArray, 소유자에게만 복제, 플레이어 세이브). 등급은 저장하지 않고 XP 와 표로 **매번 계산**한다 → 표를 바꾸면 기존 세이브도 새 기준을 따른다.
+- 순수 계산 `FGrimProficiencyMath`(액터 모름, 테스트가 직접 부름): `GetGrade(XP, Profile)` · `GetMultipliers(Grade)` · `ComputeXPGain(Def, bMeaningfulHit, RepeatCount, Settings)`.
+- 경험 지급: 서버에서 시전 확정 때 `XPPerCast`, 명중 처리(피해 · 자극 · 계약 결과) 때 `XPPerMeaningfulHit`. 같은 (마법, 대상) 쌍의 최근 기록으로 `RepeatTargetDecay` 를 곱한다. 마지막에 `× XPScale × GlobalXPRate`.
+- 마나: `UGrimSpellAbility` 의 비용 GE 를 `SetByCaller.Magic.ManaCost = 기본 마나 × ManaCostMultiplier` 로(완드 마나 효율 · 인챈트와 곱셈).
+- 쿨타임: 쿨다운 GE 지속시간 `SetByCaller.Magic.Cooldown = 기본 쿨타임 × CooldownMultiplier / CastSpeed`.
+- 계약 확률 같은 추가 효과: `ProficiencyExtraEffect` 최대값 × `ExtraEffectScale`.
+- 등급이 오르면 소유 클라이언트에 `OnProficiencyGradeUp(SpellId, Grade)` → UI 알림 · 그리모어 쪽 갱신.
+
+### 테스트
+
+`Grimoire.Magic.Proficiency.Grade`(경계값) · `.Multipliers` · `.RepeatDecay` · `.TableEdit`(행을 바꾸면 결과가 따라 바뀌는지).
+
 ## 마법 어트리뷰트 `UGrimMagicAttributeSet`
 
 `Mana` · `MaxMana` · `Circle`(복제). `Mana` 는 현재값 · 기본값 모두 `[0, MaxMana]` 로 자르고, `MaxMana` 가 줄면 `Mana` 도 줄인다. `CastSpeed` · `SpellPower` · 속성별 위력 어트리뷰트는 아직 없다 — 완드 보정은 완드 액터 값을 직접 읽는다.
