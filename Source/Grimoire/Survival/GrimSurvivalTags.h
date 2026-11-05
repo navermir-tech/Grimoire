@@ -2,11 +2,30 @@
 
 #include "NativeGameplayTags.h"
 
-// 생존 시스템 전용 GameplayTag. 서버가 임계값에 따라 ASC 에 복제 루스 태그로 붙인다.
+// 생존 시스템 전용 GameplayTag. 서버가 임계값에 따라 ASC 에 복제 루스 태그로 붙인다(질병은 지속 GE 가 준다).
 namespace GrimSurvivalTags
 {
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Hungry);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Starving);
+
+	// 체온 단계 — 모자람 1 / 2 / 3+
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Chilly);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Hypothermia);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Hypothermia_Severe);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Warm);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Hyperthermia);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Hyperthermia_Severe);
+
+	// 피곤함 · 잠
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Exhausted);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Collapsed);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Sleeping);
+
+	// 쓰러짐
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Downed);
+
+	// 질병
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Sick);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Sick_Stomach);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Sick_Cold);
 }
