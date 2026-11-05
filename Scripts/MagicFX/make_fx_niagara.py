@@ -6,6 +6,7 @@
 #   & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
 #     -run=pythonscript -script="$PWD\Scripts\MagicFX\make_fx_niagara.py" -unattended -nop4 -nosplash -nullrhi
 # 결과는 Saved/MagicFX/make_fx_niagara.txt. 일부만: GRIM_FX_SYSTEMS=NS_GrimEmber_Cast,NS_GrimEmber_Trail (비우면 전부)
+# 다른 사양 파일로: GRIM_FX_SPEC=<json 절대 경로> (형식은 load_spec, 예: art/fx/specs/example.json)
 # 함정: 스크립트는 끝까지 돌고 저장도 되지만, 엔진 종료 때 UObjectArray 단언으로 종료 코드 3 이 날 수 있다(실험 플러그인).
 #       결과 파일의 「설정 실패=0」 과 컴파일 상태로 판단한다.
 
@@ -130,20 +131,55 @@ SYSTEMS = {
 }
 
 
+def load_spec(path):
+    """JSON 사양 파일 → (폴더, {시스템: [에미터 dict]}). 다른 마법 · 다른 세션이 이 파일을 고치지 않고 이펙트를 만들 때.
+    형식 예: art/fx/specs/example.json — 에미터 키는 fx_niagara_builder.build_emitter 설명과 같다(튜플 대신 리스트).
+    "material" 에는 에셋 경로 또는 이 스크립트의 별칭(add · fire · smoke · ribbon · flare4 · flare6 · ring · spark).
+    "raw" 는 [스크립트, 모듈, 입력, {"float": 1.0} | {"int": 1} | {"bool": true} | {"color": [r,g,b,a]} | {"vec3": [x,y,z]} | {"hlsl": "식"}]."""
+    import json
+    aliases = {"add": MAT_ADD, "fire": MAT_FIRE, "smoke": MAT_SMOKE, "ribbon": MAT_RIBBON,
+               "flare4": MAT_FLARE4, "flare6": MAT_FLARE6, "ring": MAT_RING, "spark": MAT_SPARK}
+    makers = {"float": nb.v_float, "int": nb.v_int, "bool": nb.v_bool, "hlsl": nb.v_hlsl,
+              "color": lambda c: nb.v_color(*c), "vec3": lambda v: nb.v_vec3(*v), "vec2": lambda v: nb.v_vec2(*v)}
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    systems = {}
+    for name, emitters in data["systems"].items():
+        out = []
+        for e in emitters:
+            e = dict(e)
+            if e.get("material") in aliases:
+                e["material"] = aliases[e["material"]]
+            raw = []
+            for script, module, input_name, value in e.get("raw", []):
+                (kind, v), = value.items()
+                raw.append((script, module, input_name, makers[kind](v)))
+            e["raw"] = raw
+            for key, v in list(e.items()):
+                if isinstance(v, list) and key != "raw":
+                    e[key] = tuple(tuple(x) if isinstance(x, list) else x for x in v)
+            out.append(e)
+        systems[name] = out
+    return data.get("folder", FX_DIR), systems
+
+
 def main():
     nb.TRACE = os.environ.get("GRIM_FX_TRACE") == "1"
-    nb.LOG.extend(fx_materials.LOG)
     only = [s.strip() for s in os.environ.get("GRIM_FX_SYSTEMS", "").split(",") if s.strip()]
-    if not only or os.environ.get("GRIM_FX_MATERIALS", "1") == "1":
+    spec_path = os.environ.get("GRIM_FX_SPEC", "")
+    folder, systems = load_spec(spec_path) if spec_path else (FX_DIR, SYSTEMS)
+    # 공용 머티리얼 · 텍스처: 기본은 다시 만든다. 사양 파일이나 일부 시스템만 만들 때는 GRIM_FX_MATERIALS=1 일 때만.
+    default_materials = "0" if (only or spec_path) else "1"
+    if os.environ.get("GRIM_FX_MATERIALS", default_materials) == "1":
         fx_materials.make_all()
         nb.LOG.extend(fx_materials.LOG)
-    if not unreal.EditorAssetLibrary.does_directory_exist(FX_DIR):
-        unreal.EditorAssetLibrary.make_directory(FX_DIR)
-    for name, emitters in SYSTEMS.items():
+    if not unreal.EditorAssetLibrary.does_directory_exist(folder):
+        unreal.EditorAssetLibrary.make_directory(folder)
+    for name, emitters in systems.items():
         if only and name not in only:
             continue
         try:
-            nb.build_system(FX_DIR, name, emitters)
+            nb.build_system(folder, name, emitters)
         except RuntimeError as e:
             nb.log("!! %s" % e)
 

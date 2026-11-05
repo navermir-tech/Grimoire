@@ -1,0 +1,27 @@
+{
+  "_설명": "make_fx_niagara.py 의 JSON 사양 예 — GRIM_FX_SPEC 로 넘긴다. 바늘 같은 빛줄기 몸통 + 깃털 꼬리 + 잔불꽃, 맞은 곳 섬광 · 고리. 색은 선형 RGB(1 이 화면 꽉 찬 색, 머티리얼이 노출을 되돌린다).",
+  "folder": "/Game/Grimoire/MagicFX/Examples",
+  "systems": {
+    "NS_GrimFXExample_Trail": [
+      {"template": "SingleLoopingParticle", "name": "Core", "material": "add", "burst": 1, "lifetime": [4, 4],
+       "size": [14, 14], "color": [1.4, 1.2, 1.0, 1.0], "local": true},
+      {"template": "LocationBasedRibbon", "name": "Needle", "material": "ribbon", "loop": "infinite", "rate": 160,
+       "lifetime": [0.12, 0.12], "color": [1.0, 0.45, 0.12, 1.0], "ribbon_width": 6, "alpha": "1.0 - Particles.NormalizedAge"},
+      {"template": "Fountain", "name": "Embers", "material": "spark", "loop": "infinite", "rate": 50, "lifetime": [0.3, 0.6],
+       "size_xy": [[1.5, 4.0], [2.5, 7.0]], "color": [1.0, 0.5, 0.15, 1.0], "speed": [20, 90], "cone": 80, "axis": [-1, 0, 0],
+       "gravity": -150, "drag": 2, "alpha": "1.0 - Particles.NormalizedAge", "align": "VelocityAligned", "radius": 3.0}
+    ],
+    "NS_GrimFXExample_Impact": [
+      {"template": "OmnidirectionalBurst", "name": "Flash", "material": "flare6", "burst": 1, "lifetime": [0.14, 0.14],
+       "size": [150, 150], "color": [1.0, 0.5, 0.15, 1.0], "speed": [0, 0], "radius": 0.0, "gravity": 0.0, "drag": 0.0,
+       "alpha": "pow(1.0 - Particles.NormalizedAge, 2.0)", "grow": "0.6 + 0.8 * Particles.NormalizedAge"},
+      {"template": "OmnidirectionalBurst", "name": "Ring", "material": "ring", "burst": 1, "lifetime": [0.3, 0.3],
+       "size": [40, 40], "color": [1.0, 0.45, 0.12, 1.0], "speed": [0, 0], "radius": 0.0, "gravity": 0.0, "drag": 0.0,
+       "alpha": "1.0 - Particles.NormalizedAge", "grow": "1.0 + 4.0 * Particles.NormalizedAge"},
+      {"template": "DirectionalBurst", "name": "Sparks", "material": "spark", "burst": 24, "lifetime": [0.3, 0.7],
+       "size_xy": [[2.0, 5.0], [3.0, 10.0]], "color": [1.0, 0.5, 0.15, 1.0], "speed": [400, 1000], "cone": 70, "axis": [0, 0, 1],
+       "gravity": -900, "drag": 1.5, "alpha": "1.0 - Particles.NormalizedAge", "align": "VelocityAligned",
+       "raw": [["ParticleUpdateScript", "ScaleSpriteSizeBySpeed", "Velocity Threshold", {"float": 3000}]]}
+    ]
+  }
+}

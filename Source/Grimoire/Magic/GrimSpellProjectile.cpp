@@ -246,8 +246,6 @@ void AGrimSpellProjectile::StartTrail()
 		if (Component)
 		{
 			UGrimSpellVisualSet::TintNiagara(Component, Color);
-			// 몸통(빛나는 심 · 불꽃 껍질)은 이펙트가 그린다 — 엔진 기본 구는 감춘다(2026-11-06 이펙트 자체 제작).
-			Mesh->SetVisibility(false);
 		}
 		TrailComponent = Component;
 	}
