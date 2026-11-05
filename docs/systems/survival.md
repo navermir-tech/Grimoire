@@ -46,6 +46,23 @@
 
 ## 체온 모델
 
+**M2 부터: 등급 방식(스펙 「더위 · 추위 등급과 저항」).** M1 의 섭씨 식(아래)은 등급을 계산하는 재료로 남긴다.
+
+```
+노출 등급  Exposure = UGrimWeatherSubsystem::GetClimateExposure(Location)   // { Heat, Cold } 정수
+           = 지역 표(시간대 곡선) + 날씨 가산 + 상태(젖음 · 불붙음) + 주변(열원 −, 그늘 −, 실내면 날씨 몫 0)
+저항 합    Resist   = Σ 장착 장비 · 인챈트 · 장신구 · 버프 GE 의 HeatResist / ColdResist   // MagicSet 옆 SurvivalSet 어트리뷰트
+모자람     Deficit  = max(0, Exposure.Cold − Resist.Cold) 또는 max(0, Exposure.Heat − Resist.Heat)
+목표 체온  = 37 − Deficit_Cold × 1.5 + Deficit_Heat × 1.5        // 범위 25~45 로 자름
+BodyTemp  += (목표 − BodyTemp) × (1 − exp(−dt / 120초))           // 지금과 같은 지수 수렴
+```
+
+- `HeatResist` · `ColdResist` 는 어트리뷰트(정수처럼 쓰는 float). 장비 장착 시 Infinite GE 로 더하고 해제 시 뺀다 — 인챈트 · 마법 버프와 같은 길.
+- 상태 태그는 체온이 아니라 **모자람**으로 건다: `Deficit 1 → Status.Chilly / Status.Warm`, `2 → Status.Hypothermia / Status.Hyperthermia`, `3+ → .Severe`(HP 감소). 게이지는 보이는 연출, 판정은 등급이라 장비를 갈아입으면 바로 결과가 맞는다.
+- 지역 표 · 날씨 가산 · 상태 가산 · 열원 감산은 데이터(`DT_ClimateExposure` + `UGrimSurvivalSettings`). 섭씨 기온은 작물 생장 · 얼음 · 녹기 같은 상호작용에 계속 쓴다.
+
+### M1 섭씨 식 (구현됨)
+
 ```
 체감 기온  = AmbientTemp(UGrimWeatherSubsystem::GetAmbientTemperature)
            + Σ 열원(반경 내 액터의 State.Burning 세기 × 15℃ × (1 − 거리/반경))
@@ -73,7 +90,7 @@ PlayerState 의 소유 로컬 플레이어 화면 왼쪽 위에 시각 · HP · 
 
 - 음식 아이템 정의에 `HungerRestore`, `bRaw`, `DiseaseChance`, `Buffs`.
 - 요리는 사물 상태로 한다: 날고기를 땅이나 모닥불 위에 두고 불 자극 → `State.Cooked` → 요리 아이템으로 바뀐다(R16).
-- 잠: 침대는 직접 상호작용을 허용하는 예외(▢ 확인 필요). `Fatigue` 빠르게 감소. 밤이면 시간 가속 투표(멀티: 전원 동의 시 — 제안).
+- 잠: 침대 · 침낭(`AGrimBed`, 직접 상호작용 예외)에 누우면 `State.Sleeping`. 서버 `UGrimSleepSubsystem` 이 잠든 접속자 비율을 세어 `SleepSkipRatio`(기본 1.0, 서버 옵션) 이상이고 밤이면 `UGrimTimeOfDaySubsystem::SkipTo(SunriseTimeOfDay)` — 3초 페이드 후 시간 이동, 잠든 사람 `Fatigue = 0`, 건너뛴 게임 시간 × `SleepHungerRate` 만큼 배고픔 감소. 반경 `SleepBlockRadius` 안에 적대 AI 가 있으면 눕기 거부. 낮잠은 시간 이동 없이 `Fatigue` 만 회복. 마지막 침대 = 부활 지점(플레이어 세이브).
 
 ## 죽음 · 부활
 

@@ -7,7 +7,7 @@
 - `UTickableWorldSubsystem`(게임 · PIE 월드). 시각은 누적 일수 `TotalDays` — 정수부 = 날짜(`GetDayIndex`), 소수부 = 하루 비율(`GetTimeOfDay`, 0 = 자정, 0.5 = 정오).
 - **복제**: 서버가 `OnWorldBeginPlay` 에서 보이지 않는 `AGrimTimeOfDayReplicator`(`AInfo`, 항상 관련)를 만들고 스냅숏 `FGrimTimeSnapshot { TotalDays, ServerSeconds, DayLengthSeconds, DayRatio }` 를 복제한다. 기반 GameState 는 고치지 않는다.
 - **진행 · 외삽**: 모두가 같은 식 `TotalDays = 스냅숏.TotalDays + (GameState 서버 월드 시각 − 스냅숏.ServerSeconds) / 하루 길이` 로 계산한다(`FGrimTimeOfDayMath::ExtrapolateTotalDays`). 서버는 `ResyncIntervalSeconds`(10초)마다 · 시각을 바꿀 때 스냅숏을 새로 찍는다. 클라이언트는 새 스냅숏과 5초 이내로 어긋나면 차이를 `ClientCorrectionSeconds`(1초) 동안 지수로 메우고, 더 크면(시각 설정) 바로 맞춘다.
-- 설정 `UGrimEnvironmentSettings`(`DefaultGame.ini` 의 `[/Script/Grimoire.GrimEnvironmentSettings]`): `DayLengthMinutes` 48(Q6), `DayRatio` 0.625, `StartTimeOfDay` 0.3(07:12). 낮은 정오를 가운데로 둔다 → 해돋이 04:30, 해넘이 19:30.
+- 설정 `UGrimEnvironmentSettings`(`DefaultGame.ini` 의 `[/Script/Grimoire.GrimEnvironmentSettings]`): `DayLengthMinutes` 48(Q6 확정), `DayRatio` 0.625, `StartTimeOfDay` 0.3(07:12). 낮은 정오를 가운데로 둔다 → 해돋이 04:30, 해넘이 19:30.
 - 이벤트(서버 · 클라이언트가 각자 자기 시각으로): `OnNightBegin` · `OnNightEnd` · `OnHourChanged(Hour)`. 시작 직후 · 시각 점프 직후에는 내지 않는다.
 - 서버 전용 `SetTimeOfDay(0~1)` · `SetDayLengthMinutes`. 콘솔 `grim.Time.Set <시>` · `grim.Time.DayLength <분>`(서버 창에서).
 
@@ -36,7 +36,7 @@
 | 비 | 반경 내 야외 `GrimElementalState` 사물에 10초마다 `Water(0.5)` 자극 → 불 꺼짐 · 작물 급수(지붕 판정은 컴포넌트 쪽 트레이스) |
 | 번개 | 번개 타이머 → 높은 곳 · `Material.Conductive` · `State.Wet` 대상 가중 선택 → 그 지점에 `Wind + Light(3.0)` 자극 + 범위 피해 GE |
 | 안개 | 시야 거리 값 → AI 감지 반경 · 플레이어 UI 표식 거리 감소. 바람 마법은 로컬 안개 억제 볼륨(`AGrimFogClearing`, 30초) |
-| 기온 | `UGrimWeatherSubsystem::GetAmbientTemperature(Location)` → 생존 체온 |
+| 기온 | `GetAmbientTemperature(Location)`(℃ — 작물 · 얼음 상호작용), M2 부터 `GetClimateExposure(Location)`(더위 · 추위 정수 등급 — 생존 체온) |
 | 마법 보정 | `GE_Weather_Rain`(불 −20% · 물 +20%)을 비 지역의 ASC 에 적용 · 해제(제안) |
 
 ## 환경이 다른 시스템에 주는 것

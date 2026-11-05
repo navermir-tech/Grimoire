@@ -52,12 +52,18 @@
 - 감지: `AIPerception`(시각 · 청각) — 안개에서 반경 감소, 자신이 `State.Burning` 이면 공황(Flee).
 - 공격은 GAS 어빌리티(속성 태그 포함) → 플레이어 · 사물에도 자극 적용(불 생물의 브레스가 풀을 태운다).
 
+## 개체 차이 (R23)
+
+- 개체 레코드에 `Sex`(Female · Male), `ColorRegions[6]`(팔레트 색 번호 + `FLinearColor` 흔들림), `SizeScale`(0.9~1.1, 거대 1.3~1.5), `bGiant`, `Personality`(Q27) 를 더한다. 세이브 · 복제는 이 레코드 그대로.
+- 색: 종 정의 `UGrimCreatureSpecies` 에 영역별 `BasePalette` · `MutantPalette` · 성별 팔레트 덮어쓰기. 머티리얼은 마스크 텍스처(영역 = RGBA + 둘째 마스크) 하나 + 다이내믹 머티리얼 인스턴스 파라미터 `RegionColor0..5`. 생성 · 부화 때 서버가 굴리고 클라이언트는 레코드로 칠한다.
+- 암수 형태: 스켈레탈 메시 하나 + 성별 부위 메시(뿔 · 갈기)를 `SexParts` 로 켜고 끔. 크기는 액터 스케일 + 캡슐 · 이동 속도 보정.
+
 ## 길들이기 `UGrimTamingComponent`
 
-- 조건: 대상 체력 ≤ 30%, 플레이어 서클 ≥ `TamingCircle`, 계약 마법 `GA_Spell_Bind` 명중.
-- 성공률 = 기본 + 먹이 보너스 + 속성 일치 완드 보너스 − 등급 패널티. 실패 시 저항(공격).
+- 조건: 대상 체력 ≤ 30%(또는 잠듦 · 지침), 플레이어 서클 ≥ `TamingCircle`, 계약 마법 명중 — 기본 `GA_Spell_Bind`(무속성) 또는 속성별 `GA_Spell_Bind_<속성>`(그 속성 생물이면 `ElementBindBonus`).
+- 성공률 = 기본 + 약해짐 + 먹이 + 속성 일치(마법 · 완드) + 장신구 + 서클 차 (+ 숙련도, Q26) − 등급. 수치는 `UGrimTamingSettings`. 실패 시 저항(공격).
 - 성공: `OwnerId` 설정, 레코드를 플레이어 소유 목록으로 이동(생태계 개체군에서 제외), 이름 짓기 UI.
-- 충성도: 먹이 · 휴식으로 유지, 혹사 · 굶김 시 하락 → 0 이면 도망(다시 야생 레코드로).
+- 충성도 `Loyalty`(0~100, 길들인 직후 50): 서버가 사건(먹이 · 치료 · 승리 · 굶김 · 혹사 · 기절 · 환경)마다 `FGrimLoyaltyEvent` 로 더하고 빼며, 성격 배율(Q27)을 곱한다. 최근 사건 3개를 레코드에 남겨 UI 가 「까닭」으로 보여 준다. 단계(충직 · 보통 · 불만 · 반항)는 태그 `Creature.Loyalty.*` 로 걸어 작업 속도 · 명령 순종 확률 GE 를 바꾼다. 0 → 야생 레코드로 되돌림. 번식장 배정 조건 `Loyalty ≥ 50`.
 
 ## 탑승 `UGrimMountComponent`
 
@@ -73,9 +79,9 @@
 
 ## 번식 `UGrimBreedingComponent` + `AGrimBreedingPen`
 
-- 번식장에 같은 `BreedingGroup` 두 개체 배정 → `GestationMinutes` 타이머(서버. 세이브에 남은 시간 저장).
-- 자식 유전: 스탯마다 부모 중 하나의 IV(50 / 50) 또는 평균 ± 2. `ColorVariant` 는 부모 중 하나.
-- 돌연변이 판정: `p = 3% + 부모 돌연변이 1마리당 +3%`(Q8) → `bMutant = true`, 새 `ColorVariant`(종의 변이 팔레트에서), IV 상한 40 으로 재굴림(기존 값 + 0~9).
+- 번식장에 같은 `BreedingGroup` 의 암수 한 쌍(충성도 50 이상) 배정 → `GestationMinutes` 타이머(서버. 세이브에 남은 시간 저장).
+- 자식 유전: 스탯마다 부모 중 하나의 IV(50 / 50) 또는 평균 ± 2. 색은 영역마다 부모 중 하나(+ 흔들림 새로 굴림), 성별 반반, 크기는 부모 평균 ±0.05(거대 유전 확률 `GiantInheritChance`).
+- 돌연변이 판정: `p = 3% + 부모 돌연변이 1마리당 +3%`(Q8) → `bMutant = true`, 영역 하나 이상을 `MutantPalette` 에서, IV 상한 40 으로 재굴림(기존 값 + 0~9).
 - 결과: 알(`AGrimEgg`, 부화 시간) 또는 새끼(소형 모델 스케일 0.5 → 성장).
 
 ## 식용 · 드롭
