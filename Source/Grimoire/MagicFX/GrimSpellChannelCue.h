@@ -4,6 +4,8 @@
 #include "GameplayCueNotify_Actor.h"
 #include "GrimSpellChannelCue.generated.h"
 
+class UGrimSpellDefinition;
+
 class UFXSystemComponent;
 class UAudioComponent;
 class UStaticMeshComponent;
@@ -55,6 +57,9 @@ protected:
 	TObjectPtr<const UGrimSpellVisualSet> ActiveVisualSet;
 
 	TWeakObjectPtr<APawn> CasterPawn;
+
+	/** 판정과 같은 호를 그리려고 쥐고 있는 마법 정의(UGrimSpellAbility::TraceStreamArc 에 넘긴다). */
+	TWeakObjectPtr<const UGrimSpellDefinition> StreamDefinition;
 	FLinearColor ActiveColor = FLinearColor::White;
 	float LaunchSpeed = 1400.f;
 	float GravityZ = -980.f;

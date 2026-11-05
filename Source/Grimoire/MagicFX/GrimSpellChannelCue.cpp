@@ -1,4 +1,6 @@
 #include "MagicFX/GrimSpellChannelCue.h"
+#include "Magic/GrimSpellAbility.h"
+#include "Magic/GrimSpellDefinition.h"
 #include "MagicFX/GrimGrimoireBook.h"
 #include "MagicFX/GrimMagicFXMath.h"
 #include "MagicFX/GrimMagicFXSettings.h"
@@ -87,6 +89,7 @@ void AGrimCueNotify_SpellChannel::StartChannel(AActor* MyTarget, const FGameplay
 	// 포물선 값: 마법 정의(갈래 A 의 Stream 필드)가 있으면 그것, 없으면 VisualSet 기본값.
 	const UGrimMagicFXSettings* Settings = UGrimMagicFXSettings::Get();
 	const UObject* Definition = Parameters.SourceObject.Get();
+	StreamDefinition = Cast<UGrimSpellDefinition>(Definition);
 	LaunchSpeed = UGrimMagicFXStatics::ReadFloatProperty(Definition, Settings->StreamLaunchSpeedProperty, Extended ? Extended->StreamDefaultLaunchSpeed : 1400.f);
 	const float GravityScale = UGrimMagicFXStatics::ReadFloatProperty(Definition, Settings->StreamGravityScaleProperty, Extended ? Extended->StreamDefaultGravityScale : 1.f);
 	GravityZ = World->GetGravityZ() * GravityScale;
@@ -248,9 +251,35 @@ void AGrimCueNotify_SpellChannel::UpdateStream()
 		return;
 	}
 
-	// 포물선을 따라 구슬을 놓고, 무언가에 닿으면 거기서 끊는다(판정은 서버 — 이건 그림만).
-	// TODO(통합): TraceStreamArc 로 교체 — 갈래 A 의 UGrimSpellAbility::TraceStreamArc(World, Def, Start, AimPoint, Ignore, OutPoints, OutHits)
-	// 가 판정하는 호(발사 1400cm/s, 0.1초마다 8구간)와 같은 점을 쓰게 한다. 지금은 같은 속도 · 중력의 포물선 근사.
+	// 판정과 같은 호: 갈래 A 의 UGrimSpellAbility::TraceStreamArc 가 내는 점들을 따라 구슬을 놓는다(판정은 서버 — 이건 그림만).
+	if (const UGrimSpellDefinition* Def = StreamDefinition.Get())
+	{
+		TArray<FVector> ArcPoints;
+		UGrimSpellAbility::TraceStreamArc(World, Def, Muzzle, Muzzle + Direction * Def->Range, Pawn, ArcPoints, nullptr);
+		if (ArcPoints.Num() >= 2)
+		{
+			for (int32 Index = 0; Index < Beads.Num(); ++Index)
+			{
+				UStaticMeshComponent* Bead = Beads[Index];
+				if (Index >= Count)
+				{
+					Bead->SetVisibility(false);
+					continue;
+				}
+				// 호 전체 길이를 구슬 수로 나눠 점 사이를 보간한다.
+				const float Alpha = static_cast<float>(Index + 1) / Count * (ArcPoints.Num() - 1);
+				const int32 Segment = FMath::Min(FMath::FloorToInt(Alpha), ArcPoints.Num() - 2);
+				const FVector Point = FMath::Lerp(ArcPoints[Segment], ArcPoints[Segment + 1], Alpha - Segment);
+				const float Size = Extended->StreamBeadSize * FMath::Lerp(1.f, 1.6f, static_cast<float>(Index) / Count);
+				Bead->SetVisibility(true);
+				Bead->SetWorldLocation(Point);
+				Bead->SetWorldScale3D(FVector(Size / 100.f));
+			}
+			return;
+		}
+	}
+
+	// 정의가 없을 때(VisualSet 만 온 큐)는 같은 속도 · 중력의 포물선 근사.
 	FCollisionQueryParams Query(SCENE_QUERY_STAT(GrimStreamVisual), false, Pawn);
 	Query.AddIgnoredActor(this);
 	FVector Previous = Muzzle;

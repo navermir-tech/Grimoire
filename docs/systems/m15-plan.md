@@ -40,3 +40,15 @@
 3. 맵에 필요한 배치(각 갈래 보고) — `Scripts/Integration/place_m1_props.py` 를 넓힌다.
 4. 2인 PIE 로 완료 기준 ①~⑤([투사체 · 시전 감각](./spell-feel#m1-5-범위-·-완료-기준)) → 사용자 플레이 테스트.
 5. 줌인 조준(R24)은 조사가 끝나면 B 에 이어 붙인다.
+
+## 통합 결과 (2026-11-05)
+
+- A(`66e873e`) → B(`9c05c34`) → C(`178cb84`) 순으로 main 에 합쳤다. 문서 충돌(`decisions.md` · `magic.md` · `spell-feel.md`)은 양쪽 내용을 살려 풀었다.
+- 유니티 빌드 이름 충돌 두 건을 고쳤다: `GrimMagicDebug.cpp` 의 익명 네임스페이스 → `GrimMagicDebugLocal`, MagicFX 테스트의 지역 변수 `SweepEnd` → `SweepEndPose`.
+- `Scripts/Integration/link_visual_sets.py` 로 `DA_Spell_*` 의 `VisualSet` 에 `VS_Ember` · `VS_WaterJet` · `VS_Breeze` 를 이었다.
+- 물줄기 그림(`AGrimCueNotify_SpellChannel`)이 판정과 같은 호(`UGrimSpellAbility::TraceStreamArc`)를 따라 구슬을 놓는다. VisualSet 찾기는 리플렉션(`FindFProperty`)을 그대로 둔다 — 동작이 같고, 정의 필드 이름이 바뀌어도 설정으로 맞출 수 있어서.
+- `Grim.Magic.Place` 가 리슨 호스트의 폰을 사선 밖(옆 4m)으로 비켜 둔다 — 시작 지점에 선 호스트가 원격 클라이언트의 불씨를 몸으로 막아 확인이 실패했다(플레이어 몸에 맞으면 속성 자극이 들어가는 것은 의도대로).
+- 확인: 빌드 성공, 자동화 테스트 40개 통과(M1 17 · 전달 7 · 조준 7 · 연출 9), `net_check_delivery.ps1` 2인 헤드리스 — 불씨 점화 → 먼 미풍 키움 → 가까운 미풍 끔 → 다시 점화 → 물줄기로 끄고 젖음, 서버 · 클라이언트 상태 같음.
+- 아직 사람 눈으로 안 본 것: 이펙트 크기 · 색 · 셋의 구분(①②), 시전 동작 · 책 위치 · 책장 넘김(⑤), 고정 락온 카메라, 지연 보정(핑 0 이라 헤드리스에서 안 돎). → 사용자 2인 PIE 플레이 테스트.
+- 남은 일: 줌인 조준(R24 — 조사 뒤), 이펙트 색 파라미터(엔진 템플릿에 `User.Color` 가 없어 지금은 속성색 펄스가 색을 맡음 — Niagara Examples Pack 으로 바꿀 때), 정식 시전 몽타주(에디터 작업).
+

@@ -162,8 +162,16 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 			{
 				APlayerController* PC = It->Get();
 				APawn* Pawn = PC ? PC->GetPawn() : nullptr;
-				if (!Pawn || PC->IsLocalController())
+				if (!Pawn)
 				{
+					continue;
+				}
+				if (PC->IsLocalController())
+				{
+					// 리슨 호스트의 폰은 사선 밖(옆 4m)으로 비켜 둔다 — 시작 지점에 서 있으면 원격 클라이언트의 마법을 몸으로 막는다.
+					FVector Aside = Target->GetActorLocation() + FVector(-Distance * 0.5f, 400.f, 0.f);
+					Aside.Z = Pawn->GetActorLocation().Z;
+					Pawn->SetActorLocation(Aside, false, nullptr, ETeleportType::TeleportPhysics);
 					continue;
 				}
 				const FVector TargetPoint = UGrimSpellAbility::GetTargetPointOf(Target);

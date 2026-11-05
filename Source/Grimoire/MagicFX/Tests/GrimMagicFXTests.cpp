@@ -238,9 +238,9 @@ bool FGrimCastPoseTest::RunTest(const FString& Parameters)
 
 	// 쓸기: 오른쪽(−X)에서 시작해 왼쪽(+X)으로.
 	const FGrimSpellPoseFrame SweepStart = GrimMagicFXMath::EvaluateCastPose(EGrimCastMotion::Sweep, 0.04f, -1.f, 0.f);
-	const FGrimSpellPoseFrame SweepEnd = GrimMagicFXMath::EvaluateCastPose(EGrimCastMotion::Sweep, 0.32f, -1.f, 0.f);
+	const FGrimSpellPoseFrame SweepEndPose = GrimMagicFXMath::EvaluateCastPose(EGrimCastMotion::Sweep, 0.32f, -1.f, 0.f);
 	TestTrue(TEXT("쓸기 시작은 오른쪽"), SweepStart.RightForearmDir.X < -0.5f);
-	TestTrue(TEXT("쓸기 끝은 왼쪽"), SweepEnd.RightForearmDir.X > 0.5f);
+	TestTrue(TEXT("쓸기 끝은 왼쪽"), SweepEndPose.RightForearmDir.X > 0.5f);
 	TestEqual(TEXT("쓸기 끝 무게"), GrimMagicFXMath::EvaluateCastPose(EGrimCastMotion::Sweep, 0.55f, -1.f, 0.f).RightArmWeight, 0.f, 1e-4f);
 
 	// 동작 없음 = 아무것도 안 돌림.
