@@ -1,5 +1,6 @@
-# M1 시작 마법 3개(불씨 · 물줄기 · 미풍)의 DataAsset 을 만든다 / 고친다.
+# 시작 마법 3개(불씨 = Bolt · 물줄기 = Stream · 미풍 = Cone)의 DataAsset 을 만든다 / 고친다 (M1.5, docs/systems/spell-feel).
 # 이 스크립트가 수치의 정본이다 — 에셋을 에디터에서 고쳤다면 여기에도 옮긴다.
+# 연출 묶음(VisualSet)은 연출 갈래(MagicFX)가 채운다 — 이 스크립트는 건드리지 않는다(있으면 그대로 둔다).
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
 #   & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
@@ -9,60 +10,92 @@ import unreal
 
 SPELL_DIR = "/Game/Grimoire/Magic/Spells"
 
-# 수치는 스펙 M1 「제안」값. 양초 규칙(바람 0.3 이상 키움, 2.5 이상 꺼짐)에 맞춰 미풍 세기는 1.0.
+# 수치는 spell-feel 「제안」값. 양초 규칙(바람 0.3~2.5 키움, 2.5 이상 꺼짐)에 맞춰 미풍은 거리별 세기:
+# 1.5m 안 2.8(돌풍 — 끔) → 10m 0.6(키움). 시작점(완드 끝)에서 약 2.7m 안이면 2.5 를 넘는다.
 SPELLS = [
     dict(
         asset="DA_Spell_Ember",
         name="불씨",
-        description="작은 불씨를 날린다. 양초 · 모닥불 · 마른 풀에 불을 붙인다.",
+        description="빠른 불꽃 화살을 쏜다. 양초 · 모닥불 · 마른 풀에 불을 붙인다.",
         spell_tag="Spell.Ember",
         element="Element.Fire",
         cooldown_tag="Cooldown.Spell.Ember",
-        delivery=unreal.GrimSpellDelivery.PROJECTILE,
+        delivery=unreal.GrimSpellDelivery.BOLT,
         mana_cost=10.0,
-        cooldown=1.0,
-        projectile_speed=1800.0,
-        radius=12.0,
+        cooldown=0.6,
+        cast_windup=0.1,
+        radius=10.0,
         range=2500.0,
         damage=10.0,
         stimulus=1.0,
-        color=unreal.LinearColor(1.0, 0.35, 0.05, 1.0),
+        color=unreal.LinearColor(0.88, 0.35, 0.17, 1.0),   # 불 #E0582B
+        bolt_speed=7500.0,
+        homing_strength=60.0,
     ),
     dict(
         asset="DA_Spell_WaterJet",
         name="물줄기",
-        description="물방울을 빠르게 쏜다. 불을 끄고 대상을 적신다.",
+        description="누르고 있는 동안 물줄기를 뿜는다. 불을 끄고 대상을 적신다.",
         spell_tag="Spell.WaterJet",
         element="Element.Water",
         cooldown_tag="Cooldown.Spell.WaterJet",
-        delivery=unreal.GrimSpellDelivery.PROJECTILE,
-        mana_cost=8.0,
-        cooldown=0.6,
-        projectile_speed=2400.0,
+        delivery=unreal.GrimSpellDelivery.STREAM,
+        channeled=True,
+        mana_cost=2.0,
+        channel_mana_per_second=10.0,
+        cooldown=0.3,
+        cast_windup=0.05,
         radius=15.0,
-        range=1800.0,
-        damage=6.0,
+        range=1200.0,
+        damage=4.0,
         stimulus=1.0,
-        color=unreal.LinearColor(0.1, 0.45, 1.0, 1.0),
+        color=unreal.LinearColor(0.23, 0.48, 0.84, 1.0),   # 물 #3A7BD5
+        stream_launch_speed=1400.0,
+        stream_gravity_scale=1.0,
+        stream_tick_interval=0.1,
+        stream_segments=8,
+        stream_splash_radius=40.0,
+        stream_stimulus_interval=1.0,
     ),
     dict(
         asset="DA_Spell_Breeze",
         name="미풍",
-        description="부드러운 바람을 앞으로 보낸다. 불꽃을 키우고 가벼운 것을 민다.",
+        description="바람을 원뿔로 쓸어 보낸다. 멀리서는 불꽃을 키우고, 바로 앞에서는 돌풍이 되어 끈다.",
         spell_tag="Spell.Breeze",
         element="Element.Wind",
         cooldown_tag="Cooldown.Spell.Breeze",
-        delivery=unreal.GrimSpellDelivery.BEAM,
+        delivery=unreal.GrimSpellDelivery.CONE,
         mana_cost=6.0,
         cooldown=0.8,
-        projectile_speed=0.0,
-        radius=40.0,
-        range=1200.0,
+        cast_windup=0.1,
+        radius=0.0,
+        range=1000.0,
         damage=3.0,
         stimulus=1.0,
-        color=unreal.LinearColor(0.75, 1.0, 0.85, 1.0),
+        color=unreal.LinearColor(0.49, 0.79, 0.65, 1.0),   # 바람 #7CC9A6
+        cone_half_angle=30.0,
+        cone_range=1000.0,
+        cone_falloff=dict(near_distance=150.0, near_intensity=2.8, far_intensity=0.6, exponent=1.0),
     ),
 ]
+
+# 정의에 없는 키의 기본값(전달 방식마다 쓰지 않는 필드도 깨끗이 맞춘다)
+DEFAULTS = dict(
+    channeled=False,
+    channel_mana_per_second=0.0,
+    cast_windup=0.0,
+    bolt_speed=0.0,
+    homing_strength=0.0,
+    stream_launch_speed=0.0,
+    stream_gravity_scale=1.0,
+    stream_tick_interval=0.1,
+    stream_segments=8,
+    stream_splash_radius=0.0,
+    stream_stimulus_interval=1.0,
+    cone_half_angle=30.0,
+    cone_range=0.0,
+    cone_falloff=dict(near_distance=0.0, near_intensity=1.0, far_intensity=1.0, exponent=1.0),
+)
 
 
 def tag(name):
@@ -90,31 +123,50 @@ def main():
         if spell is None:
             raise RuntimeError("에셋을 만들지 못함: " + data["asset"])
 
+        values = dict(DEFAULTS)
+        values.update(data)
+
         stimulus = unreal.GrimElementalStimulus()
-        stimulus.set_editor_property("element", tag(data["element"]))
-        stimulus.set_editor_property("intensity", data["stimulus"])
+        stimulus.set_editor_property("element", tag(values["element"]))
+        stimulus.set_editor_property("intensity", values["stimulus"])
         stimulus.set_editor_property("source", unreal.GrimStimulusSource.SPELL)
 
-        spell.set_editor_property("display_name", unreal.Text(data["name"]))
-        spell.set_editor_property("description", unreal.Text(data["description"]))
-        spell.set_editor_property("spell_tag", tag(data["spell_tag"]))
-        spell.set_editor_property("element", tag(data["element"]))
+        falloff = unreal.GrimConeFalloff()
+        for key, value in values["cone_falloff"].items():
+            falloff.set_editor_property(key, value)
+
+        spell.set_editor_property("display_name", unreal.Text(values["name"]))
+        spell.set_editor_property("description", unreal.Text(values["description"]))
+        spell.set_editor_property("spell_tag", tag(values["spell_tag"]))
+        spell.set_editor_property("element", tag(values["element"]))
         spell.set_editor_property("circle", 1)
-        spell.set_editor_property("mana_cost", data["mana_cost"])
-        spell.set_editor_property("cooldown", data["cooldown"])
-        spell.set_editor_property("cooldown_tag", tag(data["cooldown_tag"]))
-        spell.set_editor_property("cast_time", 0.0)
-        spell.set_editor_property("delivery", data["delivery"])
-        spell.set_editor_property("projectile_speed", data["projectile_speed"])
-        spell.set_editor_property("radius", data["radius"])
-        spell.set_editor_property("range", data["range"])
-        spell.set_editor_property("damage", data["damage"])
+        spell.set_editor_property("mana_cost", values["mana_cost"])
+        spell.set_editor_property("channel_mana_per_second", values["channel_mana_per_second"])
+        spell.set_editor_property("cooldown", values["cooldown"])
+        spell.set_editor_property("cooldown_tag", tag(values["cooldown_tag"]))
+        spell.set_editor_property("cast_windup", values["cast_windup"])
+        spell.set_editor_property("channeled", values["channeled"])
+        spell.set_editor_property("delivery", values["delivery"])
+        spell.set_editor_property("radius", values["radius"])
+        spell.set_editor_property("range", values["range"])
+        spell.set_editor_property("bolt_speed", values["bolt_speed"])
+        spell.set_editor_property("homing_strength", values["homing_strength"])
+        spell.set_editor_property("stream_launch_speed", values["stream_launch_speed"])
+        spell.set_editor_property("stream_gravity_scale", values["stream_gravity_scale"])
+        spell.set_editor_property("stream_tick_interval", values["stream_tick_interval"])
+        spell.set_editor_property("stream_segments", values["stream_segments"])
+        spell.set_editor_property("stream_splash_radius", values["stream_splash_radius"])
+        spell.set_editor_property("stream_stimulus_interval", values["stream_stimulus_interval"])
+        spell.set_editor_property("cone_half_angle", values["cone_half_angle"])
+        spell.set_editor_property("cone_range", values["cone_range"])
+        spell.set_editor_property("cone_falloff", falloff)
+        spell.set_editor_property("damage", values["damage"])
         spell.set_editor_property("stimulus", stimulus)
-        spell.set_editor_property("color", data["color"])
+        spell.set_editor_property("color", values["color"])
 
         if not unreal.EditorAssetLibrary.save_loaded_asset(spell, only_if_is_dirty=False):
-            raise RuntimeError("저장 실패: " + data["asset"])
-        unreal.log("[make_spells] " + data["asset"] + " 저장")
+            raise RuntimeError("저장 실패: " + values["asset"])
+        unreal.log("[make_spells] " + values["asset"] + " 저장 (" + str(values["delivery"]) + ")")
 
 
 main()

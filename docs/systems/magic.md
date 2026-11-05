@@ -27,25 +27,30 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | `Element` | 공격 속성 `Element.*` — 상성 계산 |
 | `Circle` | 필요 서클 1~10. 배울 때 · 시전할 때 확인 |
 | `AbilityClass` | 비우면 공용 `UGrimSpellAbility` |
-| `ManaCost` · `Cooldown` · `CooldownTag` · `CastTime` | 비용 · 쿨다운(`Cooldown.Spell.*`, 마법마다 달라야 서로 막지 않음) · 시전 지연 |
-| `Delivery` | `Projectile` · `Beam`(M1). Area · Self · Touch 는 나중에 |
-| `ProjectileClass` · `ProjectileSpeed` · `Radius` · `Range` | 비우면 `AGrimSpellProjectile`. 광선은 `Radius` 구 스윕 |
+| `ManaCost` · `ChannelManaPerSecond` · `Cooldown` · `CooldownTag` | 시전 비용 · 누르는 동안 초당 비용(Stream 만, Q19) · 쿨다운(`Cooldown.Spell.*`, 마법마다 달라야 서로 막지 않음) |
+| `CastMontage` · `CastWindup` · `bChanneled` | 시전 동작(연출 쪽이 Cast 큐에서 재생) · 입력부터 실제 발사까지 초 · 누르고 있는 동안 지속 |
+| `Delivery` | `Bolt` · `Stream` · `Cone` · `Beam` · `Lob`(열거형만, Bolt 로 처리) — [투사체 · 시전 감각](./spell-feel#전달-방식-delivery-다시-정의) |
+| `Radius` · `Range` | 판정 반지름(Bolt 구 · Stream 구간 스윕 · Beam 스윕) · 사거리(조준 트레이스 · 락온 거리 · Bolt 수명) |
+| `ProjectileClass` · `BoltSpeed` · `HomingStrength` | Bolt: 비우면 `AGrimSpellProjectile` · 속도 · 락온 대상 유도(초당 최대 회전 각, 0 = 없음) |
+| `StreamLaunchSpeed` · `StreamGravityScale` · `StreamTickInterval` · `StreamSegments` · `StreamSplashRadius` · `StreamStimulusInterval` | Stream: 뿜는 속도 · 중력 배율 · 서버 판정 주기 · 포물선 구간 수 · 떨어진 곳 물보라 반지름 · 한 대상에 자극을 주는 간격 |
+| `ConeHalfAngle` · `ConeRange` · `ConeFalloff` | Cone: 반각 · 거리 · 거리별 자극 세기 `FGrimConeFalloff { NearDistance, NearIntensity, FarIntensity, Exponent }` |
 | `Damage` · `ImpactEffect` | 기본 피해(0 이면 피해 없음). 비우면 `UGrimGE_SpellDamage` |
-| `Stimulus` | 사물에 주는 속성 자극 `FGrimElementalStimulus`(속성 · 세기 · 출처) |
-| `Color` | 투사체 색(엔진 기본 구 + `BasicShapeMaterial` 의 `Color`) |
+| `Stimulus` | 사물에 주는 속성 자극 `FGrimElementalStimulus`(속성 · 세기 · 출처). Cone 은 세기를 `ConeFalloff` 로 바꾼다 |
+| `VisualSet` | 연출 묶음 `UGrimSpellVisualSet`(Core/GrimSpellFXTypes). 연출 쪽(MagicFX) 큐 처리기가 읽는다. 비어도 게임은 돈다 |
+| `Color` | VisualSet 이 없을 때 투사체 임시 구 색(엔진 기본 구 + `BasicShapeMaterial` 의 `Color`) |
 
 - 에셋 `Content/Grimoire/Magic/Spells/DA_Spell_*` 은 `Scripts/Magic/make_spells.py` 가 만든다 — **스크립트가 수치의 정본**이다.
 - 하나의 `UGrimSpellAbility` 클래스가 여러 마법을 낸다: 마법서가 `GiveAbility` 할 때 Spec 의 `SourceObject` 에 정의를 넣고, 어빌리티는 Spec 에서 정의를 꺼낸다.
 
-### M1 마법 (스펙 「제안」값)
+### 시작 마법 (M1.5 제안값)
 
-| 에셋 | 마법 | 속성 | 전달 | 마나 | 쿨다운 | 피해 | 자극 세기 | 사거리 |
-|---|---|---|---|---|---|---|---|---|
-| `DA_Spell_Ember` | 불씨 | 불 | 투사체 1800cm/s, 반지름 12 | 10 | 1.0s | 10 | 1.0 | 25m |
-| `DA_Spell_WaterJet` | 물줄기 | 물 | 투사체 2400cm/s, 반지름 15 | 8 | 0.6s | 6 | 1.0 | 18m |
-| `DA_Spell_Breeze` | 미풍 | 바람 | 광선(구 스윕 반지름 40) | 6 | 0.8s | 3 | 1.0 | 12m |
+| 에셋 | 마법 | 속성 | 전달 | 마나 | 쿨다운 | Windup | 피해 | 자극 세기 | 사거리 |
+|---|---|---|---|---|---|---|---|---|---|
+| `DA_Spell_Ember` | 불씨 | 불 | Bolt 7500cm/s, 반지름 10, 유도 60°/s | 10 | 0.6s | 0.1s | 10 | 1.0 | 25m |
+| `DA_Spell_WaterJet` | 물줄기 | 물 | Stream(누르는 동안) 1400cm/s, 중력 ×1, 0.1초 · 8구간, 반지름 15, 물보라 40 | 2 + 초당 10 | 0.3s | 0.05s | 자극마다 4 | 1.0, 대상마다 1초에 한 번 | 12m |
+| `DA_Spell_Breeze` | 미풍 | 바람 | Cone 반각 30° · 10m | 6 | 0.8s | 0.1s | 3 | 1.5m 안 2.8 → 10m 0.6 | 10m |
 
-미풍 세기 1.0 은 양초 규칙(바람 0.3 이상 키움, 2.5 이상 꺼짐)의 "키움" 구간이다.
+미풍 세기는 양초 규칙(바람 0.3~2.5 키움, 2.5 이상 꺼짐)에 맞춘 거리 곡선이다: 시작점(완드 끝)에서 약 2.7m 안이면 돌풍(끔), 그 밖은 키움. 물줄기는 처음 닿는 순간 자극을 주므로 양초는 한 번 스치면 꺼진다.
 
 ## 수치 설정 `UGrimMagicSettings`
 
@@ -59,6 +64,11 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | `ManaRegenPerSecond` | 2 |
 | `bFriendlyFire` | false — 플레이어끼리는 피해 없음(속성 자극은 준다) |
 | `DefaultAffinity` · `ElementAffinities` | 1.0 · 상성 표(아래) |
+| `MaxLagCompensation` | 0.15 — 서버 Bolt 를 시전자 지연만큼 앞으로 당기는 상한(초) |
+| `CloseAimDistance` · `ChestHeight` | 200 · 40 — 조준점이 2m 안이면 가슴(폰 위치 + 40cm)에서 쏜다 |
+| `HomingMaxAngle` | 60 — Bolt 유도: 대상이 진행 방향에서 이보다 벗어나면 휘지 않는다 |
+| `MaxConeTargets` · `StreamKeepTargetAngle` | 16 · 45 — Cone 대상 상한 · Stream 이 시작 때 잡은 대상을 계속 따라가는 각 |
+| `MaxAimOriginError` · `MaxAimAngleError` · `AimRangeSlack` | 800 · 60 · 300 — 서버의 TargetData 검증 허용치 |
 
 ## 시전 흐름
 
@@ -66,14 +76,38 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
    - `CanActivateAbility` — 정의 있음 · 완드 있음(완드 없으면 주먹 기본 공격만, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
    - `CommitAbility` — 비용 `UGrimGE_SpellCost`(즉시, `Mana += SetByCaller.Magic.ManaCost`), 쿨다운 `UGrimGE_SpellCooldown`(지속 `SetByCaller.Magic.Cooldown` 초, `CooldownTag` 를 Spec 의 `DynamicGrantedTags` 로). 클라이언트도 예측 적용한다.
-   - 완드 보정: 비용 = `ManaCost × (1 − ManaEfficiency)`, 쿨다운 = `Cooldown ÷ CastSpeed`(`GrimMagicMath`).
-   - `CastTime` > 0 이면 `WaitDelay` 뒤, 아니면 바로 `Deliver()`.
-3. `Deliver()` — **서버만**. 조준점 = 플레이어 시점(`GetPlayerViewPoint`)에서 `Range` 앞으로 Visibility 트레이스한 점. 완드 `Muzzle` 에서 그쪽으로:
-   - 투사체: `AGrimSpellProjectile` 스폰(복제 · 위치 복제, 클라이언트 예측 스폰 없음). 지형 · 사물(WorldStatic/Dynamic)에 막히고 폰 · 물리체는 겹쳐 맞는다. 시전자는 무시. 수명 = `Range ÷ ProjectileSpeed`.
-   - 광선: 구 스윕(`SweepMultiByObjectType`) — 폰 · 물리체는 지나가며 맞히고, 첫 지형 · 사물에서 멈춘다. 연출 없음(바람이라 보이지 않는다 — M2 에서 Niagara).
-4. 맞은 대상마다 `UGrimSpellAbility::ApplySpellHit`:
+   - 완드 보정: 비용 = `ManaCost × (1 − ManaEfficiency)`, 쿨다운 = `Cooldown ÷ CastSpeed`(`GrimMagicMath`). 누르는 마법은 시작할 때 `ManaCost` + 첫 판정 몫이 있어야 한다.
+3. 조준 · 네트워크 — 자세한 표는 [투사체 · 시전 감각 — 네트워크](./spell-feel#네트워크-—-내-화면에서는-즉시):
+   - **시전자(로컬)**: `UGrimTargetingStatics::FindAimProvider(폰)->GetCurrentAim(사거리)`(Cone 은 `ConeRange`), 제공자가 없으면 카메라 정면 Visibility 트레이스 → `FGrimAimResult`. 원격 클라이언트는 이것을 `FGameplayAbilityTargetData_SingleTargetHit`(TraceStart = 시선 시작, Location = 조준점, Actor = 대상, Item = 모드)로 서버에 보내고, 바로 **Cast 큐(예측)** · Stream 이면 **Channel 큐(예측, 끝나면 거둠)** 를 띄우고, Bolt 면 `CastWindup` 뒤 **가짜 볼트**를 쏜다.
+   - **서버**: TargetData 를 받으면 검증(`IsClientAimPlausible` — 시선 시작이 폰 근처, 조준점이 사거리 안, 방향이 폰 조준과 60° 안. 대상은 `CanBeTargetedBy` · 거리를 다시 보고 조준점을 서버에서 다시 구함). 어긋나면 서버 조준(카메라 캐시 · 컨트롤 회전). 그 콜백 안(클라이언트 예측 키 창)에서 같은 Cast · Channel 큐를 실행 → 시전자는 두 번 보지 않는다. 지연 = 핑 ÷ 2 로 `SplitLag` → 남은 Windup 만큼 기다렸다가 판정, 이미 지난 시간은 Bolt 를 앞으로 당김(`CatchUp`, 상한 0.15초).
+   - 리슨 서버 호스트 · 단독은 TargetData 없이 바로 서버 경로.
+   - Bolt · Cone · Beam 은 **서버가 판정 뒤 어빌리티를 끝낸다**(복제). 시전자가 먼저 끝내면 서버가 판정 전에 끝날 수 있어서다. 끝 복제가 안 오면 2초 뒤 스스로 끝낸다. Stream 은 시전자가 떼면(`InputReleased`) 끝낸다 — 서버는 판정을 한 번도 못 했으면 끝나기 전에 한 번 한다.
+4. 판정(서버, 시작점 · 방향은 시차 보정 `GrimSpellDelivery::ComputeLaunch` — 완드 끝 → 조준점, 2m 안은 가슴에서):
+   - **Bolt**: `AGrimSpellProjectile` 스폰(복제 · 위치 복제). 지형 · 사물(WorldStatic/Dynamic)에 막히고 폰 · 물리체는 겹쳐 맞는다. 시전자는 무시. 수명 = `Range ÷ BoltSpeed`. 대상이 있으면 틱마다 `SteerTowards`(초당 `HomingStrength`°, 60° 넘게 빗나가면 안 휨). 맞으면 Impact 큐.
+   - **Stream**: `StreamTickInterval` 마다 `TraceStreamArc` — 조준점을 지나는 낮은 호(`SolveLaunchDirection`)를 `StreamSegments` 구간으로 구 스윕, 첫 지형 · 사물에서 끝나고 그 자리 `StreamSplashRadius`(40cm) 안의 것도 맞는다(바닥의 양초를 낮게 스칠 때 바닥이 먼저 닿으므로). 걸린 대상마다 `StreamStimulusInterval` 에 한 번 자극 · 피해 · Impact 큐(처음 닿으면 바로). 틱마다 `ChannelManaPerSecond × 주기` 마나, 모자라면 끝. 시작 때 잡은 대상이 폰 조준에서 45° 안이면 계속 따라가고, 아니면 지금 시선으로.
+   - **Cone**: 시작점에서 `ConeRange` 구 오버랩 → 받는 쪽(속성 사물) · ASC 가 있는 것 중 `IsInCone`(반각) · 시야(벽 너머 제외) → 가까운 순 16개까지, 거리별 세기 `ConeIntensityAt` 로 자극 · Impact 큐.
+   - **Beam**: 구 스윕(`SweepMultiByObjectType`) — 폰 · 물리체는 지나가며 맞히고, 첫 지형 · 사물에서 멈춘다. 맞은 곳마다 Impact 큐.
+5. 맞은 대상마다 `UGrimSpellAbility::ApplySpellHit`:
    - 대상 ASC(액터 → 폰이면 PlayerState 순으로 찾음)가 있으면 피해 GE 적용. 피해 Spec 은 `SetByCaller.Magic.Damage = Damage × 완드 속성 위력` 과 에셋 태그 `Element.*` · `Spell.*` 를 가진다.
-   - `UGrimElementalStatics::ApplyStimulusToActor(대상, Stimulus, 시전 폰)` — 받는 쪽(`IGrimElementalReceiver`)이 있으면 반응 규칙. Magic 은 구현체를 모른다.
+   - `UGrimElementalStatics::ApplyStimulusToActor(대상, Stimulus, 시전 폰)` — 받는 쪽(`IGrimElementalReceiver`)이 있으면 반응 규칙. Magic 은 구현체를 모른다. Cone 은 세기를 거리별 값으로 바꿔 준다.
+
+### 연출 큐 (GameplayCue)
+
+Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행만** 한다. 처리기(MagicFX)가 없어도 게임은 돈다. 파라미터는 `UGrimSpellAbility::MakeSpellCueParameters`: `SourceObject` = 정의, `Location` · `Normal`, `AggregatedSourceTags` 에 `Element.*`, `Instigator` · `EffectCauser` = 시전 폰. ASC 는 시전자의 것(PlayerState — 늘 관련성 있음).
+
+| 큐 | 어디서 | Location · Normal |
+|---|---|---|
+| `GameplayCue.Spell.Cast` (Execute) | 시전자: `ActivateAbility`(예측) / 서버: TargetData 콜백 · 호스트는 `BeginAuthorityCast`. **누르는 순간** 한 번 — 실제 발사는 `CastWindup` 뒤라 섬광은 처리기가 그만큼 늦춰도 된다 | 시작점(완드 끝 또는 가슴) · 발사 방향 |
+| `GameplayCue.Spell.Channel` (Add/Remove) | Stream(`bChanneled`)만. Cast 와 같은 곳에서 `K2_AddGameplayCueWithParams(.., bRemoveOnAbilityEnd)` → 어빌리티가 끝나면 거둔다 | 시작 때의 시작점 · 방향. 줄기 모양은 처리기가 `UGrimSpellAbility::TraceStreamArc` 로 매 프레임 같은 식을 그린다 |
+| `GameplayCue.Spell.Impact` (Execute) | 서버 확정 뒤(예측 키 없음 → 시전자 포함 모두): Bolt 투사체 명중, Stream 자극 때, Cone 대상마다, Beam 맞은 곳마다 | 맞은 곳 · 표면 법선(Cone 은 −발사 방향) |
+
+- Bolt 의 **꼬리**는 큐가 아니라 투사체(진짜 · 가짜 모두)가 `VisualSet.Trail` 을 직접 붙인다(움직이는 액터라서). Niagara 면 사용자 변수 `Color`, Cascade 면 색 파라미터 `Color` 에 `ElementColor`. VisualSet 이 없으면 속성색 구만.
+- 시전자 클라이언트에서는 진짜 투사체 복제본을 숨기고(가짜가 대신 보인다), 진짜가 사라지면 같은 마법의 가장 오래된 가짜도 지운다. 가짜는 판정 없이 지형 · 사물에서 멈춰 사라지고, 터짐은 서버 Impact 큐가 그린다.
+
+### 디버그 · 2인 확인
+
+- 콘솔 `Grim.Magic.Cast <마법 이름 일부> [대상 클래스|None] [누르는 초] [지연초]` — 로컬 플레이어가 원점에 가장 가까운 그 클래스 액터를 고정 조준해 시전(0.5초 뒤 누름). `Grim.Magic.Place <대상 클래스> <거리cm> [지연초]` — 서버가 원격 클라이언트 폰을 그 대상 −X 쪽에 두고 대상을 보게.
+- `Scripts/Integration/net_check_delivery.ps1` — 헤드리스 리슨 서버 + 클라이언트에서 원격 클라이언트가 불씨 → 먼 미풍 → 가까운 미풍 → 불씨 → 물줄기(1.5초)를 양초에 쏘고 양쪽 `Grim.Interaction.Dump` 를 비교한다. 결과 `Saved/NetCheck/delivery_*.log`.
 
 ## 마법서 `UGrimSpellbookComponent`
 
@@ -165,7 +199,7 @@ S,마스터,1500,0.75,0.80,1.0
 | 빛 → 어둠 · 어둠 → 빛 | ×1.5 |
 | 그 외(같은 속성 포함) | ×1.0 (`DefaultAffinity`) |
 
-- 테스트: `Grimoire.Magic.Affinity` · `Grimoire.Magic.Cost` · `Grimoire.Magic.Effects`(GE 실제 적용) · `Grimoire.Magic.StartingSpells`(에셋 값) — `Source/Grimoire/Magic/Tests/`.
+- 테스트: `Grimoire.Magic.Affinity` · `Grimoire.Magic.Cost` · `Grimoire.Magic.Effects`(GE 실제 적용) · `Grimoire.Magic.StartingSpells`(에셋 값) · `Grimoire.Magic.Delivery.*`(시차 보정 · 유도 · 포물선 · 원뿔 · 거리별 세기 · 지연 보정 · TargetData 검증 · 시작 마법 전달 방식) — `Source/Grimoire/Magic/Tests/`.
 
 ## 속성 상호작용 엔진 (R16)
 
@@ -284,14 +318,14 @@ M1 규칙(11행 — 원본은 CSV):
 1. 후보 수집: 카메라 위치에서 사거리 구 오버랩(전용 채널 `ECC_Targeting`) → `IGrimTargetable` 만.
 2. 거르기: 원뿔 각도, 시야 라인 트레이스(가림), 아군 제외.
 3. 점수: `w_center × (1 − 화면 중앙 각도 / 반각) + w_dist × (1 − 거리 / 사거리) + w_kind × 종류 가중 + w_keep × (현재 대상이면 1)`. 종류 가중은 스펙의 우선순위(적 > 반응 사물 > 기타 사물). 반응 사물 판정은 선택된 마법의 속성으로 반응 규칙표를 미리 조회(`FGrimElementalReactionLibrary`).
-4. 대상은 **로컬에서만** 고른다(입력 반응성). 시전할 때 어빌리티가 `TargetData`(대상 액터 + 조준점)를 서버로 보낸다 — GAS 의 `FGameplayAbilityTargetData_ActorArray` 를 쓰고, 서버는 사거리 · 시야를 다시 검사해 어긋나면 카메라 정면으로 바꾼다(치트 방지 최소한).
+4. 대상은 **로컬에서만** 고른다(입력 반응성). 시전할 때 어빌리티가 `TargetData`(대상 액터 + 조준점)를 서버로 보낸다 — `FGameplayAbilityTargetData_SingleTargetHit` 하나에 시선 시작 · 조준점 · 대상 · 모드를 싣고, 서버는 시선 · 사거리 · 대상 가능 여부를 다시 검사해 어긋나면 서버 조준으로 바꾼다(치트 방지 최소한, [시전 흐름](#시전-흐름) 3).
 
 ### 시전 연결
 
-- `UGrimSpellAbility` 가 활성화될 때 타게팅 컴포넌트의 현재 대상을 TargetData 로 담는다. 대상이 없으면 지금처럼 카메라 정면.
-- 캐릭터 회전: 시전 순간 대상 방향으로 몸을 돌린다(서버 확정, 0.15초 보간).
-- 투사체 유도: `AGrimSpellProjectile` 의 `ProjectileMovementComponent` 에 `HomingTargetComponent` 를 주고 `HomingAccelerationMagnitude` 를 마법 정의의 `HomingStrength` 로(0 = 유도 없음). 스펙의 "살짝 휨"(Q16 확정).
-- 광선(미풍)은 대상 방향으로 쏘고, 대상까지 거리만큼만 그린다.
+- `UGrimSpellAbility` 가 활성화될 때 `IGrimAimProvider::GetCurrentAim` 결과를 TargetData 로 담는다. 제공자가 없으면 카메라 정면.
+- 캐릭터 회전: 시전 순간 대상 방향으로 몸을 돌린다(서버 확정, 0.15초 보간) — 캐릭터 쪽 몫(M1.5 갈래 C), 어빌리티는 하지 않는다.
+- 투사체 유도: `AGrimSpellProjectile` 이 틱마다 속도 방향을 대상 조준점 쪽으로 초당 `HomingStrength`° 까지 돌린다(`GrimSpellDelivery::SteerTowards`, 속력 그대로, `HomingMaxAngle` 넘게 빗나가면 안 휨 — 유턴 없음). 0 = 유도 없음. 스펙의 "살짝 휨"(Q16 확정). 엔진 `HomingAccelerationMagnitude` 대신 각속도로 한 건 속력이 바뀌지 않고 순수 함수로 테스트하려고.
+- 미풍은 Cone 이 되어 대상 쪽 원뿔로 판정한다. 광선(Beam)은 후속 빛 속성용으로 남겼다.
 
 ### 고정 락온
 
@@ -317,4 +351,4 @@ M1 규칙(11행 — 원본은 CSV):
 
 불씨 · 물줄기 · 미풍 3개 마법, 완드 1종, 양초 · 모닥불 · 마른 풀 3개 사물, 반응 규칙표 10행, 상성 표. 서클 UI 는 숫자만.
 
-아직 없는 것: 시전 몽타주 · 머즐 이펙트 · 광선 연출, 그리모어 UI, 스킬북 아이템, 완드 정의 데이터 · 장착 해제, 서클 승급.
+아직 없는 것: 그리모어 UI, 스킬북 아이템, 완드 정의 데이터 · 장착 해제, 서클 승급. 시전 동작 · 섬광 · 터짐 연출은 M1.5 갈래 C(MagicFX)가 큐 처리기로 붙인다.
