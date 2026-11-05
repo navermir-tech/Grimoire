@@ -128,6 +128,41 @@
 4. 밀도: 길 위 어느 점에서도 300 m 안에 POI 가 있는가.
 5. 사람 눈: 탑 문 앞 · 고목 언덕 꼭대기 · 계곡 입구에서 스크린숏.
 
+### 결과 (2026-11-05, 지형 2차)
+
+만드는 법 · 숫자의 정본은 [지형 — 오픈 베타 땅](../systems/terrain). 검사는 C++ `FGrimTerrainAnalysis` + 테스트 `Grimoire.Terrain.Design.*`(기준값은 레이아웃 `Analysis`) — 레이아웃을 고치면 맵을 만들지 않고도 숫자를 다시 볼 수 있다.
+
+| 확인할 것 | 기준 | 결과 |
+|---|---|---|
+| 1. 경사 분포 | 5~25° ≥ 70%, 0~3° ≤ 30% | **72.8%**, 평지 8.6%(3~5° 10.5%, 25° 넘음 8.0% — 계곡 절벽 · 강 둑 · 능선) |
+| 2. 구역 높이 차 | 이웃 평균 25 m+ | 목초지 32.0 m → 구릉 60.5 m(**+28.5**) → 고지 121.7 m(**+61.2**) |
+| 3. 시선 | 길 위 어디서나 POI · 랜드마크 3+ | 길 159 곳(50 m 마다, 7.85 km) 최소 **3** · 평균 5.1 |
+| 4. 밀도 | 길 위 300 m 안에 POI | 가장 먼 곳 **252 m** |
+| (길 경사) | ≤ 15° | **12.9°**(갈림목) |
+| (이름 붙은 시선) | 탑 문 앞 → 고목 · 풍차 · 선돌 고리 / 고목 언덕 → 폭포 · 감시탑 · 고개 | 모두 보임 |
+
+- 큰 모양: 구역 5(목초지 27 m · 구릉 60 m · 연못 저지대 17 m · 강변 16 m · 고지 88 → 138 m) + 탑 곶 45 m. 계곡 깊이(둑 − 바닥 평균): 완만한 쪽 약 45 m, 절벽 쪽 약 77 m. 폭포 약 76 m.
+- 중간 모양: 언덕 **232**(손 5 + 시드, 지름 250 m 아래 212 · 350 m 이상 4, 높이 10~55 m, 둥근 삼각형 실루엣), 바위 능선 3, 고개 1.
+- 작은 모양: 둔턱(3.3 m · 42 m) · 침식 골(비탈 7° 이상, 0.7 m) · 바위 노두 85.
+- 랜드마크 7(마법탑 · 거대 고목 · 바위 문 · 선돌 고리 · 폭포 · 폐허 감시탑 · 풍차), POI **40**(묶음 10 × 4, 속성 퍼즐 7 · 자원 10 · 생물 6 · 폐허 5 · 전망대 5 · 이야기 4 · 거점 터 2 · 던전 입구 1).
+- 스크린숏: [탑 문 앞에서 북쪽](/art/terrain/openbeta-tower-north.jpg) · 고목 언덕 꼭대기에서 [북](/art/terrain/openbeta-tree-north.jpg) · [동](/art/terrain/openbeta-tree-east.jpg) · [남](/art/terrain/openbeta-tree-south.jpg) · [서](/art/terrain/openbeta-tree-west.jpg) · [계곡 입구](/art/terrain/openbeta-valley-entrance.jpg) · [북부 고지](/art/terrain/openbeta-highland.jpg) · [하늘에서 전체](/art/terrain/openbeta-aerial.jpg). 1차 비교: [앞마당에서 북쪽](/art/terrain/openbeta-yard-north-v1.jpg) · [남쪽 바다 위](/art/terrain/openbeta-aerial-south-v1.jpg) · [지도](/art/terrain/openbeta-preview-v1.png).
+
+**계획과 달라진 점**
+
+| 계획 | 실제 | 까닭 |
+|---|---|---|
+| 계곡이 주변보다 30~45 m 낮음 | 남쪽(구릉) 쪽 약 45 m, **북쪽(고지) 쪽 약 77 m** | 계곡이 구릉(60 m)과 고지(88 m+) 사이 경계라, 바닥을 낮은 둑 기준으로 파면 고지 쪽 절벽이 높아진다. 폭포가 그만큼 높다(약 76 m) |
+| 중부 구릉 바닥 30~70 m | 바닥 60 m, 고목 언덕 꼭대기 약 115 m | 목초지와 평균 25 m 넘게 차이 나게 하려고 바닥을 올렸다 |
+| POI 35 개 안팎 | **40** | 길이 큰길 · 갈림길 넷 합해 7.85 km — 「수평선 3+」를 계곡 · 절벽 길 · 강변 낮은 길에서도 지키려면 더 필요했다. 대신 묶음은 10 × 4 로 꽉 찼다 |
+| 비율 전망대 10% · 폐허 15% | 전망대 5(12.5%) · 폐허 5(12.5%) | 절벽 길 · 감시탑 언덕에 전망 자리를 더했다. 계획 ±1.5 개 안 |
+| 큰길: 탑 → 고목 → 계곡 다리 → 고개 | 같다 + 계곡 북쪽 절벽 벽을 비스듬히 오르는 **절벽 길**(약 680 m, 75 m 오름) | 고지가 계곡보다 70 m 넘게 높아, 길 경사 ≤ 15° 로 오르려면 길어야 한다 |
+| 풍차 날개가 돈다 | 돌지 않는다(그레이박스) | 선택 항목 — 정식 에셋 때 |
+| 강변 「다리 하나」 | 강 다리는 없음. 길이 개울을 건너는 2 곳에 널다리 | 강 건너(동쪽 산등성이)는 지도 끝이라 갈 곳이 없다 |
+| 경사 분포는 「땅」 전체 | 분석 사각형(가장자리 산등성이 · 강 건너 · 북쪽 산등성이 뺌) | 지도 끝 산등성이는 일부러 가파른 경계다 |
+
+- 시선 검사는 **땅(높이 지도)만** 본다 — 나무 · 소품이 가리는 것은 사람 눈으로(스크린숏) 본다. 눈높이 1.7 m, POI 는 땅 + 3 m, 랜드마크는 꼭대기.
+- 길을 깎은 자리(절벽 길 · 비탈길)는 옆 벽이 낮은 곳의 시선을 막아 POI 자리가 민감하다 — 절벽 길의 POI 는 맞은편(계곡 남쪽 비탈)과 길 위쪽 벽에 두었다.
+
 ## 출처
 
 - 젤다 삼각형 규칙(CEDEC 2017): [Game Developer — 5 design lessons](https://gamedeveloper.com/design/5-design-lessons-learned-from-i-the-legend-of-zelda-breath-of-the-wild-i-) · [GMTK — How Nintendo Solved Zelda's Open World Problem](https://gmtk.substack.com/p/how-nintendo-solved-zeldas-open-world) · [80.lv — The Design Secrets of BotW](https://80.lv/articles/the-design-secrets-of-breath-of-the-wild/) · [Matt Walker 번역 정리](https://gist.github.com/idbrii/e39fe96279aa1670319bfa521d907399) · [Radiator Blog — open world level design](https://www.blog.radiator.debacle.us/2017/10/open-world-level-design-spatial.html)

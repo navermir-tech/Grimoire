@@ -1,5 +1,6 @@
 #include "World/GrimTerrainEditorLibrary.h"
 
+#include "World/GrimTerrainAnalysis.h"
 #include "World/GrimTerrainGenerator.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
@@ -170,6 +171,61 @@ float UGrimTerrainEditorLibrary::GetSlopeDegrees(float WorldX, float WorldY)
 	return FGrimTerrainGenerator::SampleSlopeDeg(Cache.Maps, Map.X, Map.Y);
 }
 
+FString UGrimTerrainEditorLibrary::RunTerrainAnalysis()
+{
+	if (!GrimTerrainEditorLocal::RequireCache(TEXT("RunTerrainAnalysis")))
+	{
+		return FString();
+	}
+	const GrimTerrainEditorLocal::FCache& Cache = GrimTerrainEditorLocal::Cache();
+	const FGrimTerrainAnalysisResult Result = FGrimTerrainAnalysis::Run(Cache.Layout, Cache.Maps);
+	FString Report = Result.ToString();
+	for (int32 Index = 0; Index < FMath::Min(Result.SightFailPoints.Num(), 20); ++Index)
+	{
+		Report += FString::Printf(TEXT("%s(%.0f, %.0f)"), Index == 0 ? TEXT("\n시선 모자란 곳: ") : TEXT(" "), Result.SightFailPoints[Index].X, Result.SightFailPoints[Index].Y);
+	}
+	for (const FGrimTerrainViewCheck& Check : Cache.Layout.Analysis.ViewChecks)
+	{
+		const TArray<FName> Seen = FGrimTerrainAnalysis::VisibleFrom(Cache.Layout, Cache.Maps, Check.From.X, Check.From.Y, Check.EyeHeight);
+		Report += FString::Printf(TEXT("\n%s 에서 보임(%d):"), *Check.Name.ToString(), Seen.Num());
+		for (const FName& Name : Seen)
+		{
+			Report += TEXT(" ") + Name.ToString();
+		}
+		for (const FName& Must : Check.MustSee)
+		{
+			if (!Seen.Contains(Must))
+			{
+				Report += FString::Printf(TEXT(" [안 보임: %s]"), *Must.ToString());
+			}
+		}
+	}
+	UE_LOG(LogGrimTerrain, Display, TEXT("지형 검사:\n%s"), *Report);
+	return Report;
+}
+
+TArray<FName> UGrimTerrainEditorLibrary::GetVisibleFrom(float MapU, float MapV, float EyeHeight)
+{
+	if (!GrimTerrainEditorLocal::RequireCache(TEXT("GetVisibleFrom")))
+	{
+		return TArray<FName>();
+	}
+	const GrimTerrainEditorLocal::FCache& Cache = GrimTerrainEditorLocal::Cache();
+	return FGrimTerrainAnalysis::VisibleFrom(Cache.Layout, Cache.Maps, MapU, MapV, EyeHeight);
+}
+
+bool UGrimTerrainEditorLibrary::IsMapPointVisible(float FromU, float FromV, float EyeHeight, float ToU, float ToV, float TargetHeight)
+{
+	if (!GrimTerrainEditorLocal::RequireCache(TEXT("IsMapPointVisible")))
+	{
+		return false;
+	}
+	const FGrimTerrainMaps& Maps = GrimTerrainEditorLocal::Cache().Maps;
+	const FVector Eye(FromU, FromV, FGrimTerrainGenerator::SampleHeight(Maps, FromU, FromV) + EyeHeight);
+	const FVector Target(ToU, ToV, FGrimTerrainGenerator::SampleHeight(Maps, ToU, ToV) + TargetHeight);
+	return FGrimTerrainAnalysis::IsVisible(Maps, Eye, Target);
+}
+
 bool UGrimTerrainEditorLibrary::ExportHeightmapR16(const FString& FilePath)
 {
 	if (!GrimTerrainEditorLocal::RequireCache(TEXT("ExportHeightmapR16")))
@@ -248,6 +304,36 @@ bool UGrimTerrainEditorLibrary::ExportPreviewImage(const FString& FilePath, int3
 			const float Shade = 0.45f + 0.65f * FMath::Max(0.f, static_cast<float>(Normal | Light));
 			Pixels[PY * Width + PX] = (Color * Shade).ToFColor(true);
 		}
+	}
+
+	// 랜드마크(흰 테두리 큰 점) · POI(묶음마다 같은 색 작은 점) — 그림 위 = 북쪽
+	auto Dot = [&](const FVector2D& Map, int32 Radius, const FColor& Fill, const FColor& Rim)
+	{
+		const int32 CX = FMath::RoundToInt32(Map.X / Maps.QuadSize / Step);
+		const int32 CY = Height - 1 - FMath::RoundToInt32(Map.Y / Maps.QuadSize / Step);
+		for (int32 DY = -Radius - 1; DY <= Radius + 1; ++DY)
+		{
+			for (int32 DX = -Radius - 1; DX <= Radius + 1; ++DX)
+			{
+				const int32 PX = CX + DX;
+				const int32 PY = CY + DY;
+				const int32 D2 = DX * DX + DY * DY;
+				if (PX >= 0 && PY >= 0 && PX < Width && PY < Height && D2 <= (Radius + 1) * (Radius + 1))
+				{
+					Pixels[PY * Width + PX] = D2 <= Radius * Radius ? Fill : Rim;
+				}
+			}
+		}
+	};
+	for (const FGrimTerrainPoi& Poi : Layout.Pois)
+	{
+		const uint32 Hash = GetTypeHash(Poi.Cluster.ToString());
+		const FColor Fill = FLinearColor::MakeFromHSV8(static_cast<uint8>(Hash % 255), 210, 255).ToFColor(true);
+		Dot(Poi.Center, 3, Fill, FColor::Black);
+	}
+	for (const FGrimTerrainLandmark& Landmark : Layout.Landmarks)
+	{
+		Dot(Landmark.Center, 6, FColor(250, 60, 40), FColor::White);
 	}
 
 	const FString FullPath = GrimTerrainEditorLocal::ResolvePath(FilePath);

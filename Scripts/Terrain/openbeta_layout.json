@@ -1,5 +1,5 @@
 {
-  "_comment": "지형 1차(M3 갈래 W) 오픈 베타 지역 1 — 마법탑 · 온난 지대 레이아웃. 구조체 FGrimTerrainLayout(Source/Grimoire/World/GrimTerrainTypes.h)의 JSON. 지도 좌표(m): 남서 모서리 (0, 0), X = 동쪽, Y = 북쪽. 설명은 docs/systems/terrain.md",
+  "_comment": "오픈 베타 지역 1(마법탑 · 온난 지대) 레이아웃 — 지형 다시 만들기(docs/dev/level-design.md 「6」). 구조체 FGrimTerrainLayout(Source/Grimoire/World/GrimTerrainTypes.h)의 JSON. 지도 좌표(m): 남서 모서리 (0, 0), X = 동쪽, Y = 북쪽. 설명은 docs/systems/terrain.md",
   "Seed": 3601,
 
   "SectionQuads": 127,
@@ -9,26 +9,82 @@
   "QuadSize": 1.0,
   "WorldOrigin": { "X": 1000, "Y": 380 },
 
-  "BaseHeight": 22,
-  "NorthRise": 16,
-  "NorthRiseStart": 600,
-  "NorthRiseEnd": 3600,
-  "NoiseAmplitude": 9,
-  "NoiseScale": 380,
-  "NoiseOctaves": 5,
+  "BaseHeight": 27,
+  "NorthRise": 0,
+  "NoiseAmplitude": 6,
+  "NoiseScale": 420,
+  "NoiseOctaves": 4,
   "RollingAmplitude": 4,
-  "RollingScale": 150,
-  "DetailAmplitude": 0.5,
-  "DetailScale": 24,
+  "RollingScale": 180,
+  "DetailAmplitude": 0.6,
+  "DetailScale": 14,
+
+  "Zones": [
+    { "Name": "Pasture", "BaseHeight": 27, "NorthRise": 0, "BlendWidth": 200, "EdgeWobble": 40,
+      "Polygon": [ { "X": 230, "Y": 380 }, { "X": 1560, "Y": 380 }, { "X": 1560, "Y": 1330 }, { "X": 230, "Y": 1330 } ] },
+    { "Name": "CentralHills", "BaseHeight": 60, "NorthRise": 0, "BlendWidth": 220, "EdgeWobble": 40,
+      "Polygon": [ { "X": 700, "Y": 1300 }, { "X": 1540, "Y": 1300 }, { "X": 1560, "Y": 2500 }, { "X": 1800, "Y": 2600 }, { "X": 1800, "Y": 2800 },
+                   { "X": 230, "Y": 3620 }, { "X": 230, "Y": 2300 }, { "X": 780, "Y": 2250 } ] },
+    { "Name": "PondLowland", "BaseHeight": 17, "NorthRise": 0, "BlendWidth": 200, "EdgeWobble": 40,
+      "Polygon": [ { "X": 230, "Y": 1000 }, { "X": 780, "Y": 1000 }, { "X": 860, "Y": 1500 }, { "X": 800, "Y": 2250 }, { "X": 230, "Y": 2300 } ] },
+    { "Name": "Riverside", "BaseHeight": 16, "NorthRise": 0, "BlendWidth": 180, "EdgeWobble": 30,
+      "Polygon": [ { "X": 1570, "Y": 450 }, { "X": 2032, "Y": 450 }, { "X": 2032, "Y": 2450 }, { "X": 1610, "Y": 2450 }, { "X": 1570, "Y": 1500 } ] },
+    { "Name": "Highland", "BaseHeight": 88, "NorthRise": 50, "BlendWidth": 140, "EdgeWobble": 25,
+      "Polygon": [ { "X": 230, "Y": 3520 }, { "X": 420, "Y": 3420 }, { "X": 620, "Y": 3270 }, { "X": 860, "Y": 3090 }, { "X": 1100, "Y": 2930 }, { "X": 1350, "Y": 2790 },
+                   { "X": 1580, "Y": 2680 }, { "X": 1770, "Y": 2610 }, { "X": 2032, "Y": 2560 }, { "X": 2032, "Y": 4064 }, { "X": 230, "Y": 4064 } ] }
+  ],
+
+  "HillSharpness": 2.4,
+  "HillIrregularity": 0.18,
+  "HillOverlapBlend": 0.3,
+  "HillLineClearance": 0.6,
+  "HillMaxSlopeDeg": 21,
+  "Hills": [
+    { "Name": "Hill_GiantTree", "Center": { "X": 1100, "Y": 1980 }, "Height": 55, "Diameter": 500, "Aspect": 1.15, "Yaw": 60 },
+    { "Name": "Hill_Windmill", "Center": { "X": 1400, "Y": 870 }, "Height": 24, "Diameter": 300, "Aspect": 1.0, "Yaw": 0 },
+    { "Name": "Hill_Lookout", "Center": { "X": 1380, "Y": 1580 }, "Height": 36, "Diameter": 330, "Aspect": 1.2, "Yaw": 20 },
+    { "Name": "Hill_StoneCircle", "Center": { "X": 560, "Y": 3700 }, "Height": 28, "Diameter": 340, "Aspect": 1.0, "Yaw": 0 },
+    { "Name": "Hill_Watchtower", "Center": { "X": 1620, "Y": 2120 }, "Height": 26, "Diameter": 240, "Aspect": 1.2, "Yaw": 90 }
+  ],
+  "HillFields": [
+    { "Name": "Field_Pasture", "Count": 72, "MinHeight": 10, "MaxHeight": 24, "MinDiameter": 150, "MaxDiameter": 320, "SizeBias": 2.2, "MaxAspect": 1.5, "MinSpacing": 0.42,
+      "Polygon": [ { "X": 300, "Y": 470 }, { "X": 1560, "Y": 470 }, { "X": 1560, "Y": 1330 }, { "X": 820, "Y": 1330 }, { "X": 780, "Y": 1020 }, { "X": 300, "Y": 1000 } ] },
+    { "Name": "Field_Central", "Count": 50, "MinHeight": 12, "MaxHeight": 48, "MinDiameter": 160, "MaxDiameter": 440, "SizeBias": 2.0, "MaxAspect": 1.5, "MinSpacing": 0.42,
+      "Polygon": [ { "X": 760, "Y": 1330 }, { "X": 1560, "Y": 1330 }, { "X": 1560, "Y": 2480 }, { "X": 1100, "Y": 2780 }, { "X": 700, "Y": 3000 }, { "X": 300, "Y": 3250 },
+                   { "X": 260, "Y": 2350 }, { "X": 800, "Y": 2280 } ] },
+    { "Name": "Field_Lowland", "Count": 40, "MinHeight": 10, "MaxHeight": 18, "MinDiameter": 150, "MaxDiameter": 260, "SizeBias": 1.5, "MaxAspect": 1.6, "MinSpacing": 0.4,
+      "Polygon": [ { "X": 280, "Y": 1050 }, { "X": 760, "Y": 1050 }, { "X": 820, "Y": 1500 }, { "X": 760, "Y": 2220 }, { "X": 280, "Y": 2260 } ] },
+    { "Name": "Field_Highland", "Count": 65, "MinHeight": 10, "MaxHeight": 40, "MinDiameter": 150, "MaxDiameter": 400, "SizeBias": 2.0, "MaxAspect": 1.6, "MinSpacing": 0.4,
+      "Polygon": [ { "X": 300, "Y": 3560 }, { "X": 560, "Y": 3400 }, { "X": 900, "Y": 3180 }, { "X": 1250, "Y": 2980 }, { "X": 1650, "Y": 2800 }, { "X": 1680, "Y": 3800 }, { "X": 300, "Y": 3800 } ] },
+    { "Name": "Outcrops_Hilltops", "Count": 45, "MinHeight": 2, "MaxHeight": 5, "MinDiameter": 10, "MaxDiameter": 24, "SizeBias": 1.5, "MaxAspect": 1.8, "MinSpacing": 1.0,
+      "Sharpness": 1.3, "bNearHillTops": true, "bSmallShape": true, "Polygon": [] },
+    { "Name": "Outcrops_Highland", "Count": 40, "MinHeight": 2, "MaxHeight": 6, "MinDiameter": 10, "MaxDiameter": 28, "SizeBias": 1.5, "MaxAspect": 1.8, "MinSpacing": 1.0,
+      "Sharpness": 1.3, "bSmallShape": true,
+      "Polygon": [ { "X": 300, "Y": 3560 }, { "X": 560, "Y": 3400 }, { "X": 900, "Y": 3180 }, { "X": 1250, "Y": 2980 }, { "X": 1650, "Y": 2800 }, { "X": 1680, "Y": 3800 }, { "X": 300, "Y": 3800 } ] }
+  ],
+  "Ridges": [
+    { "Name": "Ridge_HighlandEast", "Height": 28, "HalfWidth": 100, "Points": [ { "X": 1250, "Y": 3260 }, { "X": 1400, "Y": 3460 }, { "X": 1540, "Y": 3700 } ] },
+    { "Name": "Ridge_GateWest", "Height": 24, "HalfWidth": 85, "Points": [ { "X": 720, "Y": 3760 }, { "X": 880, "Y": 3900 } ] },
+    { "Name": "Ridge_GateEast", "Height": 26, "HalfWidth": 90, "Points": [ { "X": 1120, "Y": 3720 }, { "X": 1260, "Y": 3880 } ] }
+  ],
+
+  "BumpAmplitude": 3.3,
+  "BumpScale": 42,
+  "GullyDepth": 0.7,
+  "GullyAcrossScale": 16,
+  "GullyAlongScale": 140,
+  "GullySlopeStart": 7,
+  "GullySlopeFull": 18,
 
   "WestRidgeWidth": 230,
   "WestRidgeHeight": 110,
-  "NorthRidgeWidth": 280,
-  "NorthRidgeHeight": 140,
+  "NorthRidgeWidth": 260,
+  "NorthRidgeHeight": 60,
   "EastRidgeWidth": 150,
   "EastRidgeHeight": 75,
   "RidgeNoiseScale": 260,
   "RidgeWobble": 0.5,
+  "PassGaps": [ { "Name": "Gap_NorthPass", "CenterU": 1000, "Width": 80, "BlendWidth": 140 } ],
 
   "SeaLevel": 0,
   "SeaDepth": 25,
@@ -41,15 +97,16 @@
   "HeadlandWidth": 160,
   "CliffWidth": 55,
 
-  "TowerHill": { "Center": { "X": 1000, "Y": 380 }, "PlateauRadius": 45, "Radius": 230, "Height": 42, "Irregularity": 0.15 },
+  "TowerHill": { "Center": { "X": 1000, "Y": 380 }, "PlateauRadius": 45, "Radius": 260, "Height": 45, "Irregularity": 0.15 },
 
   "Valley": {
     "Name": "Valley",
     "Points": [
-      { "X": 520, "Y": 3780 }, { "X": 650, "Y": 3450 }, { "X": 900, "Y": 3200 }, { "X": 1150, "Y": 3020 },
-      { "X": 1400, "Y": 2870 }, { "X": 1620, "Y": 2790 }, { "X": 1720, "Y": 2760 }
+      { "X": 420, "Y": 3420 }, { "X": 540, "Y": 3330 }, { "X": 620, "Y": 3270 }, { "X": 760, "Y": 3180 }, { "X": 860, "Y": 3090 },
+      { "X": 980, "Y": 2995 }, { "X": 1100, "Y": 2930 }, { "X": 1230, "Y": 2870 }, { "X": 1350, "Y": 2790 }, { "X": 1470, "Y": 2720 },
+      { "X": 1580, "Y": 2680 }, { "X": 1680, "Y": 2650 }, { "X": 1770, "Y": 2610 }
     ],
-    "Width": 220, "Depth": 16, "BankWidth": 0, "WaterBelowGround": 0
+    "FloorWidth": 75, "Depth": 35, "GentleWidth": 110, "CliffWidth": 28, "CliffSide": 1, "MinFloorHeight": 3, "FloorGrade": 0.004, "FloorSmoothing": 120
   },
 
   "River": {
@@ -58,71 +115,193 @@
       { "X": 1790, "Y": 4120 }, { "X": 1760, "Y": 3600 }, { "X": 1700, "Y": 3100 }, { "X": 1770, "Y": 2500 },
       { "X": 1720, "Y": 1900 }, { "X": 1800, "Y": 1300 }, { "X": 1740, "Y": 700 }, { "X": 1800, "Y": 300 }, { "X": 1860, "Y": -60 }
     ],
-    "Width": 70, "Depth": 5, "BankWidth": 70, "WaterBelowGround": 0
+    "Width": 70, "Depth": 5, "BankWidth": 50, "WaterBelowGround": 0
   },
 
   "Creeks": [
     {
       "Name": "Creek_Valley",
       "Points": [
-        { "X": 540, "Y": 3740 }, { "X": 650, "Y": 3450 }, { "X": 900, "Y": 3200 }, { "X": 1150, "Y": 3020 },
-        { "X": 1400, "Y": 2870 }, { "X": 1620, "Y": 2790 }, { "X": 1735, "Y": 2762 }
+        { "X": 440, "Y": 3405 }, { "X": 540, "Y": 3330 }, { "X": 620, "Y": 3270 }, { "X": 760, "Y": 3180 }, { "X": 860, "Y": 3090 },
+        { "X": 980, "Y": 2995 }, { "X": 1100, "Y": 2930 }, { "X": 1230, "Y": 2870 }, { "X": 1350, "Y": 2790 }, { "X": 1470, "Y": 2720 },
+        { "X": 1580, "Y": 2680 }, { "X": 1680, "Y": 2650 }, { "X": 1780, "Y": 2608 }
       ],
       "Width": 5, "Depth": 0.8, "BankWidth": 5, "WaterBelowGround": 0.9
     },
     {
-      "Name": "Creek_Meadow",
-      "Points": [
-        { "X": 1228, "Y": 1345 }, { "X": 1400, "Y": 1310 }, { "X": 1560, "Y": 1240 }, { "X": 1795, "Y": 1215 }
-      ],
+      "Name": "Creek_Falls",
+      "Points": [ { "X": 1330, "Y": 3066 }, { "X": 1334, "Y": 2990 }, { "X": 1338, "Y": 2900 }, { "X": 1342, "Y": 2840 }, { "X": 1346, "Y": 2795 } ],
+      "Width": 4, "Depth": 0.6, "BankWidth": 4, "WaterBelowGround": 0.9
+    },
+    {
+      "Name": "Creek_Pasture",
+      "Points": [ { "X": 1262, "Y": 1185 }, { "X": 1420, "Y": 1120 }, { "X": 1560, "Y": 1080 }, { "X": 1700, "Y": 1020 }, { "X": 1790, "Y": 1000 } ],
       "Width": 4, "Depth": 0.6, "BankWidth": 4, "WaterBelowGround": 0.8
     }
   ],
 
   "Ponds": [
-    { "Name": "Pond_TowerWest", "Center": { "X": 700, "Y": 520 }, "Radius": 38, "Depth": 3, "ShoreWidth": 14, "WaterBelowGround": 0.8 },
-    { "Name": "Pond_Meadow", "Center": { "X": 1180, "Y": 1350 }, "Radius": 45, "Depth": 3.5, "ShoreWidth": 14, "WaterBelowGround": 0.8 },
-    { "Name": "Pond_Reed", "Center": { "X": 760, "Y": 2000 }, "Radius": 32, "Depth": 2.5, "ShoreWidth": 12, "WaterBelowGround": 0.8 },
-    { "Name": "Pond_Upper", "Center": { "X": 1250, "Y": 3450 }, "Radius": 36, "Depth": 3, "ShoreWidth": 12, "WaterBelowGround": 0.8 }
+    { "Name": "Pond_TowerWest", "Center": { "X": 700, "Y": 560 }, "Radius": 36, "Depth": 3, "ShoreWidth": 14, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Lowland", "Center": { "X": 600, "Y": 1400 }, "Radius": 45, "Depth": 3.5, "ShoreWidth": 14, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Reed", "Center": { "X": 480, "Y": 1830 }, "Radius": 36, "Depth": 2.5, "ShoreWidth": 12, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Marsh", "Center": { "X": 690, "Y": 2150 }, "Radius": 30, "Depth": 2.5, "ShoreWidth": 12, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Upper", "Center": { "X": 1330, "Y": 3100 }, "Radius": 32, "Depth": 3, "ShoreWidth": 12, "WaterBelowGround": 0.8 }
   ],
 
+  "PathGradeDeg": 10,
+  "PathSmoothing": 40,
   "Paths": [
     {
-      "Name": "Path_TowerToValley",
+      "Name": "Path_Main",
       "Points": [
-        { "X": 1000, "Y": 398 }, { "X": 1005, "Y": 520 }, { "X": 1040, "Y": 760 }, { "X": 1060, "Y": 1050 },
-        { "X": 1010, "Y": 1400 }, { "X": 930, "Y": 1800 }, { "X": 880, "Y": 2200 }, { "X": 870, "Y": 2600 },
-        { "X": 890, "Y": 2950 }, { "X": 920, "Y": 3150 }
+        { "X": 1000, "Y": 398 }, { "X": 1005, "Y": 520 }, { "X": 1050, "Y": 700 }, { "X": 1110, "Y": 900 }, { "X": 1130, "Y": 1100 },
+        { "X": 1060, "Y": 1300 }, { "X": 960, "Y": 1520 }, { "X": 880, "Y": 1760 }, { "X": 840, "Y": 2000 }, { "X": 880, "Y": 2250 },
+        { "X": 960, "Y": 2480 }, { "X": 1060, "Y": 2700 }, { "X": 1140, "Y": 2790 }, { "X": 1180, "Y": 2880 }, { "X": 1140, "Y": 2955 },
+        { "X": 1010, "Y": 3056 }, { "X": 896, "Y": 3141 }, { "X": 782, "Y": 3236 }, { "X": 671, "Y": 3335 }, { "X": 720, "Y": 3440 },
+        { "X": 800, "Y": 3570 }, { "X": 900, "Y": 3700 }, { "X": 970, "Y": 3800 }, { "X": 1000, "Y": 3890 }, { "X": 1000, "Y": 3925 }
       ],
-      "Width": 4, "Depth": 0, "BankWidth": 0, "WaterBelowGround": 0
+      "Width": 4, "Depth": 0, "BankWidth": 14, "WaterBelowGround": 0
+    },
+    {
+      "Name": "Path_East",
+      "Points": [
+        { "X": 1110, "Y": 900 }, { "X": 1220, "Y": 760 }, { "X": 1380, "Y": 690 }, { "X": 1530, "Y": 740 }, { "X": 1620, "Y": 900 },
+        { "X": 1640, "Y": 1150 }, { "X": 1620, "Y": 1400 }, { "X": 1580, "Y": 1650 }, { "X": 1560, "Y": 1900 }, { "X": 1550, "Y": 2030 }
+      ],
+      "Width": 3, "Depth": 0, "BankWidth": 11, "WaterBelowGround": 0
+    },
+    {
+      "Name": "Path_West",
+      "Points": [
+        { "X": 1060, "Y": 1300 }, { "X": 900, "Y": 1360 }, { "X": 760, "Y": 1450 }, { "X": 680, "Y": 1580 }, { "X": 600, "Y": 1720 },
+        { "X": 560, "Y": 1950 }, { "X": 560, "Y": 2050 }
+      ],
+      "Width": 3, "Depth": 0, "BankWidth": 11, "WaterBelowGround": 0
+    },
+    {
+      "Name": "Path_Highland",
+      "Points": [ { "X": 720, "Y": 3440 }, { "X": 880, "Y": 3380 }, { "X": 1050, "Y": 3300 }, { "X": 1180, "Y": 3200 }, { "X": 1260, "Y": 3030 }, { "X": 1265, "Y": 2965 } ],
+      "Width": 3, "Depth": 0, "BankWidth": 11, "WaterBelowGround": 0
+    },
+    {
+      "Name": "Path_StoneCircle",
+      "Points": [ { "X": 800, "Y": 3570 }, { "X": 690, "Y": 3640 }, { "X": 600, "Y": 3695 } ],
+      "Width": 3, "Depth": 0, "BankWidth": 11, "WaterBelowGround": 0
     }
   ],
 
   "BaseSites": [
-    { "Name": "Base_EastMeadow", "Center": { "X": 1350, "Y": 900 }, "Radius": 28, "BlendWidth": 25 },
-    { "Name": "Base_WestMeadow", "Center": { "X": 640, "Y": 1550 }, "Radius": 28, "BlendWidth": 25 },
-    { "Name": "Base_Creekside", "Center": { "X": 1330, "Y": 2250 }, "Radius": 28, "BlendWidth": 25 },
-    { "Name": "Base_NorthMeadow", "Center": { "X": 1480, "Y": 3480 }, "Radius": 28, "BlendWidth": 25 }
+    { "Name": "Base_TowerPond", "Center": { "X": 820, "Y": 640 }, "Radius": 28, "BlendWidth": 25 },
+    { "Name": "Base_Lowland", "Center": { "X": 420, "Y": 1600 }, "Radius": 28, "BlendWidth": 25 },
+    { "Name": "Base_Riverside", "Center": { "X": 1470, "Y": 1300 }, "Radius": 28, "BlendWidth": 25 },
+    { "Name": "Base_Highland", "Center": { "X": 1130, "Y": 3080 }, "Radius": 28, "BlendWidth": 25 }
   ],
 
   "Markers": [
     { "Name": "Site_Tower", "Tag": "Terrain.Site.Tower", "Center": { "X": 1000, "Y": 380 }, "Radius": 45 },
     { "Name": "Site_TowerYard", "Tag": "Terrain.Site.TowerYard", "Center": { "X": 1000, "Y": 408 }, "Radius": 20 },
-    { "Name": "Habitat_Jackalope", "Tag": "Habitat.Jackalope", "Center": { "X": 820, "Y": 1250 }, "Radius": 200 },
-    { "Name": "Habitat_Kelpie", "Tag": "Habitat.Kelpie", "Center": { "X": 1250, "Y": 1330 }, "Radius": 150 },
-    { "Name": "Habitat_BlackDog", "Tag": "Habitat.BlackDog", "Center": { "X": 900, "Y": 3210 }, "Radius": 230 }
+    { "Name": "Habitat_Jackalope", "Tag": "Habitat.Jackalope", "Center": { "X": 1200, "Y": 1000 }, "Radius": 200 },
+    { "Name": "Habitat_Kelpie", "Tag": "Habitat.Kelpie", "Center": { "X": 580, "Y": 1600 }, "Radius": 220 },
+    { "Name": "Habitat_BlackDog", "Tag": "Habitat.BlackDog", "Center": { "X": 1000, "Y": 3000 }, "Radius": 220 }
   ],
+
+  "Landmarks": [
+    { "Name": "Landmark_Tower", "Kind": "Tower", "Tier": "Global", "Center": { "X": 1000, "Y": 380 }, "Yaw": 0, "Height": 38, "ViewDistance": 4500 },
+    { "Name": "Landmark_GiantTree", "Kind": "GiantTree", "Tier": "Global", "Center": { "X": 1100, "Y": 1980 }, "Yaw": 0, "Height": 47, "ViewDistance": 4500 },
+    { "Name": "Landmark_RockGate", "Kind": "RockGate", "Tier": "Global", "Center": { "X": 1000, "Y": 3890 }, "Yaw": 90, "Height": 40, "ViewDistance": 4500 },
+    { "Name": "Landmark_StoneCircle", "Kind": "StoneCircle", "Tier": "District", "Center": { "X": 560, "Y": 3700 }, "Yaw": 0, "Height": 9, "ViewDistance": 3500 },
+    { "Name": "Landmark_Waterfall", "Kind": "Waterfall", "Tier": "District", "Center": { "X": 1340, "Y": 2880 }, "Yaw": 0, "Height": 4, "ViewDistance": 1500 },
+    { "Name": "Landmark_Watchtower", "Kind": "Watchtower", "Tier": "District", "Center": { "X": 1620, "Y": 2120 }, "Yaw": 0, "Height": 18, "ViewDistance": 1500 },
+    { "Name": "Landmark_Windmill", "Kind": "Windmill", "Tier": "District", "Center": { "X": 1400, "Y": 870 }, "Yaw": 180, "Height": 21, "ViewDistance": 1500 }
+  ],
+  "LandmarkClearance": 25,
+
+  "Pois": [
+    { "Name": "Poi_TowerMeadow_Brazier", "Kind": "Puzzle", "Cluster": "C1_TowerMeadow", "Center": { "X": 1120, "Y": 620 }, "Yaw": 200, "Radius": 10, "Note": "꺼진 화로가 있는 무너진 제단 — 플라미스로 켜면 길 표지가 밝아진다" },
+    { "Name": "Poi_TowerMeadow_Herbs", "Kind": "Resource", "Cluster": "C1_TowerMeadow", "Center": { "X": 870, "Y": 760 }, "Yaw": 0, "Radius": 14, "Note": "약초 밭(마나초 · 쑥)" },
+    { "Name": "Poi_TowerMeadow_Burrow", "Kind": "Creature", "Cluster": "C1_TowerMeadow", "Center": { "X": 770, "Y": 505 }, "Yaw": 30, "Radius": 10, "Note": "재칼로프 굴 — 탑에서 가장 가까운 생물" },
+    { "Name": "Poi_TowerMeadow_Cairn", "Kind": "Story", "Cluster": "C1_TowerMeadow", "Center": { "X": 1170, "Y": 790 }, "Yaw": 250, "Radius": 8, "Note": "길손의 돌무더기와 꺼진 모닥불 — 첫 여행 흔적" },
+
+    { "Name": "Poi_Windmill_Field", "Kind": "Resource", "Cluster": "C2_Windmill", "Center": { "X": 1300, "Y": 690 }, "Yaw": 10, "Radius": 16, "Note": "밀밭 · 건초 더미" },
+    { "Name": "Poi_Windmill_Hut", "Kind": "Ruin", "Cluster": "C2_Windmill", "Center": { "X": 1490, "Y": 840 }, "Yaw": 160, "Radius": 10, "Note": "무너진 방앗간 오두막 — 돌 상자" },
+    { "Name": "Poi_Windmill_Burrow", "Kind": "Creature", "Cluster": "C2_Windmill", "Center": { "X": 1290, "Y": 1010 }, "Yaw": 90, "Radius": 10, "Note": "재칼로프 굴 무리" },
+    { "Name": "Poi_Windmill_Flowers", "Kind": "Resource", "Cluster": "C2_Windmill", "Center": { "X": 1450, "Y": 985 }, "Yaw": 0, "Radius": 12, "Note": "풍차 언덕 꽃밭(염료 · 꿀)" },
+
+    { "Name": "Poi_Pasture_Vines", "Kind": "Puzzle", "Cluster": "C3_Pasture", "Center": { "X": 846, "Y": 1350 }, "Yaw": 300, "Radius": 10, "Note": "마른 덩굴로 막힌 돌문 — 태우면 열린다" },
+    { "Name": "Poi_Pasture_Spring", "Kind": "Resource", "Cluster": "C3_Pasture", "Center": { "X": 1220, "Y": 1250 }, "Yaw": 0, "Radius": 12, "Note": "샘 · 물풀(개울 머리)" },
+    { "Name": "Poi_Pasture_Cart", "Kind": "Story", "Cluster": "C3_Pasture", "Center": { "X": 1170, "Y": 1420 }, "Yaw": 70, "Radius": 8, "Note": "부서진 짐수레 — 탑으로 가던 물건" },
+    { "Name": "Poi_Pasture_BoundaryStone", "Kind": "Ruin", "Cluster": "C3_Pasture", "Center": { "X": 824, "Y": 1407 }, "Yaw": 20, "Radius": 8, "Note": "쓰러진 경계석과 무너진 담 — 저지대 갈림길 표지" },
+
+    { "Name": "Poi_Lowland_KelpiePond", "Kind": "Creature", "Cluster": "C4_Lowland", "Center": { "X": 665, "Y": 1465 }, "Yaw": 225, "Radius": 10, "Note": "켈피가 나오는 연못가" },
+    { "Name": "Poi_Lowland_Reeds", "Kind": "Resource", "Cluster": "C4_Lowland", "Center": { "X": 520, "Y": 1730 }, "Yaw": 0, "Radius": 14, "Note": "갈대 · 물풀 군락" },
+    { "Name": "Poi_Lowland_Altar", "Kind": "Puzzle", "Cluster": "C4_Lowland", "Center": { "X": 650, "Y": 2100 }, "Yaw": 40, "Radius": 10, "Note": "물에 잠긴 제단 — 얼려서 건넌다" },
+    { "Name": "Poi_Lowland_Camp", "Kind": "BaseSite", "Cluster": "C4_Lowland", "Center": { "X": 420, "Y": 1600 }, "Yaw": 0, "Radius": 28, "Note": "연못 저지대 거점 터(평지 · 물 가까움)" },
+
+    { "Name": "Poi_Tree_Crown", "Kind": "Viewpoint", "Cluster": "C5_GiantTree", "Center": { "X": 1065, "Y": 1945 }, "Yaw": 0, "Radius": 8, "Note": "고목 뿌리 위 전망 — 폭포 · 감시탑 · 고개가 보인다" },
+    { "Name": "Poi_Tree_Herbs", "Kind": "Resource", "Cluster": "C5_GiantTree", "Center": { "X": 900, "Y": 1880 }, "Yaw": 0, "Radius": 14, "Note": "마나초 군락(고목 그늘)" },
+    { "Name": "Poi_Tree_Chest", "Kind": "Ruin", "Cluster": "C5_GiantTree", "Center": { "X": 930, "Y": 2400 }, "Yaw": 120, "Radius": 10, "Note": "돌 상자 — 스킬북" },
+    { "Name": "Poi_Tree_Shrine", "Kind": "Puzzle", "Cluster": "C5_GiantTree", "Center": { "X": 1240, "Y": 2160 }, "Yaw": 230, "Radius": 10, "Note": "바람 룬 돌 — 바람으로 돌리면 빛난다" },
+
+    { "Name": "Poi_East_Ford", "Kind": "Puzzle", "Cluster": "C6_EastMeadow", "Center": { "X": 1580, "Y": 1000 }, "Yaw": 100, "Radius": 10, "Note": "개울 여울 — 얼려서 건너면 갈대 너머 상자" },
+    { "Name": "Poi_East_Ore", "Kind": "Resource", "Cluster": "C6_EastMeadow", "Center": { "X": 1530, "Y": 1260 }, "Yaw": 0, "Radius": 12, "Note": "광석 노두" },
+    { "Name": "Poi_East_Lookout", "Kind": "Viewpoint", "Cluster": "C6_EastMeadow", "Center": { "X": 1380, "Y": 1580 }, "Yaw": 0, "Radius": 8, "Note": "전망 언덕 꼭대기 바위 — 강 · 감시탑 · 고목이 보인다" },
+    { "Name": "Poi_East_RiverNest", "Kind": "Creature", "Cluster": "C6_EastMeadow", "Center": { "X": 1600, "Y": 1480 }, "Yaw": 90, "Radius": 10, "Note": "강가 물새 둥지" },
+
+    { "Name": "Poi_River_Sluice", "Kind": "Puzzle", "Cluster": "C7_Watchtower", "Center": { "X": 1630, "Y": 1840 }, "Yaw": 90, "Radius": 10, "Note": "물에 잠긴 수문 — 물을 빼면 길이 난다" },
+    { "Name": "Poi_River_WatchRuin", "Kind": "Ruin", "Cluster": "C7_Watchtower", "Center": { "X": 1500, "Y": 2110 }, "Yaw": 270, "Radius": 10, "Note": "감시탑 아래 무너진 초소" },
+    { "Name": "Poi_River_Satchel", "Kind": "Story", "Cluster": "C7_Watchtower", "Center": { "X": 1600, "Y": 2320 }, "Yaw": 0, "Radius": 8, "Note": "버려진 마법사 짐 — 다음 퀘스트 단서" },
+    { "Name": "Poi_River_TowerTop", "Kind": "Viewpoint", "Cluster": "C7_Watchtower", "Center": { "X": 1595, "Y": 2100 }, "Yaw": 200, "Radius": 6, "Note": "감시탑 언덕 위 — 강 · 계곡 어귀 · 풍차가 보인다" },
+
+    { "Name": "Poi_Valley_Mushroom", "Kind": "Resource", "Cluster": "C8_Valley", "Center": { "X": 1105, "Y": 2765 }, "Yaw": 0, "Radius": 12, "Note": "그늘 버섯 군락(계곡 들머리 숲)" },
+    { "Name": "Poi_Valley_Den", "Kind": "Creature", "Cluster": "C8_Valley", "Center": { "X": 935, "Y": 2875 }, "Yaw": 20, "Radius": 10, "Note": "검은 개 굴(계곡 남쪽 비탈 어두운 숲 — 절벽 길에서 내려다보인다)" },
+    { "Name": "Poi_Valley_Cave", "Kind": "Dungeon", "Cluster": "C8_Valley", "Center": { "X": 930, "Y": 3130 }, "Yaw": 230, "Radius": 10, "Note": "절벽 길 옆 동굴 입구 — 인스턴스 던전(M6)" },
+    { "Name": "Poi_Valley_Ledge", "Kind": "Viewpoint", "Cluster": "C8_Valley", "Center": { "X": 1110, "Y": 3000 }, "Yaw": 230, "Radius": 5, "Note": "절벽 길 전망 바위 — 계곡 바닥 · 폭포가 내려다보인다" },
+
+    { "Name": "Poi_High_Camp", "Kind": "BaseSite", "Cluster": "C9_Highland", "Center": { "X": 1130, "Y": 3080 }, "Yaw": 0, "Radius": 28, "Note": "고지 거점 터(폭포 · 계곡 경치, 연못 가까움)" },
+    { "Name": "Poi_High_Overlook", "Kind": "Viewpoint", "Cluster": "C9_Highland", "Center": { "X": 1271, "Y": 2926 }, "Yaw": 200, "Radius": 8, "Note": "폭포 위 전망 — 계곡 · 고목 · 탑이 내려다보인다" },
+    { "Name": "Poi_High_Ore", "Kind": "Resource", "Cluster": "C9_Highland", "Center": { "X": 630, "Y": 3355 }, "Yaw": 0, "Radius": 12, "Note": "고지 광석 노두" },
+    { "Name": "Poi_High_Frostflower", "Kind": "Resource", "Cluster": "C9_Highland", "Center": { "X": 1040, "Y": 3345 }, "Yaw": 0, "Radius": 12, "Note": "서리꽃 군락(고원 바람받이)" },
+
+    { "Name": "Poi_Pass_Watchpost", "Kind": "Ruin", "Cluster": "C10_NorthPass", "Center": { "X": 690, "Y": 3478 }, "Yaw": 60, "Radius": 10, "Note": "무너진 초소 — 고개를 지키던 자리" },
+    { "Name": "Poi_Pass_StoneRune", "Kind": "Puzzle", "Cluster": "C10_NorthPass", "Center": { "X": 610, "Y": 3620 }, "Yaw": 30, "Radius": 10, "Note": "선돌 아래 룬 — 네 속성을 차례로" },
+    { "Name": "Poi_Pass_Nest", "Kind": "Creature", "Cluster": "C10_NorthPass", "Center": { "X": 1090, "Y": 3790 }, "Yaw": 220, "Radius": 10, "Note": "바위 둥지(고개 바위 능선 아래)" },
+    { "Name": "Poi_Pass_Cairn", "Kind": "Story", "Cluster": "C10_NorthPass", "Center": { "X": 975, "Y": 3845 }, "Yaw": 90, "Radius": 8, "Note": "고개 앞 길손의 돌무더기 — 다음 지역 이야기" }
+  ],
+
+  "Analysis": {
+    "BoundsMin": { "X": 350, "Y": 300 },
+    "BoundsMax": { "X": 1650, "Y": 3700 },
+    "SlopeSampleStep": 4,
+    "RollingMinDeg": 5,
+    "RollingMaxDeg": 25,
+    "FlatMaxDeg": 3,
+    "RollingMinFraction": 0.7,
+    "FlatMaxFraction": 0.3,
+    "ZoneSteps": [ "Pasture", "CentralHills", "Highland" ],
+    "ZoneStepMin": 25,
+    "PathSampleStep": 50,
+    "EyeHeight": 1.7,
+    "PoiViewHeight": 3,
+    "PoiViewDistance": 450,
+    "MinVisible": 3,
+    "PoiMaxDistance": 300,
+    "PathMaxGradeDeg": 15,
+    "ViewChecks": [
+      { "Name": "TowerDoor", "From": { "X": 1000, "Y": 415 }, "EyeHeight": 1.7, "MustSee": [ "Landmark_GiantTree", "Landmark_Windmill", "Landmark_StoneCircle" ] },
+      { "Name": "GiantTreeTop", "From": { "X": 1096, "Y": 1976 }, "EyeHeight": 4.3, "MustSee": [ "Landmark_Waterfall", "Landmark_Watchtower", "Landmark_RockGate" ] }
+    ]
+  },
 
   "ForestNoiseScale": 340,
   "ForestThreshold": 0.18,
   "TowerClearance": 40,
   "Foliage": [
-    { "Name": "Tree", "DensityPerHa": 2.5, "ForestDensityPerHa": 70, "ValleyDensityPerHa": 0, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
-      "MaxSlopeDeg": 28, "MinHeight": 2, "MaxHeight": 120, "MinWaterDistance": 6, "MinPathDistance": 4, "MinScale": 0.8, "MaxScale": 1.4, "SinkCm": 10 },
+    { "Name": "Tree", "DensityPerHa": 2.5, "ForestDensityPerHa": 60, "ValleyDensityPerHa": 0, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
+      "MaxSlopeDeg": 28, "MinHeight": 2, "MaxHeight": 120, "MinWaterDistance": 6, "MinPathDistance": 5, "MinScale": 0.8, "MaxScale": 1.4, "SinkCm": 10 },
     { "Name": "DarkTree", "DensityPerHa": 0, "ForestDensityPerHa": 0, "ValleyDensityPerHa": 150, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
-      "MaxSlopeDeg": 38, "MinHeight": 1, "MaxHeight": 150, "MinWaterDistance": 4, "MinPathDistance": 4, "MinScale": 1.0, "MaxScale": 1.7, "SinkCm": 10 },
+      "MaxSlopeDeg": 38, "MinHeight": 1, "MaxHeight": 150, "MinWaterDistance": 4, "MinPathDistance": 5, "MinScale": 1.0, "MaxScale": 1.7, "SinkCm": 10 },
     { "Name": "Bush", "DensityPerHa": 8, "ForestDensityPerHa": 25, "ValleyDensityPerHa": 40, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
-      "MaxSlopeDeg": 32, "MinHeight": 1, "MaxHeight": 130, "MinWaterDistance": 2, "MinPathDistance": 2.5, "MinScale": 0.6, "MaxScale": 1.3, "SinkCm": 20 },
+      "MaxSlopeDeg": 32, "MinHeight": 1, "MaxHeight": 140, "MinWaterDistance": 2, "MinPathDistance": 3, "MinScale": 0.6, "MaxScale": 1.3, "SinkCm": 20 },
     { "Name": "Rock", "DensityPerHa": 1.5, "ForestDensityPerHa": 1.5, "ValleyDensityPerHa": 4, "SteepDensityPerHa": 30, "SteepSlopeDeg": 32,
       "MaxSlopeDeg": 70, "MinHeight": 0.3, "MaxHeight": 250, "MinWaterDistance": 1, "MinPathDistance": 3, "MinScale": 0.6, "MaxScale": 2.2, "SinkCm": 35 }
   ]

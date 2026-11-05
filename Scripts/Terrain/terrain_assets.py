@@ -28,6 +28,23 @@ FOLIAGE_COLORS = {
     "MI_Terrain_Grass": (0.12, 0.28, 0.05),
 }
 
+# 랜드마크 · POI 그레이박스(landmark_greybox.py) 색 — 이름(그레이박스가 부르는 이름) → (인스턴스, 색)
+LANDMARK_COLORS = {
+    "Stone": ("MI_Terrain_Stone", (0.30, 0.29, 0.27)),
+    "DarkStone": ("MI_Terrain_DarkStone", (0.10, 0.10, 0.10)),
+    "Wood": ("MI_Terrain_Wood", (0.20, 0.11, 0.05)),
+    "Falls": ("MI_Terrain_Falls", (0.85, 0.90, 0.95)),
+    "Flag": ("MI_Terrain_Flag", (0.60, 0.04, 0.03)),
+    "GiantCrown": ("MI_Terrain_GiantCrown", (0.05, 0.17, 0.04)),
+    "Bark": ("MI_Terrain_GiantBark", (0.10, 0.06, 0.03)),
+    "Sail": ("MI_Terrain_Sail", (0.65, 0.60, 0.50)),
+    "Roof": ("MI_Terrain_Roof", (0.30, 0.08, 0.05)),
+    "Dark": ("MI_Terrain_Dark", (0.01, 0.01, 0.01)),
+    "Dirt": ("MI_Terrain_Dirt", (0.16, 0.10, 0.05)),
+    "Bone": ("MI_Terrain_Bone", (0.75, 0.72, 0.65)),
+    "Herb": ("MI_Terrain_Herb", (0.15, 0.35, 0.06)),
+}
+
 
 def _path(name):
     return f"{ASSET_DIR}/{name}"
@@ -266,6 +283,8 @@ def make_all(refresh=False):
     a["color"] = make_color_material(refresh)
     for name, rgb in FOLIAGE_COLORS.items():
         a[name] = make_color_instance(name, a["color"], rgb, refresh)
+    a["landmark_materials"] = {key: make_color_instance(name, a["color"], rgb, refresh) for key, (name, rgb) in LANDMARK_COLORS.items()}
+    a["landmark_materials"]["Rock"] = a["MI_Terrain_Rock"]
     a["water"] = make_water_material(refresh)
     a["grass"] = make_grass_type(refresh, a["MI_Terrain_Grass"])
     a["landscape"] = make_landscape_material(refresh, a["grass"])

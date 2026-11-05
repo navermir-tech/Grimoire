@@ -1,6 +1,6 @@
 # M3 통합: L_OpenBeta(지형 1차) 위에 게임플레이 액터를 놓는다 — 지형 표식(AGrimTerrainMarker)의 자리를 읽어서.
 #  - 생물 서식 구역(AGrimHabitatVolume): Habitat.Jackalope · Habitat.Kelpie · Habitat.BlackDog 표식마다 하나, 반지름 = 표식 반지름
-#  - 아궁이 냄비(AGrimCookingPot): 탑 주방 아궁이(태그 Tut_Stove) 위
+#  - 아궁이 냄비(AGrimCookingPot): 탑 주방 아궁이(태그 Tut_Stove) 위 — 탑 그레이박스가 이미 놓았으면(Tut_CookingPot) 건너뛴다
 # 지형을 다시 만들지 않고 이 액터들만 더한다(지형을 다시 만들면 이 스크립트를 다시 돌린다).
 # 여러 번 돌려도 같은 결과 — 태그 M3Gameplay 액터를 먼저 지운다.
 #
@@ -63,11 +63,17 @@ stove = next((a for a in actor_subsystem.get_all_level_actors() if "Tut_Stove" i
 if stove is None:
     raise RuntimeError("아궁이(Tut_Stove)가 없다 — 탑을 먼저 지어야 한다")
 location = stove.get_actor_location() + unreal.Vector(0.0, 0.0, 55.0)
-pot = actor_subsystem.spawn_actor_from_class(unreal.load_class(None, "/Script/Grimoire.GrimCookingPot"), location, unreal.Rotator(0, 0, -128.7))
-pot.set_editor_property("tags", [TAG, "Tut_CookingPot"])
-pot.set_actor_label("Tut_CookingPot")
-pot.set_folder_path("Tower/Kitchen")
-always_loaded(pot)
+# tower_greybox.build_tower 가 이미 냄비를 놓는다(지형 맵을 다시 만들면 거기서 온다) — 있으면 하나 더 놓지 않는다
+existing_pot = next((a for a in actor_subsystem.get_all_level_actors() if "Tut_CookingPot" in [str(t) for t in a.get_editor_property("tags")]), None)
+if existing_pot is None:
+    pot = actor_subsystem.spawn_actor_from_class(unreal.load_class(None, "/Script/Grimoire.GrimCookingPot"), location, unreal.Rotator(0, 0, -128.7))
+    pot.set_editor_property("tags", [TAG, "Tut_CookingPot"])
+    pot.set_actor_label("Tut_CookingPot")
+    pot.set_folder_path("Tower/Kitchen")
+    always_loaded(pot)
+else:
+    location = existing_pot.get_actor_location()
+    unreal.log("place_openbeta_gameplay: 냄비는 탑 그레이박스에 이미 있다 — 그대로 둔다")
 
 # World Partition 맵은 액터가 각자 외부 패키지(__ExternalActors__)라 레벨만 저장하면 빠진다 — 더러운 패키지를 모두 저장.
 if not unreal.EditorLoadingAndSavingUtils.save_dirty_packages(True, True):

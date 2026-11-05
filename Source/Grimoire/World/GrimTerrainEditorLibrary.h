@@ -36,6 +36,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Grimoire|Terrain")
 	static float GetSlopeDegrees(float WorldX, float WorldY);
 
+	/** 캐시한 지형의 설계 검사(경사 분포 · 구역 높이 차 · 길 위 시선 · POI 밀도 · 길 경사) — 사람이 읽는 글 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
+	static FString RunTerrainAnalysis();
+
+	/** 캐시한 지형에서 그 지도 자리(m, 땅 + 눈높이)에 서면 보이는 POI · 랜드마크 이름 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
+	static TArray<FName> GetVisibleFrom(float MapU, float MapV, float EyeHeight = 1.7f);
+
+	/** 캐시한 지형에서 (From + 눈높이) → (To + 목표 높이) 시선이 땅에 막히지 않는가(지도 좌표 m) — POI 자리를 고를 때 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
+	static bool IsMapPointVisible(float FromU, float FromV, float EyeHeight, float ToU, float ToV, float TargetHeight);
+
 	/** 16비트 raw 높이 지도(리틀 엔디언, SizeX × SizeY) — 다른 도구 · 손 다듬기용 참고 파일 */
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
 	static bool ExportHeightmapR16(const FString& FilePath);

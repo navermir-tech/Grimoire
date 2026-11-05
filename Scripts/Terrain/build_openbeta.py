@@ -1,5 +1,7 @@
 # 지형 1차(M3 갈래 W): 오픈 베타 맵 L_OpenBeta(World Partition, 2 × 4 km — 지역 1 마법탑 · 온난 지대)를 처음부터 만든다.
 # 레이아웃(수치)은 openbeta_layout.json, 높이 지도 · 식생 계산은 C++(UGrimTerrainEditorLibrary · FGrimTerrainGenerator).
+# 다시 만들기(docs/dev/level-design.md 「6」): 구역 높이 · 언덕 군 · 계곡 절벽 · 폭포 · 고개 + 랜드마크 · POI 그레이박스(landmark_greybox.py).
+# 시작할 때 설계 검사(경사 분포 · 구역 높이 차 · 길 위 시선 · POI 밀도 · 길 경사) 숫자를 로그에 남긴다 — 기준은 테스트 Grimoire.Terrain.Design.*.
 # 돌릴 때마다 L_OpenBeta 를 지우고 새로 만든다 — 같은 레이아웃 · 시드면 같은 지형 · 같은 식생 자리. 손으로 고친 것은 사라진다(docs/systems/terrain.md).
 #
 #   & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
@@ -24,6 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(ROOT, "Scripts", "Tutorial"))
+import landmark_greybox  # noqa: E402
 import terrain_assets  # noqa: E402
 import tower_greybox  # noqa: E402
 
@@ -86,11 +89,17 @@ def ground(x, y):
     return lib.get_ground_height(x, y)
 
 
-log(f"높이 지도 {summary.size_x} × {summary.size_y}, 높이 {summary.min_height:.1f} ~ {summary.max_height:.1f} m, 탑 평지 {summary.tower_plateau_height:.1f} m")
+log(f"높이 지도 {summary.size_x} × {summary.size_y}, 높이 {summary.min_height:.1f} ~ {summary.max_height:.1f} m, 탑 평지 {summary.tower_plateau_height:.1f} m, "
+    f"언덕 {summary.hill_count} · 바위 노두 {summary.outcrop_count}")
+log("설계 검사:\n" + lib.run_terrain_analysis())
 lib.export_heightmap_r16(HEIGHTMAP_PATH)
 lib.export_preview_image(PREVIEW_PATH, 4)
 
 # ───── 2. 맵을 지우고 World Partition 맵으로 새로 ─────
+# L_OpenBeta 가 에디터 시작 맵(DefaultEngine.ini EditorStartupMap)이라 커맨드렛도 이미 열고 있을 수 있다 —
+# 열린 채로 지우면 메모리에 남아 new_level 이 「이미 있다」로 실패한다. 빈 맵으로 바꾸고 치운 뒤 지운다.
+unreal.EditorLoadingAndSavingUtils.new_blank_map(False)
+unreal.SystemLibrary.collect_garbage()
 for asset in (MAP_PATH, MAP_PATH + "_HLODLayer_Instanced", MAP_PATH + "_HLODLayer_Merged"):   # HLOD 층은 new_level 이 다시 만든다
     if eal.does_asset_exist(asset):
         eal.delete_asset(asset)
@@ -251,6 +260,36 @@ for site in raw["BaseSites"]:
 for path in raw["Paths"]:
     for i, p in enumerate(path["Points"]):
         marker(f"{path['Name']}_{i:02d}", "Terrain.Path", p["X"], p["Y"], path["Width"] / 2, f"Markers/{path['Name']}")
+LANDMARK_MARKER_RADIUS_M = {"Tower": 45, "GiantTree": 30, "RockGate": 45, "StoneCircle": 18, "Waterfall": 15, "Watchtower": 12, "Windmill": 10}
+for spec in raw.get("Landmarks", []):
+    marker(spec["Name"], f"Landmark.{spec['Kind']}", spec["Center"]["X"], spec["Center"]["Y"], LANDMARK_MARKER_RADIUS_M.get(spec["Kind"], 20), "Markers/Landmarks")
+for spec in raw.get("Pois", []):
+    marker(spec["Name"], f"Poi.{spec['Kind']}", spec["Center"]["X"], spec["Center"]["Y"], spec.get("Radius", 12), f"Markers/Poi/{spec.get('Cluster', '')}")
+
+# ───── 7b. 랜드마크 · POI 그레이박스 · 다리(늘 로드 — 멀리서 보여야 하는 것) ─────
+
+
+def _spawned(actor):
+    not_spatial(actor)
+    count("GreyboxActor")
+
+
+placer = landmark_greybox.Placer(actor_subsystem, ground, map_to_world, assets["landmark_materials"], _spawned)
+falls_by_name = {str(body.name): body for body in summary.water if str(body.kind) == "Falls"}
+
+
+def falls_volume(label, center, extent, yaw):
+    volume = box_volume(unreal.PhysicsVolume, label, center, extent, yaw=yaw, folder="Water/Falls", tags=["Water", "Water.Falls"])
+    volume.set_editor_property("water_volume", True)
+    not_spatial(volume)
+    count("WaterVolume")
+
+
+built = landmark_greybox.build_landmarks(placer, raw, falls_by_name, falls_volume)
+log(f"랜드마크 그레이박스: {', '.join(built)} (마법탑은 tower_greybox)")
+poi_kinds = landmark_greybox.build_pois(placer, raw)
+log("POI 소품: " + ", ".join(f"{k}={v}" for k, v in sorted(poi_kinds.items())))
+count("Bridge", landmark_greybox.build_bridges(placer, raw, None))
 
 # ───── 8. 마법탑(L_Tower 와 같은 그레이박스를 탑 자리에) ─────
 tower_x, tower_y = map_to_world(raw["TowerHill"]["Center"]["X"], raw["TowerHill"]["Center"]["Y"])
