@@ -234,6 +234,7 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 - **공사 중**: `Analysis.Sector.Fence` 꺾은선(서쪽 들판 끝 → 북쪽 개울 남쪽 둑)을 따라 40 m 마다 주황 기둥(검정 띠 둘) + 기둥 사이 주황 · 검정 줄, 4 기둥마다와 길이 지나는 곳에 「공사 중 — 마탑 구간 밖」 글씨. 기둥 47 · 글씨 15, 모두 막지 않는다(지나갈 수 있다).
 - **한글**: `TextRenderComponent` 는 오프라인 폰트라 한글이 네모로 깨진다. `AGrimDevLabel` 은 월드 공간 `UWidgetComponent` 에 Slate `STextBlock`(기본 폰트 Roboto, 없는 글자는 엔진 폴백 `DroidSansFallback`)을 직접 넣어 한글이 그대로 나온다 — 위젯 블루프린트 · 폰트 에셋이 필요 없다. 스크린숏으로 확인(아래).
 - **숨기기**: 출시(Shipping) 빌드는 늘 숨기고 위젯도 만들지 않는다. 개발 빌드는 콘솔 `Grim.DevLabels 0`(기본값은 `Config/DefaultEngine.ini` `[SystemSettings]` 에 `Grim.DevLabels=0` 으로 바꿀 수 있다). 데디케이티드 서버 · 커맨드렛은 위젯을 만들지 않는다.
+- **거리 · 그리기**: 카메라에서 250 m(`MaxVisibleDistance`, 콘솔 `Grim.DevLabels.MaxDistance <cm>`) 밖이면 숨긴다. 글씨는 렌더 타깃에 한 번만 그리고 위젯 컴포넌트 틱은 끈다 — [성능](./performance#측정-기록).
 
 ### 구간 검사 (`FGrimTerrainAnalysis::RunSector`, 테스트 `Grimoire.Terrain.Design.TowerSector`)
 
@@ -282,7 +283,7 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 | 늘 로드 | 탑 · 앞마당 · 표식 · **랜드마크 · POI 그레이박스 · 개발 표시 글씨 44 · 공사 중 기둥 · 다리(모두 826)** · 하늘 · 기후 · 바다 · 지도 끝 · 시작 자리 · 서식 구역 | 랜드마크는 수 km 밖에서 보여야 하고, POI 소품도 시선 검사 거리(450 m)가 스트리밍 거리에 가깝다 |
 | 공간 로드 | 식생 · 연못 · 개울 물 · 연못 볼륨 | 멀면 내린다 |
 
-- 성능 수치(프레임)는 아직 재지 않았다 — 늘 로드 그레이박스가 826 개(2차 약 350 + 마탑 구간 블록 · 공사 중 표시). 개발 표시 글씨 44 개는 위젯 렌더 타깃이 하나씩이라(1초마다 다시 그림) 출시 빌드에서는 만들지 않는다.
+- 성능 수치는 [성능 예산 · 최적화 규칙](./performance#측정-기록)에 둔다 — 늘 로드 그레이박스가 826 개(2차 약 350 + 마탑 구간 블록 · 공사 중 표시)라 인스턴스 · 공간 로드로 옮길 차례(성능 「다음 할 일」 2). 개발 표시 글씨 44 개는 위젯 렌더 타깃이 하나씩이라 250 m 안에서만 보이고 한 번만 그리며, 출시 빌드에서는 만들지 않는다.
 
 ## 머티리얼 (자동, 임시 색)
 

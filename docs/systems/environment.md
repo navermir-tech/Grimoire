@@ -16,6 +16,7 @@
 - 레벨에 하나 놓는다. 자기 컴포넌트로 해 · 달 Directional Light(대기 태양 인덱스 0 · 1), Sky Atmosphere, Sky Light(실시간 캡처), Exponential Height Fog 를 가진다 — 레벨의 다른 해 · 하늘 · 안개는 뺀다. 복제하지 않고 각 머신이 서브시스템 시각으로 틱마다 갱신한다.
 - 해 궤도 각 `GetSunAngleDegrees`: 해돋이 0° → 정오 90° → 해넘이 180° → 자정 270°(낮 · 밤이 각자 반 바퀴). 궤도는 `SunriseYawDegrees` 에서 떠서 `OrbitTiltDegrees` 만큼 기운 천정을 지난다. 달은 해의 맞은편.
 - 밝기: 해 · 달은 지평선 근처 `HorizonFade` 에서 부드럽게 켜지고 꺼진다(`SunIntensity` 10 lux, `MoonIntensity` 0.4 lux). Sky Light 는 낮 1 · 밤 0.25.
+- **그림자 캐시**: 해 · 달 빛은 방향이 `SunRotationStepDegrees`(기본 0.1°, 48분 하루면 약 0.8초) 넘게 바뀔 때만 돌린다 — 방향광이 돌 때마다 가상 섀도 맵 캐시가 통째로 무효가 된다(GPU 그림자 2 ~ 2.6 ms → 0.4 ~ 0.6 ms, [성능](./performance#측정-기록)). 콘솔 `Grim.Sky.SunRotationStep <도>`(0 = 매 프레임).
 - 에디터에서는 `PreviewTimeOfDay` 로 미리 본다. 날씨 연출은 아래 「날씨 — 연출」. 볼류메트릭 구름 · `MPC_Environment`(젖음 머티리얼) · 바람(풀 · 나무)은 아직 없다.
 
 ## 기후 지역 `AGrimClimateRegionVolume` + 기후 표

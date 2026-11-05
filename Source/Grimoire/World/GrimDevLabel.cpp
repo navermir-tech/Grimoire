@@ -19,6 +19,13 @@ namespace GrimDevLabelLocal
 		TEXT("개발 표시용 떠 있는 글씨(랜드마크 · POI 설명, 공사 중 표시). 1 = 보임(기본), 0 = 숨김. 출시 빌드에서는 늘 숨김."),
 		ECVF_Default);
 
+	float GMaxDistanceOverride = 0.f;
+	FAutoConsoleVariableRef CVarMaxDistance(
+		TEXT("Grim.DevLabels.MaxDistance"),
+		GMaxDistanceOverride,
+		TEXT("개발 표시 글씨를 숨기는 거리(cm). 0 = 액터 값(MaxVisibleDistance, 기본 250 m)"),
+		ECVF_Default);
+
 	/** 제목 · 설명 글씨 크기(Slate 포인트) — 위젯 1 픽셀 = 1 cm × WorldScale */
 	constexpr int32 TitleSize = 44;
 	constexpr int32 BodySize = 30;
@@ -27,6 +34,7 @@ namespace GrimDevLabelLocal
 AGrimDevLabel::AGrimDevLabel()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	// 카메라 쪽으로 돌리기 · 거리 확인만 — 0.1 초면 돈 게 티 나지 않는다
 	PrimaryActorTick.TickInterval = 0.1f;
 	SetCanBeDamaged(false);
 	bReplicates = false;
@@ -43,9 +51,11 @@ AGrimDevLabel::AGrimDevLabel()
 	Widget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Widget->SetGenerateOverlapEvents(false);
 	Widget->SetCastShadow(false);
-	Widget->SetTickWhenOffscreen(true);
-	// 글씨는 바뀌지 않는다 — 1초마다 다시 그리면 충분하다(첫 틱에는 바로 그린다)
-	Widget->SetRedrawTime(1.f);
+	// 글씨는 바뀌지 않는다 — 렌더 타깃에 한 번만 그리고(RequestRenderUpdate) 컴포넌트 틱은 끈다.
+	// 예전엔 44개가 매 프레임 틱 · 1초마다 다시 그렸다(docs/systems/performance 「측정 기록」).
+	Widget->SetTickWhenOffscreen(false);
+	Widget->SetManuallyRedraw(true);
+	Widget->SetTickMode(ETickMode::Disabled);
 }
 
 bool AGrimDevLabel::AreLabelsEnabled()
@@ -97,7 +107,7 @@ void AGrimDevLabel::BeginPlay()
 		return;
 	}
 	BuildWidget();
-	ApplyVisibility();
+	ApplyVisibility(true);
 }
 
 void AGrimDevLabel::BuildWidget()
@@ -143,9 +153,9 @@ void AGrimDevLabel::BuildWidget()
 	Widget->RequestRenderUpdate();
 }
 
-void AGrimDevLabel::ApplyVisibility()
+void AGrimDevLabel::ApplyVisibility(bool bInRange)
 {
-	const bool bWant = AreLabelsEnabled();
+	const bool bWant = AreLabelsEnabled() && bInRange;
 	if (bWant != bShown || !bVisibilityApplied)
 	{
 		bVisibilityApplied = true;
@@ -154,25 +164,47 @@ void AGrimDevLabel::ApplyVisibility()
 		if (Widget)
 		{
 			Widget->SetVisibility(bWant);
+			if (bWant)
+			{
+				// 숨어 있던 동안 렌더 타깃이 비었을 수 있다 — 다시 보일 때 한 번 그린다(컴포넌트 틱이 켜졌다가 그린 뒤 꺼진다)
+				Widget->RequestRenderUpdate();
+			}
+			else
+			{
+				// 숨은 채로는 그리기 요청이 남아 틱이 꺼지지 않는다 — 직접 끈다
+				Widget->SetComponentTickEnabled(false);
+			}
 		}
 	}
+}
+
+bool AGrimDevLabel::GetViewLocation(FVector& OutLocation) const
+{
+	if (const APlayerCameraManager* Camera = UGameplayStatics::GetPlayerCameraManager(this, 0))
+	{
+		OutLocation = Camera->GetCameraLocation();
+		return true;
+	}
+	return false;
 }
 
 void AGrimDevLabel::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	ApplyVisibility();
-	if (!bShown || !bFaceCamera)
+	FVector ViewLocation;
+	const bool bHasView = GetViewLocation(ViewLocation);
+	// 카메라가 아직 없으면(첫 프레임) 거리로 숨기지 않는다
+	const float MaxDistance = GrimDevLabelLocal::GMaxDistanceOverride > 0.f ? GrimDevLabelLocal::GMaxDistanceOverride : MaxVisibleDistance;
+	const bool bInRange = !bHasView || FVector::DistSquared(ViewLocation, GetActorLocation()) <= FMath::Square(MaxDistance);
+	ApplyVisibility(bInRange);
+	if (!bShown || !bFaceCamera || !bHasView)
 	{
 		return;
 	}
-	if (const APlayerCameraManager* Camera = UGameplayStatics::GetPlayerCameraManager(this, 0))
+	// 위젯 앞면(+X)이 카메라를 보게 Yaw 만 돌린다
+	const FVector ToCamera = ViewLocation - GetActorLocation();
+	if (!ToCamera.IsNearlyZero())
 	{
-		// 위젯 앞면(+X)이 카메라를 보게 Yaw 만 돌린다
-		const FVector ToCamera = Camera->GetCameraLocation() - GetActorLocation();
-		if (!ToCamera.IsNearlyZero())
-		{
-			SetActorRotation(FRotator(0.f, ToCamera.Rotation().Yaw, 0.f));
-		}
+		SetActorRotation(FRotator(0.f, ToCamera.Rotation().Yaw, 0.f));
 	}
 }

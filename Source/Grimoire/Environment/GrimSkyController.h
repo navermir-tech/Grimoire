@@ -73,6 +73,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Sky", meta = (ClampMin = "0", ClampMax = "0.5"))
 	float HorizonFade = 0.08f;
 
+	/** 해 · 달 방향을 이 각(도)만큼 움직였을 때만 빛을 돌린다. 방향광이 돌면 가상 섀도 맵 캐시가 통째로 무효가 돼
+	 *  그림자를 매 프레임 다시 그린다(2026-11-06 측정: GPU 그림자 2.6 ms) — 48분 하루면 0.1도 ≈ 0.8초에 한 번. 0 이면 매 프레임 */
+	UPROPERTY(EditAnywhere, Category = "Sky", meta = (ClampMin = "0", ClampMax = "5"))
+	float SunRotationStepDegrees = 0.1f;
+
 private:
 	UFUNCTION()
 	void HandleLightningStrike(FVector Location);
@@ -86,6 +91,8 @@ private:
 	float WeatherFogAdd = 0.f;
 	float BaseFogDensity = 0.02f;
 	float FlashRemaining = 0.f;
+	/** 마지막으로 빛에 준 해 방향(영 벡터 = 아직 안 줌) — SunRotationStepDegrees */
+	FVector AppliedSunDir = FVector::ZeroVector;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UNiagaraSystem> LightningSystem;
