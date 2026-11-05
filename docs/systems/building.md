@@ -17,7 +17,7 @@
 ### 배치 `UGrimBuildModeComponent` (플레이어 캐릭터, 로컬 + 서버 검증)
 
 1. 건축 모드 진입 → 조각 선택 → **고스트 미리보기**(로컬, 반투명 머티리얼, 유효 초록 / 무효 빨강).
-2. 스냅: 주변 조각의 `SnapSockets` 중 가장 가까운 것에 붙임(그리드 없음 — 소켓 스냅 방식). 바닥 조각은 지형에 직접.
+2. 스냅: **격자 스냅**(R30 — 팰월드 크기의 큰 블록, 칸 크기는 설정 `BuildGridSize` 제안 400cm · 벽 높이 300cm, Q33). 구조 조각은 거점 격자 · 이웃 조각의 `SnapSockets` 에 붙고, 첫 바닥은 지형에 직접. 가구 · 장식(`Category.Furniture` · `Light`)은 격자 없이 표면에 자유 배치.
 3. 유효성: 거점 반경 안, 겹침 없음, 지지(바닥 위 또는 벽 위, 단순 규칙), 재료 보유.
 4. 확정 → `Server_PlacePiece(PieceId, Transform, SnapTo)` → 서버 재검증 → `AGrimBuildPiece` 스폰(복제) + 재료 차감.
 
