@@ -3,9 +3,9 @@
 #   powershell -File Scripts\Terrain\check_openbeta.ps1     # 결과: Saved\TerrainCheck\openbeta.log 의 요약, 끝에 PASS/FAIL
 #
 # 시간표(엔진 시작 기준 초) — 맵 로드(10~20초)를 넉넉히 둔다:
-#   15 탐침(탑 안 시작 자리 · 표식 19개의 땅 높이 · 시간 · 날씨) → 17 앞마당으로 → 18~24 북쪽(길, Yaw 0)으로 걷기 → 25 탐침
+#   15 탐침(탑 안 시작 자리 · 표식(랜드마크 · POI 포함)의 땅 높이 · 시간 · 날씨) → 17 앞마당으로 → 18~24 북쪽(길, Yaw 0)으로 걷기 → 25 탐침
 #   26 초원(재칼로프 서식 구역)으로 → 27~32 동쪽(Yaw 90)으로 걷기 → 33 계곡(검은 개)으로 → 34~39 북동으로 걷기
-#   40 날씨 덤프 → 41 초원 비 → 45 날씨 덤프 · 46 탐침(시간이 흘렀나) → 47 연못 속으로 → 49 탐침(헤엄 · 물 볼륨)
+#   40 날씨 덤프 → 41 초원 비 → 45 날씨 덤프 · 46 탐침(시간이 흘렀나) → 47 저지대 연못 속으로 → 49 탐침(헤엄 · 물 볼륨)
 param(
 	[int]$RunSeconds = 75
 )
@@ -25,15 +25,15 @@ $Cmds = @(
 	"Grim.Terrain.Teleport 3000 0 17",
 	"Grim.Terrain.Walk 18 6 0",
 	"Grim.Terrain.Probe 25",
-	"Grim.Terrain.Teleport 87000 -18000 26",
+	"Grim.Terrain.Teleport 62000 20000 26",
 	"Grim.Terrain.Walk 27 5 90",
-	"Grim.Terrain.Teleport 283000 -10000 33",
+	"Grim.Terrain.Teleport 262000 0 33",
 	"Grim.Terrain.Walk 34 5 45",
 	"Grim.Weather.Dump 40",
 	"Grim.Weather.Set Meadow Rain 0 41",
 	"Grim.Weather.Dump 45",
 	"Grim.Terrain.Probe 46",
-	"Grim.Terrain.Teleport 97000 18000 47",
+	"Grim.Terrain.Teleport 102000 -40000 47",
 	"Grim.Terrain.Probe 50"
 ) -join ","
 
@@ -56,7 +56,7 @@ $Checks = [ordered]@{
 	"시간" = "[Probe] 시간:"
 	"날씨 지역 Meadow" = "지역 Meadow"
 	"초원 비" = "Meadow: Rain"
-	"연못 물 볼륨(헤엄)" = "물 볼륨 WaterVolume_Pond_Meadow"
+	"연못 물 볼륨(헤엄)" = "물 볼륨 WaterVolume_Pond_Lowland"
 }
 $Failed = 0
 foreach ($Name in $Checks.Keys) {

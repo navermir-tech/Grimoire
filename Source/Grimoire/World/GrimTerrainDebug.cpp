@@ -241,11 +241,33 @@ namespace GrimTerrainDebugLocal
 			UE_LOG(LogGrimTerrain, Warning, TEXT("사용: Grim.Terrain.ViewFrom <X> <Y> <Z> <Yaw> <Pitch> [지연초] [스크린숏 이름]"));
 			return;
 		}
-		const FVector Location(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2]));
+		// Z 가 + 로 시작하면(예: +170) 그 자리 땅 위로 그만큼(cm)
+		const bool bAboveGround = Args[2].StartsWith(TEXT("+"));
+		const FVector RequestedLocation(FCString::Atof(*Args[0]), FCString::Atof(*Args[1]), FCString::Atof(*Args[2]));
 		const FRotator Rotation(FCString::Atof(*Args[4]), FCString::Atof(*Args[3]), 0.f);
 		const FString ShotName = Args.IsValidIndex(6) ? Args[6] : FString();
-		RunInGameWorlds(ParseFloatArg(Args, 5, 0.f), [Location, Rotation, ShotName](UWorld* World)
+		RunInGameWorlds(ParseFloatArg(Args, 5, 0.f), [RequestedLocation, bAboveGround, Rotation, ShotName](UWorld* World)
 		{
+			FVector Location = RequestedLocation;
+			if (bAboveGround)
+			{
+				// 랜드스케이프만 — 나무 · 랜드마크(고목 잎 등)에 맞으면 그것을 빼고 다시 쏜다
+				FCollisionQueryParams Params(SCENE_QUERY_STAT(GrimTerrainViewFrom), true);
+				for (int32 Attempt = 0; Attempt < 16; ++Attempt)
+				{
+					FHitResult Hit;
+					if (!World->LineTraceSingleByChannel(Hit, FVector(RequestedLocation.X, RequestedLocation.Y, 100000.0), FVector(RequestedLocation.X, RequestedLocation.Y, -100000.0), ECC_Visibility, Params))
+					{
+						break;
+					}
+					if (Cast<ALandscapeProxy>(Hit.GetActor()))
+					{
+						Location.Z = Hit.ImpactPoint.Z + RequestedLocation.Z;
+						break;
+					}
+					Params.AddIgnoredActor(Hit.GetActor());
+				}
+			}
 			for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 			{
 				APlayerController* PC = It->Get();
@@ -277,7 +299,7 @@ namespace GrimTerrainDebugLocal
 
 	FAutoConsoleCommand GViewFromCommand(
 		TEXT("Grim.Terrain.ViewFrom"),
-		TEXT("그 자리 · 방향의 카메라로 화면을 돌리고, 이름을 주면 4초 뒤 Saved/TerrainCheck/<이름>.png 로 찍는다. <X> <Y> <Z> <Yaw> <Pitch> [지연초] [스크린숏 이름]"),
+		TEXT("그 자리 · 방향의 카메라로 화면을 돌리고, 이름을 주면 4초 뒤 Saved/TerrainCheck/<이름>.png 로 찍는다. <X> <Y> <Z(+면 땅 위 cm)> <Yaw> <Pitch> [지연초] [스크린숏 이름]"),
 		FConsoleCommandWithArgsDelegate::CreateStatic(&ViewFromCommand));
 
 	FAutoConsoleCommand GProbeCommand(
