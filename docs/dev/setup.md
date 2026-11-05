@@ -34,7 +34,7 @@ Git LFS 가 설치돼 있으면 `.uasset` 등 바이너리 에셋도 함께 내�
 
 ## 플레이(PIE) 단축키
 
-- **플레이 종료: Ctrl+Esc** (보조 **Shift+Esc**). Esc 단독으로는 꺼지지 않는다 — 게임 안에서 Esc 를 메뉴 등에 쓰기 위해서다. 설정은 `Config/DefaultEditorSettings.ini` 의 `ProjectDefinedChords` 라 저장소를 받은 누구에게나 같다. Windows 가 Ctrl+Esc 를 시작 메뉴로 가로채면 Shift+Esc 를 쓴다.
+- **플레이 종료: Shift+Esc** (보조 **Ctrl+Esc**). Esc 단독으로는 꺼지지 않는다 — 게임 안에서 Esc 는 메뉴가 쓴다. 에디터가 켜질 때 `Source/Grimoire/Core/GrimEditorKeyBindings.cpp` 가 걸어서 저장소를 받은 누구에게나 같다(ini 의 `ProjectDefinedChords` 는 JSON 값이 깨져 무시돼 쓰지 않는다). 에디터 환경설정에서 바꿔도 다음 실행 때 다시 이 키가 된다.
 - 에디터 환경설정 → 키보드 단축키에서 직접 바꾼 값이 있으면 그쪽이 이긴다.
 
 ## Visual Studio 로 작업하기

@@ -25,6 +25,21 @@
 - 엔진 기본은 멀티 클라이언트에 CheatManager 를 만들지 않는다. `AGrimPlayerController::AddCheats` 가 개발 빌드에서 강제로 만들어 `EnableCheats` 를 따로 칠 필요가 없다.
 - 결과는 그 클라이언트 화면에 `GrimSuperCheat ON/OFF` 메시지로, 서버 로그에 `LogGrimoire` 로 남는다.
 
+## 이동 · 생물 · 지연 명령
+
+플레이 테스트용 콘솔 명령(`~`). 개발 빌드에서만 있고, 서버(단독 · 리슨 호스트)에서 친다.
+
+| 명령 | 효과 |
+|---|---|
+| `Grim.Go <이름 일부> [지연초]` | 그곳 4m 앞으로 순간이동(호스트면 모든 플레이어가 함께). 생물이 먼저 잡힌다 — `Grim.Go Jackalope` 는 서식 구역 한가운데가 아니라 **실제 무리** 곁으로 간다. 탑 안 대상(`Tut_*`)이면 그 층 바닥에 선다 |
+| `Grim.Go.List [이름 일부]` | 갈 수 있는 곳 목록(화면 40개 · 전체는 로그). 생물 · 아직 안 나온 무리 · 표식(`Landmark.*` · `Poi.*` · `Habitat.*`) · 태그 액터(`Tut_` · `Npc_` · `Hunter_`) |
+| `Grim.Spawn <종 이름 일부> [수] [거리m]` | 앞에 생물을 놓는다(기본 1마리 · 6m, 최대 20). 인자 없이 치면 종 목록. 예: `Grim.Spawn Jack 3`, `Grim.Spawn BlackDog` |
+| `Grim.Creature.Mark [1/0]` | 생물 위치 표시 켜기 · 끄기. 나온 생물은 굵은 기둥(초록 순함 · 빨강 사나움), **아직 안 나온 무리는 노란 가는 기둥**. 화면 위에 가장 가까운 생물의 이름 · 거리 · 방향 |
+| `Grim.Creature.Time <0~1>` | 시각(0 자정 · 0.5 정오). 검은 개는 밤에만 나온다 |
+| `Grim.At <초> <명령 …>` | 명령을 몇 초 뒤 실행 — 점검 스크립트가 `-ExecCmds` 로 맵이 뜬 뒤 · 시전 도중에 무엇을 할 때(`Grim.At 20 HighResShot 1280x720`) |
+
+생물은 서식 구역(수백 m)에 무리로 기록만 되어 있다가 **플레이어 60m 안**에 들어오면 나온다(설정 `Ecosystem.SpawnRadius`). 구역 한가운데에 서도 무리가 멀면 아무것도 안 보인다 — `Grim.Creature.Mark 1` 의 노란 기둥을 따라가거나 `Grim.Go <종>` 을 쓴다.
+
 ## 테스트
 
 `Grimoire.Cheat.Super`(`Source/Grimoire/Core/Cheats/Tests/`) — 켜면 최대로 고정(비용 · 감소 뒤에도), 상태 태그 해제, MaxHealth 변화 추종, 끄면 최대에서 감소 재개.

@@ -1,7 +1,7 @@
 # M1.5 갈래 C 「연출 · 동작」 에셋을 만든다 / 고친다. 값은 이 스크립트가 정본이다.
 #  - 머티리얼: M_GrimFX_Glow(색 펄스 · 줄기 구슬) · M_GrimFX_Book(그리모어) · M_GrimFX_Decal(그을음 · 젖음)
 #  - GameplayCue: GC_Spell_Cast · GC_Spell_Impact · GC_Spell_Channel (C++ 처리기의 블루프린트 자식)
-#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 이펙트는 엔진 기본 Niagara 템플릿(임시)
+#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 이펙트는 Niagara Examples Pack(없는 칸은 엔진 기본 템플릿)
 #  - 애님: ABP_GrimPlayer = 템플릿 ABP_Unarmed 복제 + 부모를 UGrimSpellPoseAnimInstance 로
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
@@ -25,6 +25,15 @@ FX_DIRECTIONAL_BURST_LW = NS + "DirectionalBurstLightweight.DirectionalBurstLigh
 FX_RADIAL_BURST = NS + "RadialBurst.RadialBurst"
 FX_SIMPLE_EXPLOSION = NS + "SimpleExplosion.SimpleExplosion"
 FX_FOUNTAIN_LW = NS + "FountainLightweight.FountainLightweight"
+
+# Niagara Examples Pack(Fab, Content/NiagaraExamples — 2026-11-05 사용자가 추가). 색은 마법 색으로 입힌다(UGrimSpellVisualSet::TintNiagara).
+# 완드 섬광은 엔진 기본 그대로 — 팩의 NS_Spark_Burst 는 흰 연기가 커서 캐릭터를 가렸다(화면 확인).
+PACK = "/Game/NiagaraExamples/"
+FX_ROCKET_TRAIL = PACK + "FX_Weapons/Trails/NS_RocketTrail.NS_RocketTrail"
+FX_RIBBON_TRAIL = PACK + "FX_Weapons/Trails/NS_SimpleRibbonTrail.NS_SimpleRibbonTrail"
+FX_EXPLOSION_SMALL = PACK + "FX_Explosions/NS_Explosion_Small.NS_Explosion_Small"
+FX_DIRT_EXPLOSION_SMALL = PACK + "FX_Explosions/NS_Dirt_Explosion_Small.NS_Dirt_Explosion_Small"
+FX_BUBBLE_BURST = PACK + "FX_Misc/NS_Bubble_Burst.NS_Bubble_Burst"
 
 # 엔진 기본 소리(임시).
 SND_PING = "/Engine/EngineSounds/1kSineTonePing.1kSineTonePing"
@@ -266,11 +275,12 @@ def make_visual_sets(decal_mat):
         "element_color": srgb("#E0582B"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
         "muzzle_flash": load(FX_DIRECTIONAL_BURST),
-        "trail": load(FX_FOUNTAIN_LW),
-        "impact": load(FX_SIMPLE_EXPLOSION),
+        "trail": load(FX_ROCKET_TRAIL),
+        "impact": load(FX_EXPLOSION_SMALL),
         "muzzle_flash_scale": 0.3,
-        "trail_scale": 0.3,
+        "trail_scale": 0.35,
         "impact_scale": 0.5,
+        "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.12, "cast_sound_pitch": 1.6,
         "impact_sound": noise, "impact_sound_volume": 0.3, "impact_sound_pitch": 1.5, "impact_sound_duration": 0.15,
         "loop_sound": None,
@@ -286,12 +296,13 @@ def make_visual_sets(decal_mat):
     make_visual_set("VS_WaterJet", {
         "element_color": srgb("#3A7BD5"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
-        "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
+        "muzzle_flash": load(FX_BUBBLE_BURST),
         "trail": load(FX_FOUNTAIN_LW),
-        "impact": load(FX_DIRECTIONAL_BURST),
-        "muzzle_flash_scale": 0.25,
+        "impact": load(FX_BUBBLE_BURST),
+        "muzzle_flash_scale": 0.4,
         "trail_scale": 0.5,
-        "impact_scale": 0.4,
+        "impact_scale": 0.8,
+        "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.08, "cast_sound_pitch": 0.8,
         "loop_sound": noise, "loop_sound_volume": 0.1, "loop_sound_pitch": 0.6,
         "impact_sound": noise, "impact_sound_volume": 0.2, "impact_sound_pitch": 1.0, "impact_sound_duration": 0.2,
@@ -314,10 +325,10 @@ def make_visual_sets(decal_mat):
         "cast_motion": unreal.GrimCastMotion.AUTO,
         "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
         "trail": load(FX_RADIAL_BURST),
-        "impact": load(FX_RADIAL_BURST),
+        "impact": load(FX_DIRT_EXPLOSION_SMALL),
         "muzzle_flash_scale": 0.25,
         "trail_scale": 0.6,
-        "impact_scale": 0.5,
+        "impact_scale": 0.4,
         "cast_sound": ping, "cast_sound_volume": 0.08, "cast_sound_pitch": 0.5,
         "loop_sound": None,
         "impact_sound": noise, "impact_sound_volume": 0.25, "impact_sound_pitch": 0.7, "impact_sound_duration": 0.3,
@@ -337,10 +348,10 @@ def make_visual_sets(decal_mat):
         "cast_motion": unreal.GrimCastMotion.AUTO,
         "page_flip_duration": 0.15,
         "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
-        "trail": load(FX_FOUNTAIN_LW),
+        "trail": load(FX_RIBBON_TRAIL),
         "impact": load(FX_RADIAL_BURST),
         "muzzle_flash_scale": 0.2,
-        "trail_scale": 0.2,
+        "trail_scale": 1.0,
         "impact_scale": 0.3,
         "cast_sound": ping, "cast_sound_volume": 0.06, "cast_sound_pitch": 2.0,
         "loop_sound": None,

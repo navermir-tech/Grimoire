@@ -30,7 +30,6 @@
 
 namespace
 {
-	const FName NiagaraColorParameter(TEXT("User.Color"));
 	const FName CascadeColorParameter(TEXT("Color"));
 
 	const UGrimSpellDefinition* GetDefinition(const FGameplayCueParameters& Parameters)
@@ -285,7 +284,7 @@ UFXSystemComponent* UGrimMagicFXStatics::SpawnFX(UWorld* World, UFXSystemAsset* 
 		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Niagara, Location, Rotation, FVector(Scale), bAutoDestroy, true, ENCPoolMethod::None, true);
 		if (NiagaraComponent)
 		{
-			NiagaraComponent->SetVariableLinearColor(NiagaraColorParameter, Color);
+			UGrimSpellVisualSet::TintNiagara(NiagaraComponent, Color);
 		}
 		Component = NiagaraComponent;
 	}

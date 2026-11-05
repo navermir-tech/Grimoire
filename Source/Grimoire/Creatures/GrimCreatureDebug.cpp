@@ -15,6 +15,7 @@
 #include "AbilitySystemComponent.h"
 #include "Components/BoxComponent.h"
 #include "Containers/Ticker.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -349,6 +350,160 @@ namespace GrimCreatureDebugLocal // 유니티 빌드 이름 충돌 방지
 		});
 	}
 
+	void Say(const FString& Text, const FColor Color = FColor::Cyan)
+	{
+		UE_LOG(LogGrimCreatures, Display, TEXT("%s"), *Text);
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 8.f, Color, Text);
+		}
+	}
+
+	/** 설정에 등록된 종 중 id 가 같거나(우선) 이름 일부가 맞는 것 */
+	UGrimCreatureSpecies* FindSpeciesLoose(const FString& Query, FString& OutAllIds)
+	{
+		UGrimCreatureSpecies* Partial = nullptr;
+		for (const TSoftObjectPtr<UGrimCreatureSpecies>& Soft : UGrimCreatureSettings::Get()->Species)
+		{
+			UGrimCreatureSpecies* Species = Soft.LoadSynchronous();
+			if (!Species)
+			{
+				continue;
+			}
+			const FString Id = Species->SpeciesId.ToString();
+			OutAllIds += OutAllIds.IsEmpty() ? Id : TEXT(" · ") + Id;
+			if (Id.Equals(Query, ESearchCase::IgnoreCase))
+			{
+				return Species;
+			}
+			if (!Partial && !Query.IsEmpty() && Id.Contains(Query, ESearchCase::IgnoreCase))
+			{
+				Partial = Species;
+			}
+		}
+		return Partial;
+	}
+
+	/** Grim.Spawn <종 이름 일부> [수=1] [거리m=6] — 플레이 테스트용: 화면에 결과를 띄우고, 이름 일부만 쳐도 된다 */
+	void FriendlySpawnCommand(const TArray<FString>& Args)
+	{
+		FString AllIds;
+		UGrimCreatureSpecies* Species = FindSpeciesLoose(Args.Num() > 0 ? Args[0] : FString(), AllIds);
+		if (!Species)
+		{
+			Say(FString::Printf(TEXT("사용: Grim.Spawn <종> [수] [거리m] — 종: %s"), *AllIds), FColor::Yellow);
+			return;
+		}
+		const int32 Count = FMath::Clamp(static_cast<int32>(ArgFloat(Args, 1, 1.f)), 1, 20);
+		const float Distance = FMath::Max(1.f, ArgFloat(Args, 2, 6.f)) * 100.f;
+		const FString SpeciesId = Species->SpeciesId.ToString();
+		SpawnCommand({ SpeciesId, FString::FromInt(Count), TEXT("0"), FString::SanitizeFloat(Distance) });
+		Say(FString::Printf(TEXT("%s × %d 를 앞 %.0fm 에 놓았다"), *SpeciesId, Count, Distance / 100.f));
+	}
+
+	/** Grim.Creature.Mark 표시 — 나온 생물은 굵은 기둥 · 이름 · 거리, 아직 접힌 무리(서버만 안다)는 노란 가는 기둥.
+	 *  화면 위에는 가장 가까운 것의 이름 · 거리 · 방향. */
+	FTSTicker::FDelegateHandle GMarkTicker;
+
+	/** 보는 방향 기준 방향 말 — 앞 · 오른쪽 앞 · 오른쪽 … */
+	const TCHAR* BearingWord(const FVector& From, const FVector& To, float ViewYaw)
+	{
+		static const TCHAR* Words[] = { TEXT("앞"), TEXT("오른쪽 앞"), TEXT("오른쪽"), TEXT("오른쪽 뒤"), TEXT("뒤"), TEXT("왼쪽 뒤"), TEXT("왼쪽"), TEXT("왼쪽 앞") };
+		const float Relative = FRotator::NormalizeAxis((To - From).Rotation().Yaw - ViewYaw);
+		const int32 Sector = FMath::RoundToInt((Relative < 0.f ? Relative + 360.f : Relative) / 45.f) % 8;
+		return Words[Sector];
+	}
+
+	bool DrawCreatureMarks(float)
+	{
+		int32 WorldIndex = 0;
+		for (const FWorldContext& Context : GEngine->GetWorldContexts())
+		{
+			++WorldIndex;
+			UWorld* World = Context.World();
+			APlayerController* Viewer = World && World->IsGameWorld() ? World->GetFirstPlayerController() : nullptr;
+			const APawn* ViewerPawn = Viewer ? Viewer->GetPawn() : nullptr;
+			if (!ViewerPawn || !Viewer->IsLocalController())
+			{
+				continue;
+			}
+			const FVector From = ViewerPawn->GetActorLocation();
+			FString NearestName;
+			FVector NearestLocation = FVector::ZeroVector;
+			double NearestDistance = TNumericLimits<double>::Max();
+			auto Consider = [&](const FString& Name, const FVector& Location, double Distance)
+			{
+				if (Distance < NearestDistance)
+				{
+					NearestDistance = Distance;
+					NearestName = Name;
+					NearestLocation = Location;
+				}
+			};
+			for (TActorIterator<AGrimCreature> It(World); It; ++It)
+			{
+				if (It->IsDead())
+				{
+					continue;
+				}
+				const FVector Location = It->GetActorLocation();
+				const double Distance = FVector::Dist(From, Location);
+				const FString Name = It->GetInstance().SpeciesId.ToString();
+				const FColor Color = It->GetSpecies() && It->GetSpecies()->Temperament == EGrimCreatureTemperament::Aggressive ? FColor::Red : FColor::Green;
+				DrawDebugLine(World, Location, Location + FVector(0.f, 0.f, 2000.f), Color, false, 0.3f, 0, 12.f);
+				DrawDebugString(World, Location + FVector(0.f, 0.f, 250.f), FString::Printf(TEXT("%s %.0fm"), *Name, Distance / 100.0), nullptr, Color, 0.3f, true, 1.3f);
+				Consider(Name, Location, Distance);
+			}
+			// 접힌 무리 — 기록은 서버에만 있다(단독 · 리슨 호스트).
+			if (const UGrimEcosystemSubsystem* Ecosystem = World->GetNetMode() != NM_Client ? World->GetSubsystem<UGrimEcosystemSubsystem>() : nullptr)
+			{
+				for (const FGrimHabitatRuntime& Runtime : Ecosystem->GetHabitats())
+				{
+					for (const FGrimHabitatPopulation& Population : Runtime.Populations)
+					{
+						TSet<int32> SeenHerds;
+						for (const FGrimFoldedCreature& Record : Population.Folded)
+						{
+							if (!Population.Species || SeenHerds.Contains(Record.HerdId))
+							{
+								continue;
+							}
+							SeenHerds.Add(Record.HerdId);
+							const double Distance = FVector::Dist(From, Record.Location);
+							const FString Name = FString::Printf(TEXT("%s 무리(아직 안 나옴)"), *Population.Species->SpeciesId.ToString());
+							DrawDebugLine(World, Record.Location, Record.Location + FVector(0.f, 0.f, 6000.f), FColor::Yellow, false, 0.3f, 0, 4.f);
+							DrawDebugString(World, Record.Location + FVector(0.f, 0.f, 600.f), FString::Printf(TEXT("%s %.0fm"), *Name, Distance / 100.0), nullptr, FColor::Yellow, 0.3f, true, 1.3f);
+							Consider(Name, Record.Location, Distance);
+						}
+					}
+				}
+			}
+			const FString Text = NearestName.IsEmpty()
+				? FString(TEXT("생물 없음 — Grim.Spawn <종> 으로 불러낸다"))
+				: FString::Printf(TEXT("가장 가까운 생물: %s %.0fm %s"), *NearestName, NearestDistance / 100.0, BearingWord(From, NearestLocation, Viewer->GetControlRotation().Yaw));
+			GEngine->AddOnScreenDebugMessage(static_cast<uint64>(0x6772696D00) + WorldIndex, 0.3f, FColor::Green, Text); // 같은 줄을 덮어 쓴다(월드마다 한 줄)
+		}
+		return true;
+	}
+
+	/** Grim.Creature.Mark [1/0] — 생물 위치 표시 켜기 · 끄기(인자 없으면 바꾸기) */
+	void MarkCommand(const TArray<FString>& Args)
+	{
+		const bool bOn = Args.Num() > 0 ? FCString::Atoi(*Args[0]) != 0 : !GMarkTicker.IsValid();
+		if (GMarkTicker.IsValid())
+		{
+			FTSTicker::GetCoreTicker().RemoveTicker(GMarkTicker);
+			GMarkTicker.Reset();
+		}
+		if (bOn)
+		{
+			GMarkTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateStatic(&DrawCreatureMarks), 0.25f);
+		}
+		Say(bOn ? TEXT("생물 표시 켬 — 초록 순함 · 빨강 사나움 · 노랑 아직 안 나온 무리(60m 안에 가면 나온다)") : TEXT("생물 표시 끔"));
+	}
+
+	FAutoConsoleCommand GFriendlySpawnCommand(TEXT("Grim.Spawn"), TEXT("생물 소환 치트: <종 이름 일부> [수] [거리m]. 예: Grim.Spawn Jack 3 / Grim.Spawn BlackDog"), FConsoleCommandWithArgsDelegate::CreateStatic(&FriendlySpawnCommand));
+	FAutoConsoleCommand GMarkCommand(TEXT("Grim.Creature.Mark"), TEXT("생물 위치 표시(기둥 · 이름 · 거리). [1/0]"), FConsoleCommandWithArgsDelegate::CreateStatic(&MarkCommand));
 	FAutoConsoleCommand GSpawnCommand(TEXT("Grim.Creature.Spawn"), TEXT("서버: 플레이어 앞에 생물. <종 id> [수] [지연초] [거리cm]"), FConsoleCommandWithArgsDelegate::CreateStatic(&SpawnCommand));
 	FAutoConsoleCommand GHabitatCommand(TEXT("Grim.Creature.Habitat"), TEXT("서버: 플레이어 앞에 서식 구역. <종 id> [상한] [지연초] [거리cm] [반크기cm]"), FConsoleCommandWithArgsDelegate::CreateStatic(&HabitatCommand));
 	FAutoConsoleCommand GDamageCommand(TEXT("Grim.Creature.Damage"), TEXT("서버: 첫 플레이어가 쏜 마법 피해. <양> [지연초] [종 id|*] [Element.*]"), FConsoleCommandWithArgsDelegate::CreateStatic(&DamageCommand));

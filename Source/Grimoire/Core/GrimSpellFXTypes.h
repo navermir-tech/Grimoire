@@ -8,6 +8,7 @@
 class UFXSystemAsset;
 class USoundBase;
 class UCameraShakeBase;
+class UNiagaraComponent;
 
 /**
  * 마법 연출 큐 (M1.5). 마법 쪽(Magic)이 시전 · 명중 때 이 태그로 GameplayCue 를 실행하고,
@@ -62,4 +63,8 @@ public:
 	/** 트레일 · 대상 표식 · 그리모어 글자 빛 공통 색 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Color")
 	FLinearColor ElementColor = FLinearColor::White;
+
+	/** Niagara 이펙트에 마법 색을 입힌다 — 시스템이 드러낸 색 변수(이름에 Color) 모두에. 팩마다 이름이 달라서
+	 *  (Color · FlameColor · BaseColor · BurstColor …) 하나만 고르지 않는다. 연기 · 흙 · 먼지 색은 두어 탁하지 않게 한다. */
+	static void TintNiagara(UNiagaraComponent* Component, const FLinearColor& Color);
 };

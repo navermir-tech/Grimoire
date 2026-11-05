@@ -245,7 +245,7 @@ void AGrimSpellProjectile::StartTrail()
 		UNiagaraComponent* Component = UNiagaraFunctionLibrary::SpawnSystemAttached(Niagara, Collision, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
 		if (Component)
 		{
-			Component->SetVariableLinearColor(TEXT("Color"), Color);
+			UGrimSpellVisualSet::TintNiagara(Component, Color);
 		}
 		TrailComponent = Component;
 	}

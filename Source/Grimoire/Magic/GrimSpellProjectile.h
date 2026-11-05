@@ -25,6 +25,9 @@ class GRIMOIRE_API AGrimSpellProjectile : public AActor
 	GENERATED_BODY()
 
 public:
+	/** 맞은 것이 아니라 감지용 영역(트리거 상자)인가 — 질의 전용이고 아무것도 막지 않는 도형. 마법 판정(물줄기 · 원뿔 · 빛줄기)도 쓴다 */
+	static bool IsSensorComponent(const UPrimitiveComponent* Component);
+
 	AGrimSpellProjectile();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -48,8 +51,6 @@ protected:
 
 	UFUNCTION()
 	void OnRep_Definition();
-	/** 맞은 것이 아니라 감지용 영역(트리거 상자)인가 — 질의 전용이고 아무것도 막지 않는 도형 */
-	static bool IsSensorComponent(const UPrimitiveComponent* Component);
 
 
 	UFUNCTION()
