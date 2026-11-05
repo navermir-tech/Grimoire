@@ -25,6 +25,7 @@ export default defineConfig({
           items: [
             { text: '개요 · 요구사항 R01~R16', link: '/spec/' },
             { text: '세계 · 환경', link: '/spec/world' },
+            { text: '아트 방향', link: '/spec/art-direction' },
             { text: '마법', link: '/spec/magic' },
             { text: '성장 — 레벨 · 성장 트리', link: '/spec/progression' },
             { text: '장비 · 내구도 · 인챈트', link: '/spec/equipment' },

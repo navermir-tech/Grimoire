@@ -187,7 +187,8 @@ def build_tower(b):
 
     # 홀: 스승 · 게시판
     b.spawn("/Script/Grimoire.GrimTowerNPC", 300, 0, 92, yaw=90, label="Npc_Master", folder="Tower/Hall", tags=["Npc_Master"])
-    b.spawn("/Script/Grimoire.GrimQuestBoard", 1100, 330, 100, yaw=-90, label="QuestBoard", folder="Tower/Hall", tags=["QuestBoard"])
+    # 게시판은 북벽 동쪽 끝 — 주방 문(북벽 X 1000~1200) 앞을 막지 않게(2026-11-06 플레이 테스트: 주방에 못 들어감).
+    b.spawn("/Script/Grimoire.GrimQuestBoard", 1430, 330, 100, yaw=-90, label="QuestBoard", folder="Tower/Hall", tags=["QuestBoard"])
     # 홀 화단: 작물 자리 셋(아쿠엘로 물 주기 — 작물 M4 전 임시)
     b.box("Hall_Planter", 1050, -300, 15, 520, 120, 30, folder="Tower/Hall")
     for i, x in enumerate([880, 1050, 1220]):

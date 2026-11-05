@@ -64,3 +64,4 @@ docs/.vitepress/cache/
 # 그림 작업 원본 · 로그 (codex 산출물, 다시 만들 수 있다)
 art/**/raw/
 art/**/logs/
+*.blend1

@@ -45,6 +45,9 @@
 | 2026-11-05 | PIE 종료 단축키: Esc 단독 → Ctrl+Esc(주) · Shift+Esc(보조), `Config/DefaultEditorSettings.ini` | 사용자 요청. Windows 가 Ctrl+Esc 를 시작 메뉴로 가로챌 수 있어 보조 키를 둠 | [개발 가이드](../dev/setup) |
 | 2026-11-05 | PIE 종료 단축키 다시: 주 Shift+Esc · 보조 Ctrl+Esc, ini 대신 코드(`GrimEditorKeyBindings.cpp`) | ini 의 ProjectDefinedChords 가 깨져 Esc 가 그대로였음(플레이 테스트) | [개발 가이드](../dev/setup) |
 | 2026-11-05 | 마법 이펙트 일부를 Niagara Examples Pack(`Content/NiagaraExamples`, 저장소에 LFS 로 둠)으로 — 엠버 꼬리 · 명중, 기본 공격 리본 꼬리, 물줄기 거품, 미풍 흙먼지. 완드 섬광은 엔진 기본 | 사용자가 팩 추가. 팩의 불꽃 터짐은 흰 연기가 커서 섬광에서 뺌(화면 확인) | [마법 연출](../systems/spell-feel) |
+| 2026-11-06 | 아트 방향: Painterly High-Fidelity Stylized Realism(레퍼런스 케나 · 호그와트 레거시) | 사용자 결정 | [아트 방향](./art-direction) |
+| 2026-11-06 | 리소스는 사 오지 않고 자체 제작: GPT(콘셉트 · Tripo 입력 그림 · 알파 텍스처) · Tripo(덩어리진 물체) · 블렌더(정리 · 건물 키트 · 절차 재질 굽기 · 식생) | 사용자 결정 | [아트 방향](./art-direction) |
+| 2026-11-06 | 탑 홀 게시판을 주방 문 앞에서 동쪽 벽 쪽으로(탑 기준 X 1100 → 1430) | 플레이 테스트: 주방에 못 들어감 | [튜토리얼](../systems/tutorial) |
 | 2026-11-05 | 조준은 호그와트 레거시식 **소프트 락온**이 기본(R17). 상호작용 사물도 대상, 고정 락온은 선택 | 사용자 결정 — 완드는 정밀 조준이 어렵다 | [마법](./magic#조준-소프트-락온-r17), [마법 시스템](../systems/magic#소프트-락온-r17) |
 | 2026-11-05 | 휴면 사물은 상태를 바꾸기 "전"에 `FlushNetDormancy`, 완드는 손 소켓에 Snap 부착 + 쥐는 자세는 완드 안 `Grip` 컴포넌트 | M1 2인 PIE 버그(원격 클라이언트에 불빛 없음 · 완드가 몸에서 떨어짐)의 원인 수정 | [마법 · 상호작용](../systems/magic) |
 | 2026-11-05 | 마법사 의상: 시안 A 「잉크와 양피지」가 기본 디자인, 시안 E · F · G · H 는 지역별 옷차림으로 킵 (지역 배정은 제안) | 사용자 결정 | [마법사 의상](../art/costumes-tutorial), [세계](./world) |
