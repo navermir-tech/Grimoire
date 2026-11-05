@@ -40,6 +40,23 @@
 
 생물은 서식 구역(수백 m)에 무리로 기록만 되어 있다가 **플레이어 60m 안**에 들어오면 나온다(설정 `Ecosystem.SpawnRadius`). 구역 한가운데에 서도 무리가 멀면 아무것도 안 보인다 — `Grim.Creature.Mark 1` 의 노란 기둥을 따라가거나 `Grim.Go <종>` 을 쓴다.
 
+## 생물 데리고 다니기 · 보관함 · 거점 상자 (R38)
+
+길들이기 명령(`Grim.Taming.*`)과 같은 꼴 — 마지막 인자 지연(초)은 점검 스크립트가 맵이 뜬 뒤 실행하려고 쓴다. 「로컬 플레이어」 명령은 호스트 · 클라이언트 누구나 자기 콘솔에 치면 서버 RPC 로 적용된다.
+
+| 명령 | 효과 |
+|---|---|
+| `Grim.Taming.StorageLearn [1/0]` | (서버) 모든 플레이어가 생물 보관함을 배운다 · 잊는다. 스킬북으로 배우려면 `Grim.Items.Give Skillbook_CreatureStorage 1` → 가방(L)에서 사용(또는 `Grim.Items.Eat Skillbook_CreatureStorage`) |
+| `Grim.Items.Give Solidus 200` | 솔 200 — 마법탑 마렌 「스킬북: 쿠스토디아 사기 (120 솔)」 시험 |
+| `Grim.Taming.SpawnBox [거리cm] [지연초] [Host/Client]` | (서버) 그 플레이어 앞에 거점 생물 상자. 다가가 F 로 관리 화면 |
+| `Grim.Taming.Storage <From> <To> [종]` | (로컬) 생물 옮기기 — 자리 `Party`(데리고 다님) · `Storage`(보관함) · `Box`(상자 안) · `Released`(풀어놓음). 예: `Grim.Taming.Storage Party Storage Jackalope` |
+| `Grim.Taming.Box Open/Close` | (로컬) 곁의 상자 관리 화면 |
+| `Grim.Taming.StorageDump [지연초] [Local/Remote]` | 데리고 다님 · 보관함 · 상자 목록을 로그로(Remote = 서버가 본 원격 클라이언트) |
+| `Grim.Taming.Grant <서클>` | 서클을 올리면 데리고 다니는 수 · 보관함 칸이 오른다(1~2서클 3 · 8, 3서클 4 · 12, 5서클 5 · 16) |
+
+- 데리고 다니는 수가 가득일 때 파크툼이 맞으면 보관함 → 거점 상자 순으로 보내고, 둘 다 안 되면 계약이 걸리지 않는다(「더 데리고 다닐 수 없다」).
+- 2인 확인: `powershell -File Scripts\Creatures\net_check_storage.ps1` → `NETCHECK_RESULT fail=0`.
+
 ## 테스트
 
 `Grimoire.Cheat.Super`(`Source/Grimoire/Core/Cheats/Tests/`) — 켜면 최대로 고정(비용 · 감소 뒤에도), 상태 태그 해제, MaxHealth 변화 추종, 끄면 최대에서 감소 재개.

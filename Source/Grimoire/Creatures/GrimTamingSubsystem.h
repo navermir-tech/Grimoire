@@ -29,7 +29,7 @@ public:
 
 	static UGrimTamingSubsystem* Get(const UObject* WorldContext);
 
-	/** 서버: PlayerState 에 길들이기 컴포넌트를 (없으면) 붙인다 */
+	/** 서버: PlayerState 에 길들이기 컴포넌트 · 생물 보관함 컴포넌트(R38)를 (없으면) 붙인다 */
 	UGrimTamerComponent* EnsureTamer(APlayerState* PlayerState);
 
 	/** 서버: 그 플레이어의 PlayerId(세이브와 같은 값 → 없으면 로그인 옵션 · 이름) */
@@ -47,8 +47,8 @@ public:
 	/** 서버: 놓아줌 · 떠남 — 옛 주인의 기록을 지운다 */
 	void NotifyReleased(AGrimCreature* Creature, const FString& FormerOwnerId, bool bLeftByLoyalty);
 
-	/** 서버: 이 PlayerId 가 가진, 세계에 있는 생물 */
-	TArray<AGrimCreature*> GetOwnedCreatures(const FString& OwnerId) const;
+	/** 서버: 이 PlayerId 가 가진, 세계에 있는 생물. 거점에 풀어놓은 생물(R38)은 bIncludeAtBase 일 때만 */
+	TArray<AGrimCreature*> GetOwnedCreatures(const FString& OwnerId, bool bIncludeAtBase = false) const;
 
 	UGrimTamerComponent* FindTamerById(const FString& PlayerId) const;
 

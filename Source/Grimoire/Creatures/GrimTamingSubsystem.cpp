@@ -1,6 +1,8 @@
 #include "Creatures/GrimTamingSubsystem.h"
 #include "Creatures/GrimCreature.h"
+#include "Creatures/GrimCreatureBox.h"
 #include "Creatures/GrimCreatureSettings.h"
+#include "Creatures/GrimCreatureStorageComponent.h"
 #include "Creatures/GrimCreatureSpecies.h"
 #include "Creatures/GrimCreatureTamingComponent.h"
 #include "Creatures/GrimEcosystemSubsystem.h"
@@ -122,14 +124,21 @@ UGrimTamerComponent* UGrimTamingSubsystem::EnsureTamer(APlayerState* PlayerState
 	{
 		return nullptr;
 	}
-	if (UGrimTamerComponent* Existing = PlayerState->FindComponentByClass<UGrimTamerComponent>())
+	UGrimTamerComponent* Tamer = PlayerState->FindComponentByClass<UGrimTamerComponent>();
+	if (!Tamer)
 	{
-		return Existing;
+		Tamer = NewObject<UGrimTamerComponent>(PlayerState, UGrimTamerComponent::StaticClass(), UGrimTamerComponent::ComponentName);
+		PlayerState->AddInstanceComponent(Tamer);
+		Tamer->RegisterComponent();
+		UE_LOG(LogGrimTaming, Log, TEXT("[Server] %s 에 길들이기 컴포넌트를 붙였다"), *GetNameSafe(PlayerState));
 	}
-	UGrimTamerComponent* Tamer = NewObject<UGrimTamerComponent>(PlayerState, UGrimTamerComponent::StaticClass(), UGrimTamerComponent::ComponentName);
-	PlayerState->AddInstanceComponent(Tamer);
-	Tamer->RegisterComponent();
-	UE_LOG(LogGrimTaming, Log, TEXT("[Server] %s 에 길들이기 컴포넌트를 붙였다"), *GetNameSafe(PlayerState));
+	// 데리고 다니기 · 생물 보관함(R38) — 같은 방식으로 함께 붙인다.
+	if (!PlayerState->FindComponentByClass<UGrimCreatureStorageComponent>())
+	{
+		UGrimCreatureStorageComponent* Storage = NewObject<UGrimCreatureStorageComponent>(PlayerState, UGrimCreatureStorageComponent::StaticClass(), UGrimCreatureStorageComponent::ComponentName);
+		PlayerState->AddInstanceComponent(Storage);
+		Storage->RegisterComponent();
+	}
 	return Tamer;
 }
 
@@ -234,6 +243,17 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 		return EGrimTamingResult::NotTameable;
 	}
 
+	// 데리고 다니는 수(R38): 갈 곳(파티 → 보관함 → 거점 상자)이 없으면 굴리지 않는다 — 생물도 화내지 않는다.
+	UGrimCreatureStorageComponent* Storage = UGrimCreatureStorageComponent::FindForActor(Caster);
+	const EGrimNewTameDestination Destination = Storage ? Storage->DecideNewTame() : EGrimNewTameDestination::Party;
+	if (Destination == EGrimNewTameDestination::Refused)
+	{
+		UE_LOG(LogGrimTaming, Display, TEXT("[Server] 계약 → %s seed=%d: 갈 곳 없음(데리고 다님 %d/%d · 보관함 %s)"), *Species->SpeciesId.ToString(), Creature->GetInstance().Seed,
+			Storage->GetPartyCount(), Storage->GetPartyLimit(), Storage->IsStorageLearned() ? *FString::Printf(TEXT("%d/%d"), Storage->GetStored().Num(), Storage->GetStorageCapacity()) : TEXT("안 배움"));
+		Tamer->SendNotice(FString::Printf(TEXT("더 데리고 다닐 수 없다(%d/%d) — 보관함 · 거점 생물 상자도 가득"), Storage->GetPartyCount(), Storage->GetPartyLimit()));
+		return EGrimTamingResult::NoRoom;
+	}
+
 	const FGrimCaptureInput Input = GatherCaptureInput(Spell, CasterASC, Creature);
 	const FGrimCaptureChance Chance = GrimTamingMath::CalcCaptureChance(Input, UGrimTamingSettings::Get()->Capture, UGrimCreatureSettings::Get()->WeakenedHealthRatio);
 	if (OutChance)
@@ -269,7 +289,13 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 		Ecosystem->HandleCreatureTamed(Creature);
 	}
 	Tamer->AddOrUpdateRecord(Taming->MakeRecord());
-	Tamer->SendNotice(FString::Printf(TEXT("%s 을(를) 길들였다! (확률 %.0f%%) — 가까이 가서 [F]"), *Taming->GetDisplayName(), Chance.Total * 100.f));
+	Tamer->SendNotice(FString::Printf(TEXT("%s 을(를) 길들였다! (확률 %.0f%%)%s"), *Taming->GetDisplayName(), Chance.Total * 100.f,
+		Destination == EGrimNewTameDestination::Party ? TEXT(" — 가까이 가서 [F]") : TEXT("")));
+	if (Storage && Destination != EGrimNewTameDestination::Party)
+	{
+		// 파티가 가득 — 보관함 · 거점 상자로(다음 틱, 투사체 명중 처리 뒤).
+		Storage->PlaceNewlyTamed(Creature, Destination);
+	}
 
 	const FName EventId = UGrimCreatureSettings::GetQuestEventName(UGrimTamingSettings::Get()->TamedEventPrefix, Species->SizeClass);
 	UGrimQuestComponent::NotifyQuestEvent(Caster, EventId);
@@ -280,7 +306,7 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 
 // ───────────────────────── 주인 기록 ─────────────────────────
 
-TArray<AGrimCreature*> UGrimTamingSubsystem::GetOwnedCreatures(const FString& OwnerId) const
+TArray<AGrimCreature*> UGrimTamingSubsystem::GetOwnedCreatures(const FString& OwnerId, bool bIncludeAtBase) const
 {
 	TArray<AGrimCreature*> Out;
 	if (OwnerId.IsEmpty() || !GetWorld())
@@ -289,6 +315,11 @@ TArray<AGrimCreature*> UGrimTamingSubsystem::GetOwnedCreatures(const FString& Ow
 	}
 	for (TActorIterator<AGrimCreature> It(GetWorld()); It; ++It)
 	{
+		const UGrimCreatureTamingComponent* Taming = It->GetTaming();
+		if (!bIncludeAtBase && Taming && Taming->IsAtBase())
+		{
+			continue; // 거점에 풀어놓은 생물은 상자가 맡는다(R38)
+		}
 		if (!It->IsDead() && !It->IsActorBeingDestroyed() && It->GetInstance().OwnerId == OwnerId)
 		{
 			Out.Add(*It);
@@ -342,6 +373,11 @@ void UGrimTamingSubsystem::HandleCreatureDied(AGrimCreature* Creature, AActor* K
 		if (UGrimTamerComponent* Tamer = FindTamerById(Creature->GetInstance().OwnerId))
 		{
 			Tamer->RemoveRecord(Creature->GetInstance());
+		}
+		// 거점에 풀어놓은 생물이면 상자 칸에서도 지운다(R38).
+		if (UGrimCreatureTamingComponent* Taming = Creature->GetTaming(); Taming && Taming->GetHomeBox())
+		{
+			Taming->GetHomeBox()->ForgetCreature(Creature->GetInstance().SpeciesId, Creature->GetInstance().Seed);
 		}
 	}
 	// 함께 싸워 이김: 죽인 이가 주인이거나 그 생물 자신이고, 곁(WinTogetherRadius)에 있었다.

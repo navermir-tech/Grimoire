@@ -21,10 +21,21 @@ namespace GrimTowerServices
 		return true;
 	}
 
+	bool ParseBuy(FName Service, FName& OutItemId)
+	{
+		const FString Text = Service.ToString();
+		if (!Text.StartsWith(TEXT("Buy:")) || Text.Len() <= 4)
+		{
+			return false;
+		}
+		OutItemId = FName(*Text.Mid(4));
+		return true;
+	}
+
 	bool IsKnown(FName Service)
 	{
 		FName Tree;
-		return Service == Trial || Service == Purify || Service == Repair || Service == Erase || ParsePurify(Service, Tree);
+		return Service == Trial || Service == Purify || Service == Repair || Service == Erase || ParsePurify(Service, Tree) || ParseBuy(Service, Tree);
 	}
 }
 
@@ -42,10 +53,18 @@ namespace GrimDialogueContexts
 	const FName Repair(TEXT("Repair"));
 	const FName Erase(TEXT("Erase"));
 	const FName Refused(TEXT("Refused"));
+	const FName Buy(TEXT("Buy"));
+	const FName BuyNoMoney(TEXT("Buy.NoMoney"));
+	const FName BuyBagFull(TEXT("Buy.BagFull"));
 
 	TArray<FName> RequiredForServices()
 	{
 		return { Menu, TrialStarted, TrialNotReady, TrialLocked, TrialNone, TrialBusy, Purify, PurifyEmpty, Repair, Erase, Refused };
+	}
+
+	TArray<FName> RequiredForShop()
+	{
+		return { Buy, BuyNoMoney, BuyBagFull };
 	}
 }
 
@@ -234,7 +253,13 @@ bool FGrimDialogueDatabase::Build(const UDataTable* NpcTable, const UDataTable* 
 		}
 		if (Npc.Services.Num() > 0)
 		{
-			for (const FName Context : GrimDialogueContexts::RequiredForServices())
+			TArray<FName> Required = GrimDialogueContexts::RequiredForServices();
+			FName ShopItem;
+			if (Npc.Services.ContainsByPredicate([&ShopItem](FName Service) { return GrimTowerServices::ParseBuy(Service, ShopItem); }))
+			{
+				Required.Append(GrimDialogueContexts::RequiredForShop());
+			}
+			for (const FName Context : Required)
 			{
 				if (!Out.Select(Npc.Id, Context, EmptyLog))
 				{

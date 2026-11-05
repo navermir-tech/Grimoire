@@ -90,6 +90,7 @@
 | `Trial` | 지금 서클 + 1 의 시험을 시작 | `Trial.Started` · `Trial.Busy` · `Trial.Locked` · `Trial.NotReady` · `Trial.None` |
 | `Purify:<트리>` | 정화 의식 — `UGrimSkillTreeComponent::ResetTree(트리)`, 트리마다 메뉴 하나(Q31). 비용은 아직 무료(TODO 재화) | `Purify` · `Purify.Empty` |
 | `Repair` · `Erase` | 대리 수리 · 지우기 — 인벤토리 · 내구도(M4) 전이라 「아직 할 수 없다」 대사만 | `Repair` · `Erase` |
+| `Buy:<아이템>` | 상점 — 가방의 솔리두스(`Solidus`)로 아이템 하나(`GrimTowerShop::TryBuy`, 값 `[/Script/Grimoire.GrimShopSettings] Prices`). 마렌: `Buy:Skillbook_CreatureStorage`(쿠스토디아) 120 솔(R38 — [생물 보관함](./creatures#데리고-다니기-·-보관함-·-거점-상자-r38)). 상점이 있는 NPC 는 표 검사가 아래 세 맥락을 요구 | `Buy` · `Buy.NoMoney` · `Buy.BagFull` |
 
 ## 맵 L_Tower
 

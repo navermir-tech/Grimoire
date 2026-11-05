@@ -3,6 +3,7 @@
 > 스펙: [마법 생물](../spec/creatures) (R02 · R14 · R15 · R23 · R35) · 코드: `Source/Grimoire/Creatures/` · 테스트: `Grimoire.Creatures.*`
 >
 > M3 묶음 1(갈래 C)에서 **종 정의 · 생물 폰 · AI · 생태계 스폰 · 두 속성 상성 · 튜토리얼 이벤트**까지 만들었다. 묶음 2(갈래 T)에서 **길들이기(파크툼) · 충성도 · 성격 · 명령 · 탑승 · 세이브**를 더했다 — 아래 「길들이기」 · 「충성도」 · 「탑승」. 테스트: `Grimoire.Taming.*`.
+> R38(2026-11-06)에서 **데리고 다니는 수 · 생물 보관함(노말 스킬) · 거점 생물 상자 · 가방 「생물」 탭**을 더했다 — 아래 「데리고 다니기 · 보관함 · 거점 상자」. 테스트: `Grimoire.Creatures.Storage.*`.
 
 ## 한눈에
 
@@ -30,6 +31,10 @@
 | `UGrimTamingSettings` | 수치 — `[/Script/Grimoire.GrimTamingSettings]` |
 | `GrimTamingTags` | `Creature.Loyalty.*` · `Creature.State.{Tamed, Exhausted, Enraged, KnockedOut, Ridden}` · `Taming.CaptureBonus` · `Spell.Pactum.*` · `Cooldown.Spell.Pactum.*` |
 | 파크툼 | `Content/Grimoire/Magic/Spells/DA_Spell_Pactum{, _Ignis, _Aqua, _Ventus, _Terra, _Umbra}` — `Scripts/Magic/make_pactum_spells.py`, 목록 표 `Content/Grimoire/Data/PactumSpells.csv` |
+| `UGrimCreatureStorageComponent` (PlayerState, 런타임 "GrimCreatureStorage") | 데리고 다니는 수 · 생물 보관함(노말 스킬) · 옮기기 RPC · 세이브 `Creatures.Storage` · 거점 상자 화면(R38, 아래 「데리고 다니기 · 보관함 · 거점 상자」) |
+| `AGrimCreatureBox` | 거점 생물 상자(팰 상자 자리) — 칸 복제 · 풀어놓기 · 세계 세이브 `CreatureBox.<이름>` |
+| `UGrimCreatureStorageWidget` | 생물 목록 화면 — 가방 「생물」 탭 · 상자 관리 화면 둘 다 |
+| `GrimCreatureStorageMath` · `UGrimCreatureStorageSettings` | 순수 계산(상한 · 옮기기 판정 · 갈 곳 · 보관 중 회복 · 상자 세이브) · 수치 `[/Script/Grimoire.GrimCreatureStorageSettings]` |
 
 ## 종 정의 `UGrimCreatureSpecies`
 
@@ -177,7 +182,7 @@
 
 ### 길들인 생물
 
-- 주인 곁 AI(`AGrimCreatureAIController::ThinkTamed` → 순수 판단 `GrimTamingMath::DecideTamed`): 탔음 → `Ridden`(입력은 탈것 컴포넌트) / 기절 → `Sleep` / 불붙음 → `Flee` / 다른 생물에게 맞음 → 겁 많거나 체력 낮으면 주인 쪽으로 `Flee`, 아니면 `Fight` / 기다리기 → `Stay` / 따라오기 → 3.5m 밖이면 `Follow`(9m 밖이면 달림, 50m 밖이면 주인 뒤로 옮김) · 안이면 `Idle`. 플레이어(주인 · 친구)에게 맞은 것은 화내지 않는다.
+- 주인 곁 AI(`AGrimCreatureAIController::ThinkTamed` → 순수 판단 `GrimTamingMath::DecideTamed`): 탔음 → `Ridden`(입력은 탈것 컴포넌트) / 기절 → `Sleep` / 불붙음 → `Flee` / 다른 생물에게 맞음 → 겁 많거나 체력 낮으면 주인 쪽으로 `Flee`, 아니면 `Fight` / 기다리기 → `Stay` / 거점에 풀어놓음(`Roam`, R38) → `Wander`(집 둘레 배회) / 따라오기 → 3.5m 밖이면 `Follow`(9m 밖이면 달림, 50m 밖이면 주인 뒤로 옮김) · 안이면 `Idle`. 플레이어(주인 · 친구)에게 맞은 것은 화내지 않는다.
 - 플레이어는 길들인 생물을 겨누지 않는다(`CanBeTargetedBy` — 요청자가 플레이어 폰이면 false).
 - 체력 0 → 죽지 않고 **쓰러진다**(`Creature.State.KnockedOut` · 충성도 「기절」), 20초 뒤 체력 20% 로 일어난다. 디버그 처치처럼 정말 죽으면 주인 기록에서 지운다.
 - 명령(F 메뉴 · RPC `UGrimTamerComponent::Server_Action`): 따라오기 · 기다리기는 단계의 **순종 확률**로 굴려 실패하면 「명령을 무시했다」. 놓아주기는 늘 된다(메뉴에서 두 번 눌러 확인) — 주인 · 충성도 · 이름을 지우고 그 자리를 집으로 야생이 된다(다시 잡을 수 있다, 개체군에는 돌아가지 않는 「떠돌이」).
@@ -188,6 +193,91 @@
 - `UGrimTamerComponent` 가 Player 참여자 `Creatures.Owned` v1: `int32 수` + 항목마다 개체 기록 전체(종 · 씨앗 · 성별 · 색 · 크기 · 거대 · 돌연변이 · 성격 · 능력치 배율 · 주인 · 충성도 · 이름) · 체력 비율 · 명령 · 최근 까닭 · 저장 UTC 시각(`GrimTamingMath::SerializeOwnedRecord`).
 - 저장할 때 세계의 내 생물로 기록을 고쳐 쓴다. 불러오면(접속) 기록 중 세계에 없는 것을 **주인 뒤 반원 3m** 에 스폰하고, 접속하지 않은 시간 한 시간마다 「주인 부재」(최대 5). 이미 있으면 상태만 맞춘다(`Grim.Save.Load` 다시 불러오기).
 - 주인이 나가면(PlayerState 파괴) 세이브가 먼저 쓰인 뒤 세계의 그 생물을 거둔다. 위치는 저장하지 않는다(늘 주인 곁으로 — 거점 배치는 M4).
+- `Creatures.Owned` 는 **데리고 다니는 생물만** 담는다. 보관함은 `Creatures.Storage`(플레이어), 거점 상자 · 풀어놓은 생물은 상자의 세계 세이브(아래 R38). 다시 부를 때 데리고 다니는 수를 넘는 기록은 보관함(배웠고 자리가 있으면)으로 들어간다 — 둘 다 안 되면 잃지 않게 그대로 부른다.
+
+## 데리고 다니기 · 보관함 · 거점 상자 (R38)
+
+> 스펙: [마법 생물 — 데리고 다니기 · 보관함 · 거점 생물 상자](../spec/creatures#데리고-다니기-·-보관함-·-거점-생물-상자-r38). 테스트: `Grimoire.Creatures.Storage.*`. 수치는 모두 제안(Q60~Q64). 보관함 노말 스킬 이름은 「쿠스토디아」(스킬북 목록 Q42).
+
+### 네 자리 `EGrimCreaturePlace`
+
+| 자리 | 어디에 있나 | 기록을 누가 들고 있나 |
+|---|---|---|
+| `Party` 데리고 다님 | 세계 — 명령 따라오기 · 기다리기 | 생물 액터 + 주인의 `UGrimTamerComponent::Records`(세이브 `Creatures.Owned`) |
+| `Storage` 보관함 | 세계에 없음 | `UGrimCreatureStorageComponent::Stored`(가진 개체 기록 `FGrimOwnedCreatureRecord` 그대로, 소유 클라이언트에 복제, 세이브 `Creatures.Storage`) |
+| `Box` 상자 안 | 세계에 없음 | `AGrimCreatureBox::Entries`(`FGrimCreatureBoxEntry` = 기록 + 풀어놓음, 모두에게 복제, 세이브 `CreatureBox.<이름>`) |
+| `Released` 풀어놓음 | 세계 — 명령 `Roam`, 길들이기 컴포넌트 `HomeBox` = 상자(복제) | 상자 칸(`bReleased`) + 생물 액터. 저장 · 거둘 때 액터에서 기록을 고쳐 쓴다 |
+
+- 개체 기록(성별 · 색 · 크기 · 거대 · 돌연변이 · 성격 · 능력치 배율 · 주인 · 충성도 · 이름) · 체력 비율 · 최근 까닭은 어느 자리로 옮겨도 그대로다(생태계 접힌 기록과 같은 `FGrimCreatureInstance`). 보관함 · 상자에 넣은 때(`SavedUtcSeconds`, 복제)를 적어 두고 세계로 나올 때 `GrimCreatureStorageMath::GetHealedRatio`(분당 `StoredHealPerMinute` 20%)로 체력을 채운다 — 넣어 둔 동안은 틱이 없다(굶김 · 충성도 사건 없음).
+- **데리고 다니는 수** = `GetPartyCreatures()` — 세계에서 `OwnerId` 가 내 PlayerId 이고 `HomeBox` 가 없는 살아 있는 생물. 풀어놓은 생물 · 죽은 생물은 빠진다.
+
+### 상한 — 진행이 올리는 자리
+
+- 서버가 `LimitRefreshSeconds`(1초)마다 셈해 소유 클라이언트에 복제: `PartyLimit = ComputeLimit(PartyLimitByCircle, 서클, PartyLimitTagBonuses, ASC 태그, PartyLimitMax)`, 보관함 칸도 같은 식(`StorageCapacityByCircle` · `StorageCapacityTagBonuses` · `StorageCapacityMax`).
+- 서클 표: 맞는 구간 중 `MinCircle` 이 가장 큰 것. 태그 보너스: 플레이어 ASC 에 그 태그가 있으면 더한다 — 성장 트리 노드 효과 키 `CreatureParty` · `CreatureStorage`(태그 `Progression.Node.CreatureParty` · `.CreatureStorage`, `GrimTamingTags` 에 등록)를 트리 표(`SkillTreeNodes.csv`)에 넣으면 노드가 상한을 올린다. 키 하나 = 태그 하나라 겹쳐 쌓이지 않는다 — 더 올리려면 태그(`CreatureParty2` …)를 ini 표에 더한다.
+
+### 옮기기 `UGrimCreatureStorageComponent::Transfer(상자, 종, 씨앗, From, To, bCheckReach)` (서버)
+
+1. 상자가 끼면(From · To 가 Box · Released) 상자가 있고 `BoxManageRadius`(3m) + `BoxServerReachSlack` 안이어야 한다(`NoBox`).
+2. From 자리에 그 개체(종 + 씨앗)가 있나 — 상자 칸은 주인이 나여야 한다(`NotFound`).
+3. 순수 판정 `GrimCreatureStorageMath::CheckTransfer`: 같은 곳 `Invalid` · 데리고 다님 가득 `PartyFull` · 안 배움 `NotLearned` · 보관함 가득 `StorageFull` · 상자 가득 `BoxFull`(풀어놓은 것을 거두는 건 칸이 그대로) · 풀어놓기 상한 `ReleasedFull`.
+4. 상자 안 ↔ 풀어놓음은 상자 안에서(`ReleaseEntry` · `RecallEntry`). 그 밖은 빼기(데리고 다님이면 내리기 → 기록 → 주인 기록에서 빼기 → 액터 지우기) → 넣기(데리고 다님이면 주인 뒤 3m 에 스폰 · `RestoreOwned` · 따라오기 · 주인 기록에 넣기, 풀어놓기면 상자 둘레에 스폰). 넣기가 실패하면 잃지 않게 보관함에 둔다.
+5. 알림(「이름 → 보관함」 · 거절 까닭 — `UGrimTamerComponent::SendNotice`) · 로그 `[Server] 생물 옮김 <종> seed=<씨앗> <From> → <To> (데리고 다님 n/m · 보관함 n/m · 상자 n/m)`.
+
+- 클라이언트는 `RequestTransfer` → `Server_Transfer`(Reliable). 생물 메뉴(F) 「보관함에 넣기」(배웠을 때) · 가방 「생물」 탭 · 상자 화면 · 콘솔이 같은 RPC 를 부른다.
+
+### 새로 길들일 때 (`UGrimTamingSubsystem::TryTame`)
+
+- 굴림 **전에** `DecideNewTame()`: 데리고 다님 자리 → `Party` / 보관함(배웠고 자리) → `Storage` / 세계의 자리 있는 상자(`bSendOverflowToBox`, 주인에게 가장 가까운 것) → `Box` / 없으면 `Refused` → 결과 `EGrimTamingResult::NoRoom`, 알림 「더 데리고 다닐 수 없다」, 굴리지 않아 생물이 화내지 않는다.
+- 성공 뒤 `Party` 가 아니면 `PlaceNewlyTamed` 가 **다음 틱**(파크툼 명중 처리 도중에 액터를 지우지 않게) 보관함 · 상자로 보낸다. 퀘스트 이벤트 `Creature.Tamed.<분류>` 는 그대로 나간다.
+
+### 생물 보관함 = 노말 스킬
+
+- 마법이 아닌 「배우면 쓸 수 있는 능력」. 스킬북 아이템의 `TeachesSpell` 에 `Skill:<ID>` 를 쓰면 노말 스킬 책이다(`GrimCreatureStorageMath::ParseNormalSkill`) — 열 추가 없이 아이템 표를 그대로 쓰려고. 가방 「사용」(`UGrimInventoryComponent::ReadSkillbook`) → `UGrimCreatureStorageComponent::LearnNormalSkill` → `StorageSkillId`(`CreatureStorage`)면 `LearnStorageSkill`(서클 `StorageRequiredCircle` 확인 · 이미 배움이면 못 씀 = 책 남음). 앞으로 「수리」 · 「지우기」가 노말 스킬이면 같은 갈래(`LearnNormalSkill`)에 ID 를 더한다.
+- 아이템 `Skillbook_CreatureStorage`(「스킬북: 쿠스토디아」, `Skill:CreatureStorage`) · 화폐 아이템 `Solidus`(솔, Q38 — 화폐는 아직 가방 아이템).
+- **상점**: 마법탑 NPC 서비스 `Buy:<아이템 ID>`(`TowerNpcs.csv` — 마렌 「스킬북: 쿠스토디아 사기 (120 솔)」 — Q42 는 탑 · 분탑 서고에서 판다고 했다: 서고 NPC 가 생기면 이 서비스 한 줄을 그 NPC 로 옮긴다). 값은 `[/Script/Grimoire.GrimShopSettings] Prices`, 화폐 `CurrencyItem`. `GrimTowerShop::TryBuy` 가 솔 확인 → 가방 자리 → 솔 빼기 → 아이템 넣기, 대사 맥락 `Buy` · `Buy.NoMoney` · `Buy.BagFull`(`TowerDialogue.csv`, 상점이 있는 NPC 면 표 검사가 요구).
+
+### 거점 생물 상자 `AGrimCreatureBox`
+
+- 놓인 곳 어디서나 쓰는 독립 액터(기본 도형 상자 + 뚜껑 + 초록 문장). 칸 `BoxCapacity`(60, 액터 `CapacityOverride`)는 모든 플레이어 합, 화면은 내 칸만(`OwnerPlayerId` 로 고름). 상자 둘레 3m 에서 F → 관리 화면(생물 안내보다 먼저).
+- **풀어놓기**: 상자 둘레 `BoxRoamRadius`(20m)의 25~60% 원 위에 스폰, 집 = 그 자리, 명령 `Roam` → 길들인 AI 판단 `Wander`(집 둘레 `RoamWanderRadius` 6m 를 3~8초마다 걷거나 멈춤), 상자에서 반경 × `RoamLeashScale`(1.5) 밖이면 집으로 옮긴다. 상자마다 `BoxMaxReleased`(10).
+- 풀어놓은 생물: 굶김 · 주인 부재를 세지 않는다(M5 먹이 상자 때 다시), 생물 메뉴는 먹이 · 이름 · 놓아주기만(따라오기 · 기다리기 · 타기는 「상자에서 데리고 다니기」 안내). 주인이 나가도 남고(`DespawnOwned` 가 건너뜀), 주인이 접속하면 상자 · 보관함 컴포넌트가 주인 PlayerState 를 다시 잇는다(2초 · 1초 주기). 놓아줌 · 떠남 · 죽음이면 상자 칸에서도 지운다(`ForgetCreature`).
+- 세이브 `CreatureBox.<액터 이름>` v1 = `GrimCreatureStorageMath::SerializeBoxEntries`(수 + 항목마다 풀어놓음 + 가진 개체 기록). 쓸 때 풀어놓은 생물 액터로 기록을 고치고, 읽으면 `SyncReleased`(없는 액터를 다시 내놓고 칸에 없는 액터는 거둔다). 게임 중 놓은 상자는 세이브 시스템의 「스폰 액터」로 다시 만들어진다.
+- 상자가 게임 중 지워지면(M4 철거 자리) 풀어놓은 생물도 함께 거두고 기록은 상자와 함께 사라진다 — 철거가 생기면 그때 「칸이 비어야 철거」 같은 규칙을 정한다.
+- **M4 거점 핵과 합칠 때**: 상자를 건축 조각(거점 핵 반경 안에만)으로 등록하고, `GetRoamRadius()` 를 거점 반경으로, `FindNearestWithRoom` 을 「내 거점의 상자」로 바꾼다. 상자 액터 · 칸 · 세이브 형식은 그대로 둔다. M5 일꾼은 `Released` 생물에서 고른다(작업 보드).
+
+### 화면 `UGrimCreatureStorageWidget`
+
+- 한 클래스, 두 쓰임: 가방(L)의 탭 「생물」(가방 위젯은 탭 줄 · 판 바꾸기만 — `UGrimInventoryWidget::BuildTabs` · `SelectTab`), 상자 관리 화면(`SetStandaloneScreen`, F · Esc 로 닫음, 멀어지면 닫음).
+- 칸: 데리고 다님 · 생물 보관함 · (상자 화면이면) 거점 생물 상자. 줄 = 색 칸(영역마다) + 「이름 (종) · 암/수 · 돌연변이 / 크기 ×1.05 거대 · 충성도 72 충직 · 체력 80%」 + 단추(보관함에 넣기 · 데리고 다니기 · 상자로 · 풀어놓기 · 거두기). 보관함을 안 배웠으면 안내 한 줄(마렌에게서 산다).
+- 0.5초마다 다시 읽고, 줄(자리 · 종 · 씨앗)이 바뀌었을 때만 줄을 다시 만든다(누르는 도중에 단추가 사라지지 않게). 단추는 포커스를 받지 않는다(가방 키 · F 가 계속 게임으로).
+
+### 설정 `[/Script/Grimoire.GrimCreatureStorageSettings]` (제안)
+
+| 값 | 기본 |
+|---|---|
+| `PartyLimitByCircle` · `PartyLimitTagBonuses` · `PartyLimitMax` | 1서클 3 · 3서클 4 · 5서클 5 / `Progression.Node.CreatureParty` +1 / 8 |
+| `StorageSkillId` · `StorageRequiredCircle` | `CreatureStorage` · 1 |
+| `StorageCapacityByCircle` · `StorageCapacityTagBonuses` · `StorageCapacityMax` | 8 · 12 · 16 / `Progression.Node.CreatureStorage` +4 / 40 |
+| `StoredHealPerMinute` | 0.2(분당 최대 체력 20%) |
+| `BoxCapacity` · `BoxManageRadius` · `BoxServerReachSlack` | 60 · 300cm · 250cm |
+| `BoxRoamRadius` · `BoxMaxReleased` · `RoamWanderRadius` · `RoamLeashScale` | 2000cm · 10 · 600cm · 1.5 |
+| `bSendOverflowToBox` · `LimitRefreshSeconds` | True · 1초 |
+
+`[/Script/Grimoire.GrimShopSettings]`: `CurrencyItem=Solidus`, `Prices=(Skillbook_CreatureStorage, 120)`.
+
+### 콘솔 · 확인
+
+| 명령 | 하는 일 |
+|---|---|
+| `Grim.Taming.Storage <From> <To> [종 id\|*] [지연초]` | 로컬 플레이어: 그 자리(Party · Storage · Box · Released)의 첫 개체를 옮긴다(곁의 상자) — RPC 그대로 |
+| `Grim.Taming.SpawnBox [거리cm] [지연초] [Host\|Client]` | 서버: 그 플레이어 앞에 거점 생물 상자 |
+| `Grim.Taming.StorageLearn [1\|0] [지연초]` | 서버: 모든 플레이어의 보관함 배움(스킬북 없이) |
+| `Grim.Taming.Box <Open\|Close> [지연초]` | 로컬 플레이어: 곁의 상자 관리 화면 |
+| `Grim.Taming.StorageDump [지연초] [Local\|Remote]` | 이 프로세스가 본 그 플레이어의 상한 · 목록(`storage` · `storagerow` 줄 — 비교용, `storagetext` 화면 글) |
+
+- `Scripts/Creatures/net_check_storage.ps1` — 리슨 서버 + 클라이언트 헤드리스: 호스트 · 클라이언트가 각자 파크툼으로 길들임 → 스킬북 아이템 읽기 → 넣기 → 목록 → 꺼내기 → 상자 → 풀어놓기 → 데리고 다니기. 서버가 본 클라이언트 목록(Remote)과 클라이언트가 본 목록(Local)을 다섯 번 비교하고, 양쪽 단계별 기대 줄 · 서버 로그(두 플레이어 몫)를 본다(`NETCHECK_RESULT fail=0`).
+- 테스트 `Grimoire.Creatures.Storage.*`: `Limits`(서클 표 · 태그 보너스 · ini) · `Rules`(옮기기 판정 · 갈 곳 · 회복 · 노말 스킬 · 상점 이름 · 대사 표 검사) · `Serialize`(상자 세이브 왕복 · 깨진 데이터) · `Actor`(스킬북으로 배움 → 상한 → 넘친 계약은 보관함 → 넣기 · 꺼내기 개체 기록 그대로 → 보관함 · 데리고 다님 가득 → 상자 · 풀어놓기 · 거두기 · 남의 칸 → 상자 가득 → 보관함 · 상자 세이브 왕복) · `ReleasedSave`(풀어놓은 생물 다시 불러오기 · 놓아주면 칸에서 지움) · `Shop`(솔 모자람 · 산다 · 팔지 않음).
 
 ## 충성도 (갈래 T)
 

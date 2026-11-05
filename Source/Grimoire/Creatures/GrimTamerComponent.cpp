@@ -1,6 +1,8 @@
 #include "Creatures/GrimTamerComponent.h"
 #include "Creatures/GrimCreature.h"
+#include "Creatures/GrimCreatureBox.h"
 #include "Creatures/GrimCreatureMenuWidget.h"
+#include "Creatures/GrimCreatureStorageComponent.h"
 #include "Creatures/GrimCreatureSettings.h"
 #include "Creatures/GrimCreatureSpecies.h"
 #include "Creatures/GrimCreatureTamingComponent.h"
@@ -158,6 +160,14 @@ int32 UGrimTamerComponent::SummonOwned()
 	const TArray<AGrimCreature*> Alive = Subsystem->GetOwnedCreatures(PlayerId);
 	const FGrimTamedBehaviorTuning& Behavior = UGrimTamingSettings::Get()->Behavior;
 	const double NowUtc = FDateTime::UtcNow().ToUnixTimestamp();
+	// 데리고 다니는 수(R38): 넘치는 기록은 보관함(배웠고 자리가 있으면)으로. 둘 다 안 되면 잃지 않게 그대로 부른다.
+	UGrimCreatureStorageComponent* Storage = UGrimCreatureStorageComponent::FindForActor(GetOwner());
+	if (Storage)
+	{
+		Storage->RefreshLimits();
+	}
+	int32 PartyCount = Alive.Num();
+	TArray<int32> MovedToStorage;
 	int32 Summoned = 0;
 	for (int32 Index = 0; Index < Records.Num(); ++Index)
 	{
@@ -172,6 +182,16 @@ int32 UGrimTamerComponent::SummonOwned()
 				Taming->RestoreOwned(GetPlayerState(), Record, 0.0);
 			}
 			continue;
+		}
+		if (Storage && PartyCount >= Storage->GetPartyLimit())
+		{
+			if (Storage->AcceptOverflowRecord(Record))
+			{
+				MovedToStorage.Add(Index);
+				continue;
+			}
+			UE_LOG(LogGrimTaming, Warning, TEXT("[Server] 데리고 다니는 수(%d)를 넘지만 보관함에 자리가 없어 그대로 부른다 %s seed=%d"), Storage->GetPartyLimit(),
+				*Record.Instance.SpeciesId.ToString(), Record.Instance.Seed);
 		}
 		UGrimCreatureSpecies* Species = UGrimCreatureSettings::Get()->FindSpecies(Record.Instance.SpeciesId);
 		if (!Species)
@@ -196,7 +216,16 @@ int32 UGrimTamerComponent::SummonOwned()
 			Taming->RestoreOwned(GetPlayerState(), Record, Offline);
 		}
 		++Summoned;
+		++PartyCount;
 		UE_LOG(LogGrimTaming, Display, TEXT("[Server] 가진 개체 부름 %s seed=%d 주인=%s 충성도=%.0f"), *Record.Instance.SpeciesId.ToString(), Record.Instance.Seed, *PlayerId, Record.Instance.Loyalty);
+	}
+	for (int32 Back = MovedToStorage.Num() - 1; Back >= 0; --Back)
+	{
+		Records.RemoveAt(MovedToStorage[Back]);
+	}
+	if (MovedToStorage.Num() > 0)
+	{
+		SendNotice(FString::Printf(TEXT("데리고 다니는 수가 넘쳐 %d마리를 보관함에 두었다"), MovedToStorage.Num()));
 	}
 	return Summoned;
 }
@@ -352,6 +381,12 @@ bool UGrimTamerComponent::DoAction(AGrimCreature* Creature, EGrimTamerAction Act
 	}
 	const UGrimTamingSettings* Settings = UGrimTamingSettings::Get();
 	const FString Name = Taming->GetDisplayName();
+	if (Taming->IsAtBase() && (Action == EGrimTamerAction::Follow || Action == EGrimTamerAction::Wait || Action == EGrimTamerAction::Mount))
+	{
+		// 거점에 풀어놓은 생물(R38)은 상자에서 「데리고 다니기」를 골라야 따라온다.
+		SendNotice(FString::Printf(TEXT("%s 은(는) 거점에 풀어놓았다 — 거점 생물 상자에서 「데리고 다니기」"), *Name));
+		return false;
+	}
 	switch (Action)
 	{
 	case EGrimTamerAction::Follow:
@@ -593,7 +628,8 @@ void UGrimTamerComponent::TickLocal(APlayerController* PC)
 		return;
 	}
 
-	if (Widget && Widget->IsMenuOpen())
+	UGrimCreatureStorageComponent* Storage = UGrimCreatureStorageComponent::FindForActor(GetOwner());
+	if ((Widget && Widget->IsMenuOpen()) || (Storage && Storage->IsBoxScreenOpen()))
 	{
 		return;
 	}
@@ -603,12 +639,18 @@ void UGrimTamerComponent::TickLocal(APlayerController* PC)
 	{
 		PromptAccumulator = 0.f;
 		PromptCreature = nullptr;
+		PromptBox = nullptr;
 		bPromptIsFeed = false;
 		// 줍기 · 냄비가 먼저(같은 키) — 그 앞에서는 생물 안내를 내지 않는다.
 		const bool bItemFirst = AGrimItemPickup::FindNearestReachable(Me) || AGrimCookingPot::FindNearestReachable(Me);
 		if (!bItemFirst)
 		{
-			if (AGrimCreature* Owned = FindNearestCreature(Me, true))
+			if (AGrimCreatureBox* Box = AGrimCreatureBox::FindNearestUsable(Me))
+			{
+				// 거점 생물 상자(R38) — 곁을 돌아다니는 생물보다 먼저.
+				PromptBox = Box;
+			}
+			else if (AGrimCreature* Owned = FindNearestCreature(Me, true))
 			{
 				PromptCreature = Owned;
 			}
@@ -623,7 +665,11 @@ void UGrimTamerComponent::TickLocal(APlayerController* PC)
 				}
 			}
 		}
-		if (AGrimCreature* Target = PromptCreature.Get(); Target && EnsureWidget(PC))
+		if (PromptBox.IsValid() && EnsureWidget(PC))
+		{
+			Widget->ShowPrompt(FString::Printf(TEXT("[%s] 거점 생물 상자 열기"), *Key.GetDisplayName().ToString()));
+		}
+		else if (AGrimCreature* Target = PromptCreature.Get(); Target && EnsureWidget(PC))
 		{
 			const FString Name = Target->GetTaming() ? Target->GetTaming()->GetDisplayName() : Target->GetInstance().SpeciesId.ToString();
 			Widget->ShowPrompt(bPromptIsFeed ? FString::Printf(TEXT("[%s] %s 에게 먹이 주기"), *Key.GetDisplayName().ToString(), *Name)
@@ -637,7 +683,18 @@ void UGrimTamerComponent::TickLocal(APlayerController* PC)
 
 	if (bKeyPressed)
 	{
-		if (AGrimCreature* Target = PromptCreature.Get())
+		if (AGrimCreatureBox* Box = PromptBox.Get())
+		{
+			if (Storage)
+			{
+				if (Widget)
+				{
+					Widget->HidePrompt();
+				}
+				Storage->OpenBoxScreen(Box);
+			}
+		}
+		else if (AGrimCreature* Target = PromptCreature.Get())
 		{
 			if (bPromptIsFeed)
 			{

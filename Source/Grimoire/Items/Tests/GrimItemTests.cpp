@@ -9,6 +9,7 @@
 #include "Items/GrimItemTypes.h"
 #include "Core/GrimElementalTypes.h"
 #include "Core/GrimGameplayTags.h"
+#include "Creatures/GrimCreatureStorageMath.h"
 #include "Interaction/GrimElementalObject.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Quest/GrimQuestSettings.h"
@@ -176,10 +177,11 @@ bool FGrimItemsTableTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("튜토리얼 재료(고기 + 허브 · 소금 · 곡물)로 스튜가 된다"), Database.FindCompleteRecipe(TEXT("CookingPot"), Contents) == Stew);
 	}
 
-	// 스킬북 아이템의 마법 정의가 있다(에디터에서)
+	// 스킬북 아이템의 마법 정의가 있다(에디터에서). 노말 스킬 책(Skill:<ID> — 생물 보관함 R38)은 마법이 아니다.
 	for (const TPair<FName, FGrimItemDefinition>& Pair : Database.Items)
 	{
-		if (Pair.Value.Row.Kind == EGrimItemKind::Skillbook && GIsEditor)
+		FName NormalSkill;
+		if (Pair.Value.Row.Kind == EGrimItemKind::Skillbook && GIsEditor && !GrimCreatureStorageMath::ParseNormalSkill(Pair.Value.Row.TeachesSpell, NormalSkill))
 		{
 			TestNotNull(*FString::Printf(TEXT("스킬북 %s 의 마법 %s"), *Pair.Key.ToString(), *Pair.Value.Row.TeachesSpell.ToString()),
 				UGrimQuestSettings::LoadSpell(Pair.Value.Row.TeachesSpell));

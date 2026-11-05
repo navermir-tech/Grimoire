@@ -3,7 +3,9 @@
 #include "Quest/GrimQuestSubsystem.h"
 #include "Quest/GrimQuestTrackerWidget.h"
 #include "Factions/GrimFactionTypes.h"
+#include "Factions/GrimShopSettings.h"
 #include "Factions/GrimTowerNPC.h"
+#include "Items/GrimInventoryComponent.h"
 #include "Core/GrimPlayerState.h"
 #include "Interaction/GrimElementalStateComponent.h"
 #include "Magic/GrimProgressionComponent.h"
@@ -642,6 +644,12 @@ FName UGrimQuestComponent::ExecuteService(AActor* Npc, FName Service)
 	{
 		// 인벤토리 · 인챈트(M4) 전 — 대사 자리만.
 		return GrimDialogueContexts::Erase;
+	}
+	FName ItemId;
+	if (GrimTowerServices::ParseBuy(Service, ItemId))
+	{
+		// 상점: 솔리두스(Q38)로 산다 — 값은 UGrimShopSettings(첫 물건: 스킬북 생물 보관함, R38).
+		return GrimTowerShop::TryBuy(UGrimInventoryComponent::FindForActor(GetOwner()), ItemId);
 	}
 	return GrimDialogueContexts::Refused;
 }

@@ -6,6 +6,7 @@
 #include "GrimCreatureTamingComponent.generated.h"
 
 class AGrimCreature;
+class AGrimCreatureBox;
 class APawn;
 class APlayerState;
 struct FOnAttributeChangeData;
@@ -41,7 +42,17 @@ public:
 	FString GetDisplayName() const;
 	float GetExertion() const { return Exertion; }
 
+	/** 거점 생물 상자에서 풀어놓은 생물이면 그 상자(R38). 데리고 다니는 수에 들지 않는다 */
+	AGrimCreatureBox* GetHomeBox() const { return HomeBox; }
+	bool IsAtBase() const { return HomeBox != nullptr; }
+
 	// ───── 서버 ─────
+
+	/** 풀어놓음(상자) · 거둠(nullptr). 상자가 부른다 */
+	void SetHomeBox(AGrimCreatureBox* Box);
+
+	/** 주인 PlayerState 를 잇는다(풀어놓은 생물 — 주인이 나중에 접속했을 때) */
+	void SetOwnerPlayerState(APlayerState* NewOwner);
 
 	/** 길들인다(주인 · 충성도 시작 값 · 까닭 「계약」 · 개체군에서 빼기는 부르는 쪽). */
 	void Claim(APlayerState* NewOwner, const FString& OwnerPlayerId);
@@ -116,6 +127,10 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_TamingState)
 	bool bKnockedOut = false;
+
+	/** 풀어놓은 상자(R38) — 있으면 거점을 돌아다니고, 굶김 · 주인 부재를 세지 않는다 */
+	UPROPERTY(ReplicatedUsing = OnRep_TamingState)
+	TObjectPtr<AGrimCreatureBox> HomeBox;
 
 	// 서버 상태
 	FTimerHandle TickTimer;

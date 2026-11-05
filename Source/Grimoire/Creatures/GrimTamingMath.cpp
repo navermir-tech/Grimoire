@@ -204,6 +204,11 @@ EGrimCreatureAIState GrimTamingMath::DecideTamed(const FGrimTamedSenses& Senses)
 	{
 		return EGrimCreatureAIState::Stay;
 	}
+	if (Senses.Command == EGrimTamedCommand::Roam)
+	{
+		// 거점에 풀어놓음 — 주인을 따라가지 않고 집(상자 둘레) 곁을 돌아다닌다.
+		return EGrimCreatureAIState::Wander;
+	}
 	if (Senses.OwnerDistance > Senses.FollowDistance)
 	{
 		return EGrimCreatureAIState::Follow;
@@ -281,7 +286,7 @@ bool GrimTamingMath::SerializeOwnedRecord(FArchive& Ar, FGrimOwnedCreatureRecord
 		I.SpeciesId = FName(*SpeciesId);
 		I.Sex = Sex == static_cast<uint8>(EGrimCreatureSex::Male) ? EGrimCreatureSex::Male : EGrimCreatureSex::Female;
 		I.Personality = Personality <= static_cast<uint8>(EGrimCreaturePersonality::Sleepyhead) ? static_cast<EGrimCreaturePersonality>(Personality) : EGrimCreaturePersonality::None;
-		Record.Command = Command == static_cast<uint8>(EGrimTamedCommand::Wait) ? EGrimTamedCommand::Wait : EGrimTamedCommand::Follow;
+		Record.Command = Command <= static_cast<uint8>(EGrimTamedCommand::Roam) ? static_cast<EGrimTamedCommand>(Command) : EGrimTamedCommand::Follow;
 		I.Loyalty = FMath::Clamp(I.Loyalty, 0.f, 100.f);
 		Record.HealthRatio = FMath::Clamp(Record.HealthRatio, 0.01f, 1.f);
 	}
