@@ -226,6 +226,27 @@ void UGrimEcosystemSubsystem::HandleCreatureDied(AGrimCreature* Creature)
 	}
 }
 
+bool UGrimEcosystemSubsystem::HandleCreatureTamed(AGrimCreature* Creature)
+{
+	bool bRemoved = false;
+	for (FGrimHabitatRuntime& Runtime : Habitats)
+	{
+		for (FGrimHabitatPopulation& Population : Runtime.Populations)
+		{
+			if (Population.Active.Remove(Creature) > 0)
+			{
+				bRemoved = true;
+				UE_LOG(LogGrimCreatures, Display, TEXT("[Server] 개체군 %s 현재 %d/%d (길들임)"), *Population.Species->SpeciesId.ToString(), Population.GetCurrent(), Population.Cap);
+			}
+		}
+	}
+	if (Creature)
+	{
+		Creature->DetachFromHabitat();
+	}
+	return bRemoved;
+}
+
 // ───────────────────────── 기록 · 접기 · 펼치기 ─────────────────────────
 
 FGrimFoldedCreature UGrimEcosystemSubsystem::MakeRecord(FGrimHabitatRuntime& Runtime, FGrimHabitatPopulation& Population, const FVector& Around, float Radius, int32 HerdId)

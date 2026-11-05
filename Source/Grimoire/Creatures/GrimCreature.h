@@ -17,6 +17,8 @@ class UGrimCreatureSpecies;
 class AGrimHabitatVolume;
 class UStaticMeshComponent;
 class UMaterialInstanceDynamic;
+class UGrimCreatureTamingComponent;
+class UGrimMountComponent;
 struct FOnAttributeChangeData;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FGrimCreatureDiedNative, AGrimCreature* /*Creature*/, AActor* /*Killer*/);
@@ -30,7 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FGrimCreatureLootSignature, AGrimC
  * - 속성 상태: UGrimElementalStateComponent 재사용(재질 = 두 속성 몫, 설정 ElementMaterials). 자극은 이 액터가 받아 넘긴다.
  * - 조준: 종류 Creature(공격적 종이면 Enemy). 죽음 · 그림자 걸음 중엔 조준 안 됨.
  * - 모양: 엔진 기본 도형 부위(종 정의 BodyParts)를 각 기기가 개체 기록으로 만든다. 색 = 부위마다 다이내믹 머티리얼 Color.
- * - 길들이기 · 탑승은 다음 묶음 — 개체 기록의 OwnerId · Loyalty 자리만 있다.
+ * - 길들이기 · 충성도는 UGrimCreatureTamingComponent, 탑승은 UGrimMountComponent(갈래 T). 길들인 생물은 체력 0 이면 죽지 않고 쓰러진다.
  */
 UCLASS()
 class GRIMOIRE_API AGrimCreature : public ACharacter, public IAbilitySystemInterface, public IGrimTargetable, public IGrimElementalReceiver
@@ -137,6 +139,27 @@ public:
 	/** 접힌 기록 · 서식 구역 없이 콘솔로 놓았는가 */
 	bool IsLoose() const { return !Habitat.IsValid(); }
 
+	// ── 길들이기 · 탑승(갈래 T) ──
+
+	UGrimCreatureTamingComponent* GetTaming() const { return Taming; }
+	UGrimMountComponent* GetMount() const { return Mount; }
+
+	/** 서버: 개체 기록을 바꾼다(주인 · 충성도 · 이름) — 복제되고 각 기기가 태그를 맞춘다 */
+	void SetInstanceServer(const FGrimCreatureInstance& NewInstance);
+
+	/** 서버: 이 상대에게 화나게(맞은 것처럼) · 화를 푼다 */
+	void Provoke(AActor* By);
+	void ClearProvoker();
+
+	/** 서버: 배회의 중심(놓아주기 · 길들인 뒤) */
+	void SetHomeLocation(const FVector& Location) { HomeLocation = Location; }
+
+	/** 서버: 체력을 비율로 정한다(약해짐 표지도 맞춘다) */
+	void SetHealthRatioServer(float Ratio);
+
+	/** 서버: 서식 구역에서 떼어 낸다(길들임 — 개체군에서 빠졌다) */
+	void DetachFromHabitat() { Habitat = nullptr; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -166,6 +189,14 @@ protected:
 	/** 기본 도형 부위의 부모(크기 · 눕기 · 웅크리기를 여기서) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USceneComponent> BodyRoot;
+
+	/** 길들이기 · 충성도(갈래 T) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UGrimCreatureTamingComponent> Taming;
+
+	/** 탈것(갈래 T — 탈것 종에서만 일한다) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UGrimMountComponent> Mount;
 
 private:
 	/** 서버 · 클라이언트: 종 · 개체로 모양 · 색 · 캡슐 · 태그를 맞춘다(여러 번 불러도 같다) */

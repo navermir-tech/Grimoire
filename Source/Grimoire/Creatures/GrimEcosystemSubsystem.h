@@ -83,6 +83,9 @@ public:
 	/** 서버: 죽음 → 개체군에서 뺀다(현재 −1 → 회복 시작) */
 	void HandleCreatureDied(AGrimCreature* Creature);
 
+	/** 서버: 길들임 → 개체군에서 뺀다(현재 −1 → 회복 시작, 접지 않는다). 생물 목록(먹이 관계 감각)에는 남는다. 뺐으면 true */
+	bool HandleCreatureTamed(AGrimCreature* Creature);
+
 	/** 살아 있는 펼친 생물(서버) */
 	const TArray<TWeakObjectPtr<AGrimCreature>>& GetCreatures() const { return Creatures; }
 	int32 GetActiveCount() const;

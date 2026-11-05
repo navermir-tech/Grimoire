@@ -35,6 +35,8 @@ protected:
 
 private:
 	void Think();
+	/** 길들인 생물(갈래 T): GrimTamingMath::DecideTamed — 탔음 · 기절 · 불 · 맞음 · 기다리기 · 따라오기 */
+	void ThinkTamed(AGrimCreature* Creature);
 	void GatherSenses(AGrimCreature* Creature, FGrimCreatureSenses& OutSenses);
 	void MoveTowards(const FVector& Goal, float Acceptance);
 	void StopMoving();

@@ -160,6 +160,11 @@ EGrimCreatureAIState GrimCreatureMath::Decide(const FGrimCreatureSenses& Senses,
 	{
 		return EGrimCreatureAIState::Flee;
 	}
+	// 1-1. 계약(파크툼)에 저항해 화나면 덤빈다(공격이 없으면 도망).
+	if (Senses.bEnraged)
+	{
+		return Info.bCanAttack ? EGrimCreatureAIState::Fight : EGrimCreatureAIState::Flee;
+	}
 	// 2. 빛을 피하는 종(검은 개)은 불빛에서 물러난다.
 	if (Info.bAvoidsLight && Senses.bLightNear)
 	{

@@ -23,6 +23,8 @@ struct FGrimCreatureSenses
 	bool bPreyNear = false;
 	/** 피하는 불빛이 가깝다(bAvoidsLight 종만 의미) */
 	bool bLightNear = false;
+	/** 계약에 저항해 화났다(Creature.State.Enraged — 갈래 T) — 겁 많은 종도 덤빈다 */
+	bool bEnraged = false;
 };
 
 /** 종의 기질(종 정의에서) */
