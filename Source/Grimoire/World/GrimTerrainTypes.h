@@ -45,6 +45,9 @@ struct GRIMOIRE_API FGrimTerrainZone
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float BlendWidth = 200.f;
 	/** 경계선을 들쭉날쭉하게 미는 거리(±m) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float EdgeWobble = 40.f;
+	/** 이 구역에만 더하는 잔물결(±m) · 파장(m) — 언덕 사이 바닥이 평평하지 않게(마탑 구간). 0 이면 없음. 덮는 순서와 상관없이 가장 센 구역 것을 쓴다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ExtraRollingAmplitude = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ExtraRollingScale = 60.f;
 };
 
 /** 손으로 놓는 언덕 하나(중간 모양) — 둥근 삼각형 실루엣 */
@@ -87,6 +90,12 @@ struct GRIMOIRE_API FGrimTerrainHillField
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MinSpacing = 0.5f;
 	/** 0 이면 레이아웃 HillSharpness */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Sharpness = 0.f;
+	/** 가장 가파른 곳(도) 상한 — 0 이면 레이아웃 HillMaxSlopeDeg. 작은 언덕이 촘촘한 마탑 구간은 조금 더 가파르게 둔다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MaxSlopeDeg = 0.f;
+	/** 길 · 개울 가운데선에서 떨어지는 여유(반지름 배수) — 음수면 레이아웃 HillLineClearance. 작으면 길이 언덕 사이 골로 지난다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float LineClearance = -1.f;
+	/** 손 언덕(랜드마크 언덕)과 가운데 거리 ≥ (반지름 합) × 이 값 — 0 이면 MinSpacing. 크게 두면 큰 언덕 비탈이 깨끗해 랜드마크가 멀리서 보인다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float HandHillSpacing = 0.f;
 	/** 참이면 다각형 대신 이미 놓인 언덕 꼭대기 둘레(반지름 40% 안)에 놓는다 — 바위 노두용 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") bool bNearHillTops = false;
 	/** 참이면 언덕 수 집계(「언덕 군」)에서 뺀다 — 바위 노두 같은 작은 모양 */
@@ -222,7 +231,7 @@ struct GRIMOIRE_API FGrimTerrainLandmark
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName Name;
-	/** Tower · GiantTree · RockGate · StoneCircle · Waterfall · Watchtower · Windmill */
+	/** Tower · GiantTree · RockGate · StoneCircle · Waterfall · Watchtower · Windmill · FloatingRock */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName Kind;
 	/** Global(지역 어디서나) · District(그 구역 안에서) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName Tier = TEXT("District");
@@ -267,6 +276,53 @@ struct GRIMOIRE_API FGrimTerrainViewCheck
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FName> MustSee;
 };
 
+/**
+ * 먼저 완성하는 구간(마탑 구간 — docs/dev/level-design.md 「7」)의 검사 기준. 다각형 안만 본다.
+ * 큰 땅(2 × 4 km) 기준(FGrimTerrainAnalysisSpec)보다 촘촘하다: POI 간격 60~120 m, 사람 눈높이(1.8 m)에서 다음 언덕 너머가 가려져야 한다.
+ */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimTerrainSectorSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName Name;
+	/** 구간 경계(지도 좌표) — 바다 · 강 쪽은 물 가운데까지. 3 개보다 적으면 구간 검사를 하지 않는다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FVector2D> Polygon;
+	/** 경사: 구간 땅의 이 비율 이상이 Analysis.RollingMinDeg~RollingMaxDeg */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float RollingMinFraction = 0.7f;
+	/** 길 위 샘플 간격(m) — 시선 · 가림 · 랜드마크 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PathSampleStep = 25.f;
+	/** 사람 눈높이(m) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float EyeHeight = 1.8f;
+	/** 길 위 어느 점에서도 이 거리 안에 POI */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PoiMaxDistance = 120.f;
+	/** 구간 POI 마다 가장 가까운 다른 POI 까지 거리가 이 범위 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PoiSpacingMin = 60.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PoiSpacingMax = 120.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 MinPois = 15;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 MaxPois = 25;
+	/** 가림: 길 위 점에서 OcclusionDirections 방향 × (Min~Max 거리, Step 마다) 땅 + TargetHeight 가 언덕에 가려진 비율 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 OcclusionDirections = 24;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float OcclusionMinDistance = 100.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float OcclusionMaxDistance = 300.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float OcclusionStep = 50.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float OcclusionTargetHeight = 1.f;
+	/** 전체 가림 비율 하한 · 길 위 점 하나의 가림 비율 하한(탁 트인 곳이 없게) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float OcclusionMinFraction = 0.6f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float OcclusionPointMinFraction = 0.25f;
+	/** 길 위 어디서나 보여야 하는 랜드마크 수(가까운 것 · 먼 것 모두, 랜드마크 ViewDistance 안) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 MinLandmarksVisible = 2;
+	/** 길 위 점 가운데 MinLandmarksVisible 개 이상 보이는 점의 비율 하한(언덕 골 안은 가려지는 것이 맞다). 어느 점에서도 하나는 보여야 한다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float LandmarkMinFraction = 1.f;
+	/** 구간 언덕(작은 모양 빼고) — 가장 가까운 언덕까지 거리(가운데끼리)의 가운데값이 이 범위 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 MinHills = 30;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float HillSpacingMin = 50.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float HillSpacingMax = 120.f;
+	/** 시드 언덕 크기(손 언덕 빼고) — 지름 · 높이 범위 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D HillDiameterRange = FVector2D(40.0, 150.0);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D HillHeightRange = FVector2D(8.0, 30.0);
+};
+
 /** 다 만든 뒤 확인할 것(docs/dev/level-design.md 「6」) — 기준값 */
 USTRUCT(BlueprintType)
 struct GRIMOIRE_API FGrimTerrainAnalysisSpec
@@ -302,6 +358,8 @@ struct GRIMOIRE_API FGrimTerrainAnalysisSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PathMaxGradeDeg = 15.f;
 	/** 이름 붙은 시선(사람 눈 확인 자리와 같은 곳) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FGrimTerrainViewCheck> ViewChecks;
+	/** 먼저 완성하는 구간(마탑 구간)의 더 촘촘한 기준 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FGrimTerrainSectorSpec Sector;
 };
 
 /** 식생 규칙 하나(나무 · 덤불 · 바위). 밀도는 1 헥타르(100 × 100 m)당 개수 */

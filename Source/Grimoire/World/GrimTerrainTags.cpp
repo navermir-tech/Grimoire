@@ -19,6 +19,7 @@ namespace GrimTerrainTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Landmark_Waterfall, "Landmark.Waterfall", "폭포(구역, 흰 세로 띠)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Landmark_Watchtower, "Landmark.Watchtower", "폐허 감시탑(구역, 부러진 원통)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Landmark_Windmill, "Landmark.Windmill", "풍차(구역, 날개)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Landmark_FloatingRock, "Landmark.FloatingRock", "부유석(마탑 구간, 공중에 뜬 바위섬)");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Poi, "Poi", "들를 곳(POI) — 자리와 실루엣만, 놀이는 각 마일스톤(docs/dev/level-design.md 「5」)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Poi_Puzzle, "Poi.Puzzle", "속성 퍼즐(꺼진 화로 · 마른 덩굴 · 잠긴 제단)");

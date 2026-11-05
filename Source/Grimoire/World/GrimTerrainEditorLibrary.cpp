@@ -2,6 +2,7 @@
 
 #include "World/GrimTerrainAnalysis.h"
 #include "World/GrimTerrainGenerator.h"
+#include "Async/ParallelFor.h"
 #include "Engine/World.h"
 #include "Engine/StaticMesh.h"
 #include "HAL/FileManager.h"
@@ -184,6 +185,10 @@ FString UGrimTerrainEditorLibrary::RunTerrainAnalysis()
 	{
 		Report += FString::Printf(TEXT("%s(%.0f, %.0f)"), Index == 0 ? TEXT("\n시선 모자란 곳: ") : TEXT(" "), Result.SightFailPoints[Index].X, Result.SightFailPoints[Index].Y);
 	}
+	for (int32 Index = 0; Index < FMath::Min(Result.Sector.LandmarkFailPoints.Num(), 20); ++Index)
+	{
+		Report += FString::Printf(TEXT("%s(%.0f, %.0f)"), Index == 0 ? TEXT("\n구간 랜드마크 모자란 곳: ") : TEXT(" "), Result.Sector.LandmarkFailPoints[Index].X, Result.Sector.LandmarkFailPoints[Index].Y);
+	}
 	for (const FGrimTerrainViewCheck& Check : Cache.Layout.Analysis.ViewChecks)
 	{
 		const TArray<FName> Seen = FGrimTerrainAnalysis::VisibleFrom(Cache.Layout, Cache.Maps, Check.From.X, Check.From.Y, Check.EyeHeight);
@@ -336,6 +341,125 @@ bool UGrimTerrainEditorLibrary::ExportPreviewImage(const FString& FilePath, int3
 		Dot(Landmark.Center, 6, FColor(250, 60, 40), FColor::White);
 	}
 
+	const FString FullPath = GrimTerrainEditorLocal::ResolvePath(FilePath);
+	IFileManager::Get().MakeDirectory(*FPaths::GetPath(FullPath), true);
+	const FImageView View(Pixels.GetData(), Width, Height);
+	return FImageUtils::SaveImageByExtension(*FullPath, View);
+}
+
+bool UGrimTerrainEditorLibrary::ExportRegionPreviewImage(const FString& FilePath, FVector2D MapMin, FVector2D MapMax, float MetersPerPixel, float ContourStep)
+{
+	if (!GrimTerrainEditorLocal::RequireCache(TEXT("ExportRegionPreviewImage")))
+	{
+		return false;
+	}
+	const FGrimTerrainMaps& Maps = GrimTerrainEditorLocal::Cache().Maps;
+	const FGrimTerrainLayout& Layout = GrimTerrainEditorLocal::Cache().Layout;
+	const double Mpp = FMath::Max(static_cast<double>(MetersPerPixel), 0.1);
+	const int32 Width = FMath::Clamp(FMath::CeilToInt32((MapMax.X - MapMin.X) / Mpp), 8, 8192);
+	const int32 Height = FMath::Clamp(FMath::CeilToInt32((MapMax.Y - MapMin.Y) / Mpp), 8, 8192);
+	TArray<FColor> Pixels;
+	Pixels.SetNumUninitialized(Width * Height);
+	const FVector Light = FVector(-1.0, 1.0, 1.0).GetSafeNormal();
+	const double Step = FMath::Max(static_cast<double>(ContourStep), 0.25);
+
+	auto ToPixel = [&](const FVector2D& Map, int32& OutX, int32& OutY)
+	{
+		OutX = FMath::RoundToInt32((Map.X - MapMin.X) / Mpp);
+		OutY = Height - 1 - FMath::RoundToInt32((Map.Y - MapMin.Y) / Mpp);
+	};
+	ParallelFor(Height, [&](int32 PY)
+	{
+		const double V = MapMin.Y + (Height - 1 - PY) * Mpp;
+		for (int32 PX = 0; PX < Width; ++PX)
+		{
+			const double U = MapMin.X + PX * Mpp;
+			const int32 I = Maps.NearestIndex(U, V);
+			const float H = FGrimTerrainGenerator::SampleHeight(Maps, U, V);
+			FLinearColor Color;
+			if (Maps.WaterDistance[I] < 0.f || H < Layout.SeaLevel)
+			{
+				Color = FLinearColor(0.18f, 0.42f, 0.70f);
+			}
+			else
+			{
+				const float T = FMath::Clamp((H - 15.f) / 50.f, 0.f, 1.f);
+				Color = FMath::Lerp(FLinearColor(0.30f, 0.55f, 0.20f), FLinearColor(0.75f, 0.68f, 0.40f), T);
+				const float Slope = FGrimTerrainGenerator::SampleSlopeDeg(Maps, U, V);
+				Color = FMath::Lerp(Color, FLinearColor(0.55f, 0.52f, 0.50f), FMath::Clamp((Slope - 25.f) / 10.f, 0.f, 1.f));
+				Color = FMath::Lerp(Color, FLinearColor(0.85f, 0.78f, 0.55f), Maps.Shore[I] / 255.f);
+				Color = FMath::Lerp(Color, FLinearColor(0.60f, 0.40f, 0.22f), Maps.Path[I] / 255.f);
+				// 등고선: 이웃 픽셀과 다른 칸이면 어둡게
+				const float HR = FGrimTerrainGenerator::SampleHeight(Maps, U + Mpp, V);
+				const float HU = FGrimTerrainGenerator::SampleHeight(Maps, U, V + Mpp);
+				const int32 Band = FMath::FloorToInt32(H / Step);
+				if (Band != FMath::FloorToInt32(HR / Step) || Band != FMath::FloorToInt32(HU / Step))
+				{
+					Color = FMath::Lerp(Color, FLinearColor(0.10f, 0.12f, 0.08f), (Band % 5 == 0) ? 0.65f : 0.35f);
+				}
+			}
+			const double D = FMath::Max(Mpp, 1.0);
+			const double DX = (FGrimTerrainGenerator::SampleHeight(Maps, U + D, V) - FGrimTerrainGenerator::SampleHeight(Maps, U - D, V)) / (2.0 * D);
+			const double DY = (FGrimTerrainGenerator::SampleHeight(Maps, U, V + D) - FGrimTerrainGenerator::SampleHeight(Maps, U, V - D)) / (2.0 * D);
+			const FVector Normal = FVector(-DX * 2.0, -DY * 2.0, 1.0).GetSafeNormal();
+			const float Shade = 0.40f + 0.70f * FMath::Max(0.f, static_cast<float>(Normal | Light));
+			Pixels[PY * Width + PX] = (Color * Shade).ToFColor(true);
+		}
+	});
+
+	auto Dot = [&](const FVector2D& Map, int32 Radius, const FColor& Fill, const FColor& Rim)
+	{
+		int32 CX = 0, CY = 0;
+		ToPixel(Map, CX, CY);
+		for (int32 DY = -Radius - 1; DY <= Radius + 1; ++DY)
+		{
+			for (int32 DX = -Radius - 1; DX <= Radius + 1; ++DX)
+			{
+				const int32 PX = CX + DX;
+				const int32 PY = CY + DY;
+				const int32 D2 = DX * DX + DY * DY;
+				if (PX >= 0 && PY >= 0 && PX < Width && PY < Height && D2 <= (Radius + 1) * (Radius + 1))
+				{
+					Pixels[PY * Width + PX] = D2 <= Radius * Radius ? Fill : Rim;
+				}
+			}
+		}
+	};
+	auto Line = [&](const FVector2D& A, const FVector2D& B, const FColor& Color)
+	{
+		const double Length = FVector2D::Distance(A, B);
+		const int32 Steps = FMath::Max(1, FMath::CeilToInt32(Length / (Mpp * 0.5)));
+		for (int32 S = 0; S <= Steps; ++S)
+		{
+			int32 PX = 0, PY = 0;
+			ToPixel(FMath::Lerp(A, B, static_cast<double>(S) / Steps), PX, PY);
+			for (int32 W = 0; W < 2; ++W)
+			{
+				if (PX + W >= 0 && PY >= 0 && PX + W < Width && PY < Height)
+				{
+					Pixels[PY * Width + PX + W] = Color;
+				}
+			}
+		}
+	};
+	const TArray<FVector2D>& Sector = Layout.Analysis.Sector.Polygon;
+	for (int32 Index = 0; Index < Sector.Num(); ++Index)
+	{
+		Line(Sector[Index], Sector[(Index + 1) % Sector.Num()], FColor(230, 30, 30));
+	}
+	for (const FGrimTerrainPlacedHill& Hill : Maps.PlacedHills)
+	{
+		Dot(Hill.Center, Hill.bSmallShape ? 0 : 1, Hill.bSmallShape ? FColor(90, 90, 90) : FColor::Black, Hill.bSmallShape ? FColor(90, 90, 90) : FColor::Black);
+	}
+	for (const FGrimTerrainPoi& Poi : Layout.Pois)
+	{
+		const uint32 Hash = GetTypeHash(Poi.Cluster.ToString());
+		Dot(Poi.Center, FMath::Max(2, FMath::RoundToInt32(4.0 / Mpp)), FLinearColor::MakeFromHSV8(static_cast<uint8>(Hash % 255), 210, 255).ToFColor(true), FColor::Black);
+	}
+	for (const FGrimTerrainLandmark& Landmark : Layout.Landmarks)
+	{
+		Dot(Landmark.Center, FMath::Max(4, FMath::RoundToInt32(8.0 / Mpp)), FColor(250, 60, 40), FColor::White);
+	}
 	const FString FullPath = GrimTerrainEditorLocal::ResolvePath(FilePath);
 	IFileManager::Get().MakeDirectory(*FPaths::GetPath(FullPath), true);
 	const FImageView View(Pixels.GetData(), Width, Height);

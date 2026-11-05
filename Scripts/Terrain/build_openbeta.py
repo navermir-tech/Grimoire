@@ -1,6 +1,7 @@
 # 지형 1차(M3 갈래 W): 오픈 베타 맵 L_OpenBeta(World Partition, 2 × 4 km — 지역 1 마법탑 · 온난 지대)를 처음부터 만든다.
 # 레이아웃(수치)은 openbeta_layout.json, 높이 지도 · 식생 계산은 C++(UGrimTerrainEditorLibrary · FGrimTerrainGenerator).
 # 다시 만들기(docs/dev/level-design.md 「6」): 구역 높이 · 언덕 군 · 계곡 절벽 · 폭포 · 고개 + 랜드마크 · POI 그레이박스(landmark_greybox.py).
+# 마탑 구간(「7」): 작은 언덕이 촘촘한 구간 + 떠 있는 글씨(AGrimDevLabel, 한글) · 종류 블록 · 구간 밖 「공사 중」 경계.
 # 시작할 때 설계 검사(경사 분포 · 구역 높이 차 · 길 위 시선 · POI 밀도 · 길 경사) 숫자를 로그에 남긴다 — 기준은 테스트 Grimoire.Terrain.Design.*.
 # 돌릴 때마다 L_OpenBeta 를 지우고 새로 만든다 — 같은 레이아웃 · 시드면 같은 지형 · 같은 식생 자리. 손으로 고친 것은 사라진다(docs/systems/terrain.md).
 #
@@ -33,6 +34,7 @@ import tower_greybox  # noqa: E402
 MAP_PATH = "/Game/Grimoire/Maps/L_OpenBeta"
 LAYOUT_PATH = os.path.join(HERE, "openbeta_layout.json")
 PREVIEW_PATH = os.path.join(ROOT, "docs", "public", "art", "terrain", "openbeta-preview.png")
+SECTOR_PREVIEW_PATH = os.path.join(ROOT, "docs", "public", "art", "terrain", "openbeta-sector-map-v3.png")
 HEIGHTMAP_PATH = os.path.join(ROOT, "Saved", "Terrain", "openbeta.r16")
 REFRESH_ASSETS = os.environ.get("GRIM_TERRAIN_REFRESH_ASSETS") == "1"
 
@@ -94,6 +96,10 @@ log(f"높이 지도 {summary.size_x} × {summary.size_y}, 높이 {summary.min_he
 log("설계 검사:\n" + lib.run_terrain_analysis())
 lib.export_heightmap_r16(HEIGHTMAP_PATH)
 lib.export_preview_image(PREVIEW_PATH, 4)
+# 마탑 구간 확대 지도(등고선 2 m · 구간 경계 빨간 선 · 언덕 가운데 검은 점)
+_sector_poly = raw.get("Analysis", {}).get("Sector", {}).get("Polygon", [])
+if _sector_poly:
+    lib.export_region_preview_image(SECTOR_PREVIEW_PATH, unreal.Vector2D(380, 150), unreal.Vector2D(1820, 1150), 1.6, 2.0)
 
 # ───── 2. 맵을 지우고 World Partition 맵으로 새로 ─────
 # L_OpenBeta 가 에디터 시작 맵(DefaultEngine.ini EditorStartupMap)이라 커맨드렛도 이미 열고 있을 수 있다 —
@@ -260,7 +266,7 @@ for site in raw["BaseSites"]:
 for path in raw["Paths"]:
     for i, p in enumerate(path["Points"]):
         marker(f"{path['Name']}_{i:02d}", "Terrain.Path", p["X"], p["Y"], path["Width"] / 2, f"Markers/{path['Name']}")
-LANDMARK_MARKER_RADIUS_M = {"Tower": 45, "GiantTree": 30, "RockGate": 45, "StoneCircle": 18, "Waterfall": 15, "Watchtower": 12, "Windmill": 10}
+LANDMARK_MARKER_RADIUS_M = {"Tower": 45, "GiantTree": 30, "RockGate": 45, "StoneCircle": 18, "Waterfall": 15, "Watchtower": 12, "Windmill": 10, "FloatingRock": 12}
 for spec in raw.get("Landmarks", []):
     marker(spec["Name"], f"Landmark.{spec['Kind']}", spec["Center"]["X"], spec["Center"]["Y"], LANDMARK_MARKER_RADIUS_M.get(spec["Kind"], 20), "Markers/Landmarks")
 for spec in raw.get("Pois", []):
@@ -290,6 +296,13 @@ log(f"랜드마크 그레이박스: {', '.join(built)} (마법탑은 tower_greyb
 poi_kinds = landmark_greybox.build_pois(placer, raw)
 log("POI 소품: " + ", ".join(f"{k}={v}" for k, v in sorted(poi_kinds.items())))
 count("Bridge", landmark_greybox.build_bridges(placer, raw, None))
+
+# ───── 7c. 마탑 구간(docs/dev/level-design.md 「7」): 떠 있는 글씨(랜드마크 · 구간 POI) + 종류 블록 · 공사 중 경계 ─────
+labels = landmark_greybox.build_dev_labels(placer, raw)
+posts, signs = landmark_greybox.build_construction_fence(placer, raw)
+count("DevLabel", labels + signs)
+count("ConstructionPost", posts)
+log(f"개발 표시: 글씨 {labels}(랜드마크 · 구간 POI) + 공사 중 글씨 {signs}, 공사 중 기둥 {posts}")
 
 # ───── 8. 마법탑(L_Tower 와 같은 그레이박스를 탑 자리에) ─────
 tower_x, tower_y = map_to_world(raw["TowerHill"]["Center"]["X"], raw["TowerHill"]["Center"]["Y"])

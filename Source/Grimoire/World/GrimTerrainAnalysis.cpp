@@ -44,6 +44,10 @@ FString FGrimTerrainAnalysisResult::ToString() const
 	Text += FString::Printf(TEXT("\n시선: 길 샘플 %d 곳, 보이는 POI · 랜드마크 최소 %d · 평균 %.1f, 모자란 곳 %d\n"), PathSamples, MinVisible, MeanVisible, SightFailures);
 	Text += FString::Printf(TEXT("밀도: 길 위 가장 먼 POI 거리 %.0f m (%.0f, %.0f), 넘는 곳 %d\n"), MaxPoiDistance, MaxPoiDistanceAt.X, MaxPoiDistanceAt.Y, DensityFailures);
 	Text += FString::Printf(TEXT("길: 길이 %.0f m, 가장 가파른 경사 %.1f° (%.0f, %.0f)"), PathLength, MaxPathGradeDeg, MaxPathGradeAt.X, MaxPathGradeAt.Y);
+	if (Sector.bValid)
+	{
+		Text += TEXT("\n") + Sector.ToString();
+	}
 	return Text;
 }
 
@@ -79,8 +83,22 @@ FVector FGrimTerrainAnalysis::PoiTop(const FGrimTerrainLayout& Layout, const FGr
 
 TArray<FName> FGrimTerrainAnalysis::VisibleFrom(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps, double U, double V, double EyeHeight, double FloorHeight)
 {
-	TArray<FName> Seen;
 	const FVector Eye(U, V, FMath::Max(static_cast<double>(FGrimTerrainGenerator::SampleHeight(Maps, U, V)), FloorHeight) + EyeHeight);
+	TArray<FName> Seen = VisibleLandmarks(Layout, Maps, Eye);
+	for (const FGrimTerrainPoi& Poi : Layout.Pois)
+	{
+		const FVector Top = PoiTop(Layout, Maps, Poi);
+		if (FVector2D::Distance(FVector2D(Eye), FVector2D(Top)) <= Layout.Analysis.PoiViewDistance && IsVisible(Maps, Eye, Top))
+		{
+			Seen.Add(Poi.Name);
+		}
+	}
+	return Seen;
+}
+
+TArray<FName> FGrimTerrainAnalysis::VisibleLandmarks(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps, const FVector& Eye)
+{
+	TArray<FName> Seen;
 	for (const FGrimTerrainLandmark& Landmark : Layout.Landmarks)
 	{
 		const FVector Top = LandmarkTop(Maps, Landmark);
@@ -106,15 +124,309 @@ TArray<FName> FGrimTerrainAnalysis::VisibleFrom(const FGrimTerrainLayout& Layout
 			Seen.Add(Landmark.Name);
 		}
 	}
-	for (const FGrimTerrainPoi& Poi : Layout.Pois)
+	return Seen;
+}
+
+bool FGrimTerrainAnalysis::IsInSector(const FGrimTerrainSectorSpec& Sector, const FVector2D& P)
+{
+	return Sector.Polygon.Num() >= 3 && FGrimTerrainGenerator::PolygonSignedDistance(Sector.Polygon, P) >= 0.0;
+}
+
+FString FGrimTerrainSectorResult::ToString() const
+{
+	if (!bValid)
 	{
-		const FVector Top = PoiTop(Layout, Maps, Poi);
-		if (FVector2D::Distance(FVector2D(Eye), FVector2D(Top)) <= Layout.Analysis.PoiViewDistance && IsVisible(Maps, Eye, Top))
+		return TEXT("구간: 없음(Analysis.Sector.Polygon)");
+	}
+	FString Text = FString::Printf(TEXT("구간 %s: 땅 %.2f km²\n"), *Name.ToString(), LandArea / 1.0e6);
+	Text += FString::Printf(TEXT("  경사(샘플 %d): 5~25° %.1f%%, 평지(0~3°) %.1f%%, 3~5° %.1f%%, 25° 넘음 %.1f%%\n"),
+		SlopeSamples, RollingFraction * 100.0, FlatFraction * 100.0, GentleFraction * 100.0, SteepFraction * 100.0);
+	Text += FString::Printf(TEXT("  언덕 %d(손 %d), 지름 %.0f~%.0f m · 높이 %.1f~%.1f m, 범위 밖 %d, 가장 가까운 언덕까지 가운데값 %.0f m(%.0f~%.0f), 작은 모양(둔덕 · 골 · 바위) %d\n"),
+		HillCount, HandHillCount, HillDiameterMin, HillDiameterMax, HillHeightMin, HillHeightMax, HillOutOfRange, HillSpacingMedian, HillSpacingMin, HillSpacingMax, SmallShapeCount);
+	Text += FString::Printf(TEXT("  POI %d, 가장 가까운 POI 까지 %.0f~%.0f m, 범위 밖 %d"), PoiCount, PoiSpacingMin, PoiSpacingMax, PoiSpacingFailures);
+	for (const FName& Fail : PoiSpacingFailNames)
+	{
+		Text += TEXT(" ") + Fail.ToString();
+	}
+	Text += FString::Printf(TEXT("\n  길 %.0f m(샘플 %d): 가장 먼 POI %.0f m (%.0f, %.0f), 넘는 곳 %d\n"), PathLength, PathSamples, MaxPoiDistance, MaxPoiDistanceAt.X, MaxPoiDistanceAt.Y, DensityFailures);
+	Text += FString::Printf(TEXT("  가림(눈 높이 → 땅 위): 전체 %.1f%%"), Occlusion * 100.0);
+	for (int32 Index = 0; Index < OcclusionDistances.Num(); ++Index)
+	{
+		Text += FString::Printf(TEXT(", %.0f m %.0f%%"), OcclusionDistances[Index], OcclusionByDistance[Index] * 100.0);
+	}
+	Text += FString::Printf(TEXT(", 점 하나 최저 %.0f%% (%.0f, %.0f), 모자란 점 %d\n"), OcclusionPointMin * 100.0, OcclusionPointMinAt.X, OcclusionPointMinAt.Y, OcclusionPointFailures);
+	Text += FString::Printf(TEXT("  랜드마크: 최소 %d · 평균 %.1f, 기준 개수 이상인 점 %.0f%%(모자란 점 %d), 보인 것:"), LandmarksMin, LandmarksMean, LandmarkFraction * 100.0, LandmarkFailures);
+	for (const FName& Seen : LandmarksSeen)
+	{
+		Text += TEXT(" ") + Seen.ToString();
+	}
+	return Text;
+}
+
+FGrimTerrainSectorResult FGrimTerrainAnalysis::RunSector(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps)
+{
+	using namespace GrimTerrainAnalysisLocal;
+
+	FGrimTerrainSectorResult Result;
+	const FGrimTerrainSectorSpec& Spec = Layout.Analysis.Sector;
+	if (!Maps.IsValid() || Spec.Polygon.Num() < 3)
+	{
+		return Result;
+	}
+	Result.bValid = true;
+	Result.Name = Spec.Name;
+	FBox2D Box(ForceInit);
+	for (const FVector2D& Point : Spec.Polygon)
+	{
+		Box += Point;
+	}
+
+	// 경사 분포 — 구간 안 물 밖 땅
+	{
+		const FGrimTerrainAnalysisSpec& A = Layout.Analysis;
+		const double Step = FMath::Max(A.SlopeSampleStep, 1.f);
+		int64 Flat = 0, Gentle = 0, Rolling = 0, Steep = 0;
+		for (double V = Box.Min.Y; V <= Box.Max.Y; V += Step)
 		{
-			Seen.Add(Poi.Name);
+			for (double U = Box.Min.X; U <= Box.Max.X; U += Step)
+			{
+				if (!IsInSector(Spec, FVector2D(U, V)) || !IsLand(Layout, Maps, U, V))
+				{
+					continue;
+				}
+				const float Slope = FGrimTerrainGenerator::SampleSlopeDeg(Maps, U, V);
+				if (Slope <= A.FlatMaxDeg) { ++Flat; }
+				else if (Slope < A.RollingMinDeg) { ++Gentle; }
+				else if (Slope <= A.RollingMaxDeg) { ++Rolling; }
+				else { ++Steep; }
+			}
+		}
+		const int64 AllCount = Flat + Gentle + Rolling + Steep;
+		const double All = static_cast<double>(FMath::Max<int64>(AllCount, 1));
+		Result.SlopeSamples = static_cast<int32>(AllCount);
+		Result.LandArea = AllCount * Step * Step;
+		Result.FlatFraction = Flat / All;
+		Result.GentleFraction = Gentle / All;
+		Result.RollingFraction = Rolling / All;
+		Result.SteepFraction = Steep / All;
+	}
+
+	// 언덕 — 가운데가 구간 안인 것(작은 모양은 따로 센다)
+	{
+		TArray<const FGrimTerrainPlacedHill*> Big;
+		for (const FGrimTerrainPlacedHill& Hill : Maps.PlacedHills)
+		{
+			if (!Hill.bSmallShape)
+			{
+				Big.Add(&Hill);
+			}
+		}
+		TArray<double> Spacings;
+		Result.HillHeightMin = Result.HillDiameterMin = TNumericLimits<double>::Max();
+		for (const FGrimTerrainPlacedHill& Hill : Maps.PlacedHills)
+		{
+			if (!IsInSector(Spec, Hill.Center))
+			{
+				continue;
+			}
+			if (Hill.bSmallShape)
+			{
+				++Result.SmallShapeCount;
+				continue;
+			}
+			++Result.HillCount;
+			if (Hill.bHandPlaced)
+			{
+				++Result.HandHillCount;
+			}
+			else
+			{
+				const double Diameter = Hill.Radius * 2.0;
+				Result.HillHeightMin = FMath::Min(Result.HillHeightMin, static_cast<double>(Hill.Height));
+				Result.HillHeightMax = FMath::Max(Result.HillHeightMax, static_cast<double>(Hill.Height));
+				Result.HillDiameterMin = FMath::Min(Result.HillDiameterMin, Diameter);
+				Result.HillDiameterMax = FMath::Max(Result.HillDiameterMax, Diameter);
+				Result.HillOutOfRange += (Diameter < Spec.HillDiameterRange.X - 0.1 || Diameter > Spec.HillDiameterRange.Y + 0.1
+					|| Hill.Height < Spec.HillHeightRange.X - 0.01 || Hill.Height > Spec.HillHeightRange.Y + 0.01) ? 1 : 0;
+			}
+			double Nearest = TNumericLimits<double>::Max();
+			for (const FGrimTerrainPlacedHill* Other : Big)
+			{
+				if (Other != &Hill)
+				{
+					Nearest = FMath::Min(Nearest, FVector2D::Distance(Hill.Center, Other->Center));
+				}
+			}
+			if (Nearest < TNumericLimits<double>::Max())
+			{
+				Spacings.Add(Nearest);
+			}
+		}
+		if (Result.HillHeightMin == TNumericLimits<double>::Max())
+		{
+			Result.HillHeightMin = Result.HillDiameterMin = 0.0;
+		}
+		if (Spacings.Num() > 0)
+		{
+			Spacings.Sort();
+			Result.HillSpacingMedian = Spacings[Spacings.Num() / 2];
+			Result.HillSpacingMin = Spacings[0];
+			Result.HillSpacingMax = Spacings.Last();
 		}
 	}
-	return Seen;
+
+	// POI — 구간 안 POI 마다 가장 가까운 다른 POI(구간 밖 포함)
+	{
+		Result.PoiSpacingMin = TNumericLimits<double>::Max();
+		for (const FGrimTerrainPoi& Poi : Layout.Pois)
+		{
+			if (!IsInSector(Spec, Poi.Center))
+			{
+				continue;
+			}
+			++Result.PoiCount;
+			double Nearest = TNumericLimits<double>::Max();
+			for (const FGrimTerrainPoi& Other : Layout.Pois)
+			{
+				if (&Other != &Poi)
+				{
+					Nearest = FMath::Min(Nearest, FVector2D::Distance(Poi.Center, Other.Center));
+				}
+			}
+			Result.PoiSpacingMin = FMath::Min(Result.PoiSpacingMin, Nearest);
+			Result.PoiSpacingMax = FMath::Max(Result.PoiSpacingMax, Nearest);
+			if (Nearest < Spec.PoiSpacingMin - 0.5 || Nearest > Spec.PoiSpacingMax + 0.5)
+			{
+				++Result.PoiSpacingFailures;
+				Result.PoiSpacingFailNames.Add(Poi.Name);
+			}
+		}
+		if (Result.PoiCount == 0)
+		{
+			Result.PoiSpacingMin = 0.0;
+		}
+	}
+
+	// 길 — 밀도(10 m 마다) · 가림 · 랜드마크(PathSampleStep 마다)
+	const int32 Directions = FMath::Max(Spec.OcclusionDirections, 4);
+	for (double D = Spec.OcclusionMinDistance; D <= Spec.OcclusionMaxDistance + 0.01; D += FMath::Max(Spec.OcclusionStep, 1.f))
+	{
+		Result.OcclusionDistances.Add(D);
+	}
+	TArray<int64> HiddenByDistance, TotalByDistance;
+	HiddenByDistance.SetNumZeroed(Result.OcclusionDistances.Num());
+	TotalByDistance.SetNumZeroed(Result.OcclusionDistances.Num());
+	const double MapW = (Maps.SizeX - 1) * Maps.QuadSize;
+	const double MapH = (Maps.SizeY - 1) * Maps.QuadSize;
+	Result.OcclusionPointMin = 1.0;
+	Result.LandmarksMin = TNumericLimits<int32>::Max();
+	double LandmarkSum = 0.0;
+	TSet<FName> SeenAny;
+	for (const FGrimTerrainPathLine& Line : Maps.PathLines)
+	{
+		if (Line.Points.Num() < 2)
+		{
+			continue;
+		}
+		const double PointStep = Line.Length / (Line.Points.Num() - 1);
+		const int32 DensityEvery = FMath::Max(1, FMath::RoundToInt32(10.0 / FMath::Max(PointStep, 0.01)));
+		for (int32 Index = 0; Index < Line.Points.Num(); Index += DensityEvery)
+		{
+			const FVector2D P(Line.Points[Index].X, Line.Points[Index].Y);
+			if (!IsInSector(Spec, P))
+			{
+				continue;
+			}
+			Result.PathLength += DensityEvery * PointStep;
+			double Nearest = TNumericLimits<double>::Max();
+			for (const FGrimTerrainPoi& Poi : Layout.Pois)
+			{
+				Nearest = FMath::Min(Nearest, FVector2D::Distance(P, Poi.Center));
+			}
+			if (Nearest > Result.MaxPoiDistance)
+			{
+				Result.MaxPoiDistance = Nearest;
+				Result.MaxPoiDistanceAt = P;
+			}
+			Result.DensityFailures += Nearest > Spec.PoiMaxDistance ? 1 : 0;
+		}
+
+		const int32 Every = FMath::Max(1, FMath::RoundToInt32(Spec.PathSampleStep / FMath::Max(PointStep, 0.01)));
+		for (int32 Index = 0; Index < Line.Points.Num(); Index += Every)
+		{
+			const FVector& P = Line.Points[Index];
+			if (!IsInSector(Spec, FVector2D(P.X, P.Y)))
+			{
+				continue;
+			}
+			++Result.PathSamples;
+			const FVector Eye(P.X, P.Y, FMath::Max(static_cast<double>(FGrimTerrainGenerator::SampleHeight(Maps, P.X, P.Y)), P.Z) + Spec.EyeHeight);
+
+			int32 PointHidden = 0, PointTotal = 0;
+			for (int32 Dir = 0; Dir < Directions; ++Dir)
+			{
+				const double Angle = 2.0 * UE_DOUBLE_PI * Dir / Directions;
+				const FVector2D Way(FMath::Cos(Angle), FMath::Sin(Angle));
+				for (int32 DistIndex = 0; DistIndex < Result.OcclusionDistances.Num(); ++DistIndex)
+				{
+					const FVector2D At = FVector2D(P.X, P.Y) + Way * Result.OcclusionDistances[DistIndex];
+					if (At.X < 0.0 || At.Y < 0.0 || At.X > MapW || At.Y > MapH)
+					{
+						continue;
+					}
+					const FVector Target(At.X, At.Y, FMath::Max(static_cast<double>(FGrimTerrainGenerator::SampleHeight(Maps, At.X, At.Y)), static_cast<double>(Layout.SeaLevel)) + Spec.OcclusionTargetHeight);
+					const bool bHidden = !IsVisible(Maps, Eye, Target, 2.0);
+					HiddenByDistance[DistIndex] += bHidden ? 1 : 0;
+					++TotalByDistance[DistIndex];
+					PointHidden += bHidden ? 1 : 0;
+					++PointTotal;
+				}
+			}
+			const double PointFraction = PointTotal > 0 ? static_cast<double>(PointHidden) / PointTotal : 0.0;
+			if (PointFraction < Result.OcclusionPointMin)
+			{
+				Result.OcclusionPointMin = PointFraction;
+				Result.OcclusionPointMinAt = FVector2D(P.X, P.Y);
+			}
+			Result.OcclusionPointFailures += PointFraction < Spec.OcclusionPointMinFraction ? 1 : 0;
+
+			const TArray<FName> Landmarks = VisibleLandmarks(Layout, Maps, Eye);
+			LandmarkSum += Landmarks.Num();
+			Result.LandmarksMin = FMath::Min(Result.LandmarksMin, Landmarks.Num());
+			if (Landmarks.Num() < Spec.MinLandmarksVisible)
+			{
+				++Result.LandmarkFailures;
+				Result.LandmarkFailPoints.Add(FVector2D(P.X, P.Y));
+			}
+			for (const FName& Name : Landmarks)
+			{
+				SeenAny.Add(Name);
+			}
+		}
+	}
+	int64 Hidden = 0, Total = 0;
+	for (int32 Index = 0; Index < Result.OcclusionDistances.Num(); ++Index)
+	{
+		Result.OcclusionByDistance.Add(TotalByDistance[Index] > 0 ? static_cast<double>(HiddenByDistance[Index]) / TotalByDistance[Index] : 0.0);
+		Hidden += HiddenByDistance[Index];
+		Total += TotalByDistance[Index];
+	}
+	Result.Occlusion = Total > 0 ? static_cast<double>(Hidden) / Total : 0.0;
+	if (Result.PathSamples == 0)
+	{
+		Result.LandmarksMin = 0;
+		Result.OcclusionPointMin = 0.0;
+	}
+	Result.LandmarksMean = Result.PathSamples > 0 ? LandmarkSum / Result.PathSamples : 0.0;
+	Result.LandmarkFraction = Result.PathSamples > 0 ? 1.0 - static_cast<double>(Result.LandmarkFailures) / Result.PathSamples : 0.0;
+	for (const FGrimTerrainLandmark& Landmark : Layout.Landmarks)
+	{
+		if (SeenAny.Contains(Landmark.Name))
+		{
+			Result.LandmarksSeen.Add(Landmark.Name);
+		}
+	}
+	return Result;
 }
 
 FGrimTerrainAnalysisResult FGrimTerrainAnalysis::Run(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps)
@@ -283,5 +595,6 @@ FGrimTerrainAnalysisResult FGrimTerrainAnalysis::Run(const FGrimTerrainLayout& L
 		Result.MinVisible = 0;
 	}
 	Result.MeanVisible = Result.PathSamples > 0 ? VisibleSum / Result.PathSamples : 0.0;
+	Result.Sector = RunSector(Layout, Maps);
 	return Result;
 }
