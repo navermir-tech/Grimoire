@@ -1,4 +1,5 @@
 #include "Creatures/GrimCreature.h"
+#include "Items/GrimItemStatics.h"
 #include "Creatures/GrimCreatureAIController.h"
 #include "Creatures/GrimCreatureAttackAbility.h"
 #include "Creatures/GrimCreatureSettings.h"
@@ -941,10 +942,12 @@ void AGrimCreature::Die(AActor* Killer, AActor* KillerPawn)
 void AGrimCreature::SpawnLootPickups(const TArray<FGrimCreatureLootDrop>& Drops)
 {
 	const FVector Location = GetActorLocation();
-	for (const FGrimCreatureLootDrop& Drop : Drops)
+	for (int32 Index = 0; Index < Drops.Num(); ++Index)
 	{
-		// TODO(갈래 I): UGrimItemStatics::SpawnPickup(GetWorld(), Drop.ItemId, Drop.Count, Location) — 아이템 갈래가 합쳐지면 여기서 부른다.
-		// 그 전에는 이벤트만: 듣는 쪽(아이템 · UI · 시험 스크립트)이 아이템 id · 개수를 받는다.
+		const FGrimCreatureLootDrop& Drop = Drops[Index];
+		// 전리품을 몸 둘레에 조금씩 흩어 놓는다(겹쳐 하나로 보이지 않게).
+		const FVector Offset = FRotator(0.f, 360.f * Index / FMath::Max(1, Drops.Num()), 0.f).Vector() * 40.f;
+		UGrimItemStatics::SpawnPickup(GetWorld(), Drop.ItemId, Drop.Count, Location + Offset);
 		UE_LOG(LogGrimCreatures, Display, TEXT("[Server] 전리품 %s x%d (%s seed=%d)"), *Drop.ItemId.ToString(), Drop.Count, *Instance.SpeciesId.ToString(), Instance.Seed);
 		OnLootDroppedNative.Broadcast(this, Drop.ItemId, Drop.Count, Location);
 		OnLootDropped.Broadcast(this, Drop.ItemId, Drop.Count, Location);
