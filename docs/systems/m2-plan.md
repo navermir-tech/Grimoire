@@ -29,3 +29,12 @@
 ## 빌드 · 확인 규칙
 
 [M1.5 작업 분할](./m15-plan#빌드-·-확인-규칙)과 같다. 새 자동화 테스트는 `Grimoire.Targeting.Zoom.*` · `Grimoire.Survival.*` · `Grimoire.Environment.*` · `Grimoire.Magic.Proficiency.*` · `Grimoire.UI.*` 아래.
+
+## 통합 결과 (2026-11-05)
+
+- Z(`8187f64`) → W(`2322dfd`) → S(`80a8c94`) → G(`ee55dba`) 순으로 main 에 합쳤다. 충돌은 `Config/DefaultGame.ini` 두 번(섹션을 모두 살림)뿐.
+- 통합 때 고친 것: 줌인 조준이면 마법이 대상을 따라가지 않고 겨눈 지점으로(`UGrimSpellAbility::FollowsTarget`, 테스트 `Grimoire.Magic.Delivery.ZoomAim`), 생존 체온이 지붕 아래면 날씨 몫을 뺀 지역 등급을 쓴다(`IsActorSheltered` · `GetClimateExposureBreakdown`).
+- 확인: 빌드 성공, 자동화 테스트 72개 통과, `net_check_delivery.ps1` 2인 회귀 그대로. 갈래별 2인 확인은 각 보고 — 날씨 복제 · 비에 양초 꺼짐(W), 전원 잠 → 밤 건너뛰기 · 쓰러짐 · 부활(S), 줌 상태 복제(Z). G 의 복제(숙련도 · 슬롯 RPC)는 사람 2인 PIE 로 본다.
+- 남은 것(다음 묶음): 세이브 v1, 마법탑 튜토리얼 흐름 · 탑 시험, 레벨 · 속성 성장 트리, 기본 공격(R26) · 호그와트식 조작(숫자키 슬롯 바로 시전 — 지금은 「고른 마법」 시전), 감기 「가끔 끊김」, HUD 의 체온 등급 · 밤 건너뛰기 페이드 · 쓰러짐 시간 표시, 맵 배치(침대 · 스킬북 · 기후 시험 볼륨), 낙뢰 피해, 정식 이펙트.
+- 사람 눈으로 볼 것: HUD · 그리모어 화면(한글 글꼴 · Tab 포커스 · 커서), 줌 카메라, 침대 F 키, 날씨 연출(비 · 눈 · 모래가 같은 임시 이펙트), 시전 연출 · 그리모어 책.
+
