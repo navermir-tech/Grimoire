@@ -1,6 +1,6 @@
 # 투사체 · 시전 감각 (Spell Feel)
 
-> 상태: **구현 문서 v1** · 2026-11-05 · 마일스톤 **M1.5 「시전 감각」** (M1 다음, M2 전)
+> 상태: **구현 문서 v1.1** · 2026-11-05 · 마일스톤 **M1.5 「시전 감각」** (M1 다음, M2 전) — 전달 방식 · 네트워크(갈래 A) 코드 반영
 >
 > 레퍼런스: **호그와트 레거시**의 마법 시전 · 투사체. 관련: [마법 시스템](./magic) · [소프트 락온 (R17)](./magic#소프트-락온-r17) · [스펙 — 마법](../spec/magic)
 
@@ -55,15 +55,16 @@
 
 | 필드 | 뜻 |
 |---|---|
-| `Delivery` | `Bolt · Stream · Cone · Beam · Lob` |
-| `BoltSpeed` · `HomingStrength` | Bolt 속도(제안 6000~9000 cm/s), 락온 대상 유도 세기(0 = 없음) |
-| `StreamLaunchSpeed` · `StreamGravityScale` · `StreamTickInterval` · `StreamSegments` | 물줄기 포물선 · 판정 주기 · 구간 수 |
-| `ConeHalfAngle` · `ConeRange` · `ConeFalloff` | 원뿔 반각 · 거리 · 거리별 세기 곡선 |
-| `bChanneled` | 누르고 있는 동안 지속(Stream) |
+| `Delivery` | `Bolt · Stream · Cone · Beam · Lob`(Lob 은 열거형만 — 지금은 중력 있는 Bolt) |
+| `BoltSpeed` · `HomingStrength` | Bolt 속도(제안 6000~9000 cm/s), 락온 대상 유도 = 초당 최대 회전 각(°, 0 = 없음) |
+| `StreamLaunchSpeed` · `StreamGravityScale` · `StreamTickInterval` · `StreamSegments` | 물줄기 포물선 · 판정 주기 · 구간 수. 비행 시간 = `Range ÷ StreamLaunchSpeed` |
+| `StreamSplashRadius` · `StreamStimulusInterval` | 떨어진 곳 물보라 반지름(그 안의 것도 맞음) · 한 대상에 자극을 주는 간격(처음 닿으면 바로). 1.0 = "초당 1.0" |
+| `ConeHalfAngle` · `ConeRange` · `ConeFalloff` | 원뿔 반각 · 거리 · 거리별 세기 `FGrimConeFalloff { NearDistance, NearIntensity, FarIntensity, Exponent }` |
+| `bChanneled` · `ChannelManaPerSecond` | 누르고 있는 동안 지속(Stream) · 그동안 초당 마나(Q19) |
 | `CastMontage` · `CastWindup` | 시전 동작 · 실제 발사까지 시간(제안 0.08~0.12초) |
 | `VisualSet` | 속성별 이펙트 묶음(아래 `UGrimSpellVisualSet`) |
 
-수치는 지금처럼 데이터 에셋(`DA_Spell_*`)과 `DefaultGame.ini` 에 둔다.
+수치는 지금처럼 데이터 에셋(`DA_Spell_*`, 정본 `Scripts/Magic/make_spells.py`)과 `DefaultGame.ini`(`MaxLagCompensation` · `CloseAimDistance` · `ChestHeight` · `HomingMaxAngle` · 검증 허용치)에 둔다. 값 표는 [마법 시스템 — 시작 마법](./magic#시작-마법-m1-5-제안값). 순수 계산은 `Magic/GrimSpellDelivery`(액터를 모름 — 어빌리티 · 투사체 · 연출 · 테스트가 같은 식).
 
 ### 연출 — `UGrimSpellVisualSet` (DataAsset)
 
@@ -76,24 +77,27 @@
 | `CameraShake` | 아주 약한 흔들림(시전 · 큰 피격) |
 | `ElementColor` | 트레일 · 대상 표식 공통 색 |
 
-연출은 전부 **GameplayCue**(`GC_Spell_<마법>_Cast/Impact`)로 띄운다. GAS 가 예측 · 복제를 맡아 시전자는 바로, 다른 사람은 복제로 본다. 이펙트 에셋은 갈래 작업 때처럼 파이썬 헤드리스 또는 에디터에서 만든다.
+연출은 **GameplayCue** 세 태그로 띄운다 — `GameplayCue.Spell.Cast`(누르는 순간, 예측) · `.Channel`(Stream 누르는 동안 Add/Remove, 예측) · `.Impact`(서버 확정 뒤 모두). 마법마다 큐를 따로 두지 않고 처리기가 `SourceObject`(정의)의 `VisualSet` 을 읽는다. GAS 가 예측 · 복제를 맡아 시전자는 바로, 다른 사람은 복제로 본다. 실행 위치 · 파라미터는 [마법 시스템 — 연출 큐](./magic#연출-큐-gameplaycue). 볼트 꼬리만은 투사체가 `Trail` 을 직접 붙인다(움직이는 액터). 이펙트 에셋은 갈래 작업 때처럼 파이썬 헤드리스 또는 에디터에서 만든다.
 
 ### 네트워크 — "내 화면에서는 즉시"
 
 | 마법 방식 | 시전자(로컬) | 서버 | 다른 클라이언트 |
 |---|---|---|---|
-| Bolt | 누르는 즉시 **가짜 볼트**(충돌 없음, 연출만)를 쏜다 | 진짜 투사체를 스폰해 판정. 시전자 화면의 가짜 볼트와 시간 차를 줄이려 서버 투사체는 시전자 지연만큼 앞으로 당겨 시작(지연 보정 상한 0.15초) | 진짜 투사체 복제를 보고, 가짜는 시전자에게만 |
-| Stream | 로컬에서 바로 줄기를 그림(예측 큐) | 0.1초마다 판정 · 자극 | 지속 큐(`GC` Add/Remove)로 줄기를 그림 |
-| Cone | 로컬에서 바로 파동 그림 | 즉시 판정 | 큐로 파동 그림 |
+| Bolt | 누르는 즉시 Cast 큐(예측), `CastWindup` 뒤 **가짜 볼트**(판정 없음, 지형에서 멈춤)를 쏜다. 진짜 복제본은 숨긴다 | 진짜 투사체를 스폰해 판정. 지연 L(핑 ÷ 2)이 Windup 보다 작으면 남은 만큼 기다렸다가, 크면 바로 쏘고 넘은 만큼 앞으로 당겨 시작(`CatchUp`, 상한 0.15초) | 진짜 투사체 복제를 보고, 가짜는 시전자에게만 |
+| Stream | 로컬에서 바로 Cast · Channel 큐(예측) | 0.1초마다 판정 · 자극 · 마나 | Channel 큐(Add/Remove)로 줄기를 그림 |
+| Cone | 로컬에서 바로 Cast 큐(예측) | Windup 뒤 즉시 판정 | Cast 큐로 파동 그림 |
 
-- 맞았을 때의 터짐은 **서버 확정 뒤** 큐로 모두에게. 시전자의 가짜 볼트는 서버 결과가 오면 사라진다(맞은 자리에서 터짐 큐가 대신함).
-- 지금 `GrimSpellAbility` 의 서버 전용 스폰은 그대로 판정용으로 두고, 가짜 볼트 · 큐만 더한다.
+- 서버는 시전자가 보낸 TargetData 콜백 안(클라이언트 예측 키 창)에서 Cast · Channel 큐를 실행한다 → 시전자는 두 번 보지 않고, 다른 사람은 서버 것을 본다.
+- 맞았을 때의 터짐은 **서버 확정 뒤** Impact 큐로 모두에게. 시전자의 가짜 볼트는 진짜가 사라지면 같이 사라진다(맞은 자리에서 터짐 큐가 대신함).
+- 한 번 쏘는 마법(Bolt · Cone)은 서버가 판정한 뒤 어빌리티를 끝낸다 — 시전자가 먼저 끝내면 끝 RPC 가 판정보다 먼저 처리될 수 있다. Stream 은 시전자가 떼면 끝나고, 서버가 아직 한 번도 판정하지 않았으면 끝나기 전에 한 번 한다(짧게 눌러도 양초는 꺼진다).
+- 확인: `Scripts/Integration/net_check_delivery.ps1`(원격 클라이언트가 실제로 시전, 양쪽 상태 비교).
 
 ### 조준 — 카메라와 완드의 시차 보정
 
-1. 조준점: 소프트 락온 대상이 있으면 그 대상의 조준점, 없으면 카메라 중앙에서 사거리까지 트레이스한 지점.
-2. 발사 방향: **완드 끝 → 조준점**. 단, 완드 끝과 조준점 사이가 막혀 있으면(벽 모서리) 그 막힌 지점을 맞힌다.
-3. 아주 가까운 대상(2m 안)은 완드 끝 대신 가슴 높이에서 쏴서 어깨 너머로 엉뚱하게 날아가지 않게 한다.
+1. 조준점: `IGrimAimProvider::GetCurrentAim` — 소프트 락온 대상이 있으면 그 대상의 조준점, 없으면 카메라 중앙에서 사거리까지 트레이스한 지점. 제공자가 없으면 어빌리티가 카메라 정면 트레이스. 대상이 있으면 Windup 뒤 발사할 때 대상의 지금 조준점을 다시 읽는다.
+2. 발사 방향: **완드 끝 → 조준점**(`GrimSpellDelivery::ComputeLaunch`). 완드 끝과 조준점 사이가 막혀 있으면(벽 모서리) 투사체 · 스윕이 그 막힌 지점을 맞힌다. 조준점이 완드 끝 뒤(카메라와 완드 사이)면 시선 방향 그대로.
+3. 아주 가까운 대상(`CloseAimDistance` 2m 안)은 완드 끝 대신 가슴 높이(폰 위치 + `ChestHeight` 40cm)에서 쏴서 어깨 너머로 엉뚱하게 날아가지 않게 한다.
+4. Stream 은 조준점을 지나는 낮은 포물선으로 쏜다(`SolveLaunchDirection`). 닿지 않는 거리면 그 방향 45°(가장 멀리).
 
 ### 시전 동작
 
@@ -140,6 +144,6 @@
 
 ## 테스트
 
-- 순수 계산(포물선 구간, 원뿔 판정, 거리별 세기, 시차 보정 방향)은 `Grimoire.Magic.Delivery.*` 자동화 테스트.
-- 2인 확인은 `Scripts/Integration/net_check.ps1` 방식(헤드리스 리슨 서버 + 클라이언트 덤프)을 넓혀 Stream · Cone 의 자극 결과가 양쪽에서 같은지 본다.
+- 순수 계산은 `Grimoire.Magic.Delivery.*` 자동화 테스트: `.Parallax`(시차 보정) · `.Homing`(유도) · `.StreamArc`(포물선 · 낮은 호) · `.Cone`(원뿔 판정) · `.Falloff`(거리별 세기 + 미풍 에셋이 양초 규칙에 맞음) · `.Network`(자극 주기 · 지연 보정 · TargetData 검증 · 왕복) · `.StartingSpells`(시작 마법 전달 방식).
+- 2인 확인은 `Scripts/Integration/net_check_delivery.ps1`(net_check.ps1 과 같은 헤드리스 리슨 서버 + 클라이언트): 원격 클라이언트가 `Grim.Magic.Cast` 로 양초에 불씨 → 6m 미풍 → 1.2m 미풍 → 불씨 → 물줄기를 쏘고, 양쪽 `Grim.Interaction.Dump` 가 같은지 본다.
 - 손맛은 사람 눈이 필요하다 — 마일스톤 끝에 사용자 플레이 테스트.
