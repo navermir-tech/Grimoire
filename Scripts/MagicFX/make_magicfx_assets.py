@@ -1,7 +1,8 @@
 # M1.5 갈래 C 「연출 · 동작」 에셋을 만든다 / 고친다. 값은 이 스크립트가 정본이다.
 #  - 머티리얼: M_GrimFX_Glow(색 펄스 · 줄기 구슬) · M_GrimFX_Book(그리모어) · M_GrimFX_Decal(그을음 · 젖음)
 #  - GameplayCue: GC_Spell_Cast · GC_Spell_Impact · GC_Spell_Channel (C++ 처리기의 블루프린트 자식)
-#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 이펙트는 Niagara Examples Pack(없는 칸은 엔진 기본 템플릿)
+#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 불씨 · 기본 공격은 자체 제작(make_fx_niagara.py),
+#    물줄기 · 미풍은 아직 Niagara Examples Pack(없는 칸은 엔진 기본 템플릿)
 #  - 애님: ABP_GrimPlayer = 템플릿 ABP_Unarmed 복제 + 부모를 UGrimSpellPoseAnimInstance 로
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
@@ -20,7 +21,6 @@ ANIM_DIR = ROOT + "/Anim"
 
 # 엔진 기본 파티클(임시 — 사용자 지시 2026-11-05). Niagara 플러그인 기본 템플릿 시스템.
 NS = "/Niagara/DefaultAssets/Templates/Systems/"
-FX_DIRECTIONAL_BURST = NS + "DirectionalBurst.DirectionalBurst"
 FX_DIRECTIONAL_BURST_LW = NS + "DirectionalBurstLightweight.DirectionalBurstLightweight"
 FX_RADIAL_BURST = NS + "RadialBurst.RadialBurst"
 FX_SIMPLE_EXPLOSION = NS + "SimpleExplosion.SimpleExplosion"
@@ -29,11 +29,17 @@ FX_FOUNTAIN_LW = NS + "FountainLightweight.FountainLightweight"
 # Niagara Examples Pack(Fab, Content/NiagaraExamples — 2026-11-05 사용자가 추가). 색은 마법 색으로 입힌다(UGrimSpellVisualSet::TintNiagara).
 # 완드 섬광은 엔진 기본 그대로 — 팩의 NS_Spark_Burst 는 흰 연기가 커서 캐릭터를 가렸다(화면 확인).
 PACK = "/Game/NiagaraExamples/"
-FX_ROCKET_TRAIL = PACK + "FX_Weapons/Trails/NS_RocketTrail.NS_RocketTrail"
-FX_RIBBON_TRAIL = PACK + "FX_Weapons/Trails/NS_SimpleRibbonTrail.NS_SimpleRibbonTrail"
-FX_EXPLOSION_SMALL = PACK + "FX_Explosions/NS_Explosion_Small.NS_Explosion_Small"
 FX_DIRT_EXPLOSION_SMALL = PACK + "FX_Explosions/NS_Dirt_Explosion_Small.NS_Dirt_Explosion_Small"
 FX_BUBBLE_BURST = PACK + "FX_Misc/NS_Bubble_Burst.NS_Bubble_Burst"
+
+# 자체 제작 이펙트(2026-11-06, make_fx_niagara.py 가 GPT 콘셉트 시트대로 조립) — 불씨 · 기본 공격.
+OWN = "/Game/Grimoire/MagicFX/Niagara/"
+FX_EMBER_CAST = OWN + "NS_GrimEmber_Cast.NS_GrimEmber_Cast"
+FX_EMBER_TRAIL = OWN + "NS_GrimEmber_Trail.NS_GrimEmber_Trail"
+FX_EMBER_IMPACT = OWN + "NS_GrimEmber_Impact.NS_GrimEmber_Impact"
+FX_BASIC_CAST = OWN + "NS_GrimBasic_Cast.NS_GrimBasic_Cast"
+FX_BASIC_TRAIL = OWN + "NS_GrimBasic_Trail.NS_GrimBasic_Trail"
+FX_BASIC_IMPACT = OWN + "NS_GrimBasic_Impact.NS_GrimBasic_Impact"
 
 # 엔진 기본 소리(임시).
 SND_PING = "/Engine/EngineSounds/1kSineTonePing.1kSineTonePing"
@@ -274,20 +280,21 @@ def make_visual_sets(decal_mat):
     make_visual_set("VS_Ember", {
         "element_color": srgb("#E0582B"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
-        "muzzle_flash": load(FX_DIRECTIONAL_BURST),
-        "trail": load(FX_ROCKET_TRAIL),
-        "impact": load(FX_EXPLOSION_SMALL),
-        "muzzle_flash_scale": 0.3,
-        "trail_scale": 0.35,
-        "impact_scale": 0.5,
+        "muzzle_flash": load(FX_EMBER_CAST),
+        "trail": load(FX_EMBER_TRAIL),
+        "impact": load(FX_EMBER_IMPACT),
+        "muzzle_flash_scale": 1.0,
+        "trail_scale": 1.0,
+        "impact_scale": 1.0,
         "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.12, "cast_sound_pitch": 1.6,
         "impact_sound": noise, "impact_sound_volume": 0.3, "impact_sound_pitch": 1.5, "impact_sound_duration": 0.15,
         "loop_sound": None,
         "camera_shake": shake, "camera_shake_scale": 1.0,
-        "muzzle_pulse": pulse(SHAPE.SPHERE, (4, 4, 4), (24, 24, 24), 0.12, 10.0, 0.0, 4000.0, 250.0),
+        # 펄스는 빛(포인트 라이트)만 — 모양은 이펙트가 그린다(구 메시 덩어리는 1.0 으로 옅게).
+        "muzzle_pulse": pulse(SHAPE.SPHERE, (2, 2, 2), (10, 10, 10), 0.12, 1.0, 0.0, 4000.0, 250.0),
         "cast_wave": off,
-        "impact_pulse": pulse(SHAPE.SPHERE, (10, 10, 10), (90, 90, 90), 0.3, 8.0, 0.0, 6000.0, 450.0),
+        "impact_pulse": pulse(SHAPE.SPHERE, (4, 4, 4), (20, 20, 20), 0.3, 1.0, 0.0, 6000.0, 450.0),
         "impact_decal": decal(decal_mat, unreal.LinearColor(0.02, 0.015, 0.01, 1), 0.95, 0.9, 70.0, 12.0, 4.0),
         "stream_bead_count": 0,
     })
@@ -347,19 +354,20 @@ def make_visual_sets(decal_mat):
         "element_color": srgb("#CFE3FF"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
         "page_flip_duration": 0.15,
-        "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
-        "trail": load(FX_RIBBON_TRAIL),
-        "impact": load(FX_RADIAL_BURST),
-        "muzzle_flash_scale": 0.2,
+        "muzzle_flash": load(FX_BASIC_CAST),
+        "trail": load(FX_BASIC_TRAIL),
+        "impact": load(FX_BASIC_IMPACT),
+        "muzzle_flash_scale": 1.0,
         "trail_scale": 1.0,
-        "impact_scale": 0.3,
+        "impact_scale": 1.0,
+        "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.06, "cast_sound_pitch": 2.0,
         "loop_sound": None,
         "impact_sound": noise, "impact_sound_volume": 0.15, "impact_sound_pitch": 2.0, "impact_sound_duration": 0.08,
         "camera_shake": shake, "camera_shake_scale": 0.4,
-        "muzzle_pulse": pulse(SHAPE.SPHERE, (3, 3, 3), (14, 14, 14), 0.08, 8.0, 0.0, 2000.0, 180.0),
+        "muzzle_pulse": pulse(SHAPE.SPHERE, (2, 2, 2), (8, 8, 8), 0.08, 1.0, 0.0, 2000.0, 180.0),
         "cast_wave": off,
-        "impact_pulse": pulse(SHAPE.SPHERE, (6, 6, 6), (40, 40, 40), 0.18, 6.0, 0.0, 2500.0, 250.0),
+        "impact_pulse": pulse(SHAPE.SPHERE, (3, 3, 3), (12, 12, 12), 0.18, 1.0, 0.0, 2500.0, 250.0),
         "impact_decal": no_decal,
         "stream_bead_count": 0,
     })
