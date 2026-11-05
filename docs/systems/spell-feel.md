@@ -79,6 +79,32 @@
 
 연출은 **GameplayCue** 세 태그로 띄운다 — `GameplayCue.Spell.Cast`(누르는 순간, 예측) · `.Channel`(Stream 누르는 동안 Add/Remove, 예측) · `.Impact`(서버 확정 뒤 모두). 마법마다 큐를 따로 두지 않고 처리기가 `SourceObject`(정의)의 `VisualSet` 을 읽는다. GAS 가 예측 · 복제를 맡아 시전자는 바로, 다른 사람은 복제로 본다. 실행 위치 · 파라미터는 [마법 시스템 — 연출 큐](./magic#연출-큐-gameplaycue). 볼트 꼬리만은 투사체가 `Trail` 을 직접 붙인다(움직이는 액터). 이펙트 에셋은 갈래 작업 때처럼 파이썬 헤드리스 또는 에디터에서 만든다.
 
+#### 구현 (M1.5 갈래 C — `Source/Grimoire/MagicFX/`)
+
+| 것 | 내용 |
+|---|---|
+| `UGrimCueNotify_SpellCast` (Static) · 에셋 `GC_Spell_Cast` | 누르는 순간: 상체 시전 동작 · 책장 한 장 · 몸을 조준 쪽으로. 정의의 `CastWindup`(불씨 0.1초) 뒤 완드 끝 섬광 파티클 + 속성색 펄스 · 소리 · 흔들림(시전자 화면만). 쓸기(Cone) 마법은 원뿔 파동(`Trail` + 원뿔 펄스)도 여기서. **Bolt 꼬리는 그리지 않는다** — 투사체(갈래 A)가 `Trail` 을 직접 붙인다 |
+| `AGrimCueNotify_SpellChannel` (Actor, 시전자마다 하나) · `GC_Spell_Channel` | Stream 누르는 동안(Add/Remove): 완드 끝에서 조준 방향으로 `Trail` 파티클 + 포물선 물방울 구슬(앞을 막으면 끊김) · 도는 소리, 책장 초당 2장, 오른팔 뻗고 유지. 호는 지금 같은 속도(1400cm/s) · 중력의 근사 — 통합 때 A 의 `TraceStreamArc` 로 바꾼다 |
+| `UGrimCueNotify_SpellImpact` (Static) · `GC_Spell_Impact` | 맞은 곳(`Location` · `Normal`): 터짐 파티클 + 속성색 펄스 · 소리 · 자국 데칼(그을음 · 젖음, 시간이 지나면 흐려짐) |
+| `UGrimMagicFXVisualSet` | `UGrimSpellVisualSet` 의 자식. 임시 연출값(색 펄스 3종 · 자국 · 소리 세기 · 파티클 배율 · 줄기 구슬 · 시전 동작 지정)을 더한다. 에셋 `VS_Ember` · `VS_WaterJet` · `VS_Breeze` |
+| `UGrimMagicFXSettings` (`[/Script/Grimoire.GrimMagicFXSettings]`) | 정의에 `VisualSet` 이 없을 때 속성(`Element.*`)으로 고르는 기본 묶음, 펄스 · 책 머티리얼, 그리모어 클래스, 정의에서 이름으로 읽는 필드(`CastWindup` · `StreamLaunchSpeed` · `StreamGravityScale` · `ConeRange` · `ConeHalfAngle`) |
+| `UGrimSpellCameraShake` | 0.16초 감쇠 사인(피치 0.35° · 요 0.12°) — 「아주 약한」 시전 흔들림 |
+
+- 연출 묶음 찾는 순서: `SourceObject` 가 VisualSet → `SourceObject.VisualSet` 필드(갈래 A 가 만든 필드를 이름으로 — 통합 때 직접 접근으로 바꿔도 됨) → 큐의 `Element.*`(없으면 정의의 `Element`, 그것도 없으면 시전자가 고른 마법) → 설정의 기본 묶음 → `FallbackVisualSet`.
+- 큐 처리기 에셋(`GC_*`, C++ 클래스의 블루프린트 자식)은 `[/Script/GameplayAbilities.AbilitySystemGlobals] GameplayCueNotifyPaths=/Game/Grimoire` 에서 찾는다. 에셋 · 머티리얼 · 애님 BP 는 `Scripts/MagicFX/make_magicfx_assets.py`(헤드리스)가 만든다 — 값은 스크립트가 정본.
+
+#### 임시 이펙트 — 엔진 기본 파티클 (사용자 지시 2026-11-05)
+
+엔진 Niagara 플러그인의 기본 템플릿 시스템(`/Niagara/DefaultAssets/Templates/Systems/`)을 그대로 쓴다. 이 템플릿들은 **색 파라미터가 없어서** 색은 두 겹으로 맞춘다: ① 큐 처리기가 늘 Niagara `User.Color`(Cascade 는 `Color`)를 넘긴다 — 나중에 바꿔 낄 이펙트가 이 사용자 변수를 가지면 바로 속성색이 입혀진다. ② 지금은 **속성색 펄스**(엔진 기본 도형 + 가산 발광 머티리얼 `M_GrimFX_Glow` + 점광원)가 「색이 곧 정보」를 맡는다.
+
+| 묶음 | 색 | 섬광 | 몸통(Trail) | 터짐 | 펄스 · 자국 — 멀리서 구분되는 모양 |
+|---|---|---|---|---|---|
+| `VS_Ember` 불씨 | `#E0582B` | DirectionalBurst | FountainLightweight(투사체 꼬리) | SimpleExplosion | 작은 주황 불덩어리 + 강한 빛, 터지면 큰 주황 구 · 그을음 |
+| `VS_WaterJet` 물줄기 | `#3A7BD5` | DirectionalBurstLightweight | FountainLightweight(줄기) | DirectionalBurst | 파란 물방울 구슬 포물선, 터지면 납작한 물보라 원반 · 젖은 자국 |
+| `VS_Breeze` 미풍 | `#7CC9A6` | DirectionalBurstLightweight | RadialBurst(파동) | RadialBurst | 반투명 연두 원뿔 껍질(사거리 · 반각만큼 퍼짐), 터지면 테두리 빛 구 · 자국 없음 |
+
+소리도 임시로 엔진 기본(`/Engine/EngineSounds/1kSineTonePing` 을 높낮이만 달리 · `WhiteNoise` 를 짧게 끊어 · 줄기는 다시 틀어 반복)을 쓴다. 파티클 배율(0.25~0.6)은 눈으로 본 값이 아니라 추정이다 — 플레이로 맞춘다.
+
 ### 네트워크 — "내 화면에서는 즉시"
 
 | 마법 방식 | 시전자(로컬) | 서버 | 다른 클라이언트 |
@@ -101,19 +127,32 @@
 
 ### 시전 동작
 
-- 상체만 쓰는 시전 몽타주 3종: 튕기기(Bolt) · 뻗고 유지(Stream) · 쓸기(Cone). 하체는 이동 애니메이션을 그대로 둬 **움직이면서 시전**한다(레퍼런스와 같음).
-- 시전 순간 캐릭터를 조준 방향으로 0.1초 안에 돌린다(서버 확정, 소프트 락온 문서와 같음).
-- 마네킹 애니메이션이 없으면 M1.5 에서는 임시로 팔 IK(완드 끝을 조준 방향으로) + 짧은 상체 흔들림으로 대신한다.
+- 상체만 쓰는 시전 동작 3종: 튕기기(Bolt) · 뻗고 유지(Stream) · 쓸기(Cone). 하체는 이동 애니메이션을 그대로 둬 **움직이면서 시전**한다(레퍼런스와 같음).
+- 시전 순간 캐릭터를 조준 방향(컨트롤 요)으로 0.1초 안에 돌리고 0.4초 동안 그쪽을 본다(그동안 이동 방향 회전을 끈다). 서버는 어빌리티 발동 콜백(`AbilityActivatedCallbacks`)에서, 소유 클라이언트는 예측 발동 · 시전 큐에서 같이 돌린다 — 다른 사람에게는 이동 복제로 간다. `AGrimPlayerCharacter::FaceAimForCast`, 수치 `CastFaceTurnTime` · `CastFaceHoldTime`.
+- **M1.5 임시 구현 (몽타주 없음)**: 애님 BP `ABP_GrimPlayer` = 템플릿 `ABP_Unarmed` 를 복제해 부모를 C++ `UGrimSpellPoseAnimInstance` 로 바꾼 것. 이 클래스의 프록시가 그래프(이동 · 점프)를 평가한 **뒤** 컴포넌트 공간에서 뼈를 돌린다: 「뼈 → 자식 뼈」 방향을 목표 방향으로 무게만큼 돌리는 방식이라 뼈 축을 몰라도 된다.
+  - 오른팔(`upperarm_r` · `lowerarm_r`): 동작별 목표 방향 + 조준 높이(복제되는 `GetBaseAimRotation` 피치)만큼 든다. 상체(`spine_03`)는 짧게 비틀고 숙인다.
+  - 왼팔(`upperarm_l` · `lowerarm_l`): 「책 받치기」 고정 — 무게 = 1 − 책 거두기 값.
+  - 트리거: 시전 큐 → `PlayCastMotion`, 줄기 큐 Add/Remove → `BeginHoldMotion` · `EndHoldMotion`. 그래서 다른 사람 화면에도 같은 동작이 보인다.
+
+| 동작 | 시간 (제안 — `GrimMagicFXMath`) | 모양 |
+|---|---|---|
+| 튕기기 | 0.07초에 들고 0.2초부터 놓아 0.45초에 끝 | 손목을 젖혔다(0.03초) 앞으로 튕김(0.13초), 상체 −6° 비틀기 |
+| 뻗고 유지 | 0.12초에 뻗고, 줄기 큐가 없으면 0.4초 뒤 · 있으면 Remove 뒤 0.25초에 놓음 | 앞으로 곧게, 조준 높이 그대로 |
+| 쓸기 | 0.06초에 들고 0.32초까지 오른쪽 55° → 왼쪽 −40°, 0.55초에 끝 | 팔을 펴고 몸 앞을 가로지름 |
+
+- 정식 몽타주가 생기면 `bProceduralSpellPose` 를 끄고 `ABP_GrimPlayer` 그래프에 상체 슬롯 · 본별 레이어 블렌드(`clavicle_r` 아래)를 넣는다(사용자가 에디터에서).
 
 ### 왼손 그리모어 (R21)
 
-- `AGrimGrimoireBook`(새 액터): 책 메시 + 책장 메시 + 펼친 면 빛(포인트 라이트 약하게). 캐릭터가 완드처럼 스폰해 **`hand_l` 위 오프셋 소켓**(`GrimoireFloat`, 손바닥 위 약 12cm)에 Snap 부착한다. 부착은 복제, 떠다니는 흔들림(위아래 1.5cm · 2초 주기 · 살짝 기울기)은 각 클라이언트가 틱에서 로컬로 그린다(복제 안 함).
-- **책장 넘김**: 시전 GameplayCue(`GC_Spell_<마법>_Cast`)의 공통 처리에서 `AGrimGrimoireBook::FlipPage(ElementColor)` 를 부른다. 큐라서 시전자는 예측으로 바로, 다른 사람은 복제로 본다 — 별도 RPC 없음. Stream 은 지속 큐(`WhileActive`)가 `FlipRate`(제안 초당 2장)로 반복한다.
-- **마법 바꾸기 촤르륵**: 선택 슬롯이 바뀌면(소유자는 즉시, 다른 사람은 선택 슬롯 복제 `OnRep`) `FlipTo(PageIndex)` — 장 수에 비례해 빠르게 여러 장 넘긴다. 순수 연출.
-- **넘김 구현**: 정식은 책 스켈레탈 메시 + 책장 넘김 애니메이션(속도 조절). M1.5 임시는 얇은 판 메시 하나를 책등 축으로 180° 돌리는 코드 애니메이션(0.25초) + 넘길 때 글자 면 머티리얼의 발광을 속성색으로 잠깐 올린다.
-- **왼팔 자세**: 애님 BP 에 상체 레이어 — 왼팔은 「책 받치기」 자세 고정(임시는 `hand_l` IK 를 책 아래로), 오른팔만 시전 몽타주를 받는다(본별 레이어 블렌드, `clavicle_r` 아래). 그래서 완드를 휘둘러도 책은 흔들리지 않는다.
-- **거두기(Q25)**: 상태 태그(`State.Swimming` · `State.BuildMode` · `State.Carrying`, 그리고 완드 없음, `State.Mounted` 이면서 최근 `MountedCombatHoldSeconds`(제안 4초) 안에 조준 · 시전이 없을 때)가 있으면 책을 허리 소켓 `GrimoireBelt` 로 옮기고(0.3초 보간), 없어지면 되돌린다.
-- 수치(오프셋 · 흔들림 · 넘김 시간 · FlipRate)는 책 액터 기본값(UPROPERTY)이라 블루프린트 자식에서 바꾼다.
+- `AGrimGrimoireBook`(`MagicFX/GrimGrimoireBook`): M1.5 임시 모양은 엔진 기본 Cube — 표지 두 장 · 책장 덩어리 두 개 · 넘기는 판 하나(펼친 크기 약 29 × 21cm) + 펼친 면 점광원(약하게). 머티리얼 `M_GrimFX_Book`(Color · EmissiveColor · Glow).
+- **스폰 · 부착**: 캐릭터가 서버에서(`PossessedBy`) 스폰해 메시의 `hand_l` 에 Snap 부착한다(부착 · 포인터는 복제). 마네킹에는 소켓이 없어서, 메시에 `GrimoireFloat` 소켓이 있으면 그 자세를, 없으면 **`hand_l` 위치 + 월드 위쪽 12cm**에 몸 방향으로 수평(읽는 쪽으로 25° 기울임)으로 책을 둔다 — 손바닥 방향이 흔들려도 책은 위에 떠 있다.
+- **떠다니기**: 위아래 1.5cm · 2초 주기 · 기울기 3°(다른 주기로 앞뒤 · 좌우). 각 기기가 틱(`TG_PostUpdateWork`, 손 자세가 정해진 뒤)에서 로컬로 그린다 — 복제 안 함. 시작 위상은 책마다 무작위.
+- **책장 넘김**: 시전 큐(`GC_Spell_Cast`)가 `FlipPage(ElementColor)` 를 부른다. 큐라서 시전자는 예측으로 바로, 다른 사람은 복제로 본다 — 별도 RPC 없음. 넘기는 중에 또 오면 최대 3장까지 쌓는다. 줄기 큐(`GC_Spell_Channel`)는 `BeginChannelFlip` → `FlipRate`(초당 2장)로 반복, Remove 에서 `EndChannelFlip`.
+- **넘김 구현**: 판을 책등(+X) 축으로 0.25초에 180° 돌린다(부드러운 시작 · 끝, 가운데에서 위로 들림). 다 넘긴 판은 오른쪽 면으로 돌아가 다음 장이 된다. 넘길 때 글자 면 발광이 0.07초에 속성색 최대(Glow 8)까지 올랐다가 0.45초에 걸쳐 사라지고, 점광원도 같은 색으로 번쩍인다. 정식은 책 스켈레탈 메시 + 넘김 애니메이션.
+- **마법 바꾸기 촤르륵**: 선택 슬롯이 바뀌면(마법서 `OnSelectedSpellChanged` — 서버 · 모든 클라이언트, 선택 슬롯 복제) `FlipTo(슬롯, 그 마법 색)` — 슬롯 하나에 3장(최대 12장, 앞 · 뒤 방향)을 0.5초에 나눠 넘긴다. 처음 고른 슬롯은 기억만 하고 넘기지 않는다.
+- **왼팔 자세**: 「책 받치기」는 위 「시전 동작」의 애님 인스턴스가 고정한다. 오른팔만 시전 동작을 받으므로 완드를 휘둘러도 책은 흔들리지 않는다.
+- **거두기(Q25)**: 책이 매 틱 판정한다 — 완드 없음 · `State.Swimming`(또는 이동 컴포넌트 `IsSwimming`) · `State.BuildMode` · `State.Carrying` 이면 거둠, `State.Mounted` 면 `State.Aiming` 이거나 최근 `MountedCombatHoldSeconds`(4초) 안에 시전했을 때만 띄움. 거둘 때는 `GrimoireBelt` 소켓(없으면 `pelvis` 에서 몸 기준 왼쪽 옆구리, 세워서 0.8배)으로 0.3초 보간하고 빛을 끈다. 상태 태그는 아직 붙이는 시스템이 없어 **이름만** 정해 두었다(`MagicFX/GrimMagicFXTags`).
+- 수치(높이 · 흔들림 · 넘김 시간 · FlipRate · 거두기)는 책 액터 기본값(UPROPERTY)이라 블루프린트 자식에서 바꾼다. 쓸 클래스는 설정 `GrimoireBookClass`.
 
 ## 마일스톤 결정 — M1.5 「시전 감각」
 
@@ -146,4 +185,5 @@
 
 - 순수 계산은 `Grimoire.Magic.Delivery.*` 자동화 테스트: `.Parallax`(시차 보정) · `.Homing`(유도) · `.StreamArc`(포물선 · 낮은 호) · `.Cone`(원뿔 판정) · `.Falloff`(거리별 세기 + 미풍 에셋이 양초 규칙에 맞음) · `.Network`(자극 주기 · 지연 보정 · TargetData 검증 · 왕복) · `.StartingSpells`(시작 마법 전달 방식).
 - 2인 확인은 `Scripts/Integration/net_check_delivery.ps1`(net_check.ps1 과 같은 헤드리스 리슨 서버 + 클라이언트): 원격 클라이언트가 `Grim.Magic.Cast` 로 양초에 불씨 → 6m 미풍 → 1.2m 미풍 → 불씨 → 물줄기를 쏘고, 양쪽 `Grim.Interaction.Dump` 가 같은지 본다.
+- 연출 · 동작은 `Grimoire.MagicFX.*`: 책 떠다니기 · 넘김 진행 · 촤르륵 장 수 · 거두기 판정(Book.*), 시전 동작 결정 · 자세(CastMotion.*), 줄기 포물선 · 원뿔 크기(Stream.Shape), 책 액터 틱(Book.Actor), 에셋 · 설정 · 큐 경로(Assets).
 - 손맛은 사람 눈이 필요하다 — 마일스톤 끝에 사용자 플레이 테스트.
