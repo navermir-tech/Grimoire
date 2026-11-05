@@ -29,5 +29,8 @@ public class Grimoire : ModuleRules
 			"Slate",
 			"SlateCore"
 		});
+
+		// 갈래 W(지형 1차): 랜드스케이프 · 폴리지 · 레이아웃 JSON · 미리보기 그림, 에디터에서만 브러시 볼륨(UnrealEd)
+		PrivateDependencyModuleNames.AddRange(Target.bBuildEditor ? new string[] { "Landscape", "Foliage", "Json", "JsonUtilities", "ImageCore", "UnrealEd" } : new string[] { "Landscape", "Foliage", "Json", "JsonUtilities", "ImageCore" });
 	}
 }

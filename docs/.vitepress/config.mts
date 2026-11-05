@@ -58,6 +58,7 @@ export default defineConfig({
             { text: 'M3 작업 분할', link: '/systems/m3-plan' },
             { text: '레벨 · 성장 트리', link: '/systems/progression' },
             { text: '마법탑 튜토리얼 · 퀘스트', link: '/systems/tutorial' },
+            { text: '지형 1차 (오픈 베타 땅)', link: '/systems/terrain' },
           ],
         },
       ],
