@@ -96,6 +96,13 @@ AGrimWand* UGrimSpellAbility::GetWand(const FGameplayAbilityActorInfo* ActorInfo
 {
 	const AGrimPlayerState* PlayerState = ActorInfo ? Cast<AGrimPlayerState>(ActorInfo->OwnerActor.Get()) : nullptr;
 	const UGrimSpellbookComponent* Spellbook = PlayerState ? PlayerState->GetSpellbook() : nullptr;
+	// 부러진 완드(Q22 — 장비 내구도 0, M4)는 완드 없음과 같다: 마법은 못 쓰고 주먹만.
+	static const FGameplayTag WandBrokenTag = FGameplayTag::RequestGameplayTag(TEXT("Status.WandBroken"), false);
+	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (WandBrokenTag.IsValid() && ASC && ASC->HasMatchingGameplayTag(WandBrokenTag))
+	{
+		return nullptr;
+	}
 	return Spellbook ? Spellbook->GetWand() : nullptr;
 }
 

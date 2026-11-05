@@ -9,6 +9,9 @@
 class AGrimCookingPot;
 class AGrimItemPickup;
 class UBorder;
+class UGrimInventoryTab;
+class UHorizontalBox;
+class UVerticalBox;
 class UGrimIdButton;
 class UTextBlock;
 class UUniformGridPanel;
@@ -31,6 +34,9 @@ public:
  *    열린 동안 마우스 커서 · 시점 고정(그리모어 화면과 같은 방식 — 그리모어가 열려 있으면 닫는다).
  *  - 키는 침대 · NPC 처럼 PlayerController 키 상태로 본다(정식 입력 액션은 조작 갈래 몫).
  * 값은 소유 클라이언트에 복제된 칸 · 픽업 · 냄비를 읽기만 하고, 바꾸는 것은 서버 RPC.
+ *
+ * 탭(M4): 맨 앞 「가방」 탭은 이 화면 자신이고, 나머지는 UGrimInventoryTab — ini InventoryTabClasses 또는 RegisterTabClass 로 등록한다.
+ * 장비 · 저장고 · 작업대 · 거점 탭은 거점 갈래(Base/GrimBaseTabs)가, 다른 갈래(생물 보관 등)도 같은 방법으로 붙인다.
  */
 UCLASS()
 class GRIMOIRE_API UGrimInventoryWidget : public UUserWidget
@@ -42,6 +48,26 @@ public:
 
 	bool IsBagOpen() const { return bBagOpen; }
 	void SetBagOpen(bool bOpen);
+
+	// ───── 탭 (M4) ─────
+
+	/** 가방 탭(이 화면 자신) */
+	static const FName BagTabId;
+	/** 장비 탭(거점 갈래 — I 키가 바로 연다) */
+	static const FName EquipmentTabId;
+
+	/** 코드로 탭 클래스를 더한다(화면을 만들기 전에 — 모듈 시작 · 정적 초기화). ini 의 InventoryTabClasses 와 합친다. */
+	static void RegisterTabClass(TSubclassOf<UGrimInventoryTab> TabClass);
+
+	/** 화면을 열고 그 탭을 고른다 */
+	void OpenTab(FName TabId);
+
+	/** 탭을 고른다(None · BagTabId = 가방) */
+	void SelectTab(FName TabId);
+
+	FName GetActiveTab() const { return ActiveTab; }
+	UGrimInventoryTab* FindTab(FName TabId) const;
+	UGrimInventoryComponent* GetInventory() const { return Inventory.Get(); }
 
 	/** 안내 글(테스트도 쓴다) */
 	static FString DescribePickup(const AGrimItemPickup* Pickup);
@@ -65,6 +91,29 @@ private:
 	void HandleNotice(UGrimInventoryComponent* InInventory, EGrimItemNotice Notice, FName ItemId, int32 Count);
 	void HandleSlotClicked(int32 SlotIndex);
 	void HandleActionClicked(int32 Action);
+
+	void CreateTabs(UVerticalBox* Host);
+	void RefreshTabs(bool bForceContent);
+	void HandleTabClicked(int32 Index);
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UGrimInventoryTab>> Tabs;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UWidget>> TabContents;
+
+	/** 0 = 가방, 1.. = Tabs */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UGrimIdButton>> TabButtons;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UHorizontalBox> TabBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> BagContent;
+
+	FName ActiveTab;
+	float TabAccumulator = 0.f;
 
 	TWeakObjectPtr<UGrimInventoryComponent> Inventory;
 	FDelegateHandle ChangedHandle;

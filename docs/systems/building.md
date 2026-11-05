@@ -138,7 +138,8 @@ M3 기초(갈래 I)가 들어갔다 — 플레이어 가방(칸 수 고정) · �
 
 ### 남은 것 (M4)
 
-- 저장고 · 시설 인벤토리(열람자 복제), 무게 제한(→ 운반 일꾼의 쓸모), 아이콘 · 끌어 놓기 UI, 단축 아이템(물약 휠).
+- ~~저장고 · 시설 인벤토리~~(M4 — 저장고 탭, 관련성 거리 안 모두 복제 · 열람자 복제는 측정 뒤), 무게 제한(→ 운반 일꾼의 쓸모), 아이콘 · 끌어 놓기 UI, 단축 아이템(물약 휠).
+- 소지품 화면은 탭 구조다(M4): 가방 · 장비(I) · 저장고 · 작업대 · 거점. 탭은 `UGrimInventoryTab` 하위 클래스를 ini `[/Script/Grimoire.GrimItemSettings] +InventoryTabClasses=` 또는 `UGrimInventoryWidget::RegisterTabClass` 로 더한다.
 - 죽으면 가방 일부(자원)를 그 자리에 떨군다(생존 스펙 「죽음」) — `UGrimSurvivalComponent::OnDied` 에 묶을 자리.
 - 불에 오래 두면 타는 것(숯), 생산 시설(`AGrimCraftStation`)의 레시피 표 통합.
 
@@ -148,4 +149,5 @@ M3 기초(갈래 I)가 들어갔다 — 플레이어 가방(칸 수 고정) · �
 
 ## M4 범위
 
-바닥 · 벽 · 지붕 · 문 4종 + 침대 + 모닥불 + 저장고 + 작업대 + 밭 1종 + 작물 2종. 일꾼 연동은 M5.
+바닥 · 벽 · 지붕 · 문 · 계단 · 기둥 6종(나무 · 돌) + 침대 + 모닥불 + 저장고 + 작업대 + 밭 1종 + 작물 2종, 장비 · 건축 내구도 · 「수리」. 일꾼 연동은 M5.
+구현(클래스 · 표 · 조작 · 콘솔 · 2인 확인)은 [M4 작업 계획 — 거점](./m4-plan). 위 설계와 달라진 것: 조각 · 작물 · 장비 정의는 DataAsset 이 아니라 CSV 표(`BuildPieces.csv` · `Crops.csv` · `Equipment.csv`), 밭 액터는 `AGrimFarmPlot`(작물 컴포넌트 없이 액터 하나), 지붕 판정은 전용 채널 대신 날씨의 기존 위로 트레이스(WorldStatic · WorldDynamic), 작업대는 대기열 없이 즉시 제작, 건축 피해는 GAS 가 아닌 `UGrimStructureComponent::ApplyStructureDamage`.

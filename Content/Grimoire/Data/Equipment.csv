@@ -1,0 +1,4 @@
+Name,Slot,MaxDurability,RepairItem,WearPerUse,ColdResist,HeatResist
+Wand_Oak,Wand,300,Wood,1,0,0
+FurHood,Head,120,JackalopeFur,1,1,0
+HideRobe,Body,200,BlackDogHide,1,1,0
