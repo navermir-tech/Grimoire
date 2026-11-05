@@ -48,8 +48,9 @@ void AGrimNoCombatVolume::BeginPlay()
 	{
 		return;
 	}
-	Bounds->OnComponentBeginOverlap.AddDynamic(this, &AGrimNoCombatVolume::HandleBeginOverlap);
-	Bounds->OnComponentEndOverlap.AddDynamic(this, &AGrimNoCombatVolume::HandleEndOverlap);
+	// World Partition 셀이 내렸다 다시 올라오면 BeginPlay 가 또 불린다 — 두 번 묶지 않게 AddUniqueDynamic.
+	Bounds->OnComponentBeginOverlap.AddUniqueDynamic(this, &AGrimNoCombatVolume::HandleBeginOverlap);
+	Bounds->OnComponentEndOverlap.AddUniqueDynamic(this, &AGrimNoCombatVolume::HandleEndOverlap);
 	// 이미 안에 있는 폰(시작 지점이 탑 안)
 	TArray<AActor*> Inside;
 	Bounds->GetOverlappingActors(Inside, APawn::StaticClass());
