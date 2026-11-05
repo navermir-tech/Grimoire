@@ -207,6 +207,11 @@ void UGrimUISubsystem::TearDownController()
 
 void UGrimUISubsystem::HandleToggleInput()
 {
+	// 패드 십자키 → 는 R2 를 누른 채면 슬롯 세트 고르기다(호그와트 레거시) — 그때는 그리모어를 열지 않는다.
+	if (const APlayerController* PC = BoundController.Get(); PC && PC->IsInputKeyDown(EKeys::Gamepad_RightTrigger))
+	{
+		return;
+	}
 	ToggleGrimoire();
 }
 

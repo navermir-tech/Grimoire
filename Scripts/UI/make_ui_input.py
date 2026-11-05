@@ -1,5 +1,5 @@
 # UI 입력 에셋을 만든다(M2 갈래 G): IA_ToggleGrimoire(그리모어 화면) · IA_SpellSet1~4(단축 슬롯 세트), IMC_UI.
-# 조작은 호그와트 레거시 PC 배치를 따른다: 그리모어 = Tab(패드 View 버튼), 세트 1~4 = F1~F4.
+# 조작은 호그와트 레거시 배치를 따른다: 그리모어 = T(패드 십자키 →, 호그와트의 마법 배치 메뉴 자리), 세트 1~4 = F1~F4.
 # 컨트롤러 파일은 고치지 않는다 — UGrimUISubsystem 이 로컬 플레이어에 IMC_UI 를 더한다(DefaultGame.ini [/Script/Grimoire.GrimUISettings]).
 # 다시 돌려도 된다(있으면 매핑만 새로 채운다).
 #
@@ -10,7 +10,7 @@ FOLDER = "/Game/Grimoire/UI"
 
 # 액션 이름 → 키 목록. 키 이름은 EKeys(FKey) 이름.
 UI_ACTIONS = {
-    "IA_ToggleGrimoire": ["Tab", "Gamepad_Special_Left"],
+    "IA_ToggleGrimoire": ["T", "Gamepad_DPad_Right"],
     "IA_SpellSet1": ["F1"],
     "IA_SpellSet2": ["F2"],
     "IA_SpellSet3": ["F3"],
@@ -47,7 +47,7 @@ imc.unmap_all()
 for name, keys in UI_ACTIONS.items():
     for key_name in keys:
         imc.map_key(actions[name], make_key(key_name))
-eal.save_loaded_asset(imc)
+eal.save_loaded_asset(imc, only_if_is_dirty=False)  # unmap_all · map_key 는 dirty 표시를 하지 않아 강제로 저장한다
 
 mappings = imc.get_editor_property("default_key_mappings").get_editor_property("mappings")
 unreal.log(f"make_ui_input: {len(actions)} actions, IMC_UI mappings = {len(mappings)}")

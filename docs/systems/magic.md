@@ -514,7 +514,7 @@ M1 규칙(11행 — 원본은 CSV):
 - 기존 생존 디버그 글(`grim.Survival.ShowDebug`)은 지우지 않았다. HUD 를 띄우면 `bHideSurvivalDebugWithHUD` 로 0 으로 바꾸고, 콘솔 `grim.Survival.ShowDebug 1` 로 다시 켠다.
 - 단축 슬롯(호그와트 레거시 — 4칸 세트 여러 개): 데이터는 마법서 `SlotSpells`(세트 × 칸, 모두에게 복제) · `ActiveSlotSet`, 수는 `[/Script/Grimoire.GrimSpellbookSettings] SpellSlotsPerSet`(4) · `SpellSlotSets`(4) · `bAutoAssignSlots`(새로 배운 마법을 첫 빈 칸에). 같은 마법은 한 칸에만. 서버 `AssignSlot` · `SetActiveSlotSet`, 클라이언트 `Server_AssignSlot` · `Server_SetActiveSlotSet`. 숙련도 없는 항목은 슬롯에 넣지 않고 HUD 의 기본 공격 자리에(`bSeparateBasicAttackSlot`).
   - **슬롯 바로 시전(1~4 키 · 패드 R2 + 얼굴 버튼)** · 패드 세트 고르기(R2 + 십자키)는 M2 갈래 K — [조작](#조작-q29). HUD 칸마다 키 글자(「1 · RT+Y」, 기본 공격 「좌클릭 · RT」), 패드 세트 활성 중엔 테두리가 밝고, 기본 공격 칸의 등급 자리에 연타 번째(「2/4」).
-- 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 PC 배치): `IA_ToggleGrimoire` = Tab · 패드 View(`Gamepad_Special_Left`), `IA_SpellSet1~4` = F1~F4(패드 세트 고르기는 캐릭터의 `IMC_Spell`). 컨텍스트 `IMC_UI`(우선순위 1). 호그와트는 마법 배치 메뉴가 T · 십자키 →, Tab 은 도구 휠, View 는 지도다 — 다르다([레퍼런스](../spec/references#호그와트-레거시-—-조작-q29), 통합 때 판단).
+- 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 배치): `IA_ToggleGrimoire` = **T · 패드 십자키 →**(호그와트의 마법 배치 메뉴 자리 — R2 를 누른 채면 세트 고르기라 열지 않는다), `IA_SpellSet1~4` = F1~F4(패드 세트 고르기는 캐릭터의 `IMC_Spell`). 컨텍스트 `IMC_UI`(우선순위 1).
 - 그리모어가 열리면 Game+UI 입력 · 마우스 커서 · 시점 고정(`SetIgnoreLookInput`), 키는 게임으로 계속 가서 같은 키로 닫는다. 왼손 책이 다가오는 연출(스펙 「제안」)은 연출 쪽 몫.
 - 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.SlotSet <1부터>`.
 - 테스트 `Grimoire.UI.*`: `BarFraction`(쿨다운 글 포함) · `AttributeName`(실제 ASC 에서 이름으로 찾기) · `ElementFilter` · `GrimoireOrder` · `SlotLayout` · `Settings`(ini 값).
