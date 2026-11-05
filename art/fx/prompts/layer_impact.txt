@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+A layer breakdown sheet of the IMPACT element of a magic bolt effect, isolated on a PURE BLACK background (#000000, no spheres). Show in a 2x2 grid with black space between: (1) a radial burst of sharp spark streaks flying outward from a centre, (2) a thin glowing ring shockwave seen face-on, (3) a soft round spherical shell shockwave with bright rim, (4) a soft glow flare with a hot centre and faint star rays. White-hot fading to pale sky-white (#CFE3FF). Additive glow look.
+
+No text, no labels, no UI.
+
+Save the final image as raw/layer_impact.png in the current working directory.

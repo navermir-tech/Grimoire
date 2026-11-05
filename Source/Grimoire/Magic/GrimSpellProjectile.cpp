@@ -208,6 +208,7 @@ void AGrimSpellProjectile::ApplyDefinitionVisuals()
 		// 기본 구 메시는 지름 100.
 		Mesh->SetRelativeScale3D(FVector(Definition->Radius / 50.f));
 	}
+	Mesh->SetVisibility(!(Definition->VisualSet && Definition->VisualSet->bHideProjectileMesh));
 
 	if (Definition->Delivery == EGrimSpellDelivery::Lob)
 	{

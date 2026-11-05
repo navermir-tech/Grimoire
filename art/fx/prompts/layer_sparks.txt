@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+A layer breakdown sheet of the SPARK PARTICLES of a magic bolt effect, isolated on a PURE BLACK background (#000000). Show a grid of individual spark sprites with black space around each: tiny elongated glowing flecks, short streak sparks, soft round glints, four-point star glints, all white-hot centres with pale sky-white (#CFE3FF) glow. Additive glow look.
+
+No text, no labels, no UI.
+
+Save the final image as raw/layer_sparks.png in the current working directory.

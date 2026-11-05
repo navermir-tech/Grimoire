@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+A layer breakdown sheet of the BOLT STREAK (core + tail) of a magic bolt effect, isolated on a PURE BLACK background (#000000, no gradient, no scene, no spheres). Show four horizontal bolt streaks stacked vertically with black space between them, each pointing right: a thin sharp tapered needle head, white-hot core, feathered motion-blurred wispy tail fading to the left into pale sky-white (#CFE3FF). Variants: clean needle, comet with fuller tail, twin-strand twisted tail, short dart. Additive glow look.
+
+No text, no labels, no UI.
+
+Save the final image as raw/layer_streak.png in the current working directory.

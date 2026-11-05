@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+ONE single texture sprite on a PURE BLACK background (#000000), square image: a thin glowing circular shockwave ring centred, face-on, radius about 40% of the image, bright crisp rim with soft inner falloff, slight wispy energy texture along the ring, the centre is black. Grayscale only, nothing touching the border. Used as an additive particle texture.
+
+No text, no labels, no UI.
+
+Save the final image as raw/tex_ring.png in the current working directory.

@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+ONE single texture sprite on a PURE BLACK background (#000000), square image: a horizontal magic bolt streak centred, pointing RIGHT, spanning about 90% of the width: a sharp tapered needle head on the right, a white core, a long feathered wispy motion-blurred tail fading to black on the left. Grayscale only (white and grays, no colour), soft edges, nothing touching the image border. Used as an additive particle texture.
+
+No text, no labels, no UI.
+
+Save the final image as raw/tex_streak.png in the current working directory.

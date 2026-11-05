@@ -5,6 +5,10 @@
 #include "Magic/GrimSpellAbility.h"
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimSpellDelivery.h"
+#include "Magic/GrimSpellProjectile.h"
+#include "MagicFX/GrimMagicFXStatics.h"
+#include "MagicFX/GrimMagicFXVisualSet.h"
+#include "Core/GrimSpellFXTypes.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -283,6 +287,80 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 		TEXT("Grim.Magic.Cast"),
 		TEXT("로컬 플레이어가 마법을 시전(대상 고정 조준). <마법 이름 일부> [대상 클래스|None] [누르는 초] [지연초]"),
 		FConsoleCommandWithArgsDelegate::CreateStatic(&CastCommand));
+
+	/**
+	 * Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm] — 시전 없이 그 자리에서 볼트 연출만 날린다(판정 없는 가짜
+	 * 투사체 + 완드 끝 섬광, 거리를 주면 거기서 적중 연출). 실제 시전은 투사체를 시전 대기만큼 앞당겨 만들어(볼트 75~90 m/s × 0.1초)
+	 * 좁은 방에서는 비행이 안 보인다 — 이펙트를 찍을 때 쓴다(Scripts/MagicFX/capture_bolt.ps1).
+	 * 예: Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 250
+	 */
+	void FxBoltCommand(const TArray<FString>& Args, UWorld* World)
+	{
+		if (Args.Num() < 5 || !World)
+		{
+			UE_LOG(LogGrimMagicDebug, Warning, TEXT("사용: Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm]"));
+			return;
+		}
+		const UGrimSpellDefinition* Definition = LoadObject<UGrimSpellDefinition>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/Magic/Spells/%s.%s"), *Args[0], *Args[0]));
+		if (!Definition)
+		{
+			UE_LOG(LogGrimMagicDebug, Warning, TEXT("[Grim.FX.Bolt] 마법 정의 없음 %s"), *Args[0]);
+			return;
+		}
+		const FVector Start(FCString::Atod(*Args[1]), FCString::Atod(*Args[2]), FCString::Atod(*Args[3]));
+		const FRotator Rotation(Args.Num() >= 6 ? FCString::Atod(*Args[5]) : 0.0, FCString::Atod(*Args[4]), 0.0);
+		const float ImpactDistance = Args.Num() >= 7 ? FCString::Atof(*Args[6]) : 0.f;
+		const FTransform SpawnTransform(Rotation, Start);
+		const TSubclassOf<AGrimSpellProjectile> ProjectileClass = Definition->ProjectileClass ? Definition->ProjectileClass : TSubclassOf<AGrimSpellProjectile>(AGrimSpellProjectile::StaticClass());
+		AGrimSpellProjectile* Bolt = World->SpawnActorDeferred<AGrimSpellProjectile>(ProjectileClass, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		if (!Bolt)
+		{
+			return;
+		}
+		Bolt->InitFake(Definition, nullptr);
+		Bolt->FinishSpawning(SpawnTransform);
+		const UGrimSpellVisualSet* VisualSet = Definition->VisualSet;
+		const UGrimMagicFXVisualSet* Extended = Cast<UGrimMagicFXVisualSet>(VisualSet);
+		const float StopAfter = Extended ? Extended->OneShotStopSeconds : 0.6f;
+		if (VisualSet)
+		{
+			// 연출 묶음의 섬광은 +Z 를 겨눈 방향으로 둔다(GrimSpellCueNotifies 와 같게).
+			UGrimMagicFXStatics::SpawnFX(World, VisualSet->MuzzleFlash, Start, FRotationMatrix::MakeFromZ(Rotation.Vector()).Rotator(),
+				Extended ? Extended->MuzzleFlashScale : 1.f, VisualSet->ElementColor, true, StopAfter);
+		}
+		UE_LOG(LogGrimMagicDebug, Display, TEXT("[Grim.FX.Bolt] %s %s → %s"), *Definition->GetName(), *Start.ToCompactString(), *Rotation.Vector().ToCompactString());
+		if (ImpactDistance <= 0.f || !VisualSet)
+		{
+			return;
+		}
+		// 정한 거리를 지나면 그 자리에서 적중 연출(맞은 면은 날아온 쪽을 본다)을 띄우고 볼트를 지운다.
+		TWeakObjectPtr<AGrimSpellProjectile> WeakBolt(Bolt);
+		TWeakObjectPtr<UWorld> WeakWorld(World);
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([WeakBolt, WeakWorld, VisualSet, Extended, StopAfter, Start, ImpactDistance](float)
+		{
+			AGrimSpellProjectile* Alive = WeakBolt.Get();
+			UWorld* AliveWorld = WeakWorld.Get();
+			if (!Alive || !AliveWorld)
+			{
+				return false;
+			}
+			const FVector Location = Alive->GetActorLocation();
+			if (FVector::Dist(Start, Location) < ImpactDistance)
+			{
+				return true;
+			}
+			const FVector Normal = -Alive->GetActorForwardVector();
+			UGrimMagicFXStatics::SpawnFX(AliveWorld, VisualSet->Impact, Location, FRotationMatrix::MakeFromZ(Normal).Rotator(),
+				Extended ? Extended->ImpactScale : 1.f, VisualSet->ElementColor, true, StopAfter);
+			Alive->Destroy();
+			return false;
+		}));
+	}
+
+	FAutoConsoleCommandWithWorldAndArgs GFxBoltCommand(
+		TEXT("Grim.FX.Bolt"),
+		TEXT("시전 없이 볼트 연출만 날린다(판정 없음). <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm]"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&FxBoltCommand));
 }
 
 #endif

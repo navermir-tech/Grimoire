@@ -29,8 +29,9 @@ static FAutoConsoleCommand GGrimAtCommand(
 				if (World && World->IsGameWorld())
 				{
 					UE_LOG(LogTemp, Display, TEXT("[Grim.At] %s"), *Command);
-					// 플레이어 컨트롤러를 거쳐야 뷰포트가 받는 명령(HighResShot 등)까지 닿는다.
-					if (APlayerController* PlayerController = World->GetFirstPlayerController())
+					// 플레이어 컨트롤러를 거쳐야 뷰포트가 받는 명령(HighResShot 등)까지 닿는다. 로컬 플레이어가 지금 쥔 컨트롤러로 —
+					// ToggleDebugCamera 뒤에는 디버그 카메라 컨트롤러가 플레이어를 가져가 처음 컨트롤러로는 명령이 닿지 않는다.
+					if (APlayerController* PlayerController = GEngine->GetFirstLocalPlayerController(World))
 					{
 						PlayerController->ConsoleCommand(Command);
 					}

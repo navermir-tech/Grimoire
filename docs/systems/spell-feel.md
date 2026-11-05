@@ -105,6 +105,23 @@
 
 소리도 임시로 엔진 기본(`/Engine/EngineSounds/1kSineTonePing` 을 높낮이만 달리 · `WhiteNoise` 를 짧게 끊어 · 줄기는 다시 틀어 반복)을 쓴다. 파티클 배율(0.25~0.6)은 눈으로 본 값이 아니라 추정이다 — 플레이로 맞춘다.
 
+#### 볼트 이펙트 — 사용자 참고 그림대로 (2026-11-06)
+
+불씨 · 기본 공격(튕기기)은 사용자가 준 참고 그림(`art/fx/refs/`) 방향으로 다시 만들었다: **가늘고 뾰족한 바늘 빛줄기**(흰 심 → 속성색, 깃털 같은 꼬리) + 길 위 불티, 완드 끝의 작은 방사형 튐, 표적의 방사형 불티 · 퍼지는 고리 · 번쩍임 · 빛살. 어두운 배경에 가산 발광. 속성별 시안(GPT)은 `art/fx/concepts/`, 시안 대 게임 비교는 `art/fx/compare/`.
+
+| 에셋(`/Game/Grimoire/MagicFX/Bolt/`) | 내용 |
+|---|---|
+| `T_Bolt_*` | GPT 가 검은 바탕에 그린 빛줄기 · 불티 · 고리 · 빛살 · 실안개 → 회색조 마스크(`make_bolt_textures.py`). 번쩍임은 절차 생성 대체 그림 |
+| `M_Bolt_Add` · `MI_Bolt_*` | 가산 · 무광. `Mask × 파티클 알파 × (파티클 색 × Intensity + Mask^CorePower × CoreWhite)` × 깊이 흐림 — 밝은 곳은 흰빛, 가장자리는 속성색 |
+| `NS_Bolt_Cast` | 섬광 칸. 불티 18(속도 정렬) · 번쩍임 · 실안개 5 — 시스템 +Z 가 겨눈 방향 |
+| `NS_Bolt_Trail` | 몸통 칸(투사체에 붙음). 심 빛줄기(투사체 속도) · 머리 번쩍임 · 꼬리(속도 0.75배) · 불티 |
+| `NS_Bolt_Impact` | 터짐 칸. 불티 40 · 퍼지는 고리 · 번쩍임 · 빛살 |
+
+- 색은 모두 Niagara 사용자 변수 `User.Color` 하나 — `TintNiagara` 가 연출 묶음의 속성색을 넣는다. 다른 속성 볼트는 같은 시스템에 색만 다른 연출 묶음이면 된다.
+- Niagara 는 엔진 실험 플러그인 **NiagaraToolsets**(ToolsetRegistry 의 JSON 도구: 템플릿 이미터 붙이기 · 모듈 입력 · HLSL 식 · Set Parameters)로 `Scripts/MagicFX/make_bolt_fx.py` 가 데이터에서 만든다. 그다음 `make_magicfx_assets.py`(visual_sets) 를 돌린다.
+- 볼트 연출 묶음은 `bHideProjectileMesh` 로 투사체의 색 구를 숨기고, 구 펄스(`MuzzlePulse` · `ImpactPulse`)는 끈다.
+- 실제 시전은 투사체를 시전 대기(0.1초)만큼 앞당겨 만든다(볼트 75~90 m/s → 약 7.5 m). 그래서 **7.5 m 안의 표적은 비행 장면 없이 바로 터진다** — 화면 확인은 `Grim.FX.Bolt` · `Grim.Cam` 으로 한다(`Scripts/MagicFX/capture_bolt.ps1`, [치트](../dev/cheats)).
+
 ### 네트워크 — "내 화면에서는 즉시"
 
 | 마법 방식 | 시전자(로컬) | 서버 | 다른 클라이언트 |
