@@ -278,6 +278,7 @@ S,마스터,1500,0.75,0.80,1.0
 | 빛 → 어둠 · 어둠 → 빛 | ×1.5 |
 | 그 외(같은 속성 포함) | ×1.0 (`DefaultAffinity`) |
 
+- **두 속성 대상(Q35, M3 갈래 C)**: 대상 ASC 가 `Element.*` 를 둘 가지면 그중 **부속성은 같은 이름의 표지 태그 `SubElement.*`** 도 함께 가진다(예: `Element.Earth.Plant` + `SubElement.Earth.Plant`). `UGrimDamageExecution::ResolveDefenderElements` 가 표지 없는 쪽을 주, 표지 있는 쪽을 부로 가리고, 배율 = 상성(공격, 주) × (1 + W × (상성(공격, 부) − 1)), W = `UGrimDamageSettings::SecondaryElementWeight`(ini `[/Script/Grimoire.GrimDamageSettings]`, 0.5). 표지 없이 둘이면 태그 순서대로(정하지 않은 동작 — 생물은 늘 표지를 단다). `Element.None` 은 대상 속성으로 치지 않는다. 표지 태그는 10속성 하위 이름까지 `GrimDamageExecution.cpp` 에 미리 등록돼 있다. 자세히는 [생물 시스템 — 두 속성](./creatures#두-속성-상성-q35).
 - 테스트: `Grimoire.Magic.Affinity` · `Grimoire.Magic.Cost` · `Grimoire.Magic.Effects`(GE 실제 적용) · `Grimoire.Magic.StartingSpells`(에셋 값) · `Grimoire.Magic.Delivery.*`(시차 보정 · 유도 · 포물선 · 원뿔 · 거리별 세기 · 지연 보정 · TargetData 검증 · 시작 마법 전달 방식) — `Source/Grimoire/Magic/Tests/`.
 
 ## 속성 상호작용 엔진 (R16)

@@ -29,5 +29,6 @@ public class Grimoire : ModuleRules
 			"Slate",
 			"SlateCore"
 		});
+		PublicDependencyModuleNames.Add("AIModule"); // M3 갈래 C — 생물 AI 컨트롤러(AAIController)
 	}
 }
