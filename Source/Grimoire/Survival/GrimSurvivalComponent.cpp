@@ -400,7 +400,9 @@ FGrimClimateExposure UGrimSurvivalComponent::GatherClimateExposure(const APawn* 
 	FGrimClimateExposure World;
 	if (const UGrimWeatherSubsystem* Weather = GetWorld()->GetSubsystem<UGrimWeatherSubsystem>())
 	{
-		World = Weather->GetClimateExposure(Pawn->GetActorLocation());
+		// 지붕 있는 실내면 날씨 몫을 빼고 지역 몫만(Sheltered) 쓴다.
+		const FGrimClimateExposureBreakdown Breakdown = Weather->GetClimateExposureBreakdown(Pawn->GetActorLocation());
+		World = Weather->IsActorSheltered(Pawn) ? Breakdown.Sheltered : Breakdown.Total;
 	}
 
 	const UAbilitySystemComponent* ASC = GetASC();
@@ -412,9 +414,6 @@ FGrimClimateExposure UGrimSurvivalComponent::GatherClimateExposure(const APawn* 
 	Personal.bNearHeatSource = HasHeatSourceNearby(Pawn);
 	Personal.bSwimming = (ASC && ASC->HasMatchingGameplayTag(GrimMagicFXTags::State_Swimming))
 		|| (Character && Character->GetCharacterMovement() && Character->GetCharacterMovement()->IsSwimming());
-	// TODO(통합 — 날씨 갈래 W): 지붕 있는 실내면 날씨 몫을 뺀다. W 의 공개 함수로 바꾼다:
-	//   const FGrimClimateExposureBreakdown B = Weather->GetClimateExposureBreakdown(Location);
-	//   World = Weather->IsActorSheltered(Pawn) ? B.Sheltered : B.Total;   // Sheltered = 지역 몫만
 
 	const FGrimClimateTuning& Climate = GetDefault<UGrimSurvivalSettings>()->Climate;
 	return FGrimSurvivalModel::CombineExposure(World, FGrimSurvivalModel::ComputePersonalExposure(Personal, Climate));
