@@ -24,4 +24,8 @@ namespace GrimMagicTags
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_WaterJet);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_Breeze);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_Fireball);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_BasicAttack);
+
+	// 무속성(R22) — 기본 공격 · 수리 같은 순수 마력. 상성표 · 반응 규칙표에 행이 없다(늘 ×1.0, 사물엔 충격만)
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Element_None);
 }

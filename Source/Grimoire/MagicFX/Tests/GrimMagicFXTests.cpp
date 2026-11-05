@@ -1,6 +1,8 @@
 #include "Misc/AutomationTest.h"
+#include "MagicFX/GrimBookSigils.h"
 #include "MagicFX/GrimMagicFXMath.h"
 #include "MagicFX/GrimMagicFXStatics.h"
+#include "Magic/GrimMagicTags.h"
 #include "MagicFX/GrimMagicFXVisualSet.h"
 #include "MagicFX/GrimMagicFXTags.h"
 #include "Core/GrimGameplayTags.h"
@@ -367,6 +369,107 @@ bool FGrimBookActorTest::RunTest(const FString& Parameters)
 
 		// 주인(완드)이 없으면 거둔다.
 		TestTrue(TEXT("완드 없음 → 허리춤"), Book->GetStowAlpha() > 0.99f);
+	}
+
+	GEngine->DestroyWorldContext(World);
+	World->DestroyWorld(false);
+	return true;
+}
+
+// 속성 문양 11개(R21): 이름 찾기(하위 태그 → 위 이름 → 무속성), ini 표, 조각 변환.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimBookSigilLookupTest, "Grimoire.MagicFX.Sigil.Lookup", GrimMagicFXTestFlags)
+bool FGrimBookSigilLookupTest::RunTest(const FString& Parameters)
+{
+	TArray<FGrimBookSigil> Sigils;
+	for (const TCHAR* Name : { TEXT("Element.None"), TEXT("Element.Water"), TEXT("Element.Water.Ice"), TEXT("Element.Light") })
+	{
+		FGrimBookSigil& Sigil = Sigils.AddDefaulted_GetRef();
+		Sigil.Element = Name;
+	}
+	TestEqual(TEXT("같은 이름"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.Water"), TEXT("Element.None")), 1);
+	TestEqual(TEXT("하위가 따로 있으면 그것"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.Water.Ice"), TEXT("Element.None")), 2);
+	TestEqual(TEXT("하위가 없으면 위 이름"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.Water.Liquid"), TEXT("Element.None")), 1);
+	TestEqual(TEXT("빛 하위(번개류)"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.Light.Radiance"), TEXT("Element.None")), 3);
+	TestEqual(TEXT("점 경계가 아니면 안 맞음 → 무속성"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.WaterX"), TEXT("Element.None")), 0);
+	TestEqual(TEXT("모르는 속성 → 무속성"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.Fire"), TEXT("Element.None")), 0);
+	TestEqual(TEXT("빈 태그 → 무속성"), GrimBookSigilMath::FindSigilIndex(Sigils, NAME_None, TEXT("Element.None")), 0);
+	TestEqual(TEXT("대신할 것도 없으면 없음"), GrimBookSigilMath::FindSigilIndex(Sigils, TEXT("Element.Fire"), NAME_None), (int32)INDEX_NONE);
+
+	// ini: 스펙의 11 속성이 모두 있고 서로 다른 모양, 조각은 칸 수 안.
+	const UGrimBookSigilSettings* Settings = UGrimBookSigilSettings::Get();
+	TestEqual(TEXT("문양 11개"), Settings->Sigils.Num(), 11);
+	for (const TCHAR* Name : { TEXT("Element.None"), TEXT("Element.Water"), TEXT("Element.Water.Ice"), TEXT("Element.Fire"), TEXT("Element.Wind"),
+		TEXT("Element.Earth"), TEXT("Element.Earth.Plant"), TEXT("Element.Light.Holy"), TEXT("Element.Light"), TEXT("Element.Dark"), TEXT("Element.Dark.Shadow") })
+	{
+		const FGrimBookSigil* Sigil = Settings->FindSigil(Name);
+		if (TestNotNull(*FString::Printf(TEXT("문양 %s"), Name), Sigil))
+		{
+			TestEqual(*FString::Printf(TEXT("%s 정확히"), Name), Sigil->Element, FName(Name));
+			TestTrue(*FString::Printf(TEXT("%s 조각 1~%d"), Name, GrimBookSigilMath::MaxPieces), Sigil->Pieces.Num() >= 1 && Sigil->Pieces.Num() <= GrimBookSigilMath::MaxPieces);
+		}
+	}
+	TestEqual(TEXT("기본 공격(무속성) 문양"), Settings->FindSigil(GrimMagicTags::Element_None.GetTag().GetTagName()), Settings->FindSigil(TEXT("Element.None")));
+	TestEqual(TEXT("흑마법(Hex) → 흑마법 문양"), Settings->FindSigil(TEXT("Element.Dark.Hex")), Settings->FindSigil(TEXT("Element.Dark")));
+
+	// 조각 변환: 세모(Cone) 꼭짓점이 +X, 두께는 위로, 바닥이 면(0)에 닿는다.
+	FGrimSigilPiece Triangle;
+	Triangle.Shape = EGrimSigilShape::Triangle;
+	Triangle.Size = FVector2D(4.f, 3.f);
+	const FTransform T = GrimBookSigilMath::MakePieceTransform(Triangle, 0.2f);
+	const FVector Tip = T.TransformPosition(FVector(0.f, 0.f, 50.f));
+	TestEqual(TEXT("꼭짓점 +X 로 높이의 절반"), Tip.X, 2.0, 0.01);
+	TestEqual(TEXT("가로 반지름 = 밑변 절반"), T.TransformPosition(FVector(0.f, 50.f, 0.f)).Y, 1.5, 0.01);
+	TestEqual(TEXT("두께 가운데 높이"), T.GetLocation().Z, 0.1, 0.001);
+	FGrimSigilPiece Bar;
+	Bar.Size = FVector2D(1.f, 6.f);
+	Bar.Yaw = 90.f;
+	const FVector BarEnd = GrimBookSigilMath::MakePieceTransform(Bar, 0.2f).TransformPosition(FVector(0.f, 50.f, 0.f));
+	TestEqual(TEXT("막대 90° 돌림 → 가로가 −X 쪽으로"), BarEnd.X, -3.0, 0.01);
+	return true;
+}
+
+// 책: 시전 한 장 — 기본 공격 0.15초, 넘기는 판 뒷면 → 다 넘기면 펼친 면에 그 속성 문양.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimBookSigilFlipTest, "Grimoire.MagicFX.Sigil.Flip", GrimMagicFXTestFlags)
+bool FGrimBookSigilFlipTest::RunTest(const FString& Parameters)
+{
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false, TEXT("GrimMagicFXSigilTest"));
+	FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
+	Context.SetCurrentWorld(World);
+	World->InitializeActorsForPlay(FURL());
+	World->BeginPlay();
+
+	const UGrimBookSigilSettings* Settings = UGrimBookSigilSettings::Get();
+	const int32 Fire = GrimBookSigilMath::FindSigilIndex(Settings->Sigils, TEXT("Element.Fire"), Settings->FallbackElement);
+	const int32 None = GrimBookSigilMath::FindSigilIndex(Settings->Sigils, TEXT("Element.None"), Settings->FallbackElement);
+
+	AGrimGrimoireBook* Book = World->SpawnActor<AGrimGrimoireBook>();
+	if (TestNotNull(TEXT("책 스폰"), Book))
+	{
+		TestEqual(TEXT("처음엔 문양 없음"), Book->GetShownSigilIndex(), (int32)INDEX_NONE);
+		Book->FlipPageForSpell(FLinearColor::Red, GrimTags::Element_Fire, 0.f);
+		TestEqual(TEXT("보통 마법 = 책 기본 넘김 시간"), Book->GetCurrentFlipDuration(), 0.25f, 0.001f);
+		TestEqual(TEXT("넘기는 판에 불 문양"), Book->GetFlippingSigilIndex(), Fire);
+		Book->Tick(0.3f);
+		TestEqual(TEXT("다 넘기면 펼친 면에 불 문양"), Book->GetShownSigilIndex(), Fire);
+		TestEqual(TEXT("넘기는 판은 비었다"), Book->GetFlippingSigilIndex(), (int32)INDEX_NONE);
+
+		// 기본 공격: 무속성 문양, 0.15초(VisualSet PageFlipDuration)
+		Book->FlipPageForSpell(FLinearColor::White, GrimMagicTags::Element_None, 0.15f);
+		TestEqual(TEXT("기본 공격 넘김 0.15초"), Book->GetCurrentFlipDuration(), 0.15f, 0.001f);
+		Book->Tick(0.1f);
+		TestEqual(TEXT("넘기는 중엔 펼친 면은 앞 문양"), Book->GetShownSigilIndex(), Fire);
+		Book->Tick(0.06f);
+		TestFalse(TEXT("0.16초엔 다 넘김"), Book->IsFlipping());
+		TestEqual(TEXT("펼친 면 = 무속성 문양"), Book->GetShownSigilIndex(), None);
+
+		// 세트 바꾸기 촤르륵은 문양을 바꾸지 않는다.
+		Book->FlipTo(0, FLinearColor::Blue);
+		Book->FlipTo(2, FLinearColor::Blue);
+		for (int32 Step = 0; Step < 20; ++Step)
+		{
+			Book->Tick(0.05f);
+		}
+		TestEqual(TEXT("촤르륵 뒤에도 무속성 문양"), Book->GetShownSigilIndex(), None);
 	}
 
 	GEngine->DestroyWorldContext(World);

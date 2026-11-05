@@ -140,7 +140,11 @@ protected:
 	/** 시전자 쪽 · 서버의 안전장치: 끝내라는 복제가 오지 않으면 스스로 끝낸다 */
 	void OnSafetyTimeout();
 
-	FGameplayEffectSpecHandle MakeDamageSpec(const UGrimSpellDefinition* Definition, const AGrimWand* Wand) const;
+	/** 피해 GE 스펙. 자식(기본 공격의 강타)이 배율을 바꾼다. */
+	virtual FGameplayEffectSpecHandle MakeDamageSpec(const UGrimSpellDefinition* Definition, const AGrimWand* Wand) const;
+
+	/** 투사체(진짜 · 가짜)를 FinishSpawning 하기 직전. 자식이 투사체를 꾸민다(기본 공격의 강타 크기 · 밀어냄). */
+	virtual void OnSpellProjectileSpawning(class AGrimSpellProjectile* Projectile) const {}
 
 	float GetOneWayLatency() const;
 

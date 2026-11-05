@@ -26,8 +26,11 @@ check(eal.load_blueprint_class("/Game/Characters/Mannequins/Anims/Unarmed/ABP_Un
 
 for path in ["/Game/Input/Actions/IA_Move", "/Game/Input/Actions/IA_Look", "/Game/Input/Actions/IA_MouseLook",
              "/Game/Input/Actions/IA_Jump", "/Game/Input/IMC_Default", "/Game/Input/IMC_MouseLook",
-             "/Game/Grimoire/Input/IA_SpellCast", "/Game/Grimoire/Input/IA_SpellNext",
-             "/Game/Grimoire/Input/IA_SpellPrev", "/Game/Grimoire/Input/IMC_Spell"]:
+             "/Game/Grimoire/Input/IA_BasicAttack", "/Game/Grimoire/Input/IA_BasicAttackPad",
+             "/Game/Grimoire/Input/IA_SpellSetHold", "/Game/Grimoire/Input/IA_SpellSlot1",
+             "/Game/Grimoire/Input/IA_SpellSlotPad1", "/Game/Grimoire/Input/IA_SpellSetPad1",
+             "/Game/Grimoire/Input/IA_SpellSetNext", "/Game/Grimoire/Input/IA_Protego",
+             "/Game/Grimoire/Input/IA_Dodge", "/Game/Grimoire/Input/IMC_Spell"]:
     check(eal.load_asset(path) is not None, path)
 
 imc = eal.load_asset("/Game/Grimoire/Input/IMC_Spell")

@@ -99,9 +99,11 @@ bool UGrimCueNotify_SpellCast::OnExecute_Implementation(AActor* MyTarget, const 
 	}
 
 	// 동작 · 책장 · 몸 돌리기는 누르는 순간(큐 시점)에. 큐라서 시전자는 예측으로, 다른 사람은 복제로 본다 (R21).
+	// 기본 공격 포함 모든 시전에 한 장 — 넘어간 면에 속성 문양이 이 마법 색으로(R21). 넘김 시간은 VisualSet(기본 공격 0.15초).
 	if (AGrimGrimoireBook* Book = UGrimMagicFXStatics::FindGrimoireBook(Pawn))
 	{
-		Book->FlipPage(Color);
+		const UGrimMagicFXVisualSet* FXSet = Cast<UGrimMagicFXVisualSet>(VisualSet);
+		Book->FlipPageForSpell(Color, UGrimMagicFXStatics::FindElementTag(Parameters), FXSet ? FXSet->PageFlipDuration : 0.f);
 	}
 	if (UGrimSpellPoseAnimInstance* Pose = UGrimMagicFXStatics::FindPoseAnimInstance(Pawn))
 	{

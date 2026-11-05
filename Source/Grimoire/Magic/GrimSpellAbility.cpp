@@ -830,6 +830,7 @@ void UGrimSpellAbility::DeliverBolt(const UGrimSpellDefinition* Definition, AGri
 		return;
 	}
 	Projectile->InitSpell(Definition, GetAbilitySystemComponentFromActorInfo(), DamageSpec, Definition->HomingStrength > 0.f && FollowsTarget(Aim) ? Aim.Target.Get() : nullptr);
+	OnSpellProjectileSpawning(Projectile);
 	Projectile->FinishSpawning(SpawnTransform);
 	Projectile->CatchUp(AdvanceSeconds);
 }
@@ -853,6 +854,7 @@ void UGrimSpellAbility::SpawnFakeBolt()
 		return;
 	}
 	Fake->InitFake(Definition, Definition->HomingStrength > 0.f && FollowsTarget(CastAim) ? CastAim.Target.Get() : nullptr);
+	OnSpellProjectileSpawning(Fake);
 	Fake->FinishSpawning(SpawnTransform);
 	UE_LOG(LogGrimMagic, Display, TEXT("[Client] %s 가짜 볼트 발사 %s → %s"), *Definition->GetName(), *Launch.Start.ToCompactString(), *Launch.Direction.ToCompactString());
 }

@@ -147,9 +147,10 @@
 - `AGrimGrimoireBook`(`MagicFX/GrimGrimoireBook`): M1.5 임시 모양은 엔진 기본 Cube — 표지 두 장 · 책장 덩어리 두 개 · 넘기는 판 하나(펼친 크기 약 29 × 21cm) + 펼친 면 점광원(약하게). 머티리얼 `M_GrimFX_Book`(Color · EmissiveColor · Glow).
 - **스폰 · 부착**: 캐릭터가 서버에서(`PossessedBy`) 스폰해 메시의 `hand_l` 에 Snap 부착한다(부착 · 포인터는 복제). 마네킹에는 소켓이 없어서, 메시에 `GrimoireFloat` 소켓이 있으면 그 자세를, 없으면 **`hand_l` 위치 + 월드 위쪽 12cm**에 몸 방향으로 수평(읽는 쪽으로 25° 기울임)으로 책을 둔다 — 손바닥 방향이 흔들려도 책은 위에 떠 있다.
 - **떠다니기**: 위아래 1.5cm · 2초 주기 · 기울기 3°(다른 주기로 앞뒤 · 좌우). 각 기기가 틱(`TG_PostUpdateWork`, 손 자세가 정해진 뒤)에서 로컬로 그린다 — 복제 안 함. 시작 위상은 책마다 무작위.
-- **책장 넘김**: 시전 큐(`GC_Spell_Cast`)가 `FlipPage(ElementColor)` 를 부른다. 큐라서 시전자는 예측으로 바로, 다른 사람은 복제로 본다 — 별도 RPC 없음. 넘기는 중에 또 오면 최대 3장까지 쌓는다. 줄기 큐(`GC_Spell_Channel`)는 `BeginChannelFlip` → `FlipRate`(초당 2장)로 반복, Remove 에서 `EndChannelFlip`.
+- **책장 넘김**: 시전 큐(`GC_Spell_Cast`)가 **기본 공격 포함 모든 시전에** `FlipPageForSpell(ElementColor, 속성 태그, VisualSet.PageFlipDuration)` 을 부른다. 큐라서 시전자는 예측으로 바로, 다른 사람은 복제로 본다 — 별도 RPC 없음. 넘기는 중에 또 오면 최대 3장까지 쌓는다. 넘김 시간은 연출 묶음의 `PageFlipDuration`(0 = 책 기본 0.25초, **기본 공격 `VS_BasicAttack` = 0.15초** — 연타 리듬 0.3초에 맞춤). 줄기 큐(`GC_Spell_Channel`)는 `BeginChannelFlip` → `FlipRate`(초당 2장)로 반복, Remove 에서 `EndChannelFlip`.
+- **속성 문양(M2 갈래 K)**: 책 면에는 마법마다가 아니라 **속성 문양 11개**(무속성 · 물 · 얼음 · 불 · 바람 · 땅 · 풀 · 신성 · 빛 · 흑마법 · 그림자술)만 있다. 임시 모양은 엔진 기본 도형(Cube = 네모 · 막대, Cylinder = 원, Cone 을 눕혀 누른 것 = 세모)을 납작하게 놓은 조각 1~6개 — 그림 텍스처 없음. 정의는 `[/Script/Grimoire.GrimBookSigilSettings] Sigils`(속성 태그 이름 · 조각 모양 · 자리 · 크기 · 돌림, cm), 하위 태그(`Element.Water.Liquid` · `Element.Dark.Hex`)는 점으로 끊긴 가장 긴 위 이름의 문양, 모르면 `FallbackElement`(무속성). 책에 조각 칸 두 벌(왼쪽 면 · 넘기는 판 뒷면, 각 6개): 시전 장의 뒷면에 문양이 실려 넘어가고, 다 넘기면 같은 자리의 왼쪽 면 문양이 이어받는다(세트 바꾸기 촤르륵 장에는 싣지 않는다). 빛 색 = 그 마법 `ElementColor`, 밝기 = `IdleGlow`(0.4) + 넘김 빛 × `FlashGlowScale`. 문양 정의 · 조각 변환은 `GrimBookSigilMath`(`FindSigilIndex` · `MakePieceTransform`).
 - **넘김 구현**: 판을 책등(+X) 축으로 0.25초에 180° 돌린다(부드러운 시작 · 끝, 가운데에서 위로 들림). 다 넘긴 판은 오른쪽 면으로 돌아가 다음 장이 된다. 넘길 때 글자 면 발광이 0.07초에 속성색 최대(Glow 8)까지 올랐다가 0.45초에 걸쳐 사라지고, 점광원도 같은 색으로 번쩍인다. 정식은 책 스켈레탈 메시 + 넘김 애니메이션.
-- **마법 바꾸기 촤르륵**: 선택 슬롯이 바뀌면(마법서 `OnSelectedSpellChanged` — 서버 · 모든 클라이언트, 선택 슬롯 복제) `FlipTo(슬롯, 그 마법 색)` — 슬롯 하나에 3장(최대 12장, 앞 · 뒤 방향)을 0.5초에 나눠 넘긴다. 처음 고른 슬롯은 기억만 하고 넘기지 않는다.
+- **세트 바꾸기 촤르륵**: 보이는 슬롯 세트가 바뀌면(마법서 `ActiveSlotSet` — 모두에게 복제, 캐릭터가 틱에서 본다) `FlipTo(세트, 그 세트 첫 마법 색)` — 세트 하나에 3장(최대 12장, 앞 · 뒤 방향)을 0.5초에 나눠 넘긴다. 처음 본 세트는 기억만 하고 넘기지 않는다. (M2 갈래 K 전에는 「고른 마법」이 바뀔 때였다 — 시전이 슬롯 바로 시전으로 바뀌어 세트가 「마법 바꾸기」다.)
 - **왼팔 자세**: 「책 받치기」는 위 「시전 동작」의 애님 인스턴스가 고정한다. 오른팔만 시전 동작을 받으므로 완드를 휘둘러도 책은 흔들리지 않는다.
 - **거두기(Q25)**: 책이 매 틱 판정한다 — 완드 없음 · `State.Swimming`(또는 이동 컴포넌트 `IsSwimming`) · `State.BuildMode` · `State.Carrying` 이면 거둠, `State.Mounted` 면 `State.Aiming` 이거나 최근 `MountedCombatHoldSeconds`(4초) 안에 시전했을 때만 띄움. 거둘 때는 `GrimoireBelt` 소켓(없으면 `pelvis` 에서 몸 기준 왼쪽 옆구리, 세워서 0.8배)으로 0.3초 보간하고 빛을 끈다. 상태 태그는 아직 붙이는 시스템이 없어 **이름만** 정해 두었다(`MagicFX/GrimMagicFXTags`).
 - 수치(높이 · 흔들림 · 넘김 시간 · FlipRate · 거두기)는 책 액터 기본값(UPROPERTY)이라 블루프린트 자식에서 바꾼다. 쓸 클래스는 설정 `GrimoireBookClass`.
@@ -185,5 +186,6 @@
 
 - 순수 계산은 `Grimoire.Magic.Delivery.*` 자동화 테스트: `.Parallax`(시차 보정) · `.Homing`(유도) · `.StreamArc`(포물선 · 낮은 호) · `.Cone`(원뿔 판정) · `.Falloff`(거리별 세기 + 미풍 에셋이 양초 규칙에 맞음) · `.Network`(자극 주기 · 지연 보정 · TargetData 검증 · 왕복) · `.StartingSpells`(시작 마법 전달 방식).
 - 2인 확인은 `Scripts/Integration/net_check_delivery.ps1`(net_check.ps1 과 같은 헤드리스 리슨 서버 + 클라이언트): 원격 클라이언트가 `Grim.Magic.Cast` 로 양초에 불씨 → 6m 미풍 → 1.2m 미풍 → 불씨 → 물줄기를 쏘고, 양쪽 `Grim.Interaction.Dump` 가 같은지 본다.
-- 연출 · 동작은 `Grimoire.MagicFX.*`: 책 떠다니기 · 넘김 진행 · 촤르륵 장 수 · 거두기 판정(Book.*), 시전 동작 결정 · 자세(CastMotion.*), 줄기 포물선 · 원뿔 크기(Stream.Shape), 책 액터 틱(Book.Actor), 에셋 · 설정 · 큐 경로(Assets).
+- 연출 · 동작은 `Grimoire.MagicFX.*`: 책 떠다니기 · 넘김 진행 · 촤르륵 장 수 · 거두기 판정(Book.*), 시전 동작 결정 · 자세(CastMotion.*), 줄기 포물선 · 원뿔 크기(Stream.Shape), 책 액터 틱(Book.Actor), 에셋 · 설정 · 큐 경로(Assets), 속성 문양 찾기 · ini 11개 · 조각 변환(Sigil.Lookup), 시전 장 → 펼친 면 문양 · 기본 공격 0.15초(Sigil.Flip).
+- 조작 · 기본 공격(M2 갈래 K)은 `Grimoire.Input.*` · `Grimoire.Magic.BasicAttack.*` 와 `Scripts/Integration/net_check_controls.ps1`([마법 — 조작](./magic#조작-q29)).
 - 손맛은 사람 눈이 필요하다 — 마일스톤 끝에 사용자 플레이 테스트.

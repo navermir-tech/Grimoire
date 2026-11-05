@@ -3,9 +3,12 @@
 #include "Core/GrimGameplayTags.h"
 #include "Core/GrimPlayerState.h"
 #include "Interaction/GrimElementalStateComponent.h"
+#include "Magic/GrimFistAbility.h"
+#include "Magic/GrimProficiencySettings.h"
 #include "Magic/GrimSpellbookComponent.h"
 #include "Magic/GrimSpellAbility.h"
 #include "Magic/GrimSpellDefinition.h"
+#include "Magic/GrimSpellSlotInput.h"
 #include "AbilitySystemComponent.h"
 #include "MagicFX/GrimGrimoireBook.h"
 #include "MagicFX/GrimMagicFXSettings.h"
@@ -84,11 +87,29 @@ AGrimPlayerCharacter::AGrimPlayerCharacter()
 	MouseLookAction = TSoftObjectPtr<UInputAction>(FSoftObjectPath(TEXT("/Game/Input/Actions/IA_MouseLook.IA_MouseLook")));
 	JumpAction = TSoftObjectPtr<UInputAction>(FSoftObjectPath(TEXT("/Game/Input/Actions/IA_Jump.IA_Jump")));
 
-	AbilityInputBindings = {
-		{ TSoftObjectPtr<UInputAction>(FSoftObjectPath(TEXT("/Game/Grimoire/Input/IA_SpellCast.IA_SpellCast"))), GrimTags::Input_Spell_Cast },
-		{ TSoftObjectPtr<UInputAction>(FSoftObjectPath(TEXT("/Game/Grimoire/Input/IA_SpellNext.IA_SpellNext"))), GrimTags::Input_Spell_Next },
-		{ TSoftObjectPtr<UInputAction>(FSoftObjectPath(TEXT("/Game/Grimoire/Input/IA_SpellPrev.IA_SpellPrev"))), GrimTags::Input_Spell_Prev },
+	// 호그와트 레거시 배치(Q29). 키는 Content/Grimoire/Input 의 IMC_Spell(Scripts/Character/make_input.py).
+	auto InputAsset = [](const TCHAR* Name)
+	{
+		return TSoftObjectPtr<UInputAction>(FSoftObjectPath(FString::Printf(TEXT("/Game/Grimoire/Input/%s.%s"), Name, Name)));
 	};
+	AbilityInputBindings = {
+		{ InputAsset(TEXT("IA_BasicAttack")), GrimInputTags::Input_Spell_BasicAttack },
+		{ InputAsset(TEXT("IA_SpellSlot1")), GrimInputTags::Input_Spell_Slot1 },
+		{ InputAsset(TEXT("IA_SpellSlot2")), GrimInputTags::Input_Spell_Slot2 },
+		{ InputAsset(TEXT("IA_SpellSlot3")), GrimInputTags::Input_Spell_Slot3 },
+		{ InputAsset(TEXT("IA_SpellSlot4")), GrimInputTags::Input_Spell_Slot4 },
+		{ InputAsset(TEXT("IA_SpellSlotPad1")), GrimInputTags::Input_Spell_Slot1 },
+		{ InputAsset(TEXT("IA_SpellSlotPad2")), GrimInputTags::Input_Spell_Slot2 },
+		{ InputAsset(TEXT("IA_SpellSlotPad3")), GrimInputTags::Input_Spell_Slot3 },
+		{ InputAsset(TEXT("IA_SpellSlotPad4")), GrimInputTags::Input_Spell_Slot4 },
+		{ InputAsset(TEXT("IA_Protego")), GrimInputTags::Input_Action_Protego },
+		{ InputAsset(TEXT("IA_Dodge")), GrimInputTags::Input_Action_Dodge },
+	};
+	BasicAttackPadAction = InputAsset(TEXT("IA_BasicAttackPad"));
+	SpellSetHoldAction = InputAsset(TEXT("IA_SpellSetHold"));
+	SpellSetPadActions = { InputAsset(TEXT("IA_SpellSetPad1")), InputAsset(TEXT("IA_SpellSetPad2")), InputAsset(TEXT("IA_SpellSetPad3")), InputAsset(TEXT("IA_SpellSetPad4")) };
+	SpellSetNextAction = InputAsset(TEXT("IA_SpellSetNext"));
+	SpellSetPrevAction = InputAsset(TEXT("IA_SpellSetPrev"));
 }
 
 UAbilitySystemComponent* AGrimPlayerCharacter::GetAbilitySystemComponent() const
@@ -181,17 +202,22 @@ void AGrimPlayerCharacter::SpawnGrimoireBook()
 
 void AGrimPlayerCharacter::OnRep_GrimoireBook()
 {
-	// 책이 선택 슬롯보다 늦게 왔을 수 있다 — 지금 고른 쪽을 기억시킨다.
-	if (UGrimSpellbookComponent* Spellbook = BoundSpellbook.Get())
+	// 책이 세트 복제보다 늦게 왔을 수 있다 — 지금 세트를 기억시킨다(처음 한 번은 넘기지 않는다).
+	if (GrimoireBook && WatchedSlotSet != INDEX_NONE)
 	{
-		HandleSelectedSpellChanged(Spellbook, Spellbook->GetSelectedSpell());
+		GrimoireBook->FlipTo(WatchedSlotSet, FLinearColor::White);
 	}
+}
+
+UGrimSpellbookComponent* AGrimPlayerCharacter::GetSpellbook() const
+{
+	const AGrimPlayerState* GrimPlayerState = GetPlayerState<AGrimPlayerState>();
+	return GrimPlayerState ? GrimPlayerState->GetSpellbook() : nullptr;
 }
 
 void AGrimPlayerCharacter::BindSpellbookEvents()
 {
-	const AGrimPlayerState* GrimPlayerState = GetPlayerState<AGrimPlayerState>();
-	UGrimSpellbookComponent* Spellbook = GrimPlayerState ? GrimPlayerState->GetSpellbook() : nullptr;
+	UGrimSpellbookComponent* Spellbook = GetSpellbook();
 	if (Spellbook == BoundSpellbook.Get())
 	{
 		return;
@@ -201,24 +227,88 @@ void AGrimPlayerCharacter::BindSpellbookEvents()
 		Old->OnSelectedSpellChanged.RemoveDynamic(this, &ThisClass::HandleSelectedSpellChanged);
 	}
 	BoundSpellbook = Spellbook;
+	WatchedSlotSet = INDEX_NONE;
 	if (Spellbook)
 	{
 		Spellbook->OnSelectedSpellChanged.AddUniqueDynamic(this, &ThisClass::HandleSelectedSpellChanged);
-		// 지금 고른 쪽을 책이 기억하게 한다(처음 한 번은 넘기지 않는다).
 		HandleSelectedSpellChanged(Spellbook, Spellbook->GetSelectedSpell());
 	}
 }
 
 void AGrimPlayerCharacter::HandleSelectedSpellChanged(UGrimSpellbookComponent* Spellbook, const UGrimSpellDefinition* SelectedSpell)
 {
-	if (!GrimoireBook || !Spellbook || Spellbook->GetSelectedIndex() == INDEX_NONE)
+	// 배움 · 슬롯 배치가 바뀌었다 — 서버가 슬롯 입력 태그를 다시 붙인다(바뀐 Spec 만 복제).
+	if (HasAuthority() && Spellbook)
+	{
+		GrimSpellSlotInput::RefreshSlotInputTags(GetAbilitySystemComponent(), Spellbook);
+	}
+}
+
+void AGrimPlayerCharacter::TickSpellbookWatch()
+{
+	UGrimSpellbookComponent* Spellbook = BoundSpellbook.Get();
+	if (!Spellbook)
 	{
 		return;
 	}
-	FGameplayCueParameters Parameters;
-	Parameters.SourceObject = SelectedSpell;
-	const FLinearColor Color = UGrimMagicFXStatics::ResolveColor(UGrimMagicFXStatics::ResolveVisualSet(Parameters, this), Parameters);
-	GrimoireBook->FlipTo(Spellbook->GetSelectedIndex(), Color);
+
+	// 서버: 주먹질(기본 공격 입력의 대신 — 기본 공격을 배우기 전 · 완드 없음)은 마법 정의가 없어 마법서가 아니라 여기서 한 번 준다.
+	// 기본 공격 자체는 튜토리얼의 「기본 공격 스킬북」으로 배운다(시작 지급 없음).
+	if (HasAuthority() && !bFistGranted)
+	{
+		bFistGranted = UGrimFistAbility::EnsureGranted(GetAbilitySystemComponent());
+	}
+
+	const int32 Set = Spellbook->GetActiveSlotSet();
+	if (Set == WatchedSlotSet)
+	{
+		return;
+	}
+	WatchedSlotSet = Set;
+	if (HasAuthority())
+	{
+		GrimSpellSlotInput::RefreshSlotInputTags(GetAbilitySystemComponent(), Spellbook);
+	}
+	if (GrimoireBook)
+	{
+		// 세트를 바꾸면 책장이 그 세트 쪽까지 촤르륵(R21). 빛은 그 세트 첫 마법의 색.
+		const UGrimSpellDefinition* First = nullptr;
+		const TArray<TObjectPtr<UGrimSpellDefinition>>& SlotSpells = Spellbook->GetSlotSpells();
+		const int32 PerSet = UGrimSpellbookSettings::Get()->SpellSlotsPerSet;
+		for (int32 Index = Set * PerSet; Index < (Set + 1) * PerSet && Index < SlotSpells.Num() && !First; ++Index)
+		{
+			First = SlotSpells[Index];
+		}
+		FGameplayCueParameters Parameters;
+		Parameters.SourceObject = First;
+		const FLinearColor Color = First ? UGrimMagicFXStatics::ResolveColor(UGrimMagicFXStatics::ResolveVisualSet(Parameters, this), Parameters) : FLinearColor::White;
+		GrimoireBook->FlipTo(Set, Color);
+	}
+}
+
+void AGrimPlayerCharacter::RequestSlotSet(int32 SetIndex)
+{
+	UGrimSpellbookComponent* Spellbook = GetSpellbook();
+	if (!Spellbook)
+	{
+		return;
+	}
+	if (HasAuthority())
+	{
+		Spellbook->SetActiveSlotSet(SetIndex);
+	}
+	else
+	{
+		Spellbook->Server_SetActiveSlotSet(SetIndex);
+	}
+}
+
+void AGrimPlayerCharacter::CycleSlotSet(int32 Step)
+{
+	if (const UGrimSpellbookComponent* Spellbook = GetSpellbook())
+	{
+		RequestSlotSet(FGrimSpellSlotInputMath::CycleSet(Spellbook->GetActiveSlotSet(), Step, UGrimSpellbookSettings::Get()->SpellSlotSets));
+	}
 }
 
 void AGrimPlayerCharacter::InitAbilityActorInfo()
@@ -243,7 +333,7 @@ void AGrimPlayerCharacter::InitAbilityActorInfo()
 
 void AGrimPlayerCharacter::HandleAbilityActivated(UGameplayAbility* Ability)
 {
-	if (Ability && Ability->GetAvatarActorFromActorInfo() == this && Ability->IsA<UGrimSpellAbility>())
+	if (Ability && Ability->GetAvatarActorFromActorInfo() == this && (Ability->IsA<UGrimSpellAbility>() || Ability->IsA<UGrimFistAbility>()))
 	{
 		FaceAimForCast();
 	}
@@ -270,6 +360,8 @@ void AGrimPlayerCharacter::FaceAimForCast()
 void AGrimPlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	TickSpellbookWatch();
 
 	if (CastFaceElapsed < 0.f)
 	{
@@ -305,8 +397,8 @@ void AGrimPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 	if (const UInputAction* Action = JumpAction.LoadSynchronous())
 	{
-		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInput->BindAction(Action, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleJumpPressed);
+		EnhancedInput->BindAction(Action, ETriggerEvent::Completed, this, &ThisClass::HandleJumpReleased);
 	}
 	if (const UInputAction* Action = MoveAction.LoadSynchronous())
 	{
@@ -331,6 +423,86 @@ void AGrimPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		}
 		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::SpellInputPressed, Binding.InputTag);
 		EnhancedInput->BindAction(Action, ETriggerEvent::Completed, this, &ThisClass::SpellInputReleased, Binding.InputTag);
+		EnhancedInput->BindAction(Action, ETriggerEvent::Canceled, this, &ThisClass::SpellInputReleased, Binding.InputTag);
+	}
+
+	// 패드: R2/RT 짧게 = 기본 공격, 누르는 동안 = 세트 활성(얼굴 버튼 · 십자키가 Chord 로 슬롯 · 세트가 된다).
+	if (const UInputAction* Action = BasicAttackPadAction.LoadSynchronous())
+	{
+		EnhancedInput->BindAction(Action, ETriggerEvent::Triggered, this, &ThisClass::HandleBasicAttackPadTap);
+	}
+	if (const UInputAction* Action = SpellSetHoldAction.LoadSynchronous())
+	{
+		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSpellSetHoldStarted);
+		EnhancedInput->BindAction(Action, ETriggerEvent::Completed, this, &ThisClass::HandleSpellSetHoldEnded);
+		EnhancedInput->BindAction(Action, ETriggerEvent::Canceled, this, &ThisClass::HandleSpellSetHoldEnded);
+	}
+	for (int32 SetIndex = 0; SetIndex < SpellSetPadActions.Num(); ++SetIndex)
+	{
+		if (const UInputAction* Action = SpellSetPadActions[SetIndex].LoadSynchronous())
+		{
+			EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSpellSetPadInput, SetIndex);
+		}
+	}
+	if (const UInputAction* Action = SpellSetNextAction.LoadSynchronous())
+	{
+		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSpellSetWheel, 1);
+	}
+	if (const UInputAction* Action = SpellSetPrevAction.LoadSynchronous())
+	{
+		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSpellSetWheel, -1);
+	}
+}
+
+void AGrimPlayerCharacter::HandleJumpPressed()
+{
+	// 패드 세트 활성 중의 A/✕ 는 슬롯 3 이다.
+	if (!bSpellSetHeld)
+	{
+		Jump();
+	}
+}
+
+void AGrimPlayerCharacter::HandleJumpReleased()
+{
+	StopJumping();
+}
+
+void AGrimPlayerCharacter::HandleBasicAttackPadTap()
+{
+	// 짧게 누른 사이 슬롯을 썼으면(빠른 R2 + 얼굴 버튼) 기본 공격은 아니다.
+	if (bSlotUsedDuringSetHold)
+	{
+		bSlotUsedDuringSetHold = false;
+		return;
+	}
+	SpellInputPressed(GrimInputTags::Input_Spell_BasicAttack);
+	SpellInputReleased(GrimInputTags::Input_Spell_BasicAttack);
+}
+
+void AGrimPlayerCharacter::HandleSpellSetHoldStarted()
+{
+	bSpellSetHeld = true;
+	bSlotUsedDuringSetHold = false;
+}
+
+void AGrimPlayerCharacter::HandleSpellSetHoldEnded()
+{
+	// bSlotUsedDuringSetHold 는 남겨 둔다 — 같은 프레임에 오는 Tap(기본 공격)이 본다.
+	bSpellSetHeld = false;
+}
+
+void AGrimPlayerCharacter::HandleSpellSetPadInput(int32 SetIndex)
+{
+	bSlotUsedDuringSetHold = true;
+	RequestSlotSet(SetIndex);
+}
+
+void AGrimPlayerCharacter::HandleSpellSetWheel(int32 Step)
+{
+	if (UGrimSpellInputSettings::Get()->bMouseWheelCyclesSets)
+	{
+		CycleSlotSet(Step);
 	}
 }
 
@@ -357,6 +529,23 @@ void AGrimPlayerCharacter::Look(const FInputActionValue& Value)
 
 void AGrimPlayerCharacter::SpellInputPressed(FGameplayTag InputTag)
 {
+	const bool bSlotInput = FGrimSpellSlotInputMath::GetSlotInSet(InputTag) != INDEX_NONE;
+	if (bSpellSetHeld)
+	{
+		// 패드 세트 활성 중의 얼굴 버튼은 슬롯 시전이다(Y = 방어, B = 회피 자리로 가지 않는다).
+		if (InputTag == GrimInputTags::Input_Action_Protego || InputTag == GrimInputTags::Input_Action_Dodge)
+		{
+			return;
+		}
+		if (bSlotInput)
+		{
+			bSlotUsedDuringSetHold = true;
+		}
+	}
+	if (InputTag == GrimInputTags::Input_Action_Protego || InputTag == GrimInputTags::Input_Action_Dodge)
+	{
+		UE_LOG(LogGrimoire, Verbose, TEXT("%s: %s 입력(자리만 — 어빌리티 없음)"), *GetNameSafe(this), *InputTag.ToString());
+	}
 	if (UGrimAbilitySystemComponent* ASC = GetGrimAbilitySystemComponent())
 	{
 		ASC->AbilityInputTagPressed(InputTag);
