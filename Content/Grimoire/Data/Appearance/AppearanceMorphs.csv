@@ -1,0 +1,7 @@
+Name,DisplayName,MorphTarget,PlaceholderScale
+EyeSize,눈 크기,EyeSize,"(X=0,Y=0,Z=0)"
+EyeTilt,눈꼬리,EyeTilt,"(X=0,Y=0,Z=0)"
+NoseLength,코 길이,NoseLength,"(X=0,Y=0.08,Z=0)"
+JawWidth,턱 너비,JawWidth,"(X=0.12,Y=0,Z=0)"
+Cheek,광대,Cheek,"(X=0.05,Y=0.05,Z=0)"
+MouthWidth,입 너비,MouthWidth,"(X=0.03,Y=0,Z=0)"

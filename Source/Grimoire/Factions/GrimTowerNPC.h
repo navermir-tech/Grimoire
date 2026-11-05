@@ -7,7 +7,9 @@
 class APawn;
 class APlayerController;
 class UCapsuleComponent;
+class UGrimAppearanceComponent;
 class UGrimDialogueWidget;
+class USkeletalMeshComponent;
 class UStaticMeshComponent;
 struct FGrimNpcDef;
 struct FGrimQuestLog;
@@ -17,7 +19,8 @@ struct FGrimQuestLog;
  * 침대처럼 「다가가 키」(UGrimQuestSettings::TalkKey, 기본 F)로 말을 건다 — 마법 상호작용의 예외(사람과의 대화).
  * 키는 이 액터가 로컬 컨트롤러에서 직접 읽는다(캐릭터 입력을 고치지 않으려고). 대화 창은 UGrimDialogueWidget.
  * 대화를 마치면 서버에 TalkToNpc 신호, 서비스(승급 시험 · 정화 의식 · 대리 수리 · 지우기)는 UGrimQuestComponent 가 서버에서 처리한다.
- * 모양: 엔진 기본 도형(원통 몸 · 구 머리 · 원뿔 모자) 그레이박스. 탑은 안전 지대 — 조준 대상이 아니다.
+ * 모양: 외형(R38) — NpcAppearance.csv[NpcId] 의 규칙 + 씨앗으로 서버가 정하고 복제한다(docs/systems/customization).
+ *       외형이 없거나 조립 전이면 엔진 기본 도형(원통 몸 · 구 머리 · 원뿔 모자) 그레이박스. 탑은 안전 지대 — 조준 대상이 아니다.
  */
 UCLASS(Blueprintable)
 class GRIMOIRE_API AGrimTowerNPC : public AActor
@@ -73,7 +76,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FLinearColor RobeColor = FLinearColor(0.18f, 0.22f, 0.55f);
 
+	/** 외형 몸(마네킹 스켈레톤) — 조각은 UGrimAppearanceComponent 가 여기에 붙인다 */
+	UPROPERTY(VisibleAnywhere, Category = "NPC")
+	TObjectPtr<USkeletalMeshComponent> Figure;
+
+	UPROPERTY(VisibleAnywhere, Category = "NPC")
+	TObjectPtr<UGrimAppearanceComponent> Appearance;
+
+	/** 외형을 쓰나(퀘스트 게시판은 아니오) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
+	bool bUseAppearance = true;
+
 	void ApplyColors();
+	void SetupAppearance();
+	void HandleAppearanceApplied(UGrimAppearanceComponent* Component);
 	void HandleLocalPlayer(APlayerController* PlayerController);
 
 	/** 로컬 화면의 대화 창(화면이 있는 쪽에서만 만든다) */

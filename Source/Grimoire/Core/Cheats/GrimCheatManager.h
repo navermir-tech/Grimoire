@@ -17,4 +17,12 @@ public:
 	/** GrimSuperCheat 1 = 켬, 0 = 끔. 친 플레이어에게만 HP · 마나 · 배고픔 최대, 체온 정상 고정. */
 	UFUNCTION(Exec)
 	void GrimSuperCheat(int32 bEnable);
+
+	/** 캐릭터 생성 화면을 연다(R38 — 고르는 동안은 내 화면만, 확인하면 서버로) */
+	UFUNCTION(Exec)
+	void GrimCreator();
+
+	/** 친 플레이어의 외형을 무작위 견습생 한 벌로(서버). 씨앗을 주면 늘 같은 한 벌. 예: GrimAppearanceRandom 42 */
+	UFUNCTION(Exec)
+	void GrimAppearanceRandom(const FString& Seed);
 };

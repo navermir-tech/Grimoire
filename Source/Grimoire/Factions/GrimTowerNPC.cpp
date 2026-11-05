@@ -1,6 +1,11 @@
 #include "Factions/GrimTowerNPC.h"
 #include "Factions/GrimDialogueWidget.h"
 #include "Factions/GrimFactionTypes.h"
+#include "Appearance/GrimAppearanceComponent.h"
+#include "Appearance/GrimAppearanceSettings.h"
+#include "Animation/AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 #include "Quest/GrimQuestSettings.h"
 #include "Quest/GrimQuestTrackerWidget.h"
 #include "Quest/GrimQuestTypes.h"
@@ -53,10 +58,19 @@ AGrimTowerNPC::AGrimTowerNPC()
 	Body = MakePart(TEXT("Body"), CylinderMesh.Object, FVector(0.f, 0.f, -20.f), FVector(0.7f, 0.7f, 1.45f));
 	Head = MakePart(TEXT("Head"), SphereMesh.Object, FVector(0.f, 0.f, 70.f), FVector(0.4f));
 	Hat = MakePart(TEXT("Hat"), ConeMesh.Object, FVector(0.f, 0.f, 112.f), FVector(0.55f, 0.55f, 0.6f));
+
+	// 외형 몸: 발이 캡슐 바닥, 마네킹은 +Y 를 본다 — 액터 앞(+X)을 보게
+	Figure = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Figure"));
+	Figure->SetupAttachment(Capsule);
+	Figure->SetRelativeLocation(FVector(0.f, 0.f, -92.f));
+	Figure->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	Figure->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Appearance = CreateDefaultSubobject<UGrimAppearanceComponent>(TEXT("Appearance"));
 }
 
 void AGrimTowerNPC::BeginPlay()
 {
+	SetupAppearance();
 	Super::BeginPlay();
 	ApplyColors();
 	if (GetNetMode() == NM_DedicatedServer)
@@ -95,6 +109,46 @@ void AGrimTowerNPC::ApplyColors()
 	Tint(Body, RobeColor);
 	Tint(Head, FLinearColor(0.85f, 0.7f, 0.58f));
 	Tint(Hat, RobeColor * 0.7f);
+}
+
+void AGrimTowerNPC::SetupAppearance()
+{
+	if (!bUseAppearance)
+	{
+		Figure->SetHiddenInGame(true);
+		return;
+	}
+	const UGrimAppearanceSettings* Settings = UGrimAppearanceSettings::Get();
+	if (!Figure->GetSkeletalMeshAsset() && Settings->BodyMeshes.Num() > 0)
+	{
+		Figure->SetSkeletalMeshAsset(Settings->BodyMeshes[0].LoadSynchronous());
+	}
+	Appearance->SetLeaderMesh(Figure);
+	Appearance->OnAppearanceApplied.AddUObject(this, &AGrimTowerNPC::HandleAppearanceApplied);
+	if (HasAuthority())
+	{
+		// 씨앗 = NpcId(표에 씨앗이 없으면) — 다시 들어와도 같은 얼굴
+		Appearance->SetAppearance(FGrimAppearanceMath::GenerateForNpc(UGrimAppearanceSettings::GetCatalog(), NpcId, Settings->DefaultTowerNpcRule));
+	}
+}
+
+void AGrimTowerNPC::HandleAppearanceApplied(UGrimAppearanceComponent* Component)
+{
+	const bool bHasBody = Component && Component->HasBuiltBody();
+	for (UStaticMeshComponent* Part : { Body.Get(), Head.Get(), Hat.Get() })
+	{
+		if (Part)
+		{
+			Part->SetHiddenInGame(bHasBody);
+		}
+	}
+	if (bHasBody && GetNetMode() != NM_DedicatedServer && !Figure->IsPlaying())
+	{
+		if (UAnimationAsset* Idle = UGrimAppearanceSettings::Get()->NpcIdleAnimation.LoadSynchronous())
+		{
+			Figure->PlayAnimation(Idle, true);
+		}
+	}
 }
 
 const FGrimNpcDef* AGrimTowerNPC::GetNpcDef() const
@@ -250,6 +304,7 @@ AGrimQuestBoard::AGrimQuestBoard()
 	Head->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.7f));
 	Hat->SetVisibility(false);
 	Hat->SetHiddenInGame(true);
+	bUseAppearance = false;
 }
 
 void AGrimQuestBoard::BuildLines(FName Context, const FGrimQuestLog& Log, TArray<FString>& OutLines) const

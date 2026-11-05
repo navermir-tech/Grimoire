@@ -13,6 +13,7 @@ class UGrimProgressionComponent;
 class UGrimSurvivalComponent;
 class UGrimLevelComponent;
 class UGrimSkillTreeComponent;
+class UGrimPlayerAppearanceComponent;
 
 /**
  * 플레이어 상태. ASC 와 어트리뷰트 · 마법서 · 생존을 가진다 — 폰이 죽거나 바뀌어도(탑승) 유지된다.
@@ -36,6 +37,7 @@ public:
 	UGrimSurvivalComponent* GetSurvival() const { return Survival; }
 	UGrimLevelComponent* GetCharacterLevel() const { return CharacterLevel; }
 	UGrimSkillTreeComponent* GetSkillTree() const { return SkillTree; }
+	UGrimPlayerAppearanceComponent* GetAppearance() const { return Appearance; }
 
 	/** ASC 의 Owner = 이 PlayerState, Avatar = 폰. 서버 · 클라이언트 양쪽에서 호출한다. */
 	void InitAbilityActorInfoForPawn(APawn* NewPawn);
@@ -71,4 +73,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Progression")
 	TObjectPtr<UGrimSkillTreeComponent> SkillTree;
+
+	/** 외형 정본 · 세이브 「Player.Appearance」 (R38, docs/systems/customization) */
+	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Appearance")
+	TObjectPtr<UGrimPlayerAppearanceComponent> Appearance;
 };

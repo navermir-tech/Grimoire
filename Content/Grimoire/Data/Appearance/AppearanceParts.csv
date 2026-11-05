@@ -1,0 +1,34 @@
+Name,Slot,DisplayName,BodyTypes,MeshA,MeshB,Creator,HidesHair,Morphs
+Face_01,Face,얼굴 1 — 둥근 얼굴,,,,True,False,
+Face_02,Face,얼굴 2 — 갸름한 얼굴,,,,True,False,JawWidth=-0.4|Cheek=-0.2
+Face_03,Face,얼굴 3 — 각진 턱,,,,True,False,JawWidth=0.5|MouthWidth=0.2
+Face_04,Face,얼굴 4 — 큰 눈,,,,True,False,EyeSize=0.5|NoseLength=-0.2
+Face_05,Face,얼굴 5 — 올라간 눈꼬리,,,,True,False,EyeTilt=0.5|Cheek=0.2
+Face_06,Face,얼굴 6 — 긴 코,,,,True,False,NoseLength=0.5|JawWidth=-0.1
+Face_07,Face,얼굴 7 — 넓은 광대,,,,True,False,Cheek=0.5|MouthWidth=0.1
+Face_08,Face,얼굴 8 — 작은 입,,,,True,False,MouthWidth=-0.4|EyeSize=0.2
+Hair_Short,Hair,짧은 머리,,,,True,False,
+Hair_Tied,Hair,묶은 머리,,,,True,False,
+Hair_Bun,Hair,올림머리,,,,True,False,
+Hair_Braid,Hair,땋은 머리,,,,True,False,
+Hair_Long,Hair,긴 머리,,,,True,False,
+Hair_Crop,Hair,아주 짧은 머리,,,,True,False,
+Hair_Wavy,Hair,곱슬 단발,,,,True,False,
+Hair_Bald,Hair,민머리,,,,True,False,
+Beard_Stubble,Beard,짧은 수염,,,,True,False,
+Beard_Full,Beard,덥수룩한 수염,,,,True,False,
+Beard_Long,Beard,긴 수염,,,,True,False,
+Hat_Beret,Hat,베레모 (사서),,,,False,False,
+Hat_TallCylinder,Hat,원통 모자 (시험관),,,,False,True,
+Robe_A_Apprentice,Robe,견습생 튜닉 로브,,,,True,False,
+Robe_A_Instructor,Robe,교관 짧은 겉옷 (교관),,,,False,False,
+Robe_A_Librarian,Robe,사서 긴 로브 (사서),,,,False,False,
+Robe_A_Examiner,Robe,시험관 긴 로브 (시험관),,,,False,False,
+Stole_A_Parchment,Stole,양피지 스톨,,,,True,False,
+Belt_A_Pouches,Belt,가죽 벨트 · 주머니,,,,True,False,
+Belt_A_Books,Belt,책 벨트 (사서),,,,False,False,
+Cloak_A_Shoulder,Cloak,짧은 어깨 망토 (시험관),,,,False,False,
+Gloves_A_Fingerless,Gloves,손끝 트인 가죽 장갑,,,,True,False,
+Boots_A_Leather,Boots,가죽 장화,,,,True,False,
+Shoes_A_Low,Boots,낮은 가죽 신 (사서 · 시험관),,,,False,False,
+Legs_A_Patched,Legs,덧댄 천 바지,,,,True,False,

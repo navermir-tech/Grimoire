@@ -7,6 +7,7 @@
 #include "Survival/GrimSurvivalComponent.h"
 #include "Progression/GrimLevelComponent.h"
 #include "Progression/GrimSkillTreeComponent.h"
+#include "Appearance/GrimPlayerAppearanceComponent.h"
 
 AGrimPlayerState::AGrimPlayerState()
 {
@@ -23,6 +24,7 @@ AGrimPlayerState::AGrimPlayerState()
 	Survival = CreateDefaultSubobject<UGrimSurvivalComponent>(TEXT("Survival"));
 	CharacterLevel = CreateDefaultSubobject<UGrimLevelComponent>(TEXT("CharacterLevel"));
 	SkillTree = CreateDefaultSubobject<UGrimSkillTreeComponent>(TEXT("SkillTree"));
+	Appearance = CreateDefaultSubobject<UGrimPlayerAppearanceComponent>(TEXT("Appearance"));
 
 	// ASC 를 가진 PlayerState 는 기본값(1Hz)보다 자주 갱신해야 시전 · 수치가 늦지 않다.
 	SetNetUpdateFrequency(100.f);

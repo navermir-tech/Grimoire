@@ -1,0 +1,56 @@
+Name,Palette,Hex,DisplayName,Creator
+Skin_01,Skin,F2D3BD,피부 1,True
+Skin_02,Skin,E8BFA1,피부 2,True
+Skin_03,Skin,DDB08E,피부 3,True
+Skin_04,Skin,D09F7E,피부 4,True
+Skin_05,Skin,C08A66,피부 5,True
+Skin_06,Skin,B07A55,피부 6,True
+Skin_07,Skin,9C6745,피부 7,True
+Skin_08,Skin,8A5A3B,피부 8,True
+Skin_09,Skin,74492F,피부 9,True
+Skin_10,Skin,603B26,피부 10,True
+Skin_11,Skin,4C2E1E,피부 11,True
+Skin_12,Skin,3B2318,피부 12,True
+Eye_01,Eye,3B2A1E,짙은 갈색,True
+Eye_02,Eye,5A3A22,호박,True
+Eye_03,Eye,2F4F6F,청회색,True
+Eye_04,Eye,3A6E9E,파랑,True
+Eye_05,Eye,4F7A4A,초록,True
+Eye_06,Eye,7A8A5A,녹갈색,True
+Eye_07,Eye,6E6E6E,회색,True
+Eye_08,Eye,8A6A2E,금갈색,True
+Eye_09,Eye,2A2A2A,검정,True
+Eye_10,Eye,6B4FA0,보라,True
+Hair_01,Hair,1C1612,검정,True
+Hair_02,Hair,2E2018,흑갈색,True
+Hair_03,Hair,4A3020,갈색,True
+Hair_04,Hair,6B4428,밤색,True
+Hair_05,Hair,8E5A30,적갈색,True
+Hair_06,Hair,A8703A,구리,True
+Hair_07,Hair,C29A5C,금갈색,True
+Hair_08,Hair,D8BE86,금발,True
+Hair_09,Hair,7A2E22,붉은색,True
+Hair_10,Hair,3B3B46,청흑색,True
+Hair_11,Hair,5E4A3A,회갈색,True
+Hair_12,Hair,9A8C7E,잿빛,True
+Hair_GreyStreak,Hair,8E8A84,반백,False
+Hair_Grey,Hair,B8B4AE,새치 회색,False
+Hair_White,Hair,DCDAD4,흰머리,False
+Cloth_Ink,Cloth,232A45,먹빛 남색,True
+Cloth_Parchment,Cloth,E6D5AE,양피지,True
+Cloth_Night,Cloth,1A1C2A,밤 남색,True
+Cloth_Slate,Cloth,3C4450,석판 회색,True
+Cloth_Moss,Cloth,4A5236,이끼,True
+Cloth_Umber,Cloth,5A4030,엄버 갈색,True
+Cloth_Linen,Cloth,CFC2A0,리넨,True
+Cloth_Wax,Cloth,8E2F2B,밀랍 적색,True
+Cloth_Ivory,Cloth,EEE6D0,의식용 상아,False
+Element_Water,Element,3A7BD5,물,False
+Element_Fire,Element,E0582B,불,False
+Element_Wind,Element,7CC9A6,바람,False
+Element_Earth,Element,A0773F,땅,False
+Element_Light,Element,F2D06B,빛,False
+Element_Dark,Element,6B4FA0,어둠,False
+Fixed_Leather,Fixed,6A4A32,오래된 가죽,False
+Fixed_Metal,Fixed,B88A3E,놋쇠,False
+Fixed_Under,Fixed,3A332C,속옷 층 천,False
