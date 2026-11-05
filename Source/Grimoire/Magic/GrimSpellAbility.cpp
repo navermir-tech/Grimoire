@@ -896,6 +896,10 @@ void UGrimSpellAbility::DeliverCone(const UGrimSpellDefinition* Definition, cons
 	for (const FOverlapResult& Overlap : Overlaps)
 	{
 		AActor* Actor = Overlap.GetActor();
+		if (AGrimSpellProjectile::IsSensorComponent(Overlap.GetComponent()))
+		{
+			continue;
+		}
 		if (!Actor || Actor == Avatar || Seen.Contains(Actor))
 		{
 			continue;
@@ -950,6 +954,10 @@ void UGrimSpellAbility::DeliverBeam(const UGrimSpellDefinition* Definition, cons
 	for (const FHitResult& Hit : Hits)
 	{
 		AActor* HitActor = Hit.GetActor();
+		if (AGrimSpellProjectile::IsSensorComponent(Hit.GetComponent()))
+		{
+			continue;
+		}
 		if (!HitActor || Done.Contains(HitActor))
 		{
 			continue;
@@ -1003,6 +1011,10 @@ bool UGrimSpellAbility::TraceStreamArc(const UWorld* World, const UGrimSpellDefi
 
 		for (const FHitResult& Hit : Hits)
 		{
+			if (AGrimSpellProjectile::IsSensorComponent(Hit.GetComponent()))
+			{
+				continue; // 감지용 영역(트리거)은 줄기를 막지 않는다
+			}
 			const AActor* HitActor = Hit.GetActor();
 			if (OutHits && HitActor && !Seen.Contains(HitActor))
 			{
@@ -1019,6 +1031,10 @@ bool UGrimSpellAbility::TraceStreamArc(const UWorld* World, const UGrimSpellDefi
 					World->OverlapMultiByObjectType(Splash, Hit.Location, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Definition->StreamSplashRadius), Params);
 					for (const FOverlapResult& Overlap : Splash)
 					{
+						if (AGrimSpellProjectile::IsSensorComponent(Overlap.GetComponent()))
+						{
+							continue;
+						}
 						AActor* SplashActor = Overlap.GetActor();
 						if (SplashActor && !Seen.Contains(SplashActor))
 						{

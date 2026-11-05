@@ -170,3 +170,15 @@
 - 랜드마크 · 위니: [Game Developer — A taxonomy of weenies (Ghost of Tsushima)](https://gamedeveloper.com/design/a-taxonomy-of-weenies-the-landmarks-that-define-i-ghost-of-tsushima-i-) · [Level Design Basics](https://gamedev.dou.ua/blogs/level-design-basics-part-3/?hl=en)
 - POI: [MY.GAMES — POIs Diversity Rule](https://medium.com/my-games-company/how-to-make-an-exciting-open-world-the-pois-diversity-rule-90de6d748eac) · [Game Developer — content spacing in free-roam games](https://gamedeveloper.com/design/the-importance-of-content-spacing-and-level-design-in-free-roam-games-) · [Gfinity — Economy of Scale](https://www.gfinityesports.com/article/why-modern-open-world-games-need-to-stop-the-bigger-is-better-trend) · [Game Developer — Open World Level Design: The Full Vision](https://www.gamedeveloper.com/design/open-world-level-design-the-full-vision-part-2-5-)
 - 지형 조형: [80.lv — Creating macro environments](https://80.lv/articles/creating-macro-environments-in-open-wold-games) · [World Machine 블로그](https://www.world-machine.com/blog/?p=30)
+
+## 7. 2차 플레이 테스트 뒤 — 마탑 구간부터 (2026-11-05)
+
+사용자 피드백: 「여전히 평지 느낌이 강함. 2 × 4 km 를 한 번에 만들지 말고 마탑 구간부터 완성하고 조금씩 넓혀 가자. 랜드마크는 블록으로 자리를 잡고 무엇을 넣을지 글씨로 표기. POI 와 언덕 간격을 더 촘촘하게.」
+
+| 바꾸는 것 | 전 | 이제 |
+|---|---|---|
+| 만드는 범위 | 2 × 4 km 전체를 한 번에 | **마탑 구간**(탑 곶 + 남부 목초지 — 탑에서 반경 약 500~700 m)을 먼저 완성 → 다 되면 한 구역씩 넓힌다. 나머지 땅은 「공사 중」 표시 |
+| 언덕 | 지름 150~500 m, 높이 10~60 m — 걸어서 보면 완만 | 마탑 구간은 **지름 40~150 m · 높이 8~30 m 의 작은 언덕이 촘촘히**(언덕 사이 50~120 m), 큰 언덕은 몇 개만. 걷는 높이(1.8 m 눈)에서 다음 언덕 너머가 가려져야 한다 |
+| POI 간격 | 150~300 m | **60~120 m** — 걸으면 20~30초마다 무언가 |
+| 랜드마크 · POI | 기본 도형 소품 | **블록(크기 · 색으로 실루엣)** + **떠 있는 글씨**(「거대 고목 — 높이 40 m 둥근 덩어리 · 오르면 전망」처럼 무엇이 들어갈지) |
+| 확인 | 하늘 · 먼 스크린숏 | **사람 눈높이(1.8 m)** 스크린숏을 길 위 여러 곳에서 |

@@ -34,6 +34,9 @@ ACTIONS = {
     "IA_SpellSetPrev": (["MouseScrollDown"], []),
     "IA_Protego": (["Q", "Gamepad_FaceButton_Top"], []),
     "IA_Dodge": (["LeftControl", "Gamepad_FaceButton_Right"], []),
+    # 달리기 — 호그와트 레거시처럼 키보드 Shift(누르는 동안), 패드 L3(토글). 2026-11-05 플레이 테스트 요청
+    "IA_Sprint": (["LeftShift"], []),
+    "IA_SprintToggle": (["Gamepad_LeftThumbstick"], []),
 }
 for i, key in enumerate(PAD_SLOT_KEYS):
     ACTIONS[f"IA_SpellSlotPad{i + 1}"] = ([key], [("chord", HOLD)])

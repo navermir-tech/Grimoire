@@ -10,6 +10,7 @@
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimSpellSlotInput.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "MagicFX/GrimGrimoireBook.h"
 #include "MagicFX/GrimMagicFXSettings.h"
 #include "MagicFX/GrimMagicFXStatics.h"
@@ -52,12 +53,20 @@ AGrimPlayerCharacter::AGrimPlayerCharacter()
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.f;
+	// 호그와트 레거시처럼 어깨 너머 카메라(2026-11-05 플레이 테스트) — 오른쪽 어깨 위, 가깝게, 살짝 늦게 따라온다.
+	// 줌인 조준(Targeting)은 시작할 때 이 값을 기억했다가 되돌린다.
+	CameraBoom->TargetArmLength = 270.f;
+	CameraBoom->SocketOffset = FVector(0.f, 55.f, 65.f);
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->bEnableCameraLag = true;
+	CameraBoom->CameraLagSpeed = 14.f;
+	CameraBoom->bDoCollisionTest = true;
+	CameraBoom->ProbeSize = 14.f;
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	FollowCamera->SetFieldOfView(85.f);
 
 	ElementalState = CreateDefaultSubobject<UGrimElementalStateComponent>(TEXT("ElementalState"));
 
@@ -110,6 +119,8 @@ AGrimPlayerCharacter::AGrimPlayerCharacter()
 	SpellSetPadActions = { InputAsset(TEXT("IA_SpellSetPad1")), InputAsset(TEXT("IA_SpellSetPad2")), InputAsset(TEXT("IA_SpellSetPad3")), InputAsset(TEXT("IA_SpellSetPad4")) };
 	SpellSetNextAction = InputAsset(TEXT("IA_SpellSetNext"));
 	SpellSetPrevAction = InputAsset(TEXT("IA_SpellSetPrev"));
+	SprintAction = InputAsset(TEXT("IA_Sprint"));
+	SprintToggleAction = InputAsset(TEXT("IA_SprintToggle"));
 }
 
 UAbilitySystemComponent* AGrimPlayerCharacter::GetAbilitySystemComponent() const
@@ -363,6 +374,20 @@ void AGrimPlayerCharacter::Tick(float DeltaSeconds)
 
 	TickSpellbookWatch();
 
+	// 달리는 중에 탈진하거나 줌 조준을 시작하면 달리기를 멈춘다. 패드 토글은 멈추면(입력 없음) 풀린다.
+	if (bSprinting && (IsSprintBlocked() || (bSprintToggled && GetVelocity().Size2D() < 10.f)))
+	{
+		if (IsLocallyControlled())
+		{
+			SetSprinting(false);
+		}
+		else if (HasAuthority() && IsSprintBlocked())
+		{
+			bSprinting = false;
+			ApplySprintSpeed(false);
+		}
+	}
+
 	if (CastFaceElapsed < 0.f)
 	{
 		return;
@@ -451,6 +476,82 @@ void AGrimPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	if (const UInputAction* Action = SpellSetPrevAction.LoadSynchronous())
 	{
 		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSpellSetWheel, -1);
+	}
+	if (const UInputAction* Action = SprintAction.LoadSynchronous())
+	{
+		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSprintPressed);
+		EnhancedInput->BindAction(Action, ETriggerEvent::Completed, this, &ThisClass::HandleSprintReleased);
+	}
+	if (const UInputAction* Action = SprintToggleAction.LoadSynchronous())
+	{
+		EnhancedInput->BindAction(Action, ETriggerEvent::Started, this, &ThisClass::HandleSprintToggle);
+	}
+}
+
+void AGrimPlayerCharacter::HandleSprintPressed()
+{
+	bSprintToggled = false;
+	SetSprinting(true);
+}
+
+void AGrimPlayerCharacter::HandleSprintReleased()
+{
+	SetSprinting(false);
+}
+
+void AGrimPlayerCharacter::HandleSprintToggle()
+{
+	bSprintToggled = !bSprinting;
+	SetSprinting(!bSprinting);
+}
+
+bool AGrimPlayerCharacter::IsSprintBlocked() const
+{
+	const UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetPlayerState());
+	if (!ASC)
+	{
+		return false;
+	}
+	// 생존(Status.Exhausted)과 조준(State.Aiming) 태그는 이름으로 — 그쪽 헤더에 묶이지 않게.
+	static const FGameplayTag Exhausted = FGameplayTag::RequestGameplayTag(TEXT("Status.Exhausted"), false);
+	static const FGameplayTag Aiming = FGameplayTag::RequestGameplayTag(TEXT("State.Aiming"), false);
+	return (Exhausted.IsValid() && ASC->HasMatchingGameplayTag(Exhausted)) || (Aiming.IsValid() && ASC->HasMatchingGameplayTag(Aiming));
+}
+
+void AGrimPlayerCharacter::SetSprinting(bool bNewSprinting)
+{
+	if (bNewSprinting && IsSprintBlocked())
+	{
+		bNewSprinting = false;
+	}
+	if (bNewSprinting == bSprinting)
+	{
+		return;
+	}
+	bSprinting = bNewSprinting;
+	ApplySprintSpeed(bSprinting);
+	if (!HasAuthority())
+	{
+		Server_SetSprinting(bSprinting);
+	}
+}
+
+void AGrimPlayerCharacter::Server_SetSprinting_Implementation(bool bNewSprinting)
+{
+	bSprinting = bNewSprinting && !IsSprintBlocked();
+	ApplySprintSpeed(bSprinting);
+}
+
+void AGrimPlayerCharacter::ApplySprintSpeed(bool bNewSprinting)
+{
+	if (bNewSprinting == bSprintSpeedApplied)
+	{
+		return;
+	}
+	bSprintSpeedApplied = bNewSprinting;
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->MaxWalkSpeed = bNewSprinting ? Movement->MaxWalkSpeed * SprintSpeedScale : Movement->MaxWalkSpeed / SprintSpeedScale;
 	}
 }
 

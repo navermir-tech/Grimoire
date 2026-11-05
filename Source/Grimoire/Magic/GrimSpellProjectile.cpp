@@ -262,7 +262,28 @@ void AGrimSpellProjectile::StartTrail()
 
 void AGrimSpellProjectile::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	// 감지용 영역(전투 금지 구역 · 퀘스트 발동 · 서식 구역 같은 트리거 상자)은 맞은 것이 아니다 — 지나간다.
+	// (2026-11-05 플레이 테스트: 마법탑 실내의 전투 금지 상자에 불씨 · 기본 공격이 맞아 몸 앞에서 터졌다)
+	if (IsSensorComponent(OtherComp))
+	{
+		return;
+	}
 	HandleHit(OtherActor, SweepResult, bFromSweep);
+}
+
+bool AGrimSpellProjectile::IsSensorComponent(const UPrimitiveComponent* Component)
+{
+	if (!Component)
+	{
+		return false;
+	}
+	// 물리로 막는 것이 하나도 없는 질의 전용 도형 = 감지용. 폰 · 물리체(겹침으로 맞는 대상)는 몸이 무언가를 막는다.
+	const bool bQueryOnly = Component->GetCollisionEnabled() == ECollisionEnabled::QueryOnly;
+	const bool bBlocksAnything = Component->GetCollisionResponseToChannels().GetResponse(ECC_WorldStatic) == ECR_Block
+		|| Component->GetCollisionResponseToChannels().GetResponse(ECC_WorldDynamic) == ECR_Block
+		|| Component->GetCollisionResponseToChannels().GetResponse(ECC_Pawn) == ECR_Block
+		|| Component->GetCollisionResponseToChannels().GetResponse(ECC_Visibility) == ECR_Block;
+	return bQueryOnly && !bBlocksAnything;
 }
 
 void AGrimSpellProjectile::OnProjectileStop(const FHitResult& ImpactResult)

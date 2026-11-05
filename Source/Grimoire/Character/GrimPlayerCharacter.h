@@ -103,6 +103,33 @@ protected:
 	void HandleSpellSetPadInput(int32 SetIndex);
 	void HandleSpellSetWheel(int32 Step);
 
+	// ───── 달리기 (호그와트 레거시처럼 — 키보드 Shift 누르는 동안, 패드 L3 토글) ─────
+	void HandleSprintPressed();
+	void HandleSprintReleased();
+	void HandleSprintToggle();
+	/** 로컬에서 바꾸고 서버에도 알린다(서버가 이동 속도를 쥔다). 탈진 · 줌 조준 중에는 켜지지 않는다. */
+	void SetSprinting(bool bNewSprinting);
+	UFUNCTION(Server, Reliable)
+	void Server_SetSprinting(bool bNewSprinting);
+	void ApplySprintSpeed(bool bNewSprinting);
+	/** 지금 달릴 수 없는가 — 탈진(Status.Exhausted · R29) · 줌 조준(State.Aiming) */
+	bool IsSprintBlocked() const;
+
+	bool bSprinting = false;
+	bool bSprintSpeedApplied = false;
+	/** 패드 L3 토글로 켰나 — 멈추면 풀린다(키보드는 누르는 동안) */
+	bool bSprintToggled = false;
+
+	/** 달리기 속도 배율(걷기 속도에 곱함). 생존 · 줌 쪽도 속도를 비율로 바꾸므로 곱셈으로 겹친다 */
+	UPROPERTY(EditDefaultsOnly, Category = "Grimoire|Movement", meta = (ClampMin = "1.0"))
+	float SprintSpeedScale = 1.6f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Grimoire|Input")
+	TSoftObjectPtr<UInputAction> SprintAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Grimoire|Input")
+	TSoftObjectPtr<UInputAction> SprintToggleAction;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Grimoire|Camera")
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
