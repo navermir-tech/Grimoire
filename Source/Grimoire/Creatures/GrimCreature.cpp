@@ -7,6 +7,8 @@
 #include "Creatures/GrimCreatureTags.h"
 #include "Creatures/GrimEcosystemSubsystem.h"
 #include "Creatures/GrimHabitatVolume.h"
+#include "Creatures/GrimCreatureTamingComponent.h"
+#include "Creatures/GrimMountComponent.h"
 #include "Core/GrimAbilitySystemComponent.h"
 #include "Core/GrimGameplayTags.h"
 #include "Interaction/GrimElementalStateComponent.h"
@@ -131,6 +133,10 @@ AGrimCreature::AGrimCreature(const FObjectInitializer& ObjectInitializer)
 
 	BodyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("BodyRoot"));
 	BodyRoot->SetupAttachment(GetCapsuleComponent());
+
+	// 길들이기 · 탑승(갈래 T)
+	Taming = CreateDefaultSubobject<UGrimCreatureTamingComponent>(TEXT("Taming"));
+	Mount = CreateDefaultSubobject<UGrimMountComponent>(TEXT("Mount"));
 }
 
 AGrimCreature* AGrimCreature::SpawnCreature(UWorld* World, UGrimCreatureSpecies* InSpecies, const FGrimCreatureInstance& InInstance, const FVector& FootLocation, float Yaw, float HealthRatio, AGrimHabitatVolume* InHabitat, int32 InHerdId)
@@ -476,6 +482,12 @@ EGrimTargetKind AGrimCreature::GetTargetKind() const
 
 bool AGrimCreature::CanBeTargetedBy(const AActor* Requester) const
 {
+	// 길들인 생물은 플레이어가 겨누지 않는다(협동 — 내 · 친구의 동료, 갈래 T).
+	const APawn* RequesterPawn = Cast<APawn>(Requester);
+	if (Instance.IsTamed() && RequesterPawn && RequesterPawn->GetPlayerState())
+	{
+		return false;
+	}
 	return !Death.bDead && !bShadowHidden && !IsHidden();
 }
 
@@ -846,7 +858,53 @@ void AGrimCreature::HandleHealthChanged(const FOnAttributeChangeData& Data)
 	}
 	if (Data.NewValue <= 0.f)
 	{
+		// 길들인 생물은 죽지 않고 쓰러진다(충성도 「기절」, 갈래 T).
+		if (Taming && Taming->HandleKnockedOut())
+		{
+			return;
+		}
 		Die(InstigatorActor ? InstigatorActor : LastDamagerForQuest.Get(), CauserActor);
+	}
+}
+
+// ───────────────────────── 길들이기(갈래 T) ─────────────────────────
+
+void AGrimCreature::SetInstanceServer(const FGrimCreatureInstance& NewInstance)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Instance = NewInstance;
+	ForceNetUpdate();
+}
+
+void AGrimCreature::Provoke(AActor* By)
+{
+	if (HasAuthority() && !Death.bDead)
+	{
+		NoteAttacker(nullptr, By);
+	}
+}
+
+void AGrimCreature::ClearProvoker()
+{
+	LastAttacker = nullptr;
+	LastAttackedTime = -1000.0;
+}
+
+void AGrimCreature::SetHealthRatioServer(float Ratio)
+{
+	if (!HasAuthority() || !AbilitySystem || Death.bDead)
+	{
+		return;
+	}
+	const float Clamped = FMath::Clamp(Ratio, 0.01f, 1.f);
+	AbilitySystem->SetNumericAttributeBase(UGrimVitalAttributeSet::GetHealthAttribute(), GetMaxHealth() * Clamped);
+	if (Clamped > UGrimCreatureSettings::Get()->WeakenedHealthRatio && bWeakenedNotified)
+	{
+		bWeakenedNotified = false;
+		AbilitySystem->RemoveLooseGameplayTag(GrimCreatureTags::Creature_State_Weakened);
 	}
 }
 
@@ -970,6 +1028,10 @@ void AGrimCreature::NotifyQuestEvent(AActor* PlayerActor, const FString& Prefix)
 void AGrimCreature::OnRep_Instance()
 {
 	ApplySpeciesLocal();
+	if (Taming)
+	{
+		Taming->HandleInstanceReplicated();
+	}
 }
 
 void AGrimCreature::OnRep_AIState()

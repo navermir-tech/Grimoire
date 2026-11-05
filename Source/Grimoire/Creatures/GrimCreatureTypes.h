@@ -76,7 +76,7 @@ enum class EGrimCreatureShape : uint8
 	Cone
 };
 
-/** 개체 성격(Q27) — 지금은 굴리기만 하는 자리. 충성도 배율은 다음 묶음(길들이기). */
+/** 개체 성격(Q27) — 충성도 배율은 UGrimTamingSettings::Personalities(갈래 T). 값을 더하면 굴림 결과가 바뀐다(RollPersonality 가 수로 고른다). */
 UENUM(BlueprintType)
 enum class EGrimCreaturePersonality : uint8
 {
@@ -109,7 +109,14 @@ enum class EGrimCreatureAIState : uint8
 	Fight,
 	Sleep,
 	Hunt,
-	Dead
+	Dead,
+	// ── 길들인 생물(갈래 T) ──
+	/** 주인을 따라간다 */
+	Follow,
+	/** 기다리기 명령 — 제자리 */
+	Stay,
+	/** 누군가 타고 있다(탄 사람 입력으로 움직임) */
+	Ridden
 };
 
 /** 색 영역 하나(등 · 배 · 무늬 · 뿔 · 눈 …). 팔레트에서 색 하나가 정해진다. */
@@ -248,7 +255,7 @@ struct GRIMOIRE_API FGrimCreatureRegionColor
 
 /**
  * 개체 기록(R23) — 생성 · 부화 때 서버가 굴리고 복제 · 접힌 기록 · (다음 묶음) 세이브가 이것 그대로를 쓴다.
- * 길들이기 자리(OwnerId · Loyalty · bTamed)는 두기만 한다 — 로직은 다음 묶음(갈래 T).
+ * 길들이기(OwnerId · Loyalty · Nickname)는 UGrimCreatureTamingComponent 가 바꾸고 주인 세이브(Creatures.Owned)가 이것 그대로를 쓴다(갈래 T).
  */
 USTRUCT(BlueprintType)
 struct GRIMOIRE_API FGrimCreatureInstance
@@ -285,11 +292,11 @@ struct GRIMOIRE_API FGrimCreatureInstance
 	UPROPERTY(BlueprintReadOnly, Category = "Creature")
 	float StatScale = 1.f;
 
-	// ── 길들이기 자리(다음 묶음) ──
+	// ── 길들이기(갈래 T) ──
 
-	/** 길들인 주인(플레이어 고유 id). 야생 = 무효 */
+	/** 길들인 주인의 PlayerId(세이브 Player_<PlayerId> 와 같은 값 — FGrimPlayerIdentity). 야생 = 빈 문자열 */
 	UPROPERTY(BlueprintReadOnly, Category = "Creature|Taming")
-	FGuid OwnerId;
+	FString OwnerId;
 
 	/** 0~100, 길들인 직후 50(스펙). 야생은 0 */
 	UPROPERTY(BlueprintReadOnly, Category = "Creature|Taming")
@@ -299,7 +306,7 @@ struct GRIMOIRE_API FGrimCreatureInstance
 	FString Nickname;
 
 	bool IsValid() const { return !SpeciesId.IsNone(); }
-	bool IsTamed() const { return OwnerId.IsValid(); }
+	bool IsTamed() const { return !OwnerId.IsEmpty(); }
 };
 
 /** 떨어진 전리품 하나(굴린 결과) */

@@ -4,6 +4,10 @@
 #include "Creatures/GrimCreatureSpecies.h"
 #include "Creatures/GrimCreatureTags.h"
 #include "Creatures/GrimEcosystemSubsystem.h"
+#include "Creatures/GrimCreatureTamingComponent.h"
+#include "Creatures/GrimMountComponent.h"
+#include "Creatures/GrimTamingMath.h"
+#include "Creatures/GrimTamingSettings.h"
 #include "Core/GrimElementalTypes.h"
 #include "Core/GrimGameplayTags.h"
 #include "Interaction/GrimElementalStateComponent.h"
@@ -214,6 +218,13 @@ void AGrimCreatureAIController::Think()
 	const FGrimCreatureAITuning& AI = UGrimCreatureSettings::Get()->AI;
 	const FGrimCreatureAbilityTuning& Abilities = UGrimCreatureSettings::Get()->Abilities;
 	GatherSenses(Creature, LastSenses);
+	// 길들인 생물은 주인 곁 판단(갈래 T)
+	if (Creature->GetInstance().IsTamed())
+	{
+		ThinkTamed(Creature);
+		return;
+	}
+	LastSenses.bEnraged = Creature->GetTaming() && Creature->GetTaming()->IsEnraged();
 	const FGrimCreatureTemperamentInfo Info = Creature->GetTemperamentInfo();
 	EGrimCreatureAIState State = GrimCreatureMath::Decide(LastSenses, Info);
 	const FVector Me = Creature->GetActorLocation();
@@ -336,5 +347,97 @@ void AGrimCreatureAIController::Think()
 	}
 	}
 
+	Creature->SetAIState(State);
+}
+
+void AGrimCreatureAIController::ThinkTamed(AGrimCreature* Creature)
+{
+	UWorld* World = GetWorld();
+	const UGrimCreatureTamingComponent* Taming = Creature->GetTaming();
+	const UGrimMountComponent* Mount = Creature->GetMount();
+	const FGrimCreatureAITuning& AI = UGrimCreatureSettings::Get()->AI;
+	const FGrimTamedBehaviorTuning& Behavior = UGrimTamingSettings::Get()->Behavior;
+	APawn* OwnerPawn = Taming ? Taming->GetOwnerPawn() : nullptr;
+	const FVector Me = Creature->GetActorLocation();
+
+	// 플레이어(주인 · 친구)에게 맞은 것은 화내지 않는다 — 다른 생물에게 맞았을 때만 맞선다.
+	AActor* Provoker = Creature->GetProvoker();
+	if (const APawn* ProvokerPawn = Cast<APawn>(Provoker); ProvokerPawn && ProvokerPawn->GetPlayerState())
+	{
+		Provoker = nullptr;
+	}
+	if (Provoker && FVector::Dist(Me, Provoker->GetActorLocation()) > AI.ChaseGiveUpDistance)
+	{
+		Provoker = nullptr;
+	}
+
+	const FGrimCreatureTemperamentInfo Info = Creature->GetTemperamentInfo();
+	FGrimTamedSenses Senses;
+	Senses.bRidden = Mount && Mount->IsRidden();
+	Senses.bKnockedOut = Taming && Taming->IsKnockedOut();
+	Senses.bBurning = LastSenses.bBurning;
+	Senses.bProvoked = Provoker != nullptr;
+	Senses.bCanAttack = Info.bCanAttack;
+	Senses.bTimid = Info.Temperament == EGrimCreatureTemperament::Timid;
+	Senses.HealthRatio = LastSenses.HealthRatio;
+	Senses.FleeHealthRatio = Info.FleeHealthRatio;
+	Senses.Command = Taming ? Taming->GetCommand() : EGrimTamedCommand::Follow;
+	Senses.OwnerDistance = OwnerPawn ? static_cast<float>(FVector::Dist2D(Me, OwnerPawn->GetActorLocation())) : -1.f;
+	Senses.FollowDistance = Behavior.FollowDistance;
+	const EGrimCreatureAIState State = GrimTamingMath::DecideTamed(Senses);
+
+	switch (State)
+	{
+	case EGrimCreatureAIState::Ridden:
+		// 탄 사람 입력으로 움직인다(UGrimMountComponent) — AI 는 손대지 않는다.
+		StopMoving();
+		break;
+	case EGrimCreatureAIState::Flee:
+	{
+		Creature->SetRunning(true);
+		FVector Away = Provoker ? (Me - Provoker->GetActorLocation()).GetSafeNormal2D() : Creature->GetActorForwardVector().GetSafeNormal2D();
+		if (OwnerPawn && Provoker)
+		{
+			// 주인 쪽으로 물러난다.
+			Away = (OwnerPawn->GetActorLocation() - Me).GetSafeNormal2D();
+		}
+		MoveTowards(Me + Away * AI.MoveStepDistance, 50.f);
+		break;
+	}
+	case EGrimCreatureAIState::Fight:
+		Creature->SetRunning(true);
+		if (Provoker && Creature->GetSurfaceDistanceTo(Provoker) <= Creature->GetReadyAttackRange() * 0.9f)
+		{
+			StopMoving();
+			Creature->TryAttack(Provoker);
+		}
+		else if (Provoker)
+		{
+			MoveTowards(Provoker->GetActorLocation(), 10.f);
+		}
+		break;
+	case EGrimCreatureAIState::Follow:
+		if (OwnerPawn)
+		{
+			if (Senses.OwnerDistance > Behavior.FollowTeleportDistance)
+			{
+				// 너무 멀다(지형에 걸림) — 주인 곁으로 옮겨 온다.
+				const FVector Behind = OwnerPawn->GetActorLocation() - OwnerPawn->GetActorForwardVector().GetSafeNormal2D() * Behavior.SummonDistance;
+				FVector Ground = Behind;
+				if (UGrimEcosystemSubsystem::FindGround(World, Behind, Ground))
+				{
+					Creature->TeleportTo(Ground + FVector(0.f, 0.f, Creature->GetSimpleCollisionHalfHeight() + 2.f), Creature->GetActorRotation());
+				}
+			}
+			Creature->SetRunning(Senses.OwnerDistance > Behavior.FollowRunDistance);
+			MoveTowards(OwnerPawn->GetActorLocation(), Behavior.FollowDistance * 0.6f);
+		}
+		break;
+	default:
+		// Stay · Idle · Sleep(기절) — 제자리
+		Creature->SetRunning(false);
+		StopMoving();
+		break;
+	}
 	Creature->SetAIState(State);
 }
