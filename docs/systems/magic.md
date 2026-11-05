@@ -115,8 +115,8 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 - 속성 태그 `Element.Water / Fire / Wind / Earth / Light / Dark` 는 `Core/GrimGameplayTags`(네이티브). Magic 전용 태그(`SetByCaller.Magic.*` · `Cooldown.Spell.*` · `Spell.*`)는 `Magic/GrimMagicTags`.
 - 피해 계산 `UGrimDamageExecution`(`UGrimGE_SpellDamage` 의 실행): `Health −= SetByCaller.Magic.Damage × 상성(공격 속성, 대상 속성)`. 공격 속성 = Spec 에셋 태그의 `Element.*`, 대상 속성 = 대상 ASC 태그의 `Element.*`(없으면 무속성 ×1).
 - 상성 표는 `UGrimMagicSettings::ElementAffinities`(ini). 표만 바꾸면 밸런스가 바뀐다(Q2 · Q3).
-- **9속성 초안(Q2)**: 스펙이 6계열 9속성 상성표를 제안했다([마법 — 속성과 상성](../spec/magic#속성과-상성-r07)). 확정되면 태그를 계열 아래로 나눈다 — `Element.Water.Liquid` · `Element.Water.Ice` · `Element.Fire` · `Element.Wind` · `Element.Earth.Stone` · `Element.Earth.Plant` · `Element.Light.Holy` · `Element.Light.Lightning` · `Element.Dark.Hex`(이름은 확정 때 정함). 반응 규칙표는 하위 태그도 맞으므로 `Element.Water` 규칙은 물 · 얼음 둘 다에 걸린다. 전기 + 젖음 = 감전은 상성이 아니라 반응 규칙 한 줄이다.
-- 지금 코드 값(6속성, 9속성 확정 전):
+- **10속성 초안(Q2)**: 스펙이 무속성 + 6계열 10속성을 정했다([마법 — 속성과 상성](../spec/magic#속성과-상성-r07)). 상성표가 확정되면 태그를 계열 아래로 나눈다 — `Element.None` · `Element.Water.Liquid` · `Element.Water.Ice` · `Element.Fire` · `Element.Wind` · `Element.Earth.Stone` · `Element.Earth.Plant` · `Element.Light.Holy` · `Element.Light.Radiance`(빛 — 번개류) · `Element.Dark.Hex`(흑마법) · `Element.Dark.Shadow`(그림자술). 이름은 확정 때 정함. 극성은 갈래 짝 `Holy ↔ Hex` · `Radiance ↔ Shadow` 만 표에 넣고, 계열 태그(`Element.Light` ↔ `Element.Dark`) 행은 없앤다. `Element.None` 은 표에 행이 없어 늘 `DefaultAffinity`(×1.0). 반응 규칙표는 하위 태그도 맞으므로 `Element.Water` 규칙은 물 · 얼음 둘 다에 걸린다. 번개 + 젖음 = 감전은 상성이 아니라 반응 규칙 한 줄이다.
+- 지금 코드 값(6속성, 10속성 확정 전):
 
 | 공격 → 대상 | 배율 |
 |---|---|
