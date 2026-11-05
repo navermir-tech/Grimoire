@@ -50,6 +50,7 @@ export default defineConfig({
             { text: '아키텍처 개요', link: '/systems/' },
             { text: '마법 · 상호작용', link: '/systems/magic' },
             { text: '투사체 · 시전 감각', link: '/systems/spell-feel' },
+            { text: '마법 이펙트 자체 제작', link: '/systems/magic-fx-authoring' },
             { text: '생존', link: '/systems/survival' },
             { text: '환경 · 날씨', link: '/systems/environment' },
             { text: '마법 생물 · 생태계', link: '/systems/creatures' },

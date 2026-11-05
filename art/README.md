@@ -24,10 +24,14 @@
 - 블렌더 스크립트에 상대 경로를 주면 출력이 .blend 기준으로 바뀐다 — 스크립트가 절대 경로로 바꾼다.
 - `.blend1`(블렌더 백업)은 커밋하지 않는다.
 
-## 캐릭터 의상 (커스터마이징 R38)
+## 캐릭터 의상 (커스터마이징 R39)
 
 방향 · 순서는 [기술 설계 — 커스터마이징](../docs/systems/customization.md) 「아트 파이프라인」. 조각 하나는 `art/characters/<조각>/` 에 모은다.
 
 - 설정화: `art/characters/prompts/outfit-a-apprentice-turnaround.txt`(앞 · 뒤, 리깅용 A 포즈 — 시안 A 그림을 `-i` 참고) → `outfit-a-apprentice-pieces.txt`(조각 분해도 — 턴어라운드 그림을 `-i` 참고). `bash art/tools/run_codex_job.sh <절대경로>/art/characters <작업> <참고 그림 절대경로>`
 - 고른 그림은 `docs/public/art/characters/` 로 옮긴다(2026-11-06 견습생 A 두 장).
 - 옷은 Tripo 리깅을 쓰지 않는다 — 모든 조각을 **UE 마네킹 스켈레톤**에 맞추고 몸에서 가중치를 옮긴다(블렌더 스크립트는 산정 표 A3, 아직 없음).
+
+## 마법 이펙트 (GPT 시안 → 스크립트 조립)
+
+`art/fx/` — 시안 프롬프트 `prompts/<마법>.txt`(4칸: 시전 · 몸통 · 꼬리 · 터짐, 어두운 배경), 절차적 텍스처 `textures/`(`Scripts/MagicFX/make_fx_textures.py`), 게임 캡처 `ingame/`(커밋하지 않음). 시안 · 비교 그림은 `docs/public/art/fx/`. 절차는 [마법 이펙트 자체 제작](../docs/systems/magic-fx-authoring.md).

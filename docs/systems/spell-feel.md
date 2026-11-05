@@ -180,7 +180,7 @@
 |---|---|---|
 | Q16 | 볼트 유도 세기 | ✅ 약하게 휨 |
 | Q19 | 마나 소모 방식 | ✅ **누르고 있는 동안 나가는 마법(물줄기 같은 Stream)만 초당 소모**. 나머지(Bolt · Cone 등 대부분)는 시전할 때 한 번 |
-| Q20 | 이펙트 에셋 | ▢ 권하는 안: Epic 무료 Niagara Examples Pack + 파라미터 변형 + GPT 텍스처 — [레퍼런스 조사](../spec/references#마법-이펙트-에셋-q20) |
+| Q20 | 이펙트 에셋 | 지금은 Niagara Examples Pack. 자체 제작 길(GPT 시안 → 스크립트 조립)은 [마법 이펙트 자체 제작](./magic-fx-authoring) — [레퍼런스 조사](../spec/references#마법-이펙트-에셋-q20) |
 
 ## 테스트
 
