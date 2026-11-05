@@ -107,11 +107,11 @@ namespace GrimTamingTest // 유니티 빌드 이름 충돌 방지
 		return Record;
 	}
 
-	struct FScopedWorld
+	struct FTamingScopedWorld
 	{
 		UWorld* World = nullptr;
 
-		FScopedWorld()
+		FTamingScopedWorld()
 		{
 			World = UWorld::CreateWorld(EWorldType::Game, false, TEXT("GrimTamingTestWorld"));
 			FWorldContext& Context = GEngine->CreateNewWorldContext(EWorldType::Game);
@@ -121,7 +121,7 @@ namespace GrimTamingTest // 유니티 빌드 이름 충돌 방지
 			World->GetWorldSettings()->NotifyBeginPlay();
 		}
 
-		~FScopedWorld()
+		~FTamingScopedWorld()
 		{
 			World->EndPlay(EEndPlayReason::Quit);
 			GEngine->DestroyWorldContext(World);
@@ -526,7 +526,7 @@ bool FGrimTamingActorTest::RunTest(const FString& Parameters)
 	{
 		return false;
 	}
-	FScopedWorld TestWorld;
+	FTamingScopedWorld TestWorld;
 	const FGrimCreatureInstance Instance = GrimCreatureMath::RollInstance(*Species, 4242, UGrimCreatureSettings::Get()->Roll);
 	AGrimCreature* Creature = AGrimCreature::SpawnCreature(TestWorld.World, Species, Instance, FVector::ZeroVector, 0.f, 0.2f);
 	if (!TestNotNull(TEXT("스폰"), Creature) || !TestNotNull(TEXT("길들이기 컴포넌트"), Creature->GetTaming()) || !TestNotNull(TEXT("탈것 컴포넌트"), Creature->GetMount()))
