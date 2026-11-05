@@ -1031,6 +1031,100 @@ void UGrimSurvivalComponent::ServerDebugCommand_Implementation(const FString& Co
 #endif
 }
 
+// ── 세이브 (Survival.Vitals v1) ──
+
+namespace GrimSurvivalSaveLocal // 유니티 빌드 이름 충돌 방지
+{
+	float RemainingFor(const UAbilitySystemComponent* ASC, const FGameplayTag& Tag)
+	{
+		float Remaining = 0.f;
+		for (const float Seconds : ASC->GetActiveEffectsTimeRemaining(FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(FGameplayTagContainer(Tag))))
+		{
+			Remaining = FMath::Max(Remaining, Seconds);
+		}
+		return Remaining;
+	}
+}
+
+void UGrimSurvivalComponent::WriteSaveData(FArchive& Ar)
+{
+	const UAbilitySystemComponent* ASC = GetASC();
+	auto Base = [ASC](const FGameplayAttribute& Attribute) { return ASC ? ASC->GetNumericAttributeBase(Attribute) : 0.f; };
+
+	float MaxHealth = Base(UGrimVitalAttributeSet::GetMaxHealthAttribute());
+	float Health = Base(UGrimVitalAttributeSet::GetHealthAttribute());
+	float Hunger = Base(UGrimVitalAttributeSet::GetHungerAttribute());
+	float BodyTemperature = Base(UGrimVitalAttributeSet::GetBodyTemperatureAttribute());
+	float Fatigue = Base(UGrimVitalAttributeSet::GetFatigueAttribute());
+	float DiseaseResist = Base(UGrimVitalAttributeSet::GetDiseaseResistAttribute());
+	float StomachSeconds = ASC ? GrimSurvivalSaveLocal::RemainingFor(ASC, GrimSurvivalTags::Status_Sick_Stomach) : 0.f;
+	float ColdSeconds = ASC ? GrimSurvivalSaveLocal::RemainingFor(ASC, GrimSurvivalTags::Status_Sick_Cold) : 0.f;
+	float SavedWetColdSeconds = WetColdSeconds;
+	bool bSavedRespawn = bHasRespawnPoint;
+	FTransform SavedRespawn = RespawnTransform;
+
+	Ar << MaxHealth << Health << Hunger << BodyTemperature << Fatigue << DiseaseResist;
+	Ar << StomachSeconds << ColdSeconds << SavedWetColdSeconds;
+	Ar << bSavedRespawn << SavedRespawn;
+}
+
+void UGrimSurvivalComponent::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	float MaxHealth = 0.f, Health = 0.f, Hunger = 0.f, BodyTemperature = 0.f, Fatigue = 0.f, DiseaseResist = 0.f;
+	float StomachSeconds = 0.f, ColdSeconds = 0.f, SavedWetColdSeconds = 0.f;
+	bool bSavedRespawn = false;
+	FTransform SavedRespawn = FTransform::Identity;
+	Ar << MaxHealth << Health << Hunger << BodyTemperature << Fatigue << DiseaseResist;
+	Ar << StomachSeconds << ColdSeconds << SavedWetColdSeconds;
+	Ar << bSavedRespawn << SavedRespawn;
+
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC || !GetOwner()->HasAuthority() || Ar.IsError())
+	{
+		return;
+	}
+
+	// MaxHealth 를 먼저 — Health 클램프가 MaxHealth 를 본다. HP 0 이면 다음 틱에 쓰러짐으로 이어진다(HandleHealthChanged).
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetMaxHealthAttribute(), MaxHealth);
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetHealthAttribute(), Health);
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetHungerAttribute(), Hunger);
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetBodyTemperatureAttribute(), BodyTemperature);
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetFatigueAttribute(), Fatigue);
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetDiseaseResistAttribute(), DiseaseResist);
+	bAttributesInitialized = true;
+	WetColdSeconds = SavedWetColdSeconds;
+
+	// 질병: 지금 것을 지우고 남은 시간만큼 다시 건다(치트 중이면 ApplyDisease 처럼 걸지 않는다).
+	CureAllDiseases();
+	if (!ASC->HasMatchingGameplayTag(GrimCheatTags::Cheat_Super))
+	{
+		const TPair<TSubclassOf<UGameplayEffect>, float> Diseases[] = {
+			{ UGrimDiseaseStomachEffect::StaticClass(), StomachSeconds },
+			{ UGrimDiseaseColdEffect::StaticClass(), ColdSeconds },
+		};
+		for (const TPair<TSubclassOf<UGameplayEffect>, float>& Disease : Diseases)
+		{
+			if (Disease.Value <= 0.f)
+			{
+				continue;
+			}
+			const FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(Disease.Key, 1.f, ASC->MakeEffectContext());
+			if (Spec.IsValid())
+			{
+				Spec.Data->SetSetByCallerMagnitude(UGrimDiseaseEffect::DurationMagnitudeName, Disease.Value);
+				ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			}
+		}
+	}
+
+	bHasRespawnPoint = bSavedRespawn;
+	RespawnTransform = SavedRespawn;
+	RefreshPenalty();
+	UE_LOG(LogGrimSurvival, Log, TEXT("%s 세이브 읽음: HP %.1f/%.1f 배고픔 %.1f 체온 %.2f 피곤함 %.1f 배탈 %.0f초 감기 %.0f초 부활 지점 %s"),
+		*GetNameSafe(GetOwner()), Health, MaxHealth, Hunger, BodyTemperature, Fatigue, StomachSeconds, ColdSeconds,
+		bHasRespawnPoint ? *RespawnTransform.GetLocation().ToCompactString() : TEXT("없음"));
+}
+
 // ── 디버그 표시 ──
 
 void UGrimSurvivalComponent::DrawDebug(UCanvas* Canvas, APlayerController* PlayerController)

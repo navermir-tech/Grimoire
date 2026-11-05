@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Magic/GrimProficiencySettings.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimProgressionComponent.generated.h"
 
 class UAbilitySystemComponent;
@@ -18,12 +19,18 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGrimOnCircleUpResult, UGrimProgr
  * 사냥꾼의 「금지된 승급」(AbsorbMana, R09)도 나중에 같은 컴포넌트의 다른 경로로.
  */
 UCLASS(ClassGroup = (Grimoire), meta = (BlueprintSpawnableComponent))
-class GRIMOIRE_API UGrimProgressionComponent : public UActorComponent
+class GRIMOIRE_API UGrimProgressionComponent : public UActorComponent, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
 	UGrimProgressionComponent();
+
+	// 세이브 (IGrimSaveParticipant — Player 「Magic.Progression」 v1: Circle 기본값). 마법서보다 먼저 읽는다(설정 PlayerLoadOrder).
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
+	virtual FName GetSaveId() const override { return TEXT("Magic.Progression"); }
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	UFUNCTION(BlueprintPure, Category = "Grimoire|Progression")
 	int32 GetCircle() const;

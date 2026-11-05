@@ -699,3 +699,177 @@ void UGrimSpellbookComponent::EquipWand(APawn* Pawn)
 		Wand->AttachToComponent(Pawn->GetRootComponent(), Rules);
 	}
 }
+
+// ───────────────────────── 세이브 (Magic.Spellbook v1) ─────────────────────────
+
+namespace GrimSpellbookSaveLocal // 유니티 빌드 이름 충돌 방지
+{
+	UGrimSpellDefinition* LoadSpellPath(const FString& Path)
+	{
+		return Path.IsEmpty() ? nullptr : Cast<UGrimSpellDefinition>(FSoftObjectPath(Path).TryLoad());
+	}
+
+	/** 깨진 개수로 큰 배열을 만들지 않게 */
+	constexpr int32 MaxSavedEntries = 4096;
+}
+
+void UGrimSpellbookComponent::WriteSaveData(FArchive& Ar)
+{
+	int32 NumKnown = KnownSpells.Num();
+	Ar << NumKnown;
+	for (const TObjectPtr<UGrimSpellDefinition>& Spell : KnownSpells)
+	{
+		FString Path = Spell ? Spell->GetPathName() : FString();
+		float XP = GetProficiencyXP(Spell);
+		Ar << Path << XP;
+	}
+
+	int32 Selected = SelectedIndex;
+	Ar << Selected;
+
+	int32 NumSlots = SlotSpells.Num();
+	Ar << NumSlots;
+	for (const TObjectPtr<UGrimSpellDefinition>& Spell : SlotSpells)
+	{
+		FString Path = Spell ? Spell->GetPathName() : FString();
+		Ar << Path;
+	}
+
+	int32 SlotSet = ActiveSlotSet;
+	Ar << SlotSet;
+}
+
+void UGrimSpellbookComponent::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	using namespace GrimSpellbookSaveLocal;
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	// 소유 클라이언트가 곧 받을 숙련도 변화를 「등급 오름」으로 알리지 않게(RPC 가 속성 복제보다 먼저 간다).
+	const APlayerState* PlayerState = Cast<APlayerState>(GetOwner());
+	const APlayerController* PC = PlayerState ? PlayerState->GetPlayerController() : nullptr;
+	if (PC && !PC->IsLocalController())
+	{
+		Client_SaveRestored();
+	}
+
+	int32 NumKnown = 0;
+	Ar << NumKnown;
+	if (NumKnown < 0 || NumKnown > MaxSavedEntries)
+	{
+		Ar.SetError();
+		return;
+	}
+
+	TArray<UGrimSpellDefinition*> SavedOrder;
+	for (int32 i = 0; i < NumKnown && !Ar.IsError(); ++i)
+	{
+		FString Path;
+		float XP = 0.f;
+		Ar << Path << XP;
+		UGrimSpellDefinition* Spell = LoadSpellPath(Path);
+		if (!Spell)
+		{
+			UE_LOG(LogGrimMagic, Warning, TEXT("[Server] %s 세이브: 마법 %s 를 찾지 못해 건너뜀"), *GetNameSafe(GetOwner()), *Path);
+			continue;
+		}
+		if (!KnowsSpell(Spell))
+		{
+			GiveSpellFromSave(Spell);
+		}
+		SavedOrder.AddUnique(Spell);
+
+		if (Spell->bTracksProficiency)
+		{
+			FGrimSpellProficiency* Item = FindProficiencyItem(Spell);
+			if (!Item)
+			{
+				Item = &Proficiency.Items.AddDefaulted_GetRef();
+				Item->Spell = Spell;
+			}
+			Item->XP = FMath::Max(0.f, XP);
+			Item->LastGradeIndex = GetProficiency(Spell).GradeIndex;
+			Proficiency.MarkItemDirty(*Item);
+		}
+	}
+
+	// 배운 순서: 세이브 순서 먼저, 세이브에 없던 것(설정에 새로 생긴 시작 마법 등)은 뒤에.
+	TArray<TObjectPtr<UGrimSpellDefinition>> NewKnown;
+	TArray<FGameplayAbilitySpecHandle> NewHandles;
+	for (UGrimSpellDefinition* Spell : SavedOrder)
+	{
+		const int32 Index = KnownSpells.IndexOfByKey(Spell);
+		if (Index != INDEX_NONE && SpellHandles.IsValidIndex(Index))
+		{
+			NewKnown.Add(KnownSpells[Index]);
+			NewHandles.Add(SpellHandles[Index]);
+		}
+	}
+	for (int32 i = 0; i < KnownSpells.Num() && i < SpellHandles.Num(); ++i)
+	{
+		if (!NewKnown.Contains(KnownSpells[i]))
+		{
+			NewKnown.Add(KnownSpells[i]);
+			NewHandles.Add(SpellHandles[i]);
+		}
+	}
+	KnownSpells = MoveTemp(NewKnown);
+	SpellHandles = MoveTemp(NewHandles);
+
+	int32 Selected = INDEX_NONE;
+	int32 NumSlots = 0;
+	Ar << Selected << NumSlots;
+	if (NumSlots < 0 || NumSlots > MaxSavedEntries)
+	{
+		Ar.SetError();
+		NumSlots = 0;
+	}
+	const int32 Total = UGrimSpellbookSettings::Get()->GetTotalSlots();
+	TArray<TObjectPtr<UGrimSpellDefinition>> NewSlots;
+	NewSlots.SetNum(Total);
+	for (int32 i = 0; i < NumSlots && !Ar.IsError(); ++i)
+	{
+		FString Path;
+		Ar << Path;
+		UGrimSpellDefinition* Spell = LoadSpellPath(Path);
+		if (i < Total && Spell && KnowsSpell(Spell) && !NewSlots.Contains(Spell))
+		{
+			NewSlots[i] = Spell;
+		}
+	}
+	SlotSpells = MoveTemp(NewSlots);
+
+	int32 SlotSet = 0;
+	Ar << SlotSet;
+	SetActiveSlotSet(Ar.IsError() ? 0 : SlotSet);
+
+	if (KnownSpells.Num() > 0)
+	{
+		SelectSpell(KnownSpells.IsValidIndex(Selected) ? Selected : 0);
+	}
+	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 세이브 읽음: 배운 마법 %d, 선택 %d, 슬롯 세트 %d"), *GetNameSafe(GetOwner()), KnownSpells.Num(), SelectedIndex, ActiveSlotSet);
+}
+
+void UGrimSpellbookComponent::GiveSpellFromSave(UGrimSpellDefinition* Spell)
+{
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC || !Spell || KnowsSpell(Spell))
+	{
+		return;
+	}
+	const TSubclassOf<UGrimSpellAbility> AbilityClass = Spell->AbilityClass ? Spell->AbilityClass : TSubclassOf<UGrimSpellAbility>(UGrimSpellAbility::StaticClass());
+	const FGameplayAbilitySpecHandle Handle = ASC->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1, INDEX_NONE, Spell));
+	KnownSpells.Add(Spell);
+	SpellHandles.Add(Handle);
+}
+
+void UGrimSpellbookComponent::Client_SaveRestored_Implementation()
+{
+	for (FGrimSpellProficiency& Item : Proficiency.Items)
+	{
+		Item.LastGradeIndex = INDEX_NONE;
+	}
+}

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Environment/GrimTimeOfDayReplicator.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimTimeOfDaySubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGrimOnNightChanged);
@@ -14,11 +15,17 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGrimOnHourChanged, int32, Hour);
  * 이벤트(밤 시작 · 끝, 시 바뀜)는 서버 · 클라이언트가 각자 자기 시간으로 낸다.
  */
 UCLASS()
-class GRIMOIRE_API UGrimTimeOfDaySubsystem : public UTickableWorldSubsystem
+class GRIMOIRE_API UGrimTimeOfDaySubsystem : public UTickableWorldSubsystem, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
+	// 세이브 (IGrimSaveParticipant — World 「Environment.TimeOfDay」 v1: 누적 일수). 하루 길이는 서버 옵션이라 저장하지 않는다.
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::World; }
+	virtual FName GetSaveId() const override { return TEXT("Environment.TimeOfDay"); }
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
+
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Tick(float DeltaTime) override;

@@ -4,6 +4,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Math/RandomStream.h"
 #include "Environment/GrimClimateTypes.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimWeatherSubsystem.generated.h"
 
 class AGrimClimateRegionVolume;
@@ -64,11 +65,18 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGrimOnLightningStrike, FVector, Loc
  * - 조회(서버 · 클라이언트 어디서나): 기온 · 등급 · 지붕 · 날씨 섞임 · 시야.
  */
 UCLASS()
-class GRIMOIRE_API UGrimWeatherSubsystem : public UTickableWorldSubsystem
+class GRIMOIRE_API UGrimWeatherSubsystem : public UTickableWorldSubsystem, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
+	// 세이브 (IGrimSaveParticipant — World 「Environment.Weather」 v1): 지역마다 id · 날씨 · 그 날씨가 된 지 몇 초(최소 지속을 잇는다).
+	// 읽으면 블렌드 없이 그 날씨로. 표에 없는 지역은 건너뛴다.
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::World; }
+	virtual FName GetSaveId() const override { return TEXT("Environment.Weather"); }
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
+
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
