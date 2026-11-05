@@ -15,6 +15,17 @@
 #include "Components/SkyAtmosphereComponent.h"
 #include "Components/SkyLightComponent.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
+
+namespace GrimSkyControllerLocal
+{
+	float GSunRotationStepOverride = -1.f;
+	FAutoConsoleVariableRef CVarSunRotationStep(
+		TEXT("Grim.Sky.SunRotationStep"),
+		GSunRotationStepOverride,
+		TEXT("해 · 달 빛을 돌리는 최소 각(도). 음수 = 액터 값(SunRotationStepDegrees), 0 = 매 프레임(그림자 캐시 무효 — 성능 비교용)"),
+		ECVF_Default);
+}
 
 AGrimSkyController::AGrimSkyController()
 {
@@ -138,9 +149,15 @@ void AGrimSkyController::ApplyTimeOfDay(float TimeOfDay, float DayRatio)
 	const FVector Up = FVector::UpVector.RotateAngleAxis(OrbitTiltDegrees, East);
 	const FVector SunDir = (East * FMath::Cos(Angle) + Up * FMath::Sin(Angle)).GetSafeNormal();
 
-	// 빛은 해에서 땅으로 향한다. 달은 해의 맞은편.
-	Sun->SetWorldRotation((-SunDir).Rotation());
-	Moon->SetWorldRotation(SunDir.Rotation());
+	// 빛은 해에서 땅으로 향한다. 달은 해의 맞은편. 조금씩만 움직였으면 그대로 둔다(그림자 캐시 — SunRotationStepDegrees).
+	const bool bWorld = GetWorld() && GetWorld()->IsGameWorld();
+	const float Step = GrimSkyControllerLocal::GSunRotationStepOverride >= 0.f ? GrimSkyControllerLocal::GSunRotationStepOverride : SunRotationStepDegrees;
+	if (!bWorld || AppliedSunDir.IsZero() || Step <= 0.f || FVector::DotProduct(AppliedSunDir, SunDir) < FMath::Cos(FMath::DegreesToRadians(Step)))
+	{
+		AppliedSunDir = SunDir;
+		Sun->SetWorldRotation((-SunDir).Rotation());
+		Moon->SetWorldRotation(SunDir.Rotation());
+	}
 
 	const float Fade = FMath::Max(HorizonFade, KINDA_SMALL_NUMBER);
 	const float SunAlpha = FMath::SmoothStep(-Fade, Fade, static_cast<float>(SunDir.Z));

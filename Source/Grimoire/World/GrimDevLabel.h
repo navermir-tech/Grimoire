@@ -44,6 +44,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel")
 	bool bFaceCamera = true;
 
+	/** 보는 사람(로컬 카메라)에게서 이보다 멀면 숨긴다(cm) — 월드 공간 위젯은 반투명 판이라 겹치면 비싸다(docs/systems/performance 규칙 25) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel", meta = (ClampMin = "1000"))
+	float MaxVisibleDistance = 25000.f;
+
 	/** 글씨를 감싸는 줄 폭(위젯 픽셀) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel", meta = (ClampMin = "200"))
 	float WrapWidth = 1400.f;
@@ -64,7 +68,9 @@ private:
 	/** 위젯을 만들 수 있는 월드인가(커맨드렛 · 데디케이티드 서버 · 출시 빌드 아님) */
 	bool CanShowWidget() const;
 	void BuildWidget();
-	void ApplyVisibility();
+	void ApplyVisibility(bool bInRange);
+	/** 로컬 카메라 위치(없으면 거짓) */
+	bool GetViewLocation(FVector& OutLocation) const;
 	bool bShown = false;
 	bool bVisibilityApplied = false;
 };

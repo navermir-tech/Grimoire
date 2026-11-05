@@ -27,7 +27,9 @@ public class Grimoire : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Slate",
-			"SlateCore"
+			"SlateCore",
+			"RHI",        // 성능 측정(Core/Perf): GPU 프레임 시간 · 드로 콜
+			"RenderCore"  // 성능 측정: 게임 · 렌더 · RHI 스레드 시간
 		});
 		PublicDependencyModuleNames.Add("AIModule"); // M3 갈래 C — 생물 AI 컨트롤러(AAIController)
 
