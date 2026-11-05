@@ -5,6 +5,7 @@
 #include "GameplayTagContainer.h"
 #include "Core/GrimElementalTypes.h"
 #include "Magic/GrimSpellDelivery.h"
+#include "Magic/GrimProficiencyTypes.h"
 #include "GrimSpellDefinition.generated.h"
 
 class UGameplayEffect;
@@ -188,4 +189,16 @@ public:
 	/** 투사체 임시 구 색(VisualSet 이 없을 때). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Visual")
 	FLinearColor Color = FLinearColor::White;
+
+	/** 숙련도(Q26)를 쌓는가. 기본 공격(R26)처럼 숙련도가 없는 그리모어 항목은 false — 그리모어에서 등급 대신 「—」, 맨 앞에 보인다. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proficiency")
+	bool bTracksProficiency = true;
+
+	/** 경험 곡선 · 등급표 바꾸기. 비우면 서클별 기본 곡선(UGrimProficiencySettings::DefaultCurveByCircle). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proficiency", meta = (EditCondition = "bTracksProficiency"))
+	TObjectPtr<UGrimProficiencyProfile> ProficiencyProfile;
+
+	/** 숙련도가 키우는 마법별 추가 효과(선택 — 계약 마법의 포획 확률 등, M3). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Proficiency", meta = (EditCondition = "bTracksProficiency"))
+	FGrimProficiencyExtraEffect ProficiencyExtraEffect;
 };

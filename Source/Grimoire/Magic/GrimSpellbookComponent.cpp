@@ -3,22 +3,60 @@
 #include "Magic/GrimMagicEffects.h"
 #include "Magic/GrimMagicSettings.h"
 #include "Magic/GrimMagicTags.h"
+#include "Magic/GrimProficiencySettings.h"
+#include "Magic/GrimSkillbook.h"
 #include "Magic/GrimSpellAbility.h"
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimSpellSelectAbility.h"
 #include "Magic/GrimWand.h"
 #include "Core/GrimGameplayTags.h"
 #include "Core/GrimPlayerState.h"
+#include "Core/GrimTargetingTypes.h"
+#include "Interaction/GrimElementalReactionLibrary.h"
+#include "Interaction/GrimElementalStateComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
+
+// ───────────────────────── 숙련도 복제 콜백 ─────────────────────────
+
+void FGrimSpellProficiency::PostReplicatedAdd(const FGrimSpellProficiencyArray& InArraySerializer)
+{
+	if (InArraySerializer.Owner)
+	{
+		InArraySerializer.Owner->HandleProficiencyReplicated(*this, true);
+	}
+}
+
+void FGrimSpellProficiency::PostReplicatedChange(const FGrimSpellProficiencyArray& InArraySerializer)
+{
+	if (InArraySerializer.Owner)
+	{
+		InArraySerializer.Owner->HandleProficiencyReplicated(*this, false);
+	}
+}
+
+void UGrimSpellbookComponent::HandleProficiencyReplicated(FGrimSpellProficiency& Item, bool bAdded)
+{
+	const int32 Grade = GetProficiency(Item.Spell).GradeIndex;
+	// 처음 받은 값(접속 · 세이브 불러오기)은 알림 없이 기준으로 삼는다.
+	if (!bAdded && Item.LastGradeIndex != INDEX_NONE && Grade > Item.LastGradeIndex)
+	{
+		OnProficiencyGradeUp.Broadcast(this, Item.Spell, Grade);
+	}
+	Item.LastGradeIndex = Grade;
+}
+
+// ───────────────────────── 기본 ─────────────────────────
 
 UGrimSpellbookComponent::UGrimSpellbookComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+	Proficiency.Owner = this;
 }
 
 void UGrimSpellbookComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -28,11 +66,21 @@ void UGrimSpellbookComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME(UGrimSpellbookComponent, KnownSpells);
 	DOREPLIFETIME(UGrimSpellbookComponent, SelectedIndex);
 	DOREPLIFETIME(UGrimSpellbookComponent, Wand);
+	DOREPLIFETIME_CONDITION(UGrimSpellbookComponent, Proficiency, COND_OwnerOnly);
+	DOREPLIFETIME(UGrimSpellbookComponent, SlotSpells);
+	DOREPLIFETIME(UGrimSpellbookComponent, ActiveSlotSet);
+}
+
+UGrimSpellbookComponent* UGrimSpellbookComponent::FindForASC(const UAbilitySystemComponent* ASC)
+{
+	const AGrimPlayerState* PlayerState = ASC ? Cast<AGrimPlayerState>(ASC->GetOwnerActor()) : nullptr;
+	return PlayerState ? PlayerState->GetSpellbook() : nullptr;
 }
 
 void UGrimSpellbookComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	Proficiency.Owner = this;
 
 	if (AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner()))
 	{
@@ -128,14 +176,33 @@ void UGrimSpellbookComponent::InitializeSpellbook(UAbilitySystemComponent* ASC)
 	}
 }
 
+bool UGrimSpellbookComponent::KnowsSpell(const UGrimSpellDefinition* Spell) const
+{
+	return Spell && KnownSpells.Contains(Spell);
+}
+
+EGrimLearnResult UGrimSpellbookComponent::CanLearnSpell(const UGrimSpellDefinition* Spell) const
+{
+	const UAbilitySystemComponent* ASC = GetASC();
+	if (!Spell || !ASC)
+	{
+		return EGrimLearnResult::Invalid;
+	}
+	if (KnowsSpell(Spell))
+	{
+		return EGrimLearnResult::AlreadyKnown;
+	}
+	if (ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute()) + KINDA_SMALL_NUMBER < Spell->Circle)
+	{
+		return EGrimLearnResult::CircleTooLow;
+	}
+	return EGrimLearnResult::Learned;
+}
+
 bool UGrimSpellbookComponent::LearnSpell(UGrimSpellDefinition* Spell)
 {
 	UAbilitySystemComponent* ASC = GetASC();
-	if (!Spell || !ASC || !GetOwner()->HasAuthority() || KnownSpells.Contains(Spell))
-	{
-		return false;
-	}
-	if (ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute()) + KINDA_SMALL_NUMBER < Spell->Circle)
+	if (!ASC || !GetOwner()->HasAuthority() || CanLearnSpell(Spell) != EGrimLearnResult::Learned)
 	{
 		return false;
 	}
@@ -145,6 +212,31 @@ bool UGrimSpellbookComponent::LearnSpell(UGrimSpellDefinition* Spell)
 
 	KnownSpells.Add(Spell);
 	SpellHandles.Add(Handle);
+
+	// 숙련도 칸(세이브를 불러왔다면 이미 있다).
+	if (Spell->bTracksProficiency && !FindProficiencyItem(Spell))
+	{
+		FGrimSpellProficiency& Item = Proficiency.Items.AddDefaulted_GetRef();
+		Item.Spell = Spell;
+		Item.XP = 0.f;
+		Item.LastGradeIndex = GetProficiency(Spell).GradeIndex;
+		Proficiency.MarkItemDirty(Item);
+	}
+
+	// 첫 빈 단축 슬롯에(숙련도 없는 기본 공격 등은 슬롯과 따로).
+	if (Spell->bTracksProficiency && UGrimSpellbookSettings::Get()->bAutoAssignSlots)
+	{
+		const int32 Total = UGrimSpellbookSettings::Get()->GetTotalSlots();
+		if (SlotSpells.Num() < Total)
+		{
+			SlotSpells.SetNum(Total);
+		}
+		const int32 Empty = SlotSpells.IndexOfByKey(nullptr);
+		if (Empty != INDEX_NONE)
+		{
+			SlotSpells[Empty] = Spell;
+		}
+	}
 
 	if (SelectedIndex == INDEX_NONE)
 	{
@@ -203,6 +295,11 @@ void UGrimSpellbookComponent::SelectSpell(int32 Index)
 	OnSelectedSpellChanged.Broadcast(this, GetSelectedSpell());
 }
 
+void UGrimSpellbookComponent::Server_SelectSpell_Implementation(int32 Index)
+{
+	SelectSpell(Index);
+}
+
 UGrimSpellDefinition* UGrimSpellbookComponent::GetSelectedSpell() const
 {
 	return KnownSpells.IsValidIndex(SelectedIndex) ? KnownSpells[SelectedIndex].Get() : nullptr;
@@ -212,6 +309,341 @@ void UGrimSpellbookComponent::OnRep_Selection()
 {
 	OnSelectedSpellChanged.Broadcast(this, GetSelectedSpell());
 }
+
+// ───────────────────────── 스킬북 ─────────────────────────
+
+EGrimLearnResult UGrimSpellbookComponent::PreviewSkillbook(const UGrimSpellDefinition* Spell) const
+{
+	if (!Spell)
+	{
+		return EGrimLearnResult::Invalid;
+	}
+	if (!KnowsSpell(Spell))
+	{
+		return CanLearnSpell(Spell);
+	}
+	if (!Spell->bTracksProficiency)
+	{
+		return EGrimLearnResult::AlreadyKnown;
+	}
+	return GetProficiency(Spell).bMaxGrade ? EGrimLearnResult::AlreadyMastered : EGrimLearnResult::ProficiencyGained;
+}
+
+EGrimLearnResult UGrimSpellbookComponent::UseSkillbook(UGrimSpellDefinition* Spell)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return EGrimLearnResult::Invalid;
+	}
+	EGrimLearnResult Result = PreviewSkillbook(Spell);
+	if (Result == EGrimLearnResult::Learned)
+	{
+		if (!LearnSpell(Spell))
+		{
+			Result = EGrimLearnResult::Invalid;
+		}
+	}
+	else if (Result == EGrimLearnResult::ProficiencyGained)
+	{
+		const UGrimSpellbookSettings* Settings = UGrimSpellbookSettings::Get();
+		const float XP = FGrimProficiencyMath::ComputeSkillbookXP(GetProficiency(Spell), Settings->SkillbookXPFractionOfGrade, Settings->SkillbookFlatXP);
+		AddProficiencyXP(Spell, XP);
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 스킬북 %s — 이미 앎, 숙련도 +%.1f"), *GetNameSafe(GetOwner()), *Spell->GetName(), XP);
+	}
+	NotifyLearnResult(Spell, Result);
+	return Result;
+}
+
+void UGrimSpellbookComponent::NotifyLearnResult(UGrimSpellDefinition* Spell, EGrimLearnResult Result)
+{
+	OnLearnResult.Broadcast(this, Spell, Result);
+	// 리슨 호스트는 위에서 이미 알렸다 — 원격 소유 클라이언트에게만 보낸다.
+	const APlayerState* PlayerState = Cast<APlayerState>(GetOwner());
+	const APlayerController* PC = PlayerState ? PlayerState->GetPlayerController() : nullptr;
+	if (PC && !PC->IsLocalController())
+	{
+		Client_LearnResult(Spell, Result);
+	}
+}
+
+EGrimLearnResult UGrimSpellbookComponent::PickUpSkillbook(AGrimSkillbook* Book, const APawn* Reader)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return EGrimLearnResult::Invalid;
+	}
+	UGrimSpellDefinition* Spell = Book ? Book->GetTeachesSpell() : nullptr;
+	EGrimLearnResult Result = EGrimLearnResult::Invalid;
+	if (Spell && !Book->IsConsumed())
+	{
+		if (!Book->IsWithinReadRange(Reader, Book->GetServerReadSlack()))
+		{
+			Result = EGrimLearnResult::TooFar;
+			NotifyLearnResult(Spell, Result);
+		}
+		else
+		{
+			Result = UseSkillbook(Spell);
+			if (Result == EGrimLearnResult::Learned || Result == EGrimLearnResult::ProficiencyGained)
+			{
+				Book->ConsumeBook();
+			}
+		}
+	}
+	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 스킬북 %s 집기(%s) → %s"), *GetNameSafe(GetOwner()), *GetNameSafe(Book), *GetNameSafe(Spell),
+		*StaticEnum<EGrimLearnResult>()->GetNameStringByValue(static_cast<int64>(Result)));
+	return Result;
+}
+
+void UGrimSpellbookComponent::Server_PickUpSkillbook_Implementation(AGrimSkillbook* Book)
+{
+	const APlayerState* PlayerState = Cast<APlayerState>(GetOwner());
+	PickUpSkillbook(Book, PlayerState ? PlayerState->GetPawn() : nullptr);
+}
+
+void UGrimSpellbookComponent::RequestPickUpSkillbook(AGrimSkillbook* Book)
+{
+	if (!Book)
+	{
+		return;
+	}
+	if (GetOwner()->HasAuthority())
+	{
+		const APlayerState* PlayerState = Cast<APlayerState>(GetOwner());
+		PickUpSkillbook(Book, PlayerState ? PlayerState->GetPawn() : nullptr);
+	}
+	else
+	{
+		Server_PickUpSkillbook(Book);
+	}
+}
+
+void UGrimSpellbookComponent::Client_LearnResult_Implementation(UGrimSpellDefinition* Spell, EGrimLearnResult Result)
+{
+	OnLearnResult.Broadcast(this, Spell, Result);
+}
+
+// ───────────────────────── 단축 슬롯 ─────────────────────────
+
+void UGrimSpellbookComponent::AssignSlot(int32 SlotIndex, UGrimSpellDefinition* Spell)
+{
+	const int32 Total = UGrimSpellbookSettings::Get()->GetTotalSlots();
+	if (!GetOwner()->HasAuthority() || SlotIndex < 0 || SlotIndex >= Total || (Spell && !KnowsSpell(Spell)))
+	{
+		return;
+	}
+	if (SlotSpells.Num() < Total)
+	{
+		SlotSpells.SetNum(Total);
+	}
+	if (Spell)
+	{
+		for (TObjectPtr<UGrimSpellDefinition>& Other : SlotSpells)
+		{
+			if (Other == Spell)
+			{
+				Other = nullptr;
+			}
+		}
+	}
+	SlotSpells[SlotIndex] = Spell;
+	OnSelectedSpellChanged.Broadcast(this, GetSelectedSpell());
+}
+
+void UGrimSpellbookComponent::SetActiveSlotSet(int32 SetIndex)
+{
+	if (GetOwner()->HasAuthority())
+	{
+		ActiveSlotSet = FMath::Clamp(SetIndex, 0, FMath::Max(UGrimSpellbookSettings::Get()->SpellSlotSets, 1) - 1);
+	}
+}
+
+void UGrimSpellbookComponent::Server_AssignSlot_Implementation(int32 SlotIndex, UGrimSpellDefinition* Spell)
+{
+	AssignSlot(SlotIndex, Spell);
+}
+
+void UGrimSpellbookComponent::Server_SetActiveSlotSet_Implementation(int32 SetIndex)
+{
+	SetActiveSlotSet(SetIndex);
+}
+
+// ───────────────────────── 숙련도 ─────────────────────────
+
+FGrimSpellProficiency* UGrimSpellbookComponent::FindProficiencyItem(const UGrimSpellDefinition* Spell)
+{
+	return Proficiency.Items.FindByPredicate([Spell](const FGrimSpellProficiency& Item) { return Item.Spell == Spell; });
+}
+
+const FGrimSpellProficiency* UGrimSpellbookComponent::FindProficiencyItem(const UGrimSpellDefinition* Spell) const
+{
+	return Proficiency.Items.FindByPredicate([Spell](const FGrimSpellProficiency& Item) { return Item.Spell == Spell; });
+}
+
+float UGrimSpellbookComponent::GetProficiencyXP(const UGrimSpellDefinition* Spell) const
+{
+	const FGrimSpellProficiency* Item = FindProficiencyItem(Spell);
+	return Item ? Item->XP : 0.f;
+}
+
+FGrimProficiencyView UGrimSpellbookComponent::GetProficiency(const UGrimSpellDefinition* Spell) const
+{
+	if (!Spell || !Spell->bTracksProficiency)
+	{
+		return FGrimProficiencyView();
+	}
+	TArray<FGrimProficiencyGrade> Grades;
+	UGrimProficiencySettings::GetGradesFor(Spell, Grades);
+	return FGrimProficiencyMath::MakeView(GetProficiencyXP(Spell), Grades, UGrimProficiencySettings::GetCurveFor(Spell).XPScale);
+}
+
+FGrimProficiencyMultipliers UGrimSpellbookComponent::GetProficiencyMultipliers(const UGrimSpellDefinition* Spell) const
+{
+	return GetProficiency(Spell).Multipliers;
+}
+
+float UGrimSpellbookComponent::GetProficiencyExtraEffect(const UGrimSpellDefinition* Spell) const
+{
+	if (!Spell || !Spell->ProficiencyExtraEffect.EffectTag.IsValid())
+	{
+		return 0.f;
+	}
+	return FGrimProficiencyMath::GetExtraEffectValue(Spell->ProficiencyExtraEffect.MaxValue, GetProficiencyMultipliers(Spell));
+}
+
+int32 UGrimSpellbookComponent::GetProficiencyGradeSum() const
+{
+	int32 Sum = 0;
+	for (const UGrimSpellDefinition* Spell : KnownSpells)
+	{
+		const FGrimProficiencyView View = GetProficiency(Spell);
+		if (View.bTracked)
+		{
+			Sum += FMath::Max(View.GradeIndex, 0);
+		}
+	}
+	return Sum;
+}
+
+int32 UGrimSpellbookComponent::GetTrackedSpellCount() const
+{
+	int32 Count = 0;
+	for (const UGrimSpellDefinition* Spell : KnownSpells)
+	{
+		Count += (Spell && Spell->bTracksProficiency) ? 1 : 0;
+	}
+	return Count;
+}
+
+void UGrimSpellbookComponent::AddProficiencyXP(const UGrimSpellDefinition* Spell, float Amount)
+{
+	if (!GetOwner()->HasAuthority() || !Spell || !Spell->bTracksProficiency || !KnowsSpell(Spell) || Amount <= 0.f)
+	{
+		return;
+	}
+	FGrimSpellProficiency* Item = FindProficiencyItem(Spell);
+	if (!Item)
+	{
+		Item = &Proficiency.Items.AddDefaulted_GetRef();
+		Item->Spell = const_cast<UGrimSpellDefinition*>(Spell);
+		Item->LastGradeIndex = GetProficiency(Spell).GradeIndex;
+	}
+
+	const int32 OldGrade = Item->LastGradeIndex;
+	Item->XP += Amount;
+	Proficiency.MarkItemDirty(*Item);
+
+	// 등급은 내려가지 않는다(XP 는 줄지 않는다). 표가 바뀌어 낮아져도 알림만 없다.
+	const int32 NewGrade = GetProficiency(Spell).GradeIndex;
+	Item->LastGradeIndex = NewGrade;
+	if (OldGrade != INDEX_NONE && NewGrade > OldGrade)
+	{
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 숙련도 등급 오름 %s → %d (XP %.1f)"), *GetNameSafe(GetOwner()), *Spell->GetName(), NewGrade, Item->XP);
+		OnProficiencyGradeUp.Broadcast(this, Spell, NewGrade);
+	}
+}
+
+void UGrimSpellbookComponent::AwardXP(const UGrimSpellDefinition* Spell, const AActor* Target, float BaseXP, uint8 Kind)
+{
+	if (!GetOwner()->HasAuthority() || !Spell || !Spell->bTracksProficiency || BaseXP <= 0.f)
+	{
+		return;
+	}
+	const UGrimProficiencySettings* Settings = UGrimProficiencySettings::Get();
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+
+	FGrimRepeatKey Key;
+	Key.Spell = Spell;
+	Key.Target = Target;
+	Key.Kind = Kind;
+	const int32 Repeats = RepeatTracker.Register(Key, Now, Settings->RepeatWindowSeconds);
+	if (RepeatTracker.Num() > 128)
+	{
+		RepeatTracker.Prune(Now, Settings->RepeatWindowSeconds);
+	}
+
+	const float Gain = FGrimProficiencyMath::ComputeXPGain(BaseXP, Repeats, Settings->RepeatTargetDecay, Settings->GlobalXPRate);
+	UE_LOG(LogGrimMagic, Verbose, TEXT("[Server] %s 숙련도 +%.2f (기본 %.1f, 반복 %d, 대상 %s)"), *Spell->GetName(), Gain, BaseXP, Repeats, *GetNameSafe(Target));
+	AddProficiencyXP(Spell, Gain);
+}
+
+void UGrimSpellbookComponent::AwardCastXP(const UGrimSpellDefinition* Spell, const AActor* Target)
+{
+	AwardXP(Spell, Target, UGrimProficiencySettings::GetCurveFor(Spell).XPPerCast, 0);
+}
+
+void UGrimSpellbookComponent::AwardHitXP(const UGrimSpellDefinition* Spell, const AActor* Target)
+{
+	AwardXP(Spell, Target, UGrimProficiencySettings::GetCurveFor(Spell).XPPerMeaningfulHit, 1);
+}
+
+void UGrimSpellbookComponent::Server_DebugAddXP_Implementation(UGrimSpellDefinition* Spell, float Amount)
+{
+#if !UE_BUILD_SHIPPING
+	AddProficiencyXP(Spell, Amount);
+#endif
+}
+
+bool UGrimSpellbookComponent::IsMeaningfulHit(const UGrimSpellDefinition* Spell, const UAbilitySystemComponent* SourceASC, const AActor* HitActor)
+{
+	if (!Spell || !HitActor)
+	{
+		return false;
+	}
+
+	// 적 · 생물: 조준 종류 또는 플레이어가 아닌 ASC.
+	if (const IGrimTargetable* Targetable = UGrimTargetingStatics::FindTargetable(HitActor))
+	{
+		const EGrimTargetKind Kind = Targetable->GetTargetKind();
+		if (Kind == EGrimTargetKind::Enemy || Kind == EGrimTargetKind::Creature)
+		{
+			return true;
+		}
+	}
+	if (const UAbilitySystemComponent* TargetASC = UGrimSpellAbility::FindTargetASC(const_cast<AActor*>(HitActor)))
+	{
+		const bool bTargetIsPlayer = Cast<APlayerState>(TargetASC->GetOwnerActor()) != nullptr;
+		if (!bTargetIsPlayer || UGrimMagicSettings::Get()->bFriendlyFire)
+		{
+			return TargetASC != SourceASC;
+		}
+	}
+
+	// 반응하는 사물: 이 마법의 자극에 맞는 규칙이 있는가(조회만 — 상태를 바꾸지 않는다).
+	if (const UGrimElementalStateComponent* State = HitActor->FindComponentByClass<UGrimElementalStateComponent>())
+	{
+		FGrimElementalStimulus Stimulus = Spell->Stimulus;
+		if (!Stimulus.Element.IsValid())
+		{
+			Stimulus.Element = Spell->Element;
+		}
+		const UDataTable* Table = State->ReactionTable ? State->ReactionTable.Get() : FGrimElementalReactionLibrary::GetDefaultTable();
+		return FGrimElementalReactionLibrary::FindStimulusRule(Table, State->GetStates(), State->Material, Stimulus) != nullptr;
+	}
+	return false;
+}
+
+// ───────────────────────── 완드 ─────────────────────────
 
 void UGrimSpellbookComponent::EquipWand(APawn* Pawn)
 {

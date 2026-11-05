@@ -2,6 +2,7 @@
 #include "Core/GrimAbilitySystemComponent.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimSpellbookComponent.h"
+#include "Magic/GrimProgressionComponent.h"
 #include "Survival/GrimVitalAttributeSet.h"
 #include "Survival/GrimSurvivalComponent.h"
 
@@ -16,6 +17,7 @@ AGrimPlayerState::AGrimPlayerState()
 	MagicSet = CreateDefaultSubobject<UGrimMagicAttributeSet>(TEXT("MagicSet"));
 
 	Spellbook = CreateDefaultSubobject<UGrimSpellbookComponent>(TEXT("Spellbook"));
+	Progression = CreateDefaultSubobject<UGrimProgressionComponent>(TEXT("Progression"));
 	Survival = CreateDefaultSubobject<UGrimSurvivalComponent>(TEXT("Survival"));
 
 	// ASC 를 가진 PlayerState 는 기본값(1Hz)보다 자주 갱신해야 시전 · 수치가 늦지 않다.
