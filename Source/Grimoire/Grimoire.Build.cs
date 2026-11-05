@@ -29,5 +29,7 @@ public class Grimoire : ModuleRules
 			"Slate",
 			"SlateCore"
 		});
+
+		PrivateDependencyModuleNames.AddRange(new string[] { "OnlineSubsystem", "OnlineSubsystemUtils", "Sockets", "EngineSettings" }); // M3 갈래 J 접속 · 메뉴
 	}
 }

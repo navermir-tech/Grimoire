@@ -32,12 +32,80 @@
 |---|---|---|
 | **리슨 서버**(호스트 플레이) | M3 부터 기본 | 게임 클라이언트 빌드에서 `?listen` 으로 맵 열기 |
 | 전용 서버 | M6 이후 | `GrimoireServer.Target.cs`(Type = Server) 추가. 런처 엔진은 전용 서버 타깃을 빌드할 수 없으므로 그때 엔진 소스 빌드 전환 검토 |
-| 싱글 | 항상 | 혼자 있는 리슨 서버(코드 경로 동일) |
+| 싱글(단독) | 항상 | 메뉴의 「혼자 시작 · 혼자 이어하기」 = `?listen` 없이 연 맵(`NM_Standalone`). 서버 권위 코드는 그대로 돈다(`HasAuthority` 참) — 친구를 받으려면 「호스트로 시작 · 서버 열기」 |
 
-### 접속
+### 세션 · 접속 · 메뉴 (M3 갈래 J)
 
-- M3: `OnlineSubsystemNull` — 메인 메뉴에서 "서버 열기 / IP 로 참가 / LAN 찾기"(`FindSessions`).
-- Steam 출시 시 `OnlineSubsystemSteam` + Steam Sockets(접속 중계 — 포트 포워딩 없음)로 교체(R32): 친구 초대(`SendSessionInviteToFriend` · 오버레이), 친구 목록 「게임 참가」(Rich Presence + `OnSessionUserInviteAccepted` · `OnJoinSessionComplete`), 세션 공개 범위(친구만 · 초대만 · 공개). EOS 는 크로스플랫폼이 필요해지면 — 세션 인터페이스는 같게 추상화(`UGrimSessionSubsystem`).
+코드는 `Source/Grimoire/Online/`, 메뉴 위젯은 `UI/GrimMenuWidgets.*`, 메인 메뉴 맵 `L_MainMenu`(`Scripts/Online/make_main_menu_map.py` — 빈 레벨 + GameMode Override `AGrimMenuGameMode`). 설정 `[/Script/Grimoire.GrimOnlineSettings]`(DefaultGame.ini), 온라인 서브시스템 `[OnlineSubsystem] DefaultPlatformService=Null`(DefaultEngine.ini).
+
+| 클래스 | 하는 일 |
+|---|---|
+| `UGrimSessionSubsystem`(게임 인스턴스) | 열기 · 참가 · 끊김 · 메시지 · 슬롯 목록 · 표시 이름. 맵을 옮겨도 남아 실패 메시지를 메뉴까지 가져간다. 콘솔 `Grim.Online.*` |
+| `IGrimSessionBackend` · `MakeGrimOSSSessionBackend` | 온라인 세션 백엔드 — 기본 OSS 의 세션 인터페이스(지금 Null 의 LAN). Steam 자리(친구 초대 · 「게임 참가」 · 초대 수락) |
+| `FGrimOnlineMath` | 순수 계산: 주소 · 포트 읽기, 슬롯 이름 검사, URL 만들기, 표시 이름 다듬기 · 인코딩, 실패 까닭 → 한국어(`Grimoire.Online.*` 테스트) |
+| `FGrimUserOptions` | 이 PC 의 플레이어 옵션 — `GameUserSettings.ini [/Script/Grimoire.GrimUserOptions]`: 표시 이름 · 소프트 락온 · 줌 토글 · 조준 감도 · 시점 감도 · 마지막 입력 |
+| `AGrimMenuGameMode` · `AGrimMenuPlayerController` | 메뉴 맵: 폰 없음, 메뉴 위젯 · UI 입력, HUD 숨김, 이 월드는 세이브 안 함 |
+| `UGrimMenuSubsystem`(로컬 플레이어) | 게임 안 Esc 메뉴 · 옵션 적용(컨트롤러가 바뀌면 조준 갈래 함수를 부른다) |
+| `UGrimMainMenuWidget` · `UGrimPauseMenuWidget` · `UGrimMenuSettingsPanel` | C++ UMG(블루프린트 없음) |
+
+**열기 · 참가**
+
+- 서버 열기: 게임 맵(설정 `GameMap`, 지금 `L_Tower`)을 `<맵>?listen?SaveSlot=<슬롯>?MaxPlayers=<N>?GrimName=<이름>` 으로 `SetClientTravel`. 슬롯은 세이브 시스템이 읽는다(`?SaveSlot=`). 인원은 엔진 `AGameSession::MaxPlayers`(URL 옵션, 없으면 `[/Script/Engine.GameSession] MaxPlayers=8` — Q11, 호스트 포함). 넘치면 엔진이 `Server full.` 로 거절한다. 포트는 엔진 기본(7777) — 명령줄 `-port=` 가 앞선다.
+- 리슨 맵이 열리면(메뉴 · 콘솔로 연 경우만) 온라인 세션을 만든다(`NAME_GameSession`, LAN, 키 `GRIMSLOT` · `GRIMHOST`) → 「LAN 찾기」에 보인다. 명령줄로 바로 연 리슨 서버(확인 스크립트)는 세션을 만들지 않는다 — LAN 비컨 포트가 겹치지 않게.
+- IP 참가: 주소 칸(`ip` · `ip:port` · `이름:port` · `[IPv6]:port`) + 포트 칸 → `<호스트:포트>?GrimName=<이름>` 으로 `SetClientTravel` — 콘솔 `open <ip>:<port>` 와 같은 길. 메뉴 월드에 남은 채 접속하고(`PendingNetGame`), 맵이 열리면 접속됨. 설정 `ConnectTimeoutSeconds`(20초, 명령줄 `-GrimConnectTimeout=`) 안에 못 들어가면 접속 대기를 버리고(`?closed` — 엔진 `CancelPending` 은 protected) 메인 메뉴를 다시 열며 메시지 — 엔진 기본 대기(`InitialConnectTimeout`)보다 짧게.
+- LAN 찾기: `FindSessions`(LAN) → 고르면 `JoinSession` → `GetResolvedConnectString` 주소로 IP 참가와 같은 길.
+
+**실패 · 끊김**
+
+- 엔진 `OnNetworkFailure` · `OnTravelFailure` → `FGrimOnlineMath::DescribeNetworkFailure` 로 한국어 메시지(가득 참 · 호스트가 닫음 · 시간 초과 · 버전 다름 · 포트 사용 중 …, 엔진 글은 괄호로)를 게임 인스턴스에 남긴다. 메뉴가 아래 줄에 보여 준다.
+- 엔진은 실패 · 끊김 때 `?closed` 로 **기본 맵**(GameDefaultMap)을 연다. 기본 맵은 아직 `L_Tower` 라서, 첫 맵을 연 뒤 **이 프로세스에서만** 기본 맵을 `L_MainMenu` 로 바꿔 둔다(`UGameMapsSettings::SetGameDefaultMap` — ini 는 그대로, 시작 맵도 그대로, 에디터 PIE 에서는 하지 않음, 설정 `bReturnToMainMenuOnFailure`). 통합 때 기본 맵을 `L_MainMenu` 로 바꾸면 할 일이 없어진다.
+- 우리가 떠날 때(메인 메뉴로 · 나가기)의 끊김은 메시지로 남기지 않는다.
+
+**표시 이름**(세이브의 PlayerId 와 따로)
+
+- 이 PC 의 `GameUserSettings.ini` 에 보관(명령줄 `-GrimName=` 이 앞섬 — 보관 안 함). 비면 PC 사용자 이름 → 설정 `FallbackPlayerName`. 16자, URL 에 못 쓰는 글자는 뺀다.
+- 클라이언트가 접속 URL 옵션 `GrimName=<UTF-8 %XX 인코딩>` 으로 보내면(엔진이 로그인 URL 에 그대로 싣는다), 서버가 `PostLogin` 에서 `ChangeName`. 엔진이 붙이는 `Name=`(OSS 닉네임 — Null 은 PC 이름-id)는 쓰지 않는다. 호스트 자신은 자기 보관 값.
+
+**메인 메뉴 · Esc 메뉴 흐름**
+
+| 화면 | 고르기 | 하는 일 |
+|---|---|---|
+| 메인 메뉴 | 새로 시작 | 슬롯 이름(영문 · 숫자 · - · _ 64자, 이미 있으면 거절) → 「혼자 시작」 = 단독 / 「호스트로 시작」 = 리슨(인원은 서버 열기 화면의 값) |
+| | 이어하기 | 세이브 폴더의 세계 슬롯 목록(최근 먼저 — 저장 시각 · 횟수 · 플레이어 파일 수, 깨진 파일은 표시만) → 「혼자 이어하기」 / 「서버로 이어하기」 |
+| | 서버 열기 | 슬롯(있으면 이어서, 없으면 새로) · 최대 인원(1~8) · 이 PC 주소 안내 → 리슨 |
+| | IP 참가 | 주소 · 포트 → 접속 중 덮개(초 · 취소) → 접속 / 실패 메시지. 「LAN 찾기」 목록에서 눌러 참가 |
+| | 설정 | 표시 이름 · 소프트 락온(Q18) · 줌 조준 토글(R24) · 조준 감도(줌 중) · 시점 감도 → 저장하면 바로 적용 |
+| | 나가기 | 게임 끄기 |
+| 게임 안 Esc(패드 Options · Menu) | 이어하기 | 닫기(Esc 다시 · 패드 B 도) |
+| | 설정 | 위와 같은 칸 |
+| | 친구 초대 | Steam 자리 — 지금은 「IP 참가에 이 PC 주소를 알려 주세요」 |
+| | 메인 메뉴로 | 호스트: 세이브 시스템이 맵을 떠날 때 저장하고 서버가 닫힌다(접속자가 있으면 한 번 더 눌러 확인 — 접속자는 「호스트가 서버를 닫았다」를 받고 메뉴로). 클라이언트: 접속을 끊는다(서버가 그 플레이어를 저장) |
+| | 나가기 | 호스트 · 혼자: 종료 저장 뒤 끔(`quit` → `OnWorldBeginTearDown`). 접속자 확인은 위와 같다 |
+
+- Esc 메뉴는 혼자(단독)일 때만 게임을 멈춘다(설정 `bPauseWhenStandalone`) — 협동 서버는 멈추지 않는다. 그리모어 화면이 열려 있으면 Esc 는 그것부터 닫는다. 대화 창은 자기가 Esc 를 먹는다.
+- 호그와트 레거시는 Esc 가 지도 · 필드 가이드(그 안에 설정 · 저장 · 나가기 탭)를 연다([레퍼런스 — 조작](../spec/references#호그와트-레거시-—-조작-q29)). 그리모리는 지도가 아직 없어 Esc 가 작은 메뉴를 연다 — 패드 Options(Menu)는 같다.
+- 메뉴 맵에서는 세이브를 쓰지 않는다: 세이브 시스템은 서버 월드면 기본 슬롯에 저장하므로, 메뉴 게임 모드가 `InitGame` 에서 세이브 설정 `bEnabled` 를 잠깐 끄고 `BeginPlay` 에서 되돌린다(세이브 시스템이 슬롯을 정하는 것은 그 사이 — 월드 BeginPlay).
+
+**Steam 으로 바꿀 때**(R32 — 지금은 자리만)
+
+- `DefaultPlatformService=Steam`, uproject 에 `OnlineSubsystemSteam` · `SteamSockets`, `[OnlineSubsystemSteam] bEnabled=true` · `SteamDevAppId`, NetDriver 를 SteamSockets 로, 설정 `bLANSession=False`. 백엔드는 같은 OSS 세션 인터페이스라 그대로 — Null 이 아니면 존재(presence) · 로비를 켠다.
+- 친구 초대 `IGrimSessionBackend::ShowInviteUI`(오버레이) · `InviteFriend(SteamID)`, 친구 목록 「게임 참가」 · 초대 수락 = `OnSessionUserInviteAccepted` → `JoinSession` → 접속 문자열로 IP 참가와 같은 길. 세션 공개 범위(친구만 · 초대만 · 공개)는 그때 설정에 더한다. PlayerId 는 고정 UniqueNetId 를 먼저 쓴다(아래 PlayerId).
+- EOS 등 다른 길은 `IGrimSessionBackend` 를 따로 구현한다.
+
+**콘솔**(개발 — 메뉴 함수를 명령줄 · 헤드리스에서)
+
+| 명령 | 하는 일 |
+|---|---|
+| `Grim.Online.Host <슬롯> [인원]` | 서버 열기 |
+| `Grim.Online.Solo <슬롯>` | 혼자(있으면 이어서) |
+| `Grim.Online.Join <주소[:포트]> [포트]` · `Grim.Online.Cancel` | IP 참가 · 그만두기 |
+| `Grim.Online.FindLAN` · `Grim.Online.JoinLAN <번호>` | LAN 찾기 · 참가 |
+| `Grim.Online.Leave` · `Grim.Online.Quit` | 메인 메뉴로 · 끄기 |
+| `Grim.Online.Name [이름]` · `Grim.Online.Slots` · `Grim.Online.Status` · `Grim.Online.Invite` | 이름 · 슬롯 목록 · 상태 · 친구 초대(Null 은 안 됨) |
+| `Grim.Online.Pause [0\|1]` | 게임 안 Esc 메뉴 |
+| `Grim.Online.When <이벤트[번째]> <초> <명령…>` | (개발) Menu · Hosting · Standalone · Connected · Failed · Lost · Login · Logout · Rejected 가 그 번째로 생긴 때부터 몇 초 뒤 명령 |
+
+- 확인: 자동화 `Grimoire.Online.*`(주소 · 슬롯 이름 · 이름 인코딩 · URL · 실패 글), 헤드리스 `Scripts/Online/check_join.ps1`(메뉴에서 서버 열기 → 없는 포트 실패 → 참가 · 한글 이름 → 가득 참 거절 → 메인 메뉴로 · 퇴장 저장 → 호스트가 나가 끊김 메시지 · 메뉴로 돌아옴 · 종료 저장).
 - 플레이어 식별: 저장용 `PlayerId` — 아래 [세이브 · PlayerId](#playerid).
 
 ### 서버 권위 규칙 (모든 시스템 공통)
