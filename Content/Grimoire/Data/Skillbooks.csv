@@ -1,0 +1,90 @@
+Name,SpellId,Kind,Incantation,DisplayName,Epithet,Element,Circle,Delivery,Role,ManaClass,CooldownClass,Effect,Sources,PriceSol,Milestone,bImplemented
+Skillbook_BasicAttack,BasicAttack,Normal,VIS,"비스","기본 공격",Element.None,1,Bolt,Attack,None,None,"순수 마력을 연타로 쏜다. 4연타째는 강타 · 밀어냄. 사물엔 충격만 준다(속성 상태는 그대로). 숙련도 없음.",Tutorial,0,M2,True
+Skillbook_Scutum,Scutum,Normal,SCUTUM,"스쿠툼","마력 방패",Element.None,1,Self,Defense,Low,Short,"누르는 동안 앞에 마력 방패를 편다(Q 자리). 투사체 · 근접 피해와 속성 자극을 막는다. 맞기 직전에 펴면(되받기) 공격자가 잠깐 휘청인다.",TowerShop|Trial_2,60,M7,False
+Skillbook_Moveo,Moveo,Normal,MOVEO,"모베오","염동",Element.None,2,Beam,Utility,Low,Short,"누르는 동안 가벼운 사물 · 소형 생물을 끌어오거나 들어 옮긴다. 속성 자극이 없어 퍼즐 · 높은 곳의 물건 · 상자 옮기기에 쓴다.",TowerShop,150,Later,False
+Skillbook_Sentio,Sentio,Normal,SENTIO,"센티오","마력 감지",Element.None,2,Self,Utility,Low,Long,"둘레 30m 안의 속성 상태(젖음 · 불붙음 …) · 숨은 상자 · 봉인 · 생물의 주/부속성을 몇 초 동안 외곽선으로 보여 준다. 도감 단서가 된다.",TowerShop,150,Later,False
+Skillbook_Scutum_Maxima,Scutum_Maxima,Normal,SCUTUM MAXIMA,"스쿠툼 막시마","마력 돔",Element.None,5,Ground,Defense,High,Long,"내 둘레 4m 에 6초 동안 마력 돔을 세워 안의 아군을 모두 지킨다. 비 · 눈 자극도 막는다.",Dungeon|Trial_5,0,Later,False
+Skillbook_Moveo_Maxima,Moveo_Maxima,Normal,MOVEO MAXIMA,"모베오 막시마","큰 염동",Element.None,6,Beam,Control,Mid,Mid,"큰 바위 · 중형 생물까지 들어 올려 던진다. 던진 것이 맞으면 충격 피해.",Ruin,0,Later,False
+Skillbook_Restituo,Restituo,Normal,RESTITUO,"레스티투오","수리",Element.None,2,Self,Life,Mid,Short,"장비 · 건축 조각 · 부러진 완드를 재료로 고친다(재료 1개 = 최대 내구도 25%). 배우기 전엔 마법탑 NPC 대리 수리(R28 · R30).",TowerShop,400,M4,False
+Skillbook_Erado,Erado,Normal,ERADO,"에라도","지우기",Element.None,3,Self,Life,Mid,Short,"장비의 인챈트 하나를 지우고 칸을 비운다. 소재는 돌려받지 못한다. 배우기 전엔 마법탑 NPC 대리(R28).",TowerShop,600,M5,False
+Skillbook_Custodia,Custodia,Normal,CUSTODIA,"쿠스토디아","생물 보관",Element.None,1,Self,Life,Low,Mid,"계약한 생물을 그리모어의 계약 면에 넣어 들고 다니고, 겨눈 곳에 다시 불러낸다. 소형 · 중형만. 보관 칸 수는 데이터.",TowerShop|Branch_F|Branch_E|Branch_G|Branch_H,120,M4,False
+Skillbook_Custodia_Maxima,Custodia_Maxima,Normal,CUSTODIA MAXIMA,"쿠스토디아 막시마","큰 생물 보관",Element.None,5,Self,Life,Mid,Mid,"대형 · 거대 생물도 계약 면에 넣는다. 보관 칸이 늘어난다.",Branch_F|Branch_E|Branch_G|Branch_H,800,Later,False
+Skillbook_Pactum,Pactum,Pact,PACTUM,"파크툼","계약",Element.None,1,Bolt,Taming,Low,Mid,"약하게 만든 생물(체력 30% 이하 · 잠 · 지침)에 맞혀 길들인다. 피해 없음. 숙련도가 오르면 포획 확률도 조금 오른다.",Tutorial,0,M3,True
+Skillbook_Pactum_Ignis,Pactum_Ignis,Pact,PACTUM IGNIS,"파크툼 이그니스","불 계약",Element.Fire,2,Bolt,Taming,Low,Mid,"불 생물을 길들일 확률이 크게 오른다. 다른 생물에겐 파크툼과 같다.",Branch_G,150,M3,True
+Skillbook_Pactum_Aqua,Pactum_Aqua,Pact,PACTUM AQUA,"파크툼 아쿠아","물 계약",Element.Water,2,Bolt,Taming,Low,Mid,"물 생물(켈피 …)을 길들일 확률이 크게 오른다.",TowerShop|Branch_E,150,M3,True
+Skillbook_Pactum_Ventus,Pactum_Ventus,Pact,PACTUM VENTUS,"파크툼 벤투스","바람 계약",Element.Wind,2,Bolt,Taming,Low,Mid,"바람 생물(재칼로프 …)을 길들일 확률이 크게 오른다.",TowerShop|Branch_E,150,M3,True
+Skillbook_Pactum_Terra,Pactum_Terra,Pact,PACTUM TERRA,"파크툼 테라","땅 계약",Element.Earth,2,Bolt,Taming,Low,Mid,"땅 생물(구릉 멧돼지 …)을 길들일 확률이 크게 오른다.",Branch_F|Branch_G,150,M3,True
+Skillbook_Pactum_Flora,Pactum_Flora,Pact,PACTUM FLORA,"파크툼 플로라","풀 계약",Element.Earth.Plant,2,Bolt,Taming,Low,Mid,"풀 생물을 길들일 확률이 크게 오른다.",TowerShop|Branch_F,150,Later,False
+Skillbook_Pactum_Umbra,Pactum_Umbra,Pact,PACTUM UMBRA,"파크툼 움브라","그림자 계약",Element.Dark.Shadow,3,Bolt,Taming,Low,Mid,"그림자술 생물(검은 개 …)을 길들일 확률이 크게 오른다.",Ruin|Hunter,0,M3,True
+Skillbook_Pactum_Glacies,Pactum_Glacies,Pact,PACTUM GLACIES,"파크툼 글라키에스","얼음 계약",Element.Water.Ice,3,Bolt,Taming,Low,Mid,"얼음 생물을 길들일 확률이 크게 오른다.",Branch_H,300,Later,False
+Skillbook_Pactum_Lux,Pactum_Lux,Pact,PACTUM LUX,"파크툼 룩스","빛 계약",Element.Light.Radiance,3,Bolt,Taming,Low,Mid,"빛(번개) 생물을 길들일 확률이 크게 오른다.",Branch_E,300,Later,False
+Skillbook_Pactum_Sanctus,Pactum_Sanctus,Pact,PACTUM SANCTUS,"파크툼 상투스","신성 계약",Element.Light.Holy,4,Bolt,Taming,Low,Mid,"신성 생물을 길들일 확률이 크게 오른다.",Branch_G,500,Later,False
+Skillbook_Pactum_Maledicta,Pactum_Maledicta,Pact,PACTUM MALEDICTA,"파크툼 말레디카","흑마법 계약",Element.Dark.Hex,4,Bolt,Taming,Low,Mid,"흑마법 생물을 길들일 확률이 크게 오른다.",Hunter,0,Later,False
+Skillbook_Pactum_Maxima,Pactum_Maxima,Pact,PACTUM MAXIMA,"파크툼 막시마","큰 계약",Element.None,6,Bolt,Taming,Mid,Long,"거대 개체 · 무리 우두머리를 길들일 수 있게 한다(다른 파크툼으로는 안 된다). 확률은 낮고, 지친 · 잠든 상태여야 한다.",Boss|Dungeon,0,Later,False
+Skillbook_Ember,Ember,Spell,FLAMMIS,"플라미스","불꽃 생성",Element.Fire,1,Bolt,Attack,Low,Short,"빠른 불꽃 화살. 양초 · 아궁이 · 모닥불 · 마른 풀에 불을 붙이고 젖은 것을 말린다.",Tutorial,0,M1,True
+Skillbook_Fireball,Fireball,Spell,IGNIS,"이그니스","화염 구체",Element.Fire,2,Bolt,Attack,Mid,Mid,"느리지만 세게 태우는 화염 구체. 맞은 곳 둘레 1.5m 에 불이 옮는다(제안 — 지금은 큰 플라미스).",TowerShop|Trial_2,150,M2,True
+Skillbook_Calor,Calor,Spell,CALOR,"칼로르","온기",Element.Fire,2,Self,Survival,Mid,Long,"몸을 데운다: 60초 동안 추위저항 +2, 내 젖음을 말린다. 밤 · 설산에서 모닥불 대신.",TowerShop|Branch_H,150,M7,False
+Skillbook_Ember_Rota,Ember_Rota,Spell,FLAMMIS ROTA,"플라미스 로타","불꽃 고리",Element.Fire,3,Aura,Defense,Mid,Long,"8초 동안 몸 둘레에 불꽃 고리가 돈다. 가까이 온 적에 화상, 지나는 마른 풀에 불, 얼음을 녹인다. 젖으면 꺼진다.",TowerShop|Branch_G,300,M7,False
+Skillbook_Fireball_Multiplex,Fireball_Multiplex,Spell,IGNIS MULTIPLEX,"이그니스 멀티플렉스","세 갈래 화염구",Element.Fire,4,Bolt,Attack,High,Mid,"화염 구체 셋을 부채꼴로 쏜다. 무리 · 넓게 퍼진 마른 풀에.",Dungeon|Branch_G,500,Later,False
+Skillbook_Fornax,Fornax,Spell,FORNAX,"포르낙스","화염 회오리",Element.Fire,5,Ground,Attack,High,Long,"겨눈 곳에 6초 동안 불기둥 회오리를 세운다. 바람 마법이 닿으면 커지고 바람 방향으로 움직인다(바람 → 불 키움).",Branch_G|Ruin,800,Later,False
+Skillbook_Fireball_Maxima,Fireball_Maxima,Spell,IGNIS MAXIMA,"이그니스 막시마","거대 화염구",Element.Fire,7,Bolt,Attack,Extreme,Long,"거대한 화염 구체. 둘레 6m 를 터뜨리고 땅 위 탈 것에 모두 불을 붙인다.",Dungeon|Hunter,0,Later,False
+Skillbook_Sidus,Sidus,Spell,SIDUS,"시두스","유성",Element.Fire,8,Ground,Attack,Extreme,VeryLong,"3초 뒤 겨눈 곳에 불타는 돌 셋이 떨어진다. 불 피해 + 땅 충격(땅 자극도 준다).",Ruin|Boss,0,Later,False
+Skillbook_Solaris,Solaris,Spell,SOLARIS,"솔라리스","작은 해",Element.Fire,10,Region,World,Extreme,Daily,"지역 하늘에 작은 해를 띄운다: 10분 동안 맑음 · 더위 +2 · 얼음과 눈이 녹고 밤에도 낮처럼 밝다. 그림자 생물이 약해진다.",Sanctum,0,Later,False
+Skillbook_WaterJet,WaterJet,Spell,AQUEL,"아쿠엘","물줄기",Element.Water,1,Stream,Utility,Low,Short,"누르는 동안 물줄기를 뿜는다(초당 마나). 불을 끄고 대상을 적시고 작물에 물을 준다.",Tutorial,0,M1,True
+Skillbook_Velum,Velum,Spell,VELUM,"벨룸","물의 장막",Element.Water,2,Ground,Defense,Mid,Long,"겨눈 곳에 너비 4m 물 벽을 6초 세운다. 불 투사체를 끄고 다른 투사체를 약하게 하며, 지나가는 것을 적신다.",TowerShop,150,M7,False
+Skillbook_Unda,Unda,Spell,UNDA,"운다","물결",Element.Water,3,Cone,Control,Mid,Mid,"낮은 물결이 앞으로 밀려가 대상을 밀어내고 넓게 적신다. 불 장판을 끄고, 다음 번개 · 얼음 마법을 준비한다(감전 · 빙결).",TowerShop|Branch_E,300,M7,False
+Skillbook_Fons,Fons,Spell,FONS,"폰스","샘",Element.Water,4,Ground,Utility,Mid,Long,"땅에 30초 샘을 놓는다. 둘레 6m 작물에 물을 주고, 불 번짐을 막고, 안의 아군은 더위 등급 −1.",Branch_F,500,Later,False
+Skillbook_WaterJet_Maxima,WaterJet_Maxima,Spell,AQUEL MAXIMA,"아쿠엘 막시마","굵은 물줄기",Element.Water,5,Stream,Control,Mid,Short,"굵고 먼 물줄기. 대상을 밀어내고 큰 불(모닥불 3단계 · 화염 회오리)도 끈다.",Dungeon|Branch_E,800,Later,False
+Skillbook_Fluctus,Fluctus,Spell,FLUCTUS,"플룩투스","해일",Element.Water,7,Cone,Attack,Extreme,Long,"넓은 앞쪽을 큰 파도로 휩쓴다. 크게 밀어내고 그 안의 불을 모두 끈다.",Dungeon|Hunter,0,Later,False
+Skillbook_Diluvium,Diluvium,Spell,DILUVIUM,"딜루비움","큰비",Element.Water,10,Region,World,Extreme,Daily,"지역에 10분 동안 폭우를 부른다. 들불을 끄고 밭에 물을 주며, 모두를 적신다(번개가 잘 듣는다).",Sanctum,0,Later,False
+Skillbook_Gelu,Gelu,Spell,GELU,"겔루","서리",Element.Water.Ice,2,Cone,Control,Mid,Mid,"짧은 원뿔 냉기. 대상을 느리게 하고 젖은 대상은 1.5초 얼린다. 웅덩이 · 얕은 물을 30초 얼려 발판을 만든다.",TowerShop,150,M7,False
+Skillbook_Frigida,Frigida,Spell,FRIGIDA,"프리기다","서늘함",Element.Water.Ice,2,Self,Survival,Mid,Long,"몸을 식힌다: 60초 동안 더위저항 +2, 내게 붙은 불을 끈다. 화산 황야에서.",Branch_G|Branch_H,150,Later,False
+Skillbook_Stiria,Stiria,Spell,STIRIA,"스티리아","고드름 창",Element.Water.Ice,4,Bolt,Attack,Mid,Mid,"꿰뚫는 고드름 창(뒤의 하나까지). 젖은 대상은 얼린다. 얼음 생물에겐 막힌다.",Branch_H|Dungeon,500,Later,False
+Skillbook_Gelu_Perpetua,Gelu_Perpetua,Spell,GELU PERPETUA,"겔루 퍼페투아","얼음길",Element.Water.Ice,4,Ground,Utility,Mid,Long,"물 위에 길이 10m 얼음길을 3분 놓는다(불 · 더위에 빨리 녹는다). 땅 위면 미끄러운 얼음 바닥.",Branch_H,500,Later,False
+Skillbook_Stiria_Multiplex,Stiria_Multiplex,Spell,STIRIA MULTIPLEX,"스티리아 멀티플렉스","고드름 셋",Element.Water.Ice,5,Bolt,Attack,High,Mid,"고드름 창 셋을 한꺼번에 쏜다.",Dungeon|Ruin,0,Later,False
+Skillbook_Crystallum,Crystallum,Spell,CRYSTALLUM,"크리스탈룸","얼음 감옥",Element.Water.Ice,6,Bolt,Control,High,Long,"대상을 3초 얼음에 가둔다(보스는 둔화만). 불이면 빨리 녹고, 땅 · 바람 공격에 깨지며 추가 피해.",Ruin|Branch_H,1200,Later,False
+Skillbook_Hiems,Hiems,Spell,HIEMS,"히엠스","겨울",Element.Water.Ice,9,Region,World,Extreme,Daily,"지역에 10분 동안 눈을 내린다. 호수 · 강이 얼고 불 마법이 약해진다.",Sanctum,0,Later,False
+Skillbook_Breeze,Breeze,Spell,VENTUS,"벤투스","바람",Element.Wind,1,Cone,Utility,Low,Short,"원뿔 바람. 멀리서는 불꽃을 키우고, 바로 앞에서는 돌풍이 되어 끈다. 가벼운 것을 민다.",Tutorial,0,M1,True
+Skillbook_Lamina,Lamina,Spell,LAMINA,"라미나","바람 칼날",Element.Wind,2,Bolt,Attack,Low,Short,"빠른 바람 칼날. 풀 · 덩굴 · 밧줄을 자른다(길 막은 덩굴 · 매달린 상자). 풀 · 땅 생물에 강하다.",TowerShop,150,M7,False
+Skillbook_Saltus,Saltus,Spell,SALTUS,"살투스","도약",Element.Wind,2,Self,Mobility,Low,Mid,"바람을 박차 높이 뛰거나 공중에서 한 번 더 뛴다. 이번 낙하는 피해가 없다.",TowerShop,150,M7,False
+Skillbook_Breeze_Maxima,Breeze_Maxima,Spell,VENTUS MAXIMA,"벤투스 막시마","돌풍",Element.Wind,3,Cone,Control,Mid,Mid,"강한 원뿔 돌풍. 크게 밀어내고 불을 끄고, 둘레의 안개를 잠시 걷는다.",TowerShop|Branch_E,300,M7,False
+Skillbook_Saltus_Perpetua,Saltus_Perpetua,Spell,SALTUS PERPETUA,"살투스 퍼페투아","활공",Element.Wind,5,Self,Mobility,Mid,Short,"떨어지는 동안 바람을 타고 활공한다(누르는 동안 초당 마나). 비행 보조.",Branch_E|Ruin,800,Later,False
+Skillbook_Vortex,Vortex,Spell,VORTEX,"보르텍스","회오리",Element.Wind,6,Ground,Control,High,Long,"겨눈 곳에 5초 회오리. 적 · 가벼운 사물을 빨아들여 띄운다. 불이 닿으면 불 회오리, 물이 닿으면 물 회오리(넓게 적심).",Branch_E|Dungeon,1200,Later,False
+Skillbook_Procella,Procella,Spell,PROCELLA,"프로켈라","폭풍",Element.Wind,8,Aura,Defense,Extreme,VeryLong,"8초 동안 내 둘레 10m 에 폭풍이 분다. 날아오는 투사체가 빗나가고 다가온 적이 밀려난다.",Hunter|Boss,0,Later,False
+Skillbook_Tempestas,Tempestas,Spell,TEMPESTAS,"템페스타스","대폭풍",Element.Wind,10,Region,World,Extreme,Daily,"지역에 10분 강풍 · 뇌우. 바람 마법이 강해지고 들불이 크게 번진다.",Sanctum,0,Later,False
+Skillbook_Lapis,Lapis,Spell,LAPIS,"라피스","돌덩이",Element.Earth,1,Lob,Attack,Low,Short,"포물선으로 돌덩이를 던진다. 충격 피해 · 깨지는 사물을 부순다. 불 위에 떨어지면 흙으로 덮어 끈다.",TowerShop,60,M7,False
+Skillbook_Aro,Aro,Spell,ARO,"아로","밭 갈기",Element.Earth,1,Ground,Life,Low,Short,"앞 3m × 3m 를 밭으로 고른다(풀 · 잔돌을 걷는다). 농사의 첫 단계.",TowerShop,60,M7,False
+Skillbook_Murus,Murus,Spell,MURUS,"무루스","돌벽",Element.Earth,2,Ground,Defense,Mid,Long,"겨눈 곳에 건축 한 칸 크기(3m)의 돌벽을 20초 세운다. 투사체를 막고 발판 · 계단으로도 쓴다.",TowerShop|Branch_F,150,M7,False
+Skillbook_Fodio,Fodio,Spell,FODIO,"포디오","파기",Element.Earth,3,Cone,Utility,Mid,Mid,"앞 땅을 파 광맥 · 묻힌 상자를 드러낸다. 판 구덩이는 잠깐 함정이 된다.",Branch_G,300,Later,False
+Skillbook_Tremor,Tremor,Spell,TREMOR,"트레모르","지진",Element.Earth,5,Aura,Control,High,Long,"둘레 8m 땅을 흔든다. 적이 넘어지고(짧은 기절) 얼음 · 돌 구조물이 깨진다.",Branch_G|Dungeon,800,Later,False
+Skillbook_Fissura,Fissura,Spell,FISSURA,"피수라","산 가르기",Element.Earth,8,Ground,Attack,Extreme,VeryLong,"앞으로 20m 땅이 갈라진다. 줄을 따라 피해, 길을 막는다. 용암 지역에선 틈에서 용암이 솟는다.",Ruin|Boss,0,Later,False
+Skillbook_Arx,Arx,Spell,ARX,"아르크스","성채",Element.Earth,10,Region,World,Extreme,Daily,"겨눈 곳에 둘레 20m 돌 성채(벽 · 망루)를 10분 일으킨다. 사냥꾼 습격을 막아 낸다. 끝나면 무너진다.",Sanctum,0,Later,False
+Skillbook_Vimen,Vimen,Spell,VIMEN,"비멘","휘감기",Element.Earth.Plant,2,Bolt,Control,Mid,Mid,"맞은 대상을 덩굴로 2초 묶는다. 젖었으면 더 오래. 불이 닿으면 덩굴이 타며 화상.",TowerShop|Branch_F,150,M7,False
+Skillbook_Germina,Germina,Spell,GERMINA,"게르미나","싹틔움",Element.Earth.Plant,3,Ground,Life,Mid,Long,"둘레 3m 작물의 생장을 한 단계 앞당긴다(작물마다 하루 한 번). 빈 땅엔 풀이 다시 난다.",Branch_F,300,Later,False
+Skillbook_Radix,Radix,Spell,RADIX,"라딕스","뿌리 흡수",Element.Earth.Plant,4,Beam,Attack,Mid,Short,"누르는 동안 대상의 생기를 빨아 내 HP 를 채운다. 젖은 대상에게서 더 많이(풀 ◎ 물).",Branch_F|Dungeon,500,Later,False
+Skillbook_Spina,Spina,Spell,SPINA,"스피나","가시덤불",Element.Earth.Plant,5,Ground,Control,High,Long,"겨눈 곳 6m 에 10초 가시덤불. 지나는 적에 피해 · 둔화. 불이 닿으면 크게 탄다.",Branch_F|Ruin,800,Later,False
+Skillbook_Vimen_Maxima,Vimen_Maxima,Spell,VIMEN MAXIMA,"비멘 막시마","큰 휘감기",Element.Earth.Plant,6,Bolt,Control,High,Long,"대형 생물도 4초 묶는다(보스는 둔화만).",Dungeon|Boss,0,Later,False
+Skillbook_Silva,Silva,Spell,SILVA,"실바","숲 일으키기",Element.Earth.Plant,9,Region,World,Extreme,Daily,"둘레 30m 에 큰 나무 · 덩굴이 순식간에 자란다. 적을 묶고 작물이 모두 익고, 모래 땅이 잠시 풀밭이 된다.",Sanctum,0,Later,False
+Skillbook_Sana,Sana,Spell,SANA,"사나","치유",Element.Light.Holy,2,Ally,Heal,Mid,Mid,"아군(대상이 없으면 나)의 HP 를 채운다. 쓰러진 동료에게 누르고 있으면(3초) 일으킨다. 길들인 생물을 치료하면 충성도가 오른다.",TowerShop,150,M7,False
+Skillbook_Purga,Purga,Spell,PURGA,"푸르가","정화",Element.Light.Holy,3,Ally,Cleanse,Mid,Mid,"디버프 · 디버프형 질병(독 · 저주) 하나를 걷는다. 적에게 쓰면 강화 하나를 지운다(전투 디스펠). 인챈트는 지우지 않는다.",TowerShop|Branch_G,300,M7,False
+Skillbook_Fortis,Fortis,Spell,FORTIS,"포르티스","축복",Element.Light.Holy,3,Ally,Buff,Mid,Long,"30초 동안 받는 피해 −15%, 질병에 덜 걸린다.",Branch_G,300,Later,False
+Skillbook_Sana_Rota,Sana_Rota,Spell,SANA ROTA,"사나 로타","치유의 원",Element.Light.Holy,5,Ground,Heal,High,Long,"겨눈 곳 둘레 5m 에 10초 치유의 원. 안의 아군 · 길들인 생물의 HP 가 찬다.",Branch_G|Dungeon,800,Later,False
+Skillbook_Reditus,Reditus,Spell,REDITUS,"레디투스","되살림",Element.Light.Holy,6,Ally,Heal,Extreme,VeryLong,"쓰러진 동료를 멀리서 바로 일으킨다(HP 30%).",Quest|Branch_G,1200,Later,False
+Skillbook_Purga_Maxima,Purga_Maxima,Spell,PURGA MAXIMA,"푸르가 막시마","큰 정화",Element.Light.Holy,9,Region,Cleanse,Extreme,VeryLong,"둘레 40m 의 오염 · 그림자 안개 · 저주를 걷는다. 흑마법 생물이 약해지고 사냥꾼의 금지 의식 진이 깨진다.",Sanctum|Quest,0,Later,False
+Skillbook_Benedictio,Benedictio,Spell,BENEDICTIO,"베네딕티오","큰 축복",Element.Light.Holy,10,Region,World,Extreme,Daily,"지역 안 아군을 모두 회복 · 질병 치료하고 쓰러진 이를 일으킨다. 10분 동안 받는 피해가 준다.",Sanctum,0,Later,False
+Skillbook_Lucida,Lucida,Spell,LUCIDA,"루키다","빛 구슬",Element.Light.Radiance,2,Ground,Utility,Low,Long,"머리 위(또는 겨눈 곳)에 3분 빛 구슬. 어둠을 밝히고 그림자 생물의 「그림자 걸음」을 드러내며, 작물의 빛 조건을 채운다.",TowerShop,150,M7,False
+Skillbook_Fulmen,Fulmen,Spell,FULMEN,"풀멘","번개",Element.Light.Radiance,3,Beam,Attack,Mid,Mid,"곧은 번개. 젖은 대상은 감전(추가 피해 · 0.5초 마비)되고 둘레의 젖은 대상으로 튄다.",Branch_E|Trial_3,300,M7,False
+Skillbook_Corusco,Corusco,Spell,CORUSCO,"코루스코","섬광",Element.Light.Radiance,4,Aura,Control,Mid,Long,"내 둘레에 섬광. 적이 1.5초 눈멀고, 그림자술 은신 · 그림자 상태가 풀린다(빛 ↔ 그림자술 극성).",Branch_E,500,Later,False
+Skillbook_Fulmen_Multiplex,Fulmen_Multiplex,Spell,FULMEN MULTIPLEX,"풀멘 멀티플렉스","연쇄 번개",Element.Light.Radiance,5,Beam,Attack,High,Mid,"번개가 대상 셋까지 튄다(젖었으면 다섯).",Branch_E|Dungeon,800,Later,False
+Skillbook_Fulmen_Maxima,Fulmen_Maxima,Spell,FULMEN MAXIMA,"풀멘 막시마","낙뢰",Element.Light.Radiance,7,Ground,Attack,Extreme,Long,"겨눈 곳에 하늘에서 큰 번개가 떨어진다. 비 · 뇌우 중이면 더 세다.",Dungeon|Boss,0,Later,False
+Skillbook_Tonans,Tonans,Spell,TONANS,"토난스","뇌신",Element.Light.Radiance,9,Region,World,Extreme,Daily,"지역에 뇌우를 부르고, 30초 동안 겨눈 곳에 낙뢰를 여러 번 내린다.",Sanctum,0,Later,False
+Skillbook_Macula,Macula,Spell,MACULA,"마쿨라","저주",Element.Dark.Hex,3,Bolt,Debuff,Mid,Mid,"10초 저주: 받는 피해 +15%, 회복 −50%. 신성 정화로 풀린다.",Ruin|Hunter,0,M7,False
+Skillbook_Haurio,Haurio,Spell,HAURIO,"하우리오","생명 흡수",Element.Dark.Hex,4,Beam,Attack,Mid,Short,"누르는 동안 대상의 생명을 빨아 피해의 일부를 HP 로 얻는다. 저주 걸린 대상에게서 더 많이.",Hunter|Dungeon,0,M7,False
+Skillbook_Robigo,Robigo,Spell,ROBIGO,"로비고","부식",Element.Dark.Hex,5,Cone,Debuff,High,Mid,"적의 방어와 장비 내구도를 깎는다. 사냥꾼 거점의 철문 · 철창 · 함정을 녹슬게 해 무너뜨린다.",Hunter|Ruin,0,Later,False
+Skillbook_Macula_Multiplex,Macula_Multiplex,Spell,MACULA MULTIPLEX,"마쿨라 멀티플렉스","퍼지는 저주",Element.Dark.Hex,6,Aura,Debuff,High,Long,"둘레 8m 의 적 모두에게 저주를 건다.",Hunter|Dungeon,0,Later,False
+Skillbook_Nigredo,Nigredo,Spell,NIGREDO,"니그레도","검은 밤",Element.Dark.Hex,10,Region,World,Extreme,Daily,"30초 동안 둘레 30m 적 모두를 저주하고 생명을 빨아 내 HP · 마나를 채운다. 금지 의식과 달리 서클을 올리지 않는다.",Sanctum|Boss,0,Later,False
+Skillbook_Caligo,Caligo,Spell,CALIGO,"칼리고","그림자 망토",Element.Dark.Shadow,3,Self,Stealth,Mid,Long,"어두운 곳(밤 · 그늘)에서 10초 동안 보이지 않는다. 빛(빛 구슬 · 불빛 · 섬광)에 드러나고, 시전하면 풀린다.",Ruin|Hunter,0,M7,False
+Skillbook_Laqueus,Laqueus,Spell,LAQUEUS,"라쿠에우스","그림자 올가미",Element.Dark.Shadow,3,Ground,Control,Mid,Mid,"겨눈 곳 그림자가 대상의 발을 3초 묶는다. 밤엔 더 오래, 밝은 빛 아래에선 안 된다.",Ruin|Hunter,0,M7,False
+Skillbook_Transitus,Transitus,Spell,TRANSITUS,"트란시투스","그림자 건너기",Element.Dark.Shadow,5,Self,Mobility,Mid,Long,"10m 안의 어두운 곳(그늘 · 밤의 땅)으로 순간 이동한다.",Hunter|Dungeon,0,Later,False
+Skillbook_Imago,Imago,Spell,IMAGO,"이마고","그림자 분신",Element.Dark.Shadow,6,Self,Stealth,High,Long,"분신 둘이 6초 동안 적의 눈과 락온을 끌어간다.",Hunter|Ruin,0,Later,False
+Skillbook_Tenebrae,Tenebrae,Spell,TENEBRAE,"테네브라이","그림자 영역",Element.Dark.Shadow,9,Region,World,Extreme,Daily,"둘레 40m 를 1분 밤처럼 어둡게 한다. 아군은 그림자 망토 효과를 얻고 그림자 생물이 강해진다.",Sanctum|Boss,0,Later,False
