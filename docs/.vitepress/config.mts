@@ -78,6 +78,7 @@ export default defineConfig({
             { text: '규칙 · 명명', link: '/dev/conventions' },
             { text: '문서 사이트 · 배포', link: '/dev/docs-site' },
             { text: '테스트 치트', link: '/dev/cheats' },
+            { text: '레벨 디자인 노트', link: '/dev/level-design' },
           ],
         },
       ],
