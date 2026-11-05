@@ -67,6 +67,14 @@
 
 - 입력: 재료(나무 · 결정 · 생물 소재) + **각인**: 해당 속성 마법을 시설에 시전해야 완성(자극 요구 행). 결과 완드 정의는 재료 조합표에서.
 
+## 내구도 · 수리 · 인챈트 (R18 · R19)
+
+- **장비 내구도**: 장비는 아이템 인스턴스 데이터 `FGrimItemInstance { Durability, MaxDurability, RepairCount, Enchants[] }` 를 가진다(인벤토리 슬롯에 같이 복제 · 저장). 서버만 깎는다 — 완드는 `UGrimSpellAbility` 의 시전 확정 때 `DurabilityCostPerCast`, 방어구는 피해 실행(`UGrimDamageExecution`) 뒤 피해량 비례. 0 → 장비 해제 + 잔해 아이템으로 교체(완드는 `bBroken` 표시만 — Q22).
+- **건축 내구도**: 조각의 `Health`(세이브에 이미 있음)를 쓰고, 피해는 GAS 가 아닌 조각 전용 `ApplyStructureDamage` 하나로 받는다(습격 · 불 · 노후 모두). 불은 속성 상태 컴포넌트가 `State.Burning` 세기 × 초당 피해로 넘긴다 — 조각도 `UGrimElementalStateComponent` 를 가진다(재료 태그 `Material.Flammable` 은 나무만).
+- **수리**: 대상(장비 · 조각) + 재료 아이템 + 속성 자극. 수리 마법은 일반 마법과 같은 `IGrimElementalReceiver` 경로로 "수리 자극"을 보내고, 받는 쪽이 재료가 맞으면 회복한다 — 상호작용이 마법이라는 R16 을 그대로 쓴다. 수치는 `UGrimDurabilitySettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%.
+- **인챈트**: `UGrimEnchantDefinition`(DataAsset — 대상 슬롯 · 단계별 효과 GE · 비용 · 각인 속성 · 요구 서클). 장착 시 효과 GE 를 플레이어 ASC 에 Infinite 로 걸고 해제 시 지운다. 「자가 회복」 · 「견고」는 내구도 코드가 읽는 태그.
+- 마일스톤: 내구도 · 수리 = **M4**(인벤토리 완성과 함께), 인챈트 · 각인대 = **M5**(완드 공방과 함께).
+
 ## 인벤토리 · 아이템
 
 - `UGrimItemDefinition`(PrimaryDataAsset `Item`): `Type(Material · Food · Seed · Skillbook · Wand · Tool · Placeable), Stack, Weight, Icon, 사용 효과`.

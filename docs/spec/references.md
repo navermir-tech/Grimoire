@@ -91,6 +91,16 @@
 
 **권하는 안** (사용자 결정 대기): M1.5 는 **Niagara Examples Pack + 파라미터 변형 + GPT 텍스처**로 9속성 임시 이펙트를 만든다. 부족한 물 · 얼음 · 신성 · 흑마법은 Fab 무료 배포를 지켜보다가, M7(수직 슬라이스) 전에 유료 팩 구매를 판단한다. Fab 에서 받는 것은 사용자 계정으로 해야 한다(라이브러리에 추가 → 프로젝트에 넣기).
 
+## 장비 · 건축 내구도 (R18)
+
+| 게임 | 장비 내구도 | 장비 수리 | 건축 내구도 |
+|---|---|---|---|
+| 마인크래프트 | 있음. 0 이면 **사라짐** | 모루에 재료 · 같은 장비를 합침. 수리할수록 비용 ↑(「너무 비쌈」). 인챈트 「수선」은 경험치로 자동 수리 | 없음(블록은 폭발 · 채굴로만 부서짐) |
+| 인슈라오디드 | 있음. 0 이면 **쓸 수 없게 될 뿐 사라지지 않는다**는 공략이 많다(사라진다는 글도 있어 불확실) | 작업대에서 장착 장비 전부 한 번에. 비용은 공략마다 달라 불확실 — 무료라는 글이 많다 | 확인 안 함 |
+| 팰월드 | 있음 | 수리대(나무 10 · 돌 10)에서 재료를 내고 **완전히** 회복. 남은 양과 상관없이 같은 비용이라 바닥날 때 고치는 게 이득 | **있음.** 습격 피해 · 거점 범위 밖 노후. 「수리 키트」(섬유 · 돌)로 고침, 방어벽은 수리 안 돼 다시 지음. 서버 설정에 피해 배율 · 노후 배율 · 최대 HP 배율 |
+
+→ 팰월드는 건축 내구도가 **있다**. 그리모리의 노후 · 서버 옵션은 팰월드를 따랐고, "수리할수록 비싸진다"는 마인크래프트 쪽을 "최대 내구도가 준다"로 바꿔 꾸준한 교체(인슈라오디드 느낌)를 만든다.
+
 ## 출처
 
 - 인슈라오디드: [Nodecraft](https://nodecraft.com/support/games/enshrouded/setup/how-to-change-the-day-length-on-an-enshrouded-server) · [WabbaNode](https://wabbanode.com/help/enshrouded/how-to-configure-day-and-night-duration-on-your-enshrouded-server) · [멀티 진행](https://www.itechguides.com/how-progression-works-in-enshrouded-multiplayer/)
@@ -102,4 +112,5 @@
 - 코난 엑자일: [공지](https://www.conanexiles.com/?p=21107)
 - 돈스타브 · 테라리아: [DST Wiki](https://dontstarve.wiki.gg/wiki/Day-Night_Cycle) · [Terraria Wiki](https://terraria.wiki.gg/wiki/Server)
 - 호그와트 레거시: [Fextralife 조작](https://hogwartslegacy.wiki.fextralife.com/Controls) · [Twinfinite](https://twinfinite.net/guides/how-to-lock-on-in-hogwarts-legacy/) · [GameSkinny 설정](https://www.gameskinny.com/tips/hogwarts-legacy-how-to-change-controller-settings-guide/) · [WB 접근성](https://portkeygamessupport.wbgames.com/hc/en-us/articles/11893402078355)
+- 내구도: [팰월드 건축 피해 설정](https://xgamingserver.com/docs/palworld/structure-damage) · [팰월드 수리](https://vandal.elespanol.com/en/palworld/palworld-how-to-repair-weapons-armor-tools-and-base-structures.html) · [팰월드 수리대](https://gamewith.net/palworld/44330) · [인슈라오디드 수리](https://primagames.com/gaming/how-to-repair-weapons-and-tools-in-enshrouded) · [Destructoid](https://destructoid.com/?p=454095)
 - 이펙트: [Niagara Examples Pack 발표](https://www.unrealengine.com/en-US/news/discover-over-50-free-niagara-systems-ready-to-use-in-unreal-engine-5-7) · [Fab 라이선스](https://dev.epicgames.com/documentation/en-us/fab/licenses-and-pricing-in-fab) · [Paragon](https://www.pcgamer.com/epic-has-released-dollar12-million-worth-of-paragon-assets-free-of-charge) · [Fab 격주 무료](https://www.cgchannel.com/2024/11/epic-games-to-share-new-free-assets-on-fab-every-two-weeks)
