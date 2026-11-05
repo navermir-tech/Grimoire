@@ -119,6 +119,14 @@
 
 → 팰월드는 건축 내구도가 **있다**. 그리모리의 노후 · 서버 옵션은 팰월드를 따랐고, "수리할수록 비싸진다"는 마인크래프트 쪽을 "최대 내구도가 준다"로 바꿔 꾸준한 교체(인슈라오디드 느낌)를 만든다.
 
+## 대규모 서버 (R32)
+
+| 항목 | 내용 |
+|---|---|
+| 팰월드 전용 서버 인원 | 공식 상한 32(`ServerPlayerMaxNum` 1~32). 호스팅 업체들도 모드 없이는 32 를 넘길 수 없다고 안내 |
+| 「100」의 출처 | 길드 인원 상한 설정(1~100, 기본 20)으로 보인다 — 서버 인원이 아님 |
+| 1.0 서버 클러스터 | 서버 여러 개를 묶어 더 큰 인원을 받는다는 업체 블로그 한 곳 — 공식 확인 못 함(불확실) |
+
 ## 출처
 
 - 인슈라오디드: [Nodecraft](https://nodecraft.com/support/games/enshrouded/setup/how-to-change-the-day-length-on-an-enshrouded-server) · [WabbaNode](https://wabbanode.com/help/enshrouded/how-to-configure-day-and-night-duration-on-your-enshrouded-server) · [멀티 진행](https://www.itechguides.com/how-progression-works-in-enshrouded-multiplayer/)
@@ -133,4 +141,5 @@
 - 호그와트 레거시 조준: [GameSkinny 조작 목록](https://www.gameskinny.com/b7804/all-hogwarts-legacy-controls-list-for-pc-playstation-xbox) · [CyberPost 탈것 전투](https://cyberpost.co/?p=1207300)
 - 호그와트 레거시: [Fextralife 조작](https://hogwartslegacy.wiki.fextralife.com/Controls) · [Twinfinite](https://twinfinite.net/guides/how-to-lock-on-in-hogwarts-legacy/) · [GameSkinny 설정](https://www.gameskinny.com/tips/hogwarts-legacy-how-to-change-controller-settings-guide/) · [WB 접근성](https://portkeygamessupport.wbgames.com/hc/en-us/articles/11893402078355)
 - 내구도: [팰월드 건축 피해 설정](https://xgamingserver.com/docs/palworld/structure-damage) · [팰월드 수리](https://vandal.elespanol.com/en/palworld/palworld-how-to-repair-weapons-armor-tools-and-base-structures.html) · [팰월드 수리대](https://gamewith.net/palworld/44330) · [인슈라오디드 수리](https://primagames.com/gaming/how-to-repair-weapons-and-tools-in-enshrouded) · [Destructoid](https://destructoid.com/?p=454095)
+- 대규모 서버: [XGamingServer 최대 인원](https://xgamingserver.com/docs/palworld/max-players) · [Nodecraft](https://nodecraft.com/support/games/palworld/setup/how-to-change-the-max-players-on-a-palworld-server) · [FREAKHOSTING 길드 상한](https://help.freakhosting.com/games/palworld/increasing-the-32-player-limit-guild-limit) · [GeekChamp](https://geekchamp.com/how-to-play-palworld-with-more-than-32-players-on-a-server/)
 - 이펙트: [Niagara Examples Pack 발표](https://www.unrealengine.com/en-US/news/discover-over-50-free-niagara-systems-ready-to-use-in-unreal-engine-5-7) · [Fab 라이선스](https://dev.epicgames.com/documentation/en-us/fab/licenses-and-pricing-in-fab) · [Paragon](https://www.pcgamer.com/epic-has-released-dollar12-million-worth-of-paragon-assets-free-of-charge) · [Fab 격주 무료](https://www.cgchannel.com/2024/11/epic-games-to-share-new-free-assets-on-fab-every-two-weeks)

@@ -211,6 +211,28 @@ void UGrimTimeOfDaySubsystem::UpdateEvents()
 	}
 }
 
+// 세이브 (Environment.TimeOfDay v1)
+
+void UGrimTimeOfDaySubsystem::WriteSaveData(FArchive& Ar)
+{
+	double TotalDays = GetTotalDays();
+	Ar << TotalDays;
+}
+
+void UGrimTimeOfDaySubsystem::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	double TotalDays = 0.0;
+	Ar << TotalDays;
+	if (!IsServer() || Ar.IsError() || TotalDays < 0.0)
+	{
+		return;
+	}
+	// 시각 점프 — 밤 · 시 바뀜 이벤트는 다시 기준만 잡는다(UpdateEvents).
+	bEventsPrimed = false;
+	PublishSnapshot(TotalDays);
+	UE_LOG(LogGrimEnvironment, Log, TEXT("시간 세이브 읽음: %d일 %.2f시"), GetDayIndex() + 1, GetHours());
+}
+
 // 디버그 콘솔 명령(서버 월드에서 실행).
 static FAutoConsoleCommandWithWorldAndArgs GGrimTimeSetCommand(
 	TEXT("grim.Time.Set"),

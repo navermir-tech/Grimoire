@@ -99,3 +99,25 @@ void UGrimProgressionComponent::Client_CircleUpResult_Implementation(int32 Circl
 {
 	OnCircleUpResult.Broadcast(this, Circle, bSuccess);
 }
+
+// ───────────────────────── 세이브 (Magic.Progression v1) ─────────────────────────
+
+void UGrimProgressionComponent::WriteSaveData(FArchive& Ar)
+{
+	const UAbilitySystemComponent* ASC = GetASC();
+	float Circle = ASC ? ASC->GetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute()) : 0.f;
+	Ar << Circle;
+}
+
+void UGrimProgressionComponent::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	float Circle = 0.f;
+	Ar << Circle;
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC || !GetOwner()->HasAuthority() || Ar.IsError() || Circle < 1.f)
+	{
+		return;
+	}
+	ASC->SetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute(), Circle);
+	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 세이브 읽음: 서클 %d"), *GetNameSafe(GetOwner()), FMath::RoundToInt(Circle));
+}

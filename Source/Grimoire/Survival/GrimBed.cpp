@@ -148,3 +148,28 @@ void AGrimBed::HandleLocalPlayer(APlayerController* PlayerController)
 		}
 	}
 }
+
+// ── 세이브 (Bed.<이름> v1) ──
+
+FName AGrimBed::GetSaveId() const
+{
+	return FName(*FString::Printf(TEXT("Bed.%s"), *GetName()));
+}
+
+void AGrimBed::WriteSaveData(FArchive& Ar)
+{
+	bool bSavedBedroll = bBedroll;
+	Ar << bSavedBedroll;
+}
+
+void AGrimBed::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	bool bSavedBedroll = false;
+	Ar << bSavedBedroll;
+	if (HasAuthority() && !Ar.IsError() && bSavedBedroll != bBedroll)
+	{
+		// 다시 스폰할 때는 FinishSpawning 전에 불린다 — 모양은 OnConstruction 이 다시 맞춘다.
+		bBedroll = bSavedBedroll;
+		ApplyShape();
+	}
+}

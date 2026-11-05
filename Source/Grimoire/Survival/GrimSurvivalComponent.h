@@ -6,6 +6,7 @@
 #include "GameplayTagContainer.h"
 #include "Environment/GrimWeatherSubsystem.h"
 #include "Survival/GrimSurvivalModel.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimSurvivalComponent.generated.h"
 
 class AGrimBed;
@@ -47,12 +48,19 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGrimOnSurvivalEvent);
  * 계산은 FGrimSurvivalModel, 수치는 UGrimSurvivalSettings.
  */
 UCLASS(ClassGroup = (Grimoire), meta = (BlueprintSpawnableComponent))
-class GRIMOIRE_API UGrimSurvivalComponent : public UActorComponent
+class GRIMOIRE_API UGrimSurvivalComponent : public UActorComponent, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
 	UGrimSurvivalComponent();
+
+	// 세이브 (IGrimSaveParticipant — Player 「Survival.Vitals」 v1): HP · 최대 HP · 배고픔 · 체온 · 피곤함 · 질병 저항(기본값),
+	// 질병 남은 시간(배탈 · 감기), 젖은 채 추운 누적, 부활 지점. 잠 · 쓰러짐은 저장하지 않는다(다시 들어오면 깨어 있다).
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
+	virtual FName GetSaveId() const override { return TEXT("Survival.Vitals"); }
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;

@@ -251,3 +251,117 @@ void UGrimElementalStateComponent::HandleReplicatedStateChange(const FGameplayTa
 	OnStateChanged.Broadcast(this, StateTag, OldIntensity, NewIntensity);
 	OnStateChangedNative.Broadcast(this, StateTag, OldIntensity, NewIntensity);
 }
+
+// ───────────────────────── 세이브 (Elemental.<액터> v1) ─────────────────────────
+
+namespace GrimElementalSaveLocal // 유니티 빌드 이름 충돌 방지
+{
+	FGameplayTag TagFromString(const FString& Name)
+	{
+		return Name.IsEmpty() ? FGameplayTag() : FGameplayTag::RequestGameplayTag(FName(*Name), false);
+	}
+
+	struct FSavedState
+	{
+		FGameplayTag StateTag;
+		float Intensity = 0.f;
+		FGrimReactionPropagation Propagation;
+	};
+}
+
+FName UGrimElementalStateComponent::GetSaveId() const
+{
+	const AActor* Owner = GetOwner();
+	return FName(*FString::Printf(TEXT("Elemental.%s"), Owner ? *Owner->GetName() : TEXT("None")));
+}
+
+void UGrimElementalStateComponent::WriteSaveData(FArchive& Ar)
+{
+	TArray<const FGrimElementalState*> Persistent;
+	for (const FGrimElementalState& Item : States.Items)
+	{
+		if (!Item.IsTimed() && Item.Intensity > 0.f && Item.StateTag.IsValid())
+		{
+			Persistent.Add(&Item);
+		}
+	}
+
+	int32 Count = Persistent.Num();
+	Ar << Count;
+	for (const FGrimElementalState* Item : Persistent)
+	{
+		FString Tag = Item->StateTag.ToString();
+		float Intensity = Item->Intensity;
+		FString Element = Item->Propagation.Element.IsValid() ? Item->Propagation.Element.ToString() : FString();
+		FString TargetMaterial = Item->Propagation.TargetMaterial.IsValid() ? Item->Propagation.TargetMaterial.ToString() : FString();
+		float Radius = Item->Propagation.Radius;
+		float IntensityScale = Item->Propagation.IntensityScale;
+		Ar << Tag << Intensity << Element << TargetMaterial << Radius << IntensityScale;
+	}
+}
+
+void UGrimElementalStateComponent::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	using namespace GrimElementalSaveLocal;
+	int32 Count = 0;
+	Ar << Count;
+	if (Count < 0 || Count > 256)
+	{
+		Ar.SetError();
+		return;
+	}
+	TArray<FSavedState> Saved;
+	for (int32 i = 0; i < Count && !Ar.IsError(); ++i)
+	{
+		FString Tag, Element, TargetMaterial;
+		float Intensity = 0.f, Radius = 0.f, IntensityScale = 1.f;
+		Ar << Tag << Intensity << Element << TargetMaterial << Radius << IntensityScale;
+		FSavedState& State = Saved.AddDefaulted_GetRef();
+		State.StateTag = TagFromString(Tag);
+		State.Intensity = Intensity;
+		State.Propagation.Element = TagFromString(Element);
+		State.Propagation.TargetMaterial = TagFromString(TargetMaterial);
+		State.Propagation.Radius = Radius;
+		State.Propagation.IntensityScale = IntensityScale;
+	}
+	if (!HasAuthorityToChange() || Ar.IsError())
+	{
+		return;
+	}
+
+	// 바꾸기 "전"에 휴면을 깨우는 것은 SetIntensity · Remove 안의 NotifyPreChange 가 한다(HandlePreStateChange 주석).
+	TArray<FGrimElementalStateChange> Changes;
+	TArray<FGameplayTag> ToRemove;
+	for (const FGrimElementalState& Item : States.Items)
+	{
+		const bool bInSave = Saved.ContainsByPredicate([&Item](const FSavedState& State) { return State.StateTag == Item.StateTag; });
+		if (!Item.IsTimed() && !bInSave)
+		{
+			ToRemove.Add(Item.StateTag);
+		}
+	}
+	for (const FGameplayTag& Tag : ToRemove)
+	{
+		States.Remove(Tag, Changes);
+	}
+	for (const FSavedState& State : Saved)
+	{
+		if (!State.StateTag.IsValid() || State.Intensity <= 0.f)
+		{
+			continue;
+		}
+		States.SetIntensity(State.StateTag, State.Intensity, Changes);
+		if (FGrimElementalState* Item = States.Find(State.StateTag))
+		{
+			if (Item->IsTimed())
+			{
+				States.NotifyPreChange();
+				Item->RemainingTime = -1.f;
+				States.MarkItemDirty(*Item);
+			}
+			Item->Propagation = State.Propagation;
+		}
+	}
+	// 바뀐 것이 없어도 타이머 · 전파 등록은 다시 맞춘다.
+	CommitChanges(Changes);
+}
