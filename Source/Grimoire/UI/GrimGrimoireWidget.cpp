@@ -2,6 +2,7 @@
 #include "UI/GrimUIData.h"
 #include "UI/GrimUIMath.h"
 #include "UI/GrimUISettings.h"
+#include "UI/GrimSkillTreeWidget.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimMagicMath.h"
 #include "Magic/GrimProficiencySettings.h"
@@ -114,8 +115,8 @@ void UGrimGrimoireWidget::BuildTree()
 	Pages = WidgetTree->ConstructWidget<UWidgetSwitcher>(UWidgetSwitcher::StaticClass());
 	Column->AddChildToVerticalBox(Pages)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 	Pages->AddChild(BuildMagicPage());
-	Pages->AddChild(BuildPlaceholderPage(LOCTEXT("TreeTitle", "성장 트리"),
-		LOCTEXT("TreeBody", "속성 성장 트리 — 노말 · 4원소(물 · 불 · 바람 · 땅) · 빛 · 어둠.\n레벨이 오르면 받는 포인트로 연다. 다음 묶음에서 채워진다.")));
+	// 성장 트리: 트리 탭 · 노드 격자 · 찍기(UGrimSkillTreeWidget, R27)
+	Pages->AddChild(WidgetTree->ConstructWidget<UGrimSkillTreeWidget>(UGrimSkillTreeWidget::StaticClass(), TEXT("SkillTree")));
 	Pages->AddChild(BuildPlaceholderPage(LOCTEXT("CodexTitle", "도감"),
 		LOCTEXT("CodexBody", "발견한 상호작용 규칙(불 + 마른 풀 → 번짐 같은 것)이 여기에 기록된다.\n아직 기록된 것이 없다 — 다음 묶음에서 채워진다.")));
 
