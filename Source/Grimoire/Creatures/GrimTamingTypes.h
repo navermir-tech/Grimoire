@@ -66,7 +66,9 @@ UENUM(BlueprintType)
 enum class EGrimTamedCommand : uint8
 {
 	Follow,
-	Wait
+	Wait,
+	/** 거점 생물 상자에서 풀어놓음 — 집(상자 둘레) 곁을 돌아다닌다(R38) */
+	Roam
 };
 
 /** 포획 판정 결과 */
@@ -80,6 +82,8 @@ enum class EGrimTamingResult : uint8
 	NotTameable,
 	/** 내 서클이 종의 요구 서클보다 너무 낮다 */
 	CircleTooLow,
+	/** 데리고 다니는 수 · 보관함 · 거점 상자가 모두 가득 — 굴림 전에 막는다(R38) */
+	NoRoom,
 	Invalid
 };
 
@@ -119,7 +123,8 @@ struct GRIMOIRE_API FGrimOwnedCreatureRecord
 	UPROPERTY(BlueprintReadOnly, Category = "Taming")
 	TArray<FGrimLoyaltyReason> Reasons;
 
-	/** 마지막으로 기록한 때(UTC, 초) — 주인이 오래 없음 계산 */
+	/** 마지막으로 기록한 때(UTC, 초) — 주인이 오래 없음 계산 · 보관함 · 상자에 넣은 때(체력 회복 계산, 화면이 쓰려고 복제) */
+	UPROPERTY()
 	double SavedUtcSeconds = 0.0;
 
 	/** 같은 개체인가(종 + 씨앗) */

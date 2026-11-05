@@ -9,7 +9,9 @@
 class AGrimCookingPot;
 class AGrimItemPickup;
 class UBorder;
+class UGrimCreatureStorageWidget;
 class UGrimIdButton;
+class UVerticalBox;
 class UTextBlock;
 class UUniformGridPanel;
 class UWidget;
@@ -65,6 +67,22 @@ private:
 	void HandleNotice(UGrimInventoryComponent* InInventory, EGrimItemNotice Notice, FName ItemId, int32 Count);
 	void HandleSlotClicked(int32 SlotIndex);
 	void HandleActionClicked(int32 Action);
+
+	/** 탭 줄(가방 · 생물 — R38)과 두 판을 만든다. 가방 판을 돌려준다 */
+	UVerticalBox* BuildTabs(UVerticalBox* BagBox);
+	void SelectTab(int32 Tab);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UWidget> BagPage;
+
+	/** 생물 탭 — 데리고 다님 · 보관함 목록(Creatures/GrimCreatureStorageWidget) */
+	UPROPERTY(Transient)
+	TObjectPtr<UGrimCreatureStorageWidget> CreaturePage;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UGrimIdButton>> TabButtons;
+
+	int32 ActiveTab = 0;
 
 	TWeakObjectPtr<UGrimInventoryComponent> Inventory;
 	FDelegateHandle ChangedHandle;

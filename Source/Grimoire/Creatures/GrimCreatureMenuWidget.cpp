@@ -1,6 +1,7 @@
 #include "Creatures/GrimCreatureMenuWidget.h"
 #include "Creatures/GrimCreature.h"
 #include "Creatures/GrimCreatureSpecies.h"
+#include "Creatures/GrimCreatureStorageComponent.h"
 #include "Creatures/GrimCreatureTamingComponent.h"
 #include "Creatures/GrimMountComponent.h"
 #include "Creatures/GrimTamingMath.h"
@@ -36,7 +37,12 @@ namespace GrimCreatureMenuLocal // 유니티 빌드 이름 충돌 방지
 
 	FString CommandName(EGrimTamedCommand Command)
 	{
-		return Command == EGrimTamedCommand::Wait ? TEXT("기다리는 중") : TEXT("따라오는 중");
+		switch (Command)
+		{
+		case EGrimTamedCommand::Wait: return TEXT("기다리는 중");
+		case EGrimTamedCommand::Roam: return TEXT("거점에 풀어놓음");
+		default: return TEXT("따라오는 중");
+		}
 	}
 }
 
@@ -204,14 +210,24 @@ void UGrimCreatureMenuWidget::RebuildMenu()
 	Entries.Reset();
 	const AGrimCreature* Target = Creature.Get();
 	const UGrimMountComponent* Mount = Target ? Target->GetMount() : nullptr;
-	Entries.Add(EEntry::Follow);
-	Entries.Add(EEntry::Wait);
-	if (Mount && Mount->IsMountable())
+	const bool bAtBase = Target && Target->GetTaming() && Target->GetTaming()->IsAtBase();
+	const UGrimCreatureStorageComponent* Storage = Tamer.IsValid() ? UGrimCreatureStorageComponent::FindForActor(Tamer->GetOwner()) : nullptr;
+	if (!bAtBase)
 	{
-		Entries.Add(EEntry::Mount);
+		// 거점에 풀어놓은 생물은 상자에서 데리고 다닌다(R38).
+		Entries.Add(EEntry::Follow);
+		Entries.Add(EEntry::Wait);
+		if (Mount && Mount->IsMountable())
+		{
+			Entries.Add(EEntry::Mount);
+		}
 	}
 	Entries.Add(EEntry::Feed);
 	Entries.Add(EEntry::Rename);
+	if (!bAtBase && Storage && Storage->IsStorageLearned())
+	{
+		Entries.Add(EEntry::Store);
+	}
 	Entries.Add(EEntry::Release);
 	Entries.Add(EEntry::Close);
 
@@ -225,6 +241,7 @@ void UGrimCreatureMenuWidget::RebuildMenu()
 		case EEntry::Mount: Label = TEXT("타기"); break;
 		case EEntry::Feed: Label = TEXT("먹이 주기"); break;
 		case EEntry::Rename: Label = TEXT("이름 짓기"); break;
+		case EEntry::Store: Label = TEXT("보관함에 넣기"); break;
 		case EEntry::Release: Label = bReleaseArmed ? TEXT("정말 놓아주기 — 한 번 더") : TEXT("놓아주기"); break;
 		default: Label = TEXT("닫기"); break;
 		}
@@ -332,6 +349,13 @@ void UGrimCreatureMenuWidget::Choose(int32 Index)
 		break;
 	case EEntry::Rename:
 		BeginRename();
+		break;
+	case EEntry::Store:
+		if (UGrimCreatureStorageComponent* Storage = UGrimCreatureStorageComponent::FindForActor(Owner->GetOwner()))
+		{
+			Storage->RequestTransfer(nullptr, Target->GetInstance().SpeciesId, Target->GetInstance().Seed, EGrimCreaturePlace::Party, EGrimCreaturePlace::Storage);
+		}
+		CloseMenu();
 		break;
 	case EEntry::Release:
 		if (!bReleaseArmed)

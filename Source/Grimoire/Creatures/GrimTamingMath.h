@@ -80,7 +80,7 @@ namespace GrimTamingMath
 
 	/**
 	 * 길들인 생물 판단(우선순위): 탔음 → Ridden / 기절 → Sleep / 불붙음 → Flee / 맞음 → 체력 낮거나 겁 많으면 Flee, 아니면 Fight /
-	 * 기다리기 → Stay / 따라오기 → 멀면 Follow, 가까우면 Idle.
+	 * 기다리기 → Stay / 풀어놓음(Roam) → Wander / 따라오기 → 멀면 Follow, 가까우면 Idle.
 	 */
 	GRIMOIRE_API EGrimCreatureAIState DecideTamed(const FGrimTamedSenses& Senses);
 

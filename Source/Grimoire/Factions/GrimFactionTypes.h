@@ -19,6 +19,9 @@ namespace GrimTowerServices
 
 	/** "Purify:<트리 ID>" 면 트리 ID 를 꺼낸다(정화 의식은 트리마다 메뉴 하나 — 한 번에 트리 하나, Q31) */
 	GRIMOIRE_API bool ParsePurify(FName Service, FName& OutTreeId);
+
+	/** "Buy:<아이템 ID>" 면 아이템 ID 를 꺼낸다(상점 — 값은 UGrimShopSettings, 화폐 솔리두스 Q38) */
+	GRIMOIRE_API bool ParseBuy(FName Service, FName& OutItemId);
 }
 
 /** 대사 맥락 (TowerDialogue.csv 의 Context). 서비스 결과는 서버가 고른 맥락을 클라이언트가 이 표로 보여 준다. */
@@ -44,9 +47,16 @@ namespace GrimDialogueContexts
 	GRIMOIRE_API extern const FName Erase;
 	/** 너무 멀다 · 잘못된 요청 */
 	GRIMOIRE_API extern const FName Refused;
+	/** 샀다 · 솔이 모자람 · 가방이 가득(Buy:<아이템>) */
+	GRIMOIRE_API extern const FName Buy;
+	GRIMOIRE_API extern const FName BuyNoMoney;
+	GRIMOIRE_API extern const FName BuyBagFull;
 
 	/** 표가 꼭 가져야 하는 맥락(서비스가 있는 NPC) */
 	GRIMOIRE_API TArray<FName> RequiredForServices();
+
+	/** 상점 서비스(Buy:<아이템>)가 있는 NPC 가 더 가져야 하는 맥락 */
+	GRIMOIRE_API TArray<FName> RequiredForShop();
 }
 
 /** TowerNpcs.csv 의 한 행. 행 이름 = NPC ID(맵의 AGrimTowerNPC::NpcId). */

@@ -51,6 +51,8 @@ private:
 		Mount,
 		Feed,
 		Rename,
+		/** 생물 보관함에 넣기(R38 — 배웠을 때만) */
+		Store,
 		Release,
 		Close
 	};

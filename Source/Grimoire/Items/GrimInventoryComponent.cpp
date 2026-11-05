@@ -7,6 +7,8 @@
 #include "Core/GrimElementalTypes.h"
 #include "Core/GrimGameplayTags.h"
 #include "Core/GrimPlayerState.h"
+#include "Creatures/GrimCreatureStorageComponent.h"
+#include "Creatures/GrimCreatureStorageMath.h"
 #include "Interaction/GrimElementalObject.h"
 #include "Magic/GrimSpellbookComponent.h"
 #include "Quest/GrimQuestComponent.h"
@@ -406,6 +408,21 @@ EGrimItemUseResult UGrimInventoryComponent::EatFood(int32 SlotIndex, const FGrim
 
 EGrimItemUseResult UGrimInventoryComponent::ReadSkillbook(int32 SlotIndex, const FGrimItemDefinition& Def)
 {
+	// 노말 스킬(마법이 아닌 능력 — TeachesSpell = "Skill:<ID>", 예: 생물 보관함 R38)
+	FName NormalSkill;
+	if (GrimCreatureStorageMath::ParseNormalSkill(Def.Row.TeachesSpell, NormalSkill))
+	{
+		const EGrimLearnResult SkillResult = UGrimCreatureStorageComponent::LearnNormalSkill(GetOwner(), NormalSkill);
+		if (SkillResult == EGrimLearnResult::Learned)
+		{
+			RemoveFromSlot(SlotIndex, 1);
+			SendNotice(EGrimItemNotice::Learned, Def.Id, 1);
+			return EGrimItemUseResult::Learned;
+		}
+		SendNotice(EGrimItemNotice::CannotUse, Def.Id, 1);
+		return EGrimItemUseResult::CannotUse;
+	}
+
 	const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
 	UGrimSpellbookComponent* Spellbook = PlayerState ? PlayerState->GetSpellbook() : nullptr;
 	UGrimSpellDefinition* Spell = UGrimQuestSettings::LoadSpell(Def.Row.TeachesSpell);

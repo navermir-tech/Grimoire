@@ -1,5 +1,6 @@
 #include "Creatures/GrimCreatureTamingComponent.h"
 #include "Creatures/GrimCreature.h"
+#include "Creatures/GrimCreatureBox.h"
 #include "Creatures/GrimCreatureSettings.h"
 #include "Creatures/GrimCreatureSpecies.h"
 #include "Creatures/GrimHabitatVolume.h"
@@ -89,6 +90,35 @@ void UGrimCreatureTamingComponent::GetLifetimeReplicatedProps(TArray<FLifetimePr
 	DOREPLIFETIME(UGrimCreatureTamingComponent, RecentReasons);
 	DOREPLIFETIME(UGrimCreatureTamingComponent, OwnerPlayerState);
 	DOREPLIFETIME(UGrimCreatureTamingComponent, bKnockedOut);
+	DOREPLIFETIME(UGrimCreatureTamingComponent, HomeBox);
+}
+
+void UGrimCreatureTamingComponent::SetHomeBox(AGrimCreatureBox* Box)
+{
+	AGrimCreature* Creature = GetCreature();
+	if (!Creature || !Creature->HasAuthority() || HomeBox == Box)
+	{
+		return;
+	}
+	HomeBox = Box;
+	// 거점에 있는 동안은 굶김 · 주인 부재를 세지 않는다 — 돌아오면 처음부터.
+	LastFedTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastFedTime;
+	LastStarveEventTime = LastFedTime;
+	AbsentAccum = 0.f;
+	bAbsentFired = false;
+	bHasExplorePoint = false;
+	MarkChanged();
+}
+
+void UGrimCreatureTamingComponent::SetOwnerPlayerState(APlayerState* NewOwner)
+{
+	AGrimCreature* Creature = GetCreature();
+	if (!Creature || !Creature->HasAuthority() || OwnerPlayerState == NewOwner)
+	{
+		return;
+	}
+	OwnerPlayerState = NewOwner;
+	MarkChanged();
 }
 
 void UGrimCreatureTamingComponent::BeginPlay()
@@ -349,6 +379,12 @@ void UGrimCreatureTamingComponent::ReleaseToWild(bool bLeftByLoyalty)
 	Command = EGrimTamedCommand::Follow;
 	RecentReasons.Reset();
 	bKnockedOut = false;
+	if (AGrimCreatureBox* Box = HomeBox.Get())
+	{
+		// 거점에 풀어놓은 생물이 떠남 · 놓아줌 — 상자 칸에서도 지운다.
+		HomeBox = nullptr;
+		Box->ForgetCreature(Instance.SpeciesId, Instance.Seed);
+	}
 	Creature->SetHomeLocation(Creature->GetActorLocation());
 	MarkChanged();
 	UE_LOG(LogGrimTaming, Display, TEXT("[Server] %s %s seed=%d (주인 %s)"), bLeftByLoyalty ? TEXT("떠남(충성도 0)") : TEXT("놓아줌"),
@@ -541,6 +577,14 @@ void UGrimCreatureTamingComponent::ServerTick()
 		return;
 	}
 
+	// 거점에 풀어놓은 생물: 굶김 · 주인 부재를 세지 않는다(R38 제안 — M5 먹이 상자 때 다시 켠다).
+	const bool bAtBase = IsAtBase();
+	if (bAtBase)
+	{
+		LastFedTime = Now;
+		LastStarveEventTime = Now;
+	}
+
 	// 굶김
 	if (Now - LastFedTime > Tuning.StarveSeconds && Now - LastStarveEventTime > Tuning.StarveRepeatSeconds)
 	{
@@ -607,7 +651,12 @@ void UGrimCreatureTamingComponent::ServerTick()
 	// 주인 부재 · 함께 탐험
 	const APawn* OwnerPawn = GetOwnerPawn();
 	const float OwnerDistance = OwnerPawn ? FVector::Dist(OwnerPawn->GetActorLocation(), Creature->GetActorLocation()) : TNumericLimits<float>::Max();
-	if (OwnerDistance > Tuning.AbsentDistance)
+	if (bAtBase)
+	{
+		AbsentAccum = 0.f;
+		bAbsentFired = false;
+	}
+	else if (OwnerDistance > Tuning.AbsentDistance)
 	{
 		AbsentAccum += Dt;
 		if (AbsentAccum >= (bAbsentFired ? Tuning.AbsentRepeatSeconds : Tuning.AbsentSeconds))

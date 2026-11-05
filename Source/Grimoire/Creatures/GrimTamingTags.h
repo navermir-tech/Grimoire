@@ -24,6 +24,10 @@ namespace GrimTamingTags
 	// 숙련도 추가 효과(Q26) — 계약 마법의 포획 확률 몫
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Taming_CaptureBonus);
 
+	// 성장 트리 노드 효과 키 CreatureParty · CreatureStorage(Progression.Node.<키>) — 데리고 다니는 수 · 보관함 칸을 올리는 자리(R38)
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Progression_Node_CreatureParty);
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Progression_Node_CreatureStorage);
+
 	// 파크툼 주문(spell · cooldown) — 무속성 + 속성 5개(이그니스 · 아쿠아 · 벤투스 · 테라 · 움브라)
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_Pactum);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_Pactum_Ignis);

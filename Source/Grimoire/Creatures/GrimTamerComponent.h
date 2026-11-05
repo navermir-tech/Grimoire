@@ -8,6 +8,7 @@
 #include "GrimTamerComponent.generated.h"
 
 class AGrimCreature;
+class AGrimCreatureBox;
 class ACharacter;
 class APlayerController;
 class APlayerState;
@@ -148,5 +149,7 @@ private:
 	FRotator LastSentRotation = FRotator::ZeroRotator;
 	float PromptAccumulator = 0.f;
 	TWeakObjectPtr<AGrimCreature> PromptCreature;
+	/** 곁의 거점 생물 상자(R38) — F 로 관리 화면 */
+	TWeakObjectPtr<AGrimCreatureBox> PromptBox;
 	bool bPromptIsFeed = false;
 };

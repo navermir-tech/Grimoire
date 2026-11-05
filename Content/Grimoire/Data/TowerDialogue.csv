@@ -45,3 +45,6 @@ Master_Erase,Master,Erase,None,-1,0,"인챈트 지우기는 수수료를 받고 
 Master_Refused,Master,Refused,None,-1,0,"너무 멀구나. 가까이 오너라."
 Board_Default,QuestBoard,Talk,None,-1,0,"게시판에 쪽지가 붙어 있다."
 Board_TutDone,QuestBoard,Talk,Tutorial,-2,0,"게시판에 쪽지가 붙어 있다.|「수습 마법사 모집 — 탑 밖 일거리는 곧 붙인다.」"
+Master_Buy,Master,Buy,None,-1,0,"고맙구나. 잘 쓰거라.|가방(L)에 넣어 두었다 — 읽으면(사용) 배운다."
+Master_BuyNoMoney,Master,Buy.NoMoney,None,-1,0,"솔이 모자라는구나.|퀘스트를 돕거나 물건을 팔아 솔을 모아 오너라."
+Master_BuyBagFull,Master,Buy.BagFull,None,-1,0,"가방에 자리가 없구나. 조금 비우고 오너라."

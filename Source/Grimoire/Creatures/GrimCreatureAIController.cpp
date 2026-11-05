@@ -1,6 +1,8 @@
 #include "Creatures/GrimCreatureAIController.h"
 #include "Creatures/GrimCreature.h"
+#include "Creatures/GrimCreatureBox.h"
 #include "Creatures/GrimCreatureSettings.h"
+#include "Creatures/GrimCreatureStorageSettings.h"
 #include "Creatures/GrimCreatureSpecies.h"
 #include "Creatures/GrimCreatureTags.h"
 #include "Creatures/GrimEcosystemSubsystem.h"
@@ -433,6 +435,38 @@ void AGrimCreatureAIController::ThinkTamed(AGrimCreature* Creature)
 			MoveTowards(OwnerPawn->GetActorLocation(), Behavior.FollowDistance * 0.6f);
 		}
 		break;
+	case EGrimCreatureAIState::Wander:
+	{
+		// 거점에 풀어놓음(R38): 집(내놓은 곳) 둘레를 천천히 배회한다. 상자에서 너무 멀어지면 집으로 되돌린다.
+		const UGrimCreatureStorageSettings* StorageSettings = UGrimCreatureStorageSettings::Get();
+		Creature->SetRunning(false);
+		const FVector Home = Creature->GetHomeLocation();
+		const AGrimCreatureBox* Box = Taming ? Taming->GetHomeBox() : nullptr;
+		const FVector Anchor = Box ? Box->GetActorLocation() : Home;
+		if (FVector::Dist2D(Me, Anchor) > StorageSettings->BoxRoamRadius * StorageSettings->RoamLeashScale)
+		{
+			FVector Ground = Home;
+			if (UGrimEcosystemSubsystem::FindGround(World, Home, Ground))
+			{
+				Creature->TeleportTo(Ground + FVector(0.f, 0.f, Creature->GetSimpleCollisionHalfHeight() + 2.f), Creature->GetActorRotation());
+			}
+			StopMoving();
+		}
+		const double Now = World->GetTimeSeconds();
+		if (Now >= CalmUntil)
+		{
+			CalmUntil = Now + FMath::FRandRange(AI.CalmActivitySeconds.X, FMath::Max(AI.CalmActivitySeconds.X, AI.CalmActivitySeconds.Y));
+			if (FMath::FRand() < 0.6f)
+			{
+				MoveTowards(Home + GrimCreatureAILocal::RandomOffset2D(StorageSettings->RoamWanderRadius), 60.f);
+			}
+			else
+			{
+				StopMoving();
+			}
+		}
+		break;
+	}
 	default:
 		// Stay · Idle · Sleep(기절) — 제자리
 		Creature->SetRunning(false);

@@ -16,6 +16,8 @@ namespace GrimTamingTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Creature_State_Ridden, "Creature.State.Ridden", "누군가 타고 있다");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Taming_CaptureBonus, "Taming.CaptureBonus", "계약 마법 숙련도 추가 효과 — 포획 확률 몫(Q26)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Progression_Node_CreatureParty, "Progression.Node.CreatureParty", "성장 트리 노드 효과 — 데리고 다니는 생물 수 +(R38, 생물 보관함 설정 PartyLimitTagBonuses)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Progression_Node_CreatureStorage, "Progression.Node.CreatureStorage", "성장 트리 노드 효과 — 생물 보관함 칸 +(R38, StorageCapacityTagBonuses)");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Spell_Pactum, "Spell.Pactum", "파크툼 — 무속성 기본 계약(1서클)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Spell_Pactum_Ignis, "Spell.Pactum.Ignis", "파크툼 이그니스 — 불 생물 계약");
