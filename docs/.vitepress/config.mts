@@ -30,6 +30,7 @@ export default defineConfig({
             { text: '스킬북 목록', link: '/spec/skillbooks' },
             { text: '성장 — 레벨 · 성장 트리', link: '/spec/progression' },
             { text: '장비 · 내구도 · 인챈트', link: '/spec/equipment' },
+            { text: '인챈트 목록 · 밸런스', link: '/spec/enchants' },
             { text: '생존', link: '/spec/survival' },
             { text: '마법 생물', link: '/spec/creatures' },
             { text: '지역별 생물 명단', link: '/spec/creature-roster' },
