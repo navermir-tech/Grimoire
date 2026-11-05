@@ -1,0 +1,4 @@
+Level,DisplayName,ValueScale,PowerPoints,OreCost,MaterialCount,MaterialGrade,ManaCost,MinCircleOnTable,MinGearTier,Note
+1,Ⅰ,1.0,1,1,1,Common,30,1,1,"1~2등급 지역 생물 부산물 1개(그 인챈트 속성)"
+2,Ⅱ,1.8,2,3,2,Regional,60,4,2,"2~3등급 지역의 그 속성 소재 2개"
+3,Ⅲ,2.5,3,6,3,MutantOrBoss,100,7,4,"지역 소재 2개 + 돌연변이 개체 · 보스 소재 1개"
