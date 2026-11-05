@@ -1,0 +1,54 @@
+Name,DisplayName,Description,Category,Element,Slots,ExclusiveGroup,Stat,Unit,BaseValue,MaxLevel,Tier1,Tier2,Tier3,StackCap,Scope,RollWeight,bTableRoll
+Amplify.Water,물 증폭,물 속성 마법 위력 +n%,Offense,Water,Wand,Amplify,Water.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Ice,얼음 증폭,얼음 속성 마법 위력 +n%,Offense,Ice,Wand,Amplify,Ice.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Fire,불 증폭,불 속성 마법 위력 +n%,Offense,Fire,Wand,Amplify,Fire.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Wind,바람 증폭,바람 속성 마법 위력 +n%,Offense,Wind,Wand,Amplify,Wind.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Earth,땅 증폭,땅 속성 마법 위력 +n%,Offense,Earth,Wand,Amplify,Earth.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Plant,풀 증폭,풀 속성 마법 위력 +n%,Offense,Plant,Wand,Amplify,Plant.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Holy,신성 증폭,신성 속성 마법 위력 +n%,Offense,Holy,Wand,Amplify,Holy.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Light,빛 증폭,빛 속성 마법 위력 +n%,Offense,Light,Wand,Amplify,Light.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Hex,흑마법 증폭,흑마법 속성 마법 위력 +n%,Offense,Hex,Wand,Amplify,Hex.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Shadow,그림자술 증폭,그림자술 속성 마법 위력 +n%,Offense,Shadow,Wand,Amplify,Shadow.Power,%,8,3,8,14,20,20,Player,3,True
+Amplify.Arcane,순수 증폭,무속성 마법 · 기본 공격 위력 +n%,Offense,Arcane,Wand,Amplify,Arcane.Power|BasicAttack.Power,%,8,3,8,14,20,20,Player,5,True
+Amplify.All,만물 증폭,모든 마법 위력 +n%,Offense,Arcane,Wand,Amplify,SpellPower,%,3,3,3,5,8,8,Player,2,True
+ManaFlow,마나 순환,모든 마법 마나 소모 −n%,Offense,Arcane,Wand,,ManaCost,%,-4.5,3,-5,-8,-11,-11,Player,5,True
+QuickCast,빠른 영창,시전 속도 +n%(쿨타임은 그대로),Offense,Wind,Wand|Hands,,CastSpeed,%,4.5,3,5,8,11,15,Player,5,True
+FarSight,먼 시야,마법 사거리 · 락온 거리 +n%,Offense,Light,Wand,,SpellRange,%,10,3,10,18,25,25,Player,5,True
+Deepen,심화,내 마법이 거는 속성 상태(화상 · 빙결 · 휘감김 · 저주 …)의 확률 · 지속 +n%,Offense,Hex,Wand,,StatusPotency,%,8,3,8,14,20,20,Player,3,True
+Resist.Water,물 저항,물 속성 피해 −n%,Defense,Water,Head|Body|Cloak|Hands|Feet,Guard,Water.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Ice,얼음 저항,얼음 속성 피해 −n%,Defense,Ice,Head|Body|Cloak|Hands|Feet,Guard,Ice.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Fire,불 저항,불 속성 피해 −n%,Defense,Fire,Head|Body|Cloak|Hands|Feet,Guard,Fire.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Wind,바람 저항,바람 속성 피해 −n%,Defense,Wind,Head|Body|Cloak|Hands|Feet,Guard,Wind.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Earth,땅 저항,땅 속성 피해 −n%,Defense,Earth,Head|Body|Cloak|Hands|Feet,Guard,Earth.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Plant,풀 저항,풀 속성 피해 −n%,Defense,Plant,Head|Body|Cloak|Hands|Feet,Guard,Plant.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Holy,신성 저항,신성 속성 피해 −n%,Defense,Holy,Head|Body|Cloak|Hands|Feet,Guard,Holy.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Light,빛 저항,빛 속성 피해 −n%,Defense,Light,Head|Body|Cloak|Hands|Feet,Guard,Light.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Hex,흑마법 저항,흑마법 속성 피해 −n%,Defense,Hex,Head|Body|Cloak|Hands|Feet,Guard,Hex.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Resist.Shadow,그림자술 저항,그림자술 속성 피해 −n%,Defense,Shadow,Head|Body|Cloak|Hands|Feet,Guard,Shadow.DamageTaken,%,-8,3,-8,-14,-20,-40,Player,2,True
+Protection,보호,받는 모든 피해 −n%,Defense,Earth,Head|Body|Cloak|Hands|Feet,Guard,DamageTaken,%,-3,3,-3,-5,-8,-20,Player,10,True
+Steadfast,강인,밀려남 · 경직 −n%,Defense,Earth,Cloak|Feet,,KnockbackTaken,%,-20,3,-20,-36,-50,-60,Player,4,True
+Warden,수호의 손,프로테고 방패가 막는 양 · 지속 +n%,Defense,Holy,Hands,,ProtegoStrength,%,10,3,10,18,25,25,Player,4,True
+Vitality,생기,HP 자연 회복 +n%,Defense,Holy,Body|Ring,,HealthRegen,%,15,3,15,27,38,50,Player,5,True
+Robust,강건,최대 HP +n,Defense,Earth,Body|Cloak,,MaxHealth,pt,15,3,15,27,38,60,Player,5,True
+Warmth,온기,추위저항 +n,Survival,Fire,Head|Body|Hands,Climate,ColdResist,grade,1,3,1,2,3,4,Player,6,True
+Coolness,서늘함,더위저항 +n,Survival,Ice,Head|Body|Hands,Climate,HeatResist,grade,1,3,1,2,3,4,Player,6,True
+Satiety,포만,배고픔이 쌓이는 속도 −n%,Survival,Plant,Body|Ring,,HungerDrain,%,-10,3,-10,-18,-25,-35,Player,5,True
+Hardy,건강,질병에 걸릴 확률 −n%(질병 저항 +n),Survival,Holy,Head|Ring,,DiseaseResist,%,20,3,20,36,50,60,Player,5,True
+RainWard,비막이,비 · 눈 · 물에 젖는 속도와 젖음 지속 −n%,Survival,Water,Head|Cloak,,WetBuildup,%,-20,3,-20,-36,-50,-60,Player,5,True
+ManaVessel,마나 그릇,최대 마나 +n,Mana,Arcane,Head|Necklace,,MaxMana,pt,15,3,15,27,38,60,Player,5,True
+ManaSpring,마나 샘,마나 자연 회복 +n%,Mana,Water,Head|Necklace,,ManaRegen,%,15,3,15,27,38,50,Player,5,True
+LightStep,가벼운 걸음,"이동 속도 +n%, Ⅱ부터 얼음 위에서 미끄러지지 않음",Movement,Wind,Feet,,MoveSpeed,%,4,3,4,7,10,10,Player,5,True
+ShadowStep,그림자 걸음,밤에 생물이 나를 알아채는 거리 −n%,Movement,Shadow,Feet|Cloak,,NightDetection,%,-10,3,-10,-18,-25,-35,Player,3,True
+Current,물살 가르기,헤엄 속도 +n%,Movement,Water,Feet,,SwimSpeed,%,15,3,15,27,38,38,Player,4,True
+FeatherFall,깃털 낙하,떨어질 때 받는 피해 −n%,Movement,Wind,Feet|Cloak,,FallDamage,%,-20,3,-20,-36,-50,-75,Player,4,True
+Bounty,풍요,채집(풀 · 나무 · 광석)할 때 하나 더 얻을 확률 +n%,Utility,Plant,Hands|Ring,,GatherYieldChance,%,10,3,10,18,25,40,Player,5,True
+Plunder,전리품,내 마법으로 쓰러뜨린 생물이 소재를 하나 더 줄 확률 +n%,Utility,Shadow,Wand,,CreatureLootChance,%,10,3,10,18,25,25,Player,4,True
+Porter,짐꾼,가방 무게 한도 +n%,Utility,Earth,Cloak,,CarryWeight,%,10,3,10,18,25,25,Player,5,True
+ManaSense,마력 감지,둘레 n m 안의 반응하는 사물 · 광맥 · 숨은 상자가 은은히 빛남,Utility,Arcane,Head,,InteractableReveal,m,8,3,8,14,20,20,Player,4,True
+NightEye,밤눈,어두운 곳 · 밤에 보이는 밝기 +n%,Utility,Shadow,Head|Necklace,,NightVision,%,10,3,10,18,25,35,Player,4,True
+Artisan,장인의 손,건축 · 제작 · 수리에서 재료 하나를 아낄 확률 +n%,Utility,Earth,Hands,,MaterialSaveChance,%,10,3,10,18,25,25,Player,4,True
+Durable,견고,이 장비의 내구도가 닳는 양 −n%,Gear,Earth,Wand|Head|Body|Cloak|Hands|Feet|Ring|Necklace,Durability,DurabilityWear,%,-20,3,-20,-36,-50,,Item,10,True
+SelfRepair,자가 회복,"착용 · 손에 든 동안 1분마다 이 장비의 최대 내구도 n% 를 채움(100% 를 채울 때마다 최대 내구도 −5%, 바닥 50%). 단계 Ⅰ 뿐 · 각인서 전용",Gear,Plant,Wand|Head|Body|Cloak|Hands|Feet|Ring|Necklace,Durability,DurabilityRegen,%/min,0.5,1,0.50,,,,Item,2,False
+Affinity,친화,길들이기(파크툼) 성공 확률 +n%(곱),Creature,Arcane,Wand|Necklace,,TameChance,%,10,3,10,18,25,35,Player,4,True
+Bond,유대,데리고 다니는 생물의 충성도 오르는 양 +n%,Creature,Holy,Necklace|Cloak,,LoyaltyGain,%,20,3,20,36,50,50,Player,4,True
+Command,지휘,데리고 다니는 생물의 공격 위력 +n%,Creature,Light,Necklace,,CompanionPower,%,5,3,5,9,13,13,Player,3,True
