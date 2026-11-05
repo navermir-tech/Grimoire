@@ -31,6 +31,7 @@ export default defineConfig({
             { text: '장비 · 내구도 · 인챈트', link: '/spec/equipment' },
             { text: '생존', link: '/spec/survival' },
             { text: '마법 생물', link: '/spec/creatures' },
+            { text: '지역별 생물 명단', link: '/spec/creature-roster' },
             { text: '하우징 · 거점', link: '/spec/housing' },
             { text: '세력 · 서사', link: '/spec/factions' },
             { text: '멀티플레이', link: '/spec/multiplayer' },
