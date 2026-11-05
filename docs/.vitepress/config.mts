@@ -55,6 +55,7 @@ export default defineConfig({
             { text: 'M1.5 작업 분할', link: '/systems/m15-plan' },
             { text: 'M2 작업 분할', link: '/systems/m2-plan' },
             { text: 'M2 후반 작업 분할', link: '/systems/m2b-plan' },
+            { text: 'M3 작업 분할', link: '/systems/m3-plan' },
             { text: '레벨 · 성장 트리', link: '/systems/progression' },
             { text: '마법탑 튜토리얼 · 퀘스트', link: '/systems/tutorial' },
           ],
