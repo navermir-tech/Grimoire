@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
+#include "Core/GrimTargetingTypes.h"
 #include "GrimElementalObject.generated.h"
 
 class UGrimElementalStateComponent;
@@ -14,14 +15,20 @@ class UStaticMeshComponent;
  * 속성 상태를 가진 사물의 공통 뼈대: 몸체 메시 + 상태 컴포넌트 + 불꽃(원뿔 메시) + 포인트 라이트.
  * 상태가 바뀌면(서버 · 클라이언트 모두 OnStateChanged) 연출만 다시 맞춘다. 평소에는 휴면(DORM_DormantAll).
  * 메시는 엔진 기본 도형이라 에셋 없이 C++ 만으로 맵에 놓을 수 있다.
+ * 소프트 락온 대상(IGrimTargetable, 종류 Object) — 조준점은 몸체 위쪽. 조회만 하므로 휴면을 깨우지 않는다.
  */
 UCLASS(Abstract)
-class GRIMOIRE_API AGrimElementalObject : public AActor
+class GRIMOIRE_API AGrimElementalObject : public AActor, public IGrimTargetable
 {
 	GENERATED_BODY()
 
 public:
 	AGrimElementalObject();
+
+	// IGrimTargetable
+	virtual FVector GetTargetPoint() const override;
+	virtual EGrimTargetKind GetTargetKind() const override { return EGrimTargetKind::Object; }
+	virtual bool CanBeTargetedBy(const AActor* Requester) const override { return bTargetable && !IsHidden(); }
 
 	UGrimElementalStateComponent* GetElementalState() const { return ElementalState; }
 
@@ -70,6 +77,14 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elemental|Visual")
 	FLinearColor FlameColor = FLinearColor(1.f, 0.45f, 0.05f);
+
+	/** 소프트 락온에 잡히는가 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elemental|Targeting")
+	bool bTargetable = true;
+
+	/** 조준점 높이: 몸체 바운드 가운데에서 위로 반높이 × 이 값(1 = 맨 위) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elemental|Targeting", meta = (ClampMin = "-1", ClampMax = "1"))
+	float TargetPointHeightRatio = 0.6f;
 
 	/** BasicShapeMaterial 의 색 파라미터 이름 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elemental|Visual")

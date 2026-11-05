@@ -302,45 +302,92 @@ M1 규칙(11행 — 원본은 CSV):
 
 ## 소프트 락온 (R17)
 
-> 스펙: [조준 · 소프트 락온](../spec/magic#조준-소프트-락온-r17). 레퍼런스: 호그와트 레거시. 구현 예정 **M1.5** — 투사체 재설계와 한 묶음([투사체 · 시전 감각](./spell-feel)).
+> 스펙: [조준 · 소프트 락온](../spec/magic#조준-소프트-락온-r17). 레퍼런스: 호그와트 레거시. **M1.5** 갈래 B 에서 구현 — 투사체 재설계와 한 묶음([투사체 · 시전 감각](./spell-feel)). 코드 `Source/Grimoire/Targeting/`.
 
 ### 구성
 
 | 부품 | 위치 | 역할 |
 |---|---|---|
-| `UGrimTargetingComponent` | 플레이어 캐릭터(로컬 컨트롤러에서만 선정) | 매 프레임이 아니라 **0.05초 간격**으로 후보를 모아 점수를 매기고 현재 대상을 정한다. 고정 락온 상태를 가진다 |
-| `IGrimTargetable` | 적 · 생물 · 상호작용 사물 | 조준점 위치(`GetTargetPoint`), 종류(적 · 사물 · 아군), 대상이 될 수 있는지. 사물은 `AGrimElementalObject` 가 구현 |
-| `UGrimTargetingSettings` | ini | 원뿔 반각, 거리, 점수 가중치, 유지 가산점, 가려짐 허용 시간 |
-| 대상 표식 위젯 | UI | 대상 위 속성색 링. 대상이 바뀌면 이동 |
+| `UGrimTargetingComponent` | `AGrimPlayerController` 의 기본 하위 객체(`Targeting`). 로컬 컨트롤러에서만 고른다(틱에서 `IsLocalController` 확인, 전용 서버는 틱 끔) | `IGrimAimProvider` 구현. **0.05초 간격**(`SelectionInterval`)으로 후보를 모아 점수를 매기고 현재 대상을 정한다. 고정 락온 · 카메라 추적 · 옆 대상 넘기기 · 대상 표식 |
+| `FGrimTargetingMath` | `Targeting/GrimTargetingMath` | 순수 계산 — 원뿔 각도 · 점수 · 분류 · 정렬/상한 · 화면상 넘김 대상, 가림 타이머(`FGrimOcclusionTimer`), 튕김 감지(`FGrimLookFlickDetector`) |
+| `IGrimTargetable` | 적 · 생물 · 상호작용 사물 | 조준점(`GetTargetPoint`), 종류(`EGrimTargetKind`), 대상이 될 수 있는지(`CanBeTargetedBy` — 죽음 · 숨음이면 false). 사물은 `AGrimElementalObject`(종류 Object, 조준점 = 몸체 바운드 가운데에서 반높이 × `TargetPointHeightRatio` 0.6 위) |
+| `AGrimTargetDummy` | `Targeting/GrimTargetDummy` | 생물 · 적이 생기기 전 시험용 대상(구체, 기본 종류 Enemy, 왕복 이동 옵션) |
+| `UGrimTargetingSettings` | `DefaultGame.ini` `[/Script/Grimoire.GrimTargetingSettings]` | 아래 「수치」 |
+| 대상 표식 | `UGrimTargetingComponent::DrawTargetMarker` | **임시**: 대상 조준점에 카메라를 보는 속성색 링(디버그 선, 출시 빌드엔 안 그려짐). 고정이면 바깥 링 하나 더. 정식 위젯은 HUD 작업 때 — `OnTargetChanged`(대상 · 모드) 를 듣는다 |
 
-### 선정 (클라이언트 → 서버)
+### 선정 (로컬)
 
-1. 후보 수집: 카메라 위치에서 사거리 구 오버랩(전용 채널 `ECC_Targeting`) → `IGrimTargetable` 만.
-2. 거르기: 원뿔 각도, 시야 라인 트레이스(가림), 아군 제외.
-3. 점수: `w_center × (1 − 화면 중앙 각도 / 반각) + w_dist × (1 − 거리 / 사거리) + w_kind × 종류 가중 + w_keep × (현재 대상이면 1)`. 종류 가중은 스펙의 우선순위(적 > 반응 사물 > 기타 사물). 반응 사물 판정은 선택된 마법의 속성으로 반응 규칙표를 미리 조회(`FGrimElementalReactionLibrary`).
-4. 대상은 **로컬에서만** 고른다(입력 반응성). 시전할 때 어빌리티가 `TargetData`(대상 액터 + 조준점)를 서버로 보낸다 — `FGameplayAbilityTargetData_SingleTargetHit` 하나에 시선 시작 · 조준점 · 대상 · 모드를 싣고, 서버는 시선 · 사거리 · 대상 가능 여부를 다시 검사해 어긋나면 서버 조준으로 바꾼다(치트 방지 최소한, [시전 흐름](#시전-흐름) 3).
+1. 후보 수집: 캐릭터 위치에서 **사거리 구 오버랩**(오브젝트 종류 `CandidateObjectChannels` = WorldDynamic · Pawn · PhysicsBody — 전용 충돌 채널은 만들지 않았다) → 액터 또는 그 컴포넌트의 `IGrimTargetable` 만. 자기 폰과 폰에 붙은 것(완드)은 뺀다. 사거리 = 선택된 마법의 `Range`(없으면 `DefaultSelectionRange` 2500).
+2. 거르기: `CanBeTargetedBy`, **아군(`Ally`) · 종류 없음 제외**, 원뿔(반각 25°, 지금 대상은 +5° 여유), 사거리, 캐릭터 뒤(카메라와 캐릭터 사이) 제외.
+3. 점수: `Center × (1 − 각도 / 반각) + Distance × (1 − 거리 / 사거리) + Kind × 종류 가중 + Keep × (지금 대상이면 1)`, 각 항은 0~1 로 자른다. 종류 가중은 적 1.0 · 반응 사물 0.5 · 생물 0.4 · 그 밖의 사물 0.1. **반응 사물** = 선택된 마법의 자극(`Stimulus`, 속성이 비면 `Element`)으로 반응 규칙표에 맞는 행이 있는 사물(`FGrimElementalReactionLibrary::FindStimulusRule` 조회만 — 휴면을 깨우지 않는다).
+4. 정렬 · 상한: `bEnemiesBeforeObjects`(기본 켬)면 **보이는 적이 있으면 점수와 상관없이 적이 먼저**(스펙 「전투 중에는 적이 사물보다 먼저」), 그 안에서 점수 순. 후보 상한 32.
+5. 시야: 점수 상위 **8개만** 원뿔 꼭짓점 → 조준점 라인 트레이스(`VisibilityChannel` = Visibility). 처음 보이는 것이 대상. 지금 대상은 **0.3초까지** 가려져도 유지하고, 넘으면 풀린다.
+6. 대상은 **로컬에서만** 고른다(입력 반응성). 시전할 때 어빌리티가 `TargetData`(대상 액터 + 조준점)를 서버로 보낸다 — `FGameplayAbilityTargetData_SingleTargetHit` 하나에 시선 시작 · 조준점 · 대상 · 모드를 싣고, 서버는 시선 · 사거리 · 대상 가능 여부를 다시 검사해 어긋나면 서버 조준으로 바꾼다(치트 방지 최소한, [시전 흐름](#시전-흐름) 3). 서버는 원격 시전자에 대해 조준 제공자를 부르지 않는다.
 
-### 시전 연결
+**선정 기준 옵션** (호그와트 레거시의 Camera Relative Targeting): `Camera`(기본) = 카메라 위치 · 정면이 원뿔. `Movement` = 캐릭터 눈높이에서 **이동 입력 방향**(입력이 없으면 캐릭터 정면)이 축, 요 각도만 본다. `SetTargetingReference` · 콘솔 `Grim.Targeting.Reference Camera|Movement`.
 
-- `UGrimSpellAbility` 가 활성화될 때 `IGrimAimProvider::GetCurrentAim` 결과를 TargetData 로 담는다. 제공자가 없으면 카메라 정면.
+**소프트 락온 끄기 (Q18)**: `SetSoftLockEnabled(false)` · 콘솔 `Grim.Targeting.SoftLock 0`. 꺼지면 자동 대상이 없고 마법은 화면 중앙으로. 고정 락온은 여전히 쓸 수 있다(토글하면 그 순간 한 번 골라 고정). 기본값은 `bSoftLockEnabledByDefault` — 옵션 화면이 생기면 거기서 덮어쓴다.
+
+### 조준 결과 (`GetCurrentAim(MaxRange)`)
+
+| 상태 | `Mode` | `Target` · `AimPoint` |
+|---|---|---|
+| 고정 락온 | `Locked` | 고정 대상 · 조준점. **사거리와 상관없이** 돌려준다(마법 쪽이 사거리에서 자른다) |
+| 소프트 대상이 있고 캐릭터에서 `MaxRange` 안 | `Soft` | 대상 · 조준점 |
+| 그 밖 | `Free` | 없음 · 카메라 정면 트레이스가 닿은 곳(없으면 사거리 끝). 트레이스는 캐릭터 깊이에서 시작해 사거리만큼(카메라와 캐릭터 사이 것을 맞히지 않게) |
+| 줌인 조준 | `Zoom` | **아직 없음** — R24 조사 중. 입력 `IA_AimZoom` 과 `SetZoomAimHeld` 자리만 있다(TODO) |
+
+`ViewOrigin` 은 언제나 카메라 위치.
+
+### 시전 연결 (갈래 A)
+
+- `UGrimSpellAbility` 가 활성화될 때 `IGrimAimProvider::GetCurrentAim` 결과를 TargetData 로 담는다. 제공자가 없거나 Free 면 카메라 정면. Locked 대상이 마법 사거리 밖이면 대상을 버리고 카메라 정면으로.
 - 캐릭터 회전: 시전 순간 대상 방향으로 몸을 돌린다(서버 확정, 0.15초 보간) — 캐릭터 쪽 몫(M1.5 갈래 C), 어빌리티는 하지 않는다.
 - 투사체 유도: `AGrimSpellProjectile` 이 틱마다 속도 방향을 대상 조준점 쪽으로 초당 `HomingStrength`° 까지 돌린다(`GrimSpellDelivery::SteerTowards`, 속력 그대로, `HomingMaxAngle` 넘게 빗나가면 안 휨 — 유턴 없음). 0 = 유도 없음. 스펙의 "살짝 휨"(Q16 확정). 엔진 `HomingAccelerationMagnitude` 대신 각속도로 한 건 속력이 바뀌지 않고 순수 함수로 테스트하려고.
 - 미풍은 Cone 이 되어 대상 쪽 원뿔로 판정한다. 광선(Beam)은 후속 빛 속성용으로 남겼다.
 
-### 고정 락온
+### 고정 락온 (Q17)
 
-- 입력 `IA_LockOn`(R3 · Caps Lock 토글 — 호그와트 레거시와 같음, Q17) → `Input.Targeting.Lock` 태그. 고정 중에는 선정 3단계를 건너뛰고, 카메라가 대상 쪽으로 부드럽게 따라간다(스프링암 회전 보간). 대상이 죽거나 범위를 벗어나면 자동 해제.
-- 패드 오른쪽 스틱 튕기기: 고정 중 스틱 방향으로 화면상 가장 가까운 다음 후보로 넘김.
+- 입력 `IA_LockOn`(PC **Caps Lock** · 패드 **R3** = `Gamepad_RightThumbstick`, 토글 — 호그와트 레거시와 같음) → 컨트롤러 → `ToggleLock`. 지금 소프트 대상을 고정한다. 대상이 없으면 그 순간 한 번 골라(소프트 락온이 꺼져 있어도) 고정, 그래도 없으면 아무것도 안 함. 다시 누르면 풀리고 대상은 소프트 대상으로 남는다.
+- 고정 중에는 선정을 건너뛰고 대상만 검사한다: 죽음 · 사라짐 · `CanBeTargetedBy` false, 캐릭터에서 `max(LockedMaxRange 3000, 마법 사거리)` 밖, `LockedOcclusionGraceSeconds`(1초) 넘게 가림 → **자동 해제**.
+- 카메라: 매 프레임 스프링암 피벗(`AGrimPlayerCharacter::GetCameraBoom()` 위치)에서 대상을 보는 회전으로 **컨트롤 회전을 보간**(`RInterpTo`, 속도 `LockCameraInterpSpeed` 8, 피치 +`LockCameraPitchOffset` −5°, −60°~40° 제한). 캐릭터 파일은 고치지 않는다 — 스프링암이 컨트롤 회전을 따른다.
+- 옆 대상 넘기기: 컨트롤러가 `AddYawInput` · `AddPitchInput` 을 가로채 고정 중이면 카메라를 돌리지 않고 `HandleLookInput` 으로 보낸다(마우스 · 오른쪽 스틱이 같은 길). 입력을 모아 `LockSwitchInputThreshold`(6)를 넘으면 그 방향(화면 좌표)으로 `LockSwitchMaxAngleDegrees`(60°) 안의 화면상 후보(카메라 평면 투영 `ProjectToViewPlane` — 뷰포트 없이 계산해 헤드리스에서도 된다, 시야각 밖은 뺌) 중 `거리 × (1 + 각/허용각)` 이 가장 작은 것으로 넘긴다(가려졌으면 다음 것). 입력이 0.2초 없으면 모은 값을 버리고(천천히 흘린 입력은 넘김이 아님), 넘긴 뒤 0.35초 쿨다운.
+
+### 수치 (`UGrimTargetingSettings`)
+
+| 항목 | 기본 | 뜻 |
+|---|---|---|
+| `SelectionInterval` | 0.05초 | 선정 간격 |
+| `ConeHalfAngleDegrees` · `CurrentTargetExtraHalfAngleDegrees` | 25° · 5° | 원뿔 반각, 지금 대상 여유 |
+| `DefaultSelectionRange` | 2500cm | 마법이 없을 때 거리 |
+| `MaxCandidates` · `MaxVisibilityTraces` | 32 · 8 | 후보 상한, 시야 트레이스 상한 |
+| `OcclusionGraceSeconds` | 0.3초 | 소프트 대상 가림 허용 |
+| `Weights` | Center 1 · Distance 0.5 · Kind 1 · Keep 0.3 · 적 1 · 생물 0.4 · 반응 사물 0.5 · 사물 0.1 | 점수 |
+| `bEnemiesBeforeObjects` | 켬 | 보이는 적 우선 |
+| `LockedMaxRange` · `LockedOcclusionGraceSeconds` | 3000cm · 1초 | 고정 해제 조건 |
+| `LockCamera*` | 속도 8 · 피치 −5° · −60°~40° | 고정 카메라 |
+| `LockSwitch*` | 문턱 6 · 쉼 0.2초 · 쿨다운 0.35초 · 60° | 옆 대상 넘기기 |
+| `Marker*` · `ElementColors` | 반지름 20cm + 거리 × 0.012, 고정 × 1.4. 물 `#3A7BD5` · 불 `#E0582B` · 바람 `#7CC9A6` | 임시 표식 |
+
+### 콘솔 (개발 빌드)
+
+`Grim.Targeting.SoftLock <0|1>` · `Grim.Targeting.Reference <Camera|Movement>` · `Grim.Targeting.Lock`(토글) · `Grim.Targeting.Look <요> <피치>`(시점 입력 한 번 — 넘기기 확인) · `Grim.Targeting.Dump`(상태 + `GetCurrentAim` 결과) · `Grim.Targeting.SpawnDummy [앞cm] [오른쪽cm] [종류]` · 변수 `Grim.Targeting.Debug 1`(후보 · 점수 그리기). 끝에 지연(초)을 붙이면 헤드리스 `-ExecCmds` 에서도 쓸 수 있다.
 
 ### 멀티 · 성능
 
-- 선정은 각 클라이언트가 자기 화면 기준으로 한다. 서버는 TargetData 검증만 한다.
-- 후보 수 상한 32, 시야 트레이스는 점수 상위 8개만.
-- 사물은 `IGrimTargetable` 을 구현하되 휴면 상태를 깨우지 않는다(조회만).
+- 선정은 각 클라이언트가 자기 화면 기준으로 한다. 서버는 시전 때 검증만 한다. 조준 컴포넌트는 복제하지 않는다.
+- 후보 상한 32, 시야 트레이스는 점수 상위 8개만, 선정은 0.05초마다(카메라 추적 · 표식만 매 프레임).
+- 사물은 `IGrimTargetable` 을 구현하되 휴면 상태를 깨우지 않는다(바운드 · 상태 조회만).
+
+### 아직 없는 것
+
+- 줌인 조준(R24, `Mode = Zoom`) — 스펙 조사 뒤 이어 붙인다.
+- 「나를 노리는 적 가산」 — 적 AI 가 생기면 종류 가중에 더한다.
+- 정식 대상 표식 위젯 · 옵션 화면(Q18 · 선정 기준 저장).
 
 ### 테스트
 
-- 점수 함수 · 우선순위는 순수 함수로 두고 자동화 테스트 `Grimoire.Targeting.*`.
+- 순수 계산은 자동화 테스트 `Grimoire.Targeting.*` — `Cone` · `Score` · `Priority.Category` · `Priority.SortAndCap` · `Occlusion` · `Lock.Switch` · `Lock.Flick`.
 
 ## UI
 

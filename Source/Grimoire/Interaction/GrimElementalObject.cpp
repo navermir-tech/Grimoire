@@ -67,6 +67,12 @@ void AGrimElementalObject::BeginPlay()
 	RefreshElementalVisuals();
 }
 
+FVector AGrimElementalObject::GetTargetPoint() const
+{
+	const FBoxSphereBounds Bounds = BodyMesh->Bounds;
+	return Bounds.Origin + FVector(0.f, 0.f, Bounds.BoxExtent.Z * TargetPointHeightRatio);
+}
+
 void AGrimElementalObject::HandleElementalStateChanged(UGrimElementalStateComponent* Component, FGameplayTag StateTag, float OldIntensity, float NewIntensity)
 {
 	RefreshElementalVisuals();
