@@ -135,6 +135,42 @@ void AGrimSkillbook::ConsumeBook()
 	Destroy();
 }
 
+// ───────────────────────── 세이브 (Skillbook.<이름> v1) ─────────────────────────
+
+FName AGrimSkillbook::GetSaveId() const
+{
+	return FName(*FString::Printf(TEXT("Skillbook.%s"), *GetName()));
+}
+
+void AGrimSkillbook::WriteSaveData(FArchive& Ar)
+{
+	FString SpellPath = TeachesSpell ? TeachesSpell->GetPathName() : FString();
+	bool bSavedConsumed = bConsumed;
+	Ar << SpellPath << bSavedConsumed;
+}
+
+void AGrimSkillbook::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	FString SpellPath;
+	bool bSavedConsumed = false;
+	Ar << SpellPath << bSavedConsumed;
+	if (!HasAuthority() || Ar.IsError())
+	{
+		return;
+	}
+	if (!SpellPath.IsEmpty())
+	{
+		if (UGrimSpellDefinition* Spell = Cast<UGrimSpellDefinition>(FSoftObjectPath(SpellPath).TryLoad()); Spell && Spell != TeachesSpell)
+		{
+			SetTeachesSpell(Spell);
+		}
+	}
+	if (bSavedConsumed)
+	{
+		ConsumeBook();
+	}
+}
+
 AGrimSkillbook* AGrimSkillbook::FindNearestReadable(const APawn* Reader)
 {
 	UWorld* World = Reader ? Reader->GetWorld() : nullptr;

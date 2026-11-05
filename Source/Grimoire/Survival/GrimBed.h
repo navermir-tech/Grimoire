@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimBed.generated.h"
 
 class UStaticMeshComponent;
@@ -14,12 +15,19 @@ class APlayerController;
  * 모양은 엔진 기본 도형(큐브) 임시. 마지막으로 잔 침대가 부활 지점이 된다.
  */
 UCLASS(Blueprintable)
-class GRIMOIRE_API AGrimBed : public AActor
+class GRIMOIRE_API AGrimBed : public AActor, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
 	AGrimBed();
+
+	// 세이브 (IGrimSaveParticipant — World 「Bed.<이름>」 v1: 침낭인가). 게임 중 놓은 침대(grim.Survival.SpawnBed · 제작 M4)는
+	// 세이브 시스템이 클래스 · 위치와 함께 저장해 다시 스폰한다. 부활 지점은 플레이어 몫(Survival.Vitals)이 위치로 가진다.
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::World; }
+	virtual FName GetSaveId() const override;
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimSkillbook.generated.h"
 
 class UGrimSpellDefinition;
@@ -19,12 +20,19 @@ struct FHitResult;
  * 모양: 엔진 기본 상자(책 크기) + 속성색 표지, 천천히 돈다. 콘솔: Grim.Magic.ReadSkillbook · Grim.Magic.SpawnSkillbook.
  */
 UCLASS()
-class GRIMOIRE_API AGrimSkillbook : public AActor
+class GRIMOIRE_API AGrimSkillbook : public AActor, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
 	AGrimSkillbook();
+
+	// 세이브 (IGrimSaveParticipant — World 「Skillbook.<이름>」 v1: 가르칠 마법 경로 · 쓰였나).
+	// 레벨에 놓인 책을 집으면(Destroy) 세이브 시스템이 「없앤 액터」로 기록해 다시 열어도 안 나온다. 게임 중 스폰된 책은 다시 스폰된다.
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::World; }
+	virtual FName GetSaveId() const override;
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnConstruction(const FTransform& Transform) override;

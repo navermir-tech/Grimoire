@@ -647,6 +647,69 @@ void UGrimWeatherSubsystem::Publish()
 	}
 }
 
+// ---------------------------------------------------------------------------
+// 세이브 (Environment.Weather v1)
+
+void UGrimWeatherSubsystem::WriteSaveData(FArchive& Ar)
+{
+	const double Now = GetServerSeconds();
+	int32 Count = RegionWeather.Num();
+	Ar << Count;
+	for (int32 i = 0; i < RegionWeather.Num(); ++i)
+	{
+		FString RegionId = RegionWeather[i].RegionId.ToString();
+		uint8 Type = static_cast<uint8>(RegionWeather[i].Type);
+		double Elapsed = Runtime.IsValidIndex(i) ? FMath::Max(0.0, Now - Runtime[i].StateStartSeconds) : 0.0;
+		Ar << RegionId << Type << Elapsed;
+	}
+}
+
+void UGrimWeatherSubsystem::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	int32 Count = 0;
+	Ar << Count;
+	if (Count < 0 || Count > 1024)
+	{
+		Ar.SetError();
+		return;
+	}
+	const double Now = GetServerSeconds();
+	bool bChanged = false;
+	for (int32 i = 0; i < Count && !Ar.IsError(); ++i)
+	{
+		FString RegionId;
+		uint8 Type = 0;
+		double Elapsed = 0.0;
+		Ar << RegionId << Type << Elapsed;
+
+		const int32 Index = FindRegionIndex(FName(*RegionId));
+		if (!IsServer() || !Rows.IsValidIndex(Index) || !RegionWeather.IsValidIndex(Index) || Type >= GrimWeatherTypeCount)
+		{
+			continue;
+		}
+		const EGrimWeatherType Allowed = FGrimWeatherMath::ApplyPrecipitation(Rows[Index], FGrimWeatherMath::ClampToAllowed(Rows[Index], static_cast<EGrimWeatherType>(Type)));
+		FGrimRegionWeather& State = RegionWeather[Index];
+		const EGrimWeatherType Old = State.Type;
+		State.Type = Allowed;
+		State.Previous = Allowed;
+		State.TransitionStartServerSeconds = Now;
+		State.TransitionSeconds = 0.f;
+		Runtime[Index].StateStartSeconds = Now - FMath::Max(0.0, Elapsed);
+		Runtime[Index].NextCheckSeconds = Now;
+		bChanged = true;
+		if (Old != Allowed)
+		{
+			OnRegionWeatherChanged.Broadcast(State.RegionId, Allowed, Old);
+		}
+		UE_LOG(LogGrimEnvironment, Log, TEXT("[%s] 날씨 세이브 읽음: %s = %s (%.0f초째)"), GrimWeatherLocal::NetModeName(GetWorld()),
+			*State.RegionId.ToString(), *GrimWeatherLocal::WeatherName(Allowed), Elapsed);
+	}
+	if (bChanged)
+	{
+		Publish();
+	}
+}
+
 void UGrimWeatherSubsystem::ApplyReplicatedRegionWeather(const TArray<FGrimRegionWeather>& NewRegionWeather)
 {
 	if (IsServer())

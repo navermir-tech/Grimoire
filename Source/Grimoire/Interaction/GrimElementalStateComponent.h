@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Core/GrimElementalTypes.h"
 #include "Interaction/GrimElementalReactionTypes.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimElementalStateComponent.generated.h"
 
 class UDataTable;
@@ -20,12 +21,19 @@ DECLARE_MULTICAST_DELEGATE_FourParams(FGrimElementalStateChangedNative,
  * - 상태가 없으면 틱도 타이머도 없다. 시간 제한 상태가 있을 때만 타이머, 전파 상태가 있을 때만 전파 서브시스템에 등록.
  */
 UCLASS(ClassGroup = (Grimoire), meta = (BlueprintSpawnableComponent))
-class GRIMOIRE_API UGrimElementalStateComponent : public UActorComponent, public IGrimElementalReceiver
+class GRIMOIRE_API UGrimElementalStateComponent : public UActorComponent, public IGrimElementalReceiver, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
 	UGrimElementalStateComponent();
+
+	// 세이브 (IGrimSaveParticipant — World 「Elemental.<액터 이름>」 v1): 지속 상태만(남은 시간이 없는 것 — 켜진 양초 · 탄 풀)과 그 전파.
+	// 시간이 다 되면 사라지는 상태(젖음 · 타는 풀)는 저장하지 않는다. 세이브 시스템은 레벨에 놓인 액터의 것만 모은다(플레이어 폰 제외).
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::World; }
+	virtual FName GetSaveId() const override;
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	/** 재질(반응 조건). 예: 양초 = Material.Flammable */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Elemental", meta = (Categories = "Material"))

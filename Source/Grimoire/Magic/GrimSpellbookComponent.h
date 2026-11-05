@@ -5,6 +5,7 @@
 #include "GameplayAbilitySpecHandle.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "Magic/GrimProficiencyTypes.h"
+#include "Core/GrimSaveTypes.h"
 #include "GrimSpellbookComponent.generated.h"
 
 class AGrimPlayerState;
@@ -87,12 +88,20 @@ struct TStructOpsTypeTraits<FGrimSpellProficiencyArray> : public TStructOpsTypeT
  * 숙련도 경험은 서버가 쌓고(시전 확정 · 의미 있는 명중), 소유 클라이언트에게만 복제한다.
  */
 UCLASS(ClassGroup = (Grimoire), meta = (BlueprintSpawnableComponent))
-class GRIMOIRE_API UGrimSpellbookComponent : public UActorComponent
+class GRIMOIRE_API UGrimSpellbookComponent : public UActorComponent, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
 public:
 	UGrimSpellbookComponent();
+
+	// ───── 세이브 (IGrimSaveParticipant — Player 「Magic.Spellbook」, docs/systems/world-multiplayer 「세이브」) ─────
+	// v1: 배운 마법(경로 · 숙련도 XP, 배운 순서) · 선택 · 단축 슬롯 · 보이는 세트. 읽을 때 서클은 보지 않는다(세이브가 진실).
+
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
+	virtual FName GetSaveId() const override { return TEXT("Magic.Spellbook"); }
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -280,4 +289,13 @@ protected:
 	bool bInitialized = false;
 
 	FDelegateHandle ActorInfoReadyHandle;
+
+	// ───── 세이브 ─────
+
+	/** 서버: 세이브에서 — 서클 확인 없이 어빌리티만 준다(슬롯 · 선택 · 숙련도는 부른 쪽이). */
+	void GiveSpellFromSave(UGrimSpellDefinition* Spell);
+
+	/** 서버 → 소유 클라이언트: 세이브를 읽었다 — 곧 올 숙련도 변화로 등급 오름 알림을 띄우지 않게 기준을 지운다. */
+	UFUNCTION(Client, Reliable)
+	void Client_SaveRestored();
 };
