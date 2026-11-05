@@ -10,7 +10,7 @@ class UGrimTargetingComponent;
 
 /**
  * 플레이어 컨트롤러. 로컬 플레이어에게 입력 매핑 컨텍스트를 붙인다.
- * 이동 · 시점 · 마법 액션 바인딩은 폰(AGrimPlayerCharacter)이 하고, 조준 입력(고정 락온 · 줌인 자리)은 여기서 한다.
+ * 이동 · 시점 · 마법 액션 바인딩은 폰(AGrimPlayerCharacter)이 하고, 조준 입력(고정 락온 · 줌인 조준)은 여기서 한다.
  * 조준(소프트 · 고정 락온)은 UGrimTargetingComponent 가 맡는다 — IGrimAimProvider 라 마법 쪽이 FindAimProvider 로 찾는다.
  */
 UCLASS()
@@ -25,9 +25,16 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_SetSuperCheat(bool bEnable);
 
+	/** 줌인 조준(R24) 상태를 서버에 알린다 — 서버도 이동 감속 · 몸 방향 · State.Aiming 을 같이 바꾼다. 조준 컴포넌트가 부른다 */
+	UFUNCTION(Server, Reliable)
+	void Server_SetZoomAiming(bool bAiming);
+
 	UGrimTargetingComponent* GetTargetingComponent() const { return Targeting; }
 
-	/** 고정 락온 중이면 시점 입력을 옆 대상 넘기기에 쓰고 카메라는 돌리지 않는다(카메라는 대상을 따라간다). */
+	/**
+	 * 고정 락온 중이면 시점 입력을 옆 대상 넘기기에 쓰고 카메라는 돌리지 않는다(카메라는 대상을 따라간다).
+	 * 줌인 조준 중이면 조준 감도(UGrimTargetingComponent::GetLookInputScale)를 곱한다.
+	 */
 	virtual void AddYawInput(float Val) override;
 	virtual void AddPitchInput(float Val) override;
 
@@ -46,7 +53,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Grimoire|Input")
 	TSoftObjectPtr<UInputAction> LockOnAction;
 
-	/** 줌인 조준 자리(R24 — 스펙 조사 중, 아직 동작 없음) */
+	/** 줌인 조준(R24, 오른쪽 마우스 · L2). 눌림 = Started, 뗌 = Completed — 누르기 / 토글은 조준 컴포넌트가 정한다 */
 	UPROPERTY(EditDefaultsOnly, Category = "Grimoire|Input")
 	TSoftObjectPtr<UInputAction> AimZoomAction;
 

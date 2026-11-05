@@ -96,10 +96,9 @@ void AGrimPlayerController::HandleLockOnPressed()
 
 void AGrimPlayerController::HandleAimZoomPressed()
 {
-	// TODO(R24): 줌인 조준은 스펙 조사 중. 지금은 상태만 넘기고 조준 · 카메라는 그대로.
 	if (Targeting)
 	{
-		Targeting->SetZoomAimHeld(true);
+		Targeting->HandleZoomInput(true);
 	}
 }
 
@@ -107,24 +106,40 @@ void AGrimPlayerController::HandleAimZoomReleased()
 {
 	if (Targeting)
 	{
-		Targeting->SetZoomAimHeld(false);
+		Targeting->HandleZoomInput(false);
+	}
+}
+
+void AGrimPlayerController::Server_SetZoomAiming_Implementation(bool bAiming)
+{
+	if (Targeting)
+	{
+		Targeting->SetZoomAimingFromClient(bAiming);
 	}
 }
 
 void AGrimPlayerController::AddYawInput(float Val)
 {
-	if (Targeting && Val != 0.f && Targeting->HandleLookInput(FVector2D(Val, 0.f)))
+	if (Targeting)
 	{
-		return;
+		Val *= Targeting->GetLookInputScale();
+		if (Val != 0.f && Targeting->HandleLookInput(FVector2D(Val, 0.f)))
+		{
+			return;
+		}
 	}
 	Super::AddYawInput(Val);
 }
 
 void AGrimPlayerController::AddPitchInput(float Val)
 {
-	if (Targeting && Val != 0.f && Targeting->HandleLookInput(FVector2D(0.f, Val)))
+	if (Targeting)
 	{
-		return;
+		Val *= Targeting->GetLookInputScale();
+		if (Val != 0.f && Targeting->HandleLookInput(FVector2D(0.f, Val)))
+		{
+			return;
+		}
 	}
 	Super::AddPitchInput(Val);
 }

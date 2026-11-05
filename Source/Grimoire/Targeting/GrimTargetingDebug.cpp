@@ -3,7 +3,11 @@
 
 #include "Targeting/GrimTargetingComponent.h"
 #include "Targeting/GrimTargetDummy.h"
+#include "MagicFX/GrimMagicFXTags.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Containers/Ticker.h"
+#include "EngineUtils.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
@@ -15,9 +19,9 @@
 namespace GrimTargetingDebug
 {
 	/** Delay 초 뒤(0 이면 바로) 게임 월드마다 로컬 플레이어 컨트롤러와 그 조준 컴포넌트에 Fn */
-	void RunOnLocalTargeting(float Delay, TFunction<void(APlayerController*, UGrimTargetingComponent*)> Fn)
+	void RunOnLocalTargeting(float Delay, TFunction<void(APlayerController*, UGrimTargetingComponent*)> Fn, bool bAllControllers = false)
 	{
-		auto RunNow = [Fn]()
+		auto RunNow = [Fn, bAllControllers]()
 		{
 			for (const FWorldContext& Context : GEngine->GetWorldContexts())
 			{
@@ -29,7 +33,7 @@ namespace GrimTargetingDebug
 				for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
 				{
 					APlayerController* PC = It->Get();
-					if (PC && PC->IsLocalController())
+					if (PC && (bAllControllers || PC->IsLocalController()))
 					{
 						if (UGrimTargetingComponent* Targeting = PC->FindComponentByClass<UGrimTargetingComponent>())
 						{
@@ -135,6 +139,80 @@ namespace GrimTargetingDebug
 			}
 		});
 	}
+
+	/** Grim.Targeting.Zoom <0|1> [지연초] — 입력 방식과 상관없이 줌인 조준을 켜고 끈다(헤드리스 확인용) */
+	void ZoomCommand(const TArray<FString>& Args)
+	{
+		const bool bEnable = Args.IsValidIndex(0) ? FCString::Atoi(*Args[0]) != 0 : true;
+		RunOnLocalTargeting(ArgFloat(Args, 1, 0.f), [bEnable](APlayerController*, UGrimTargetingComponent* Targeting)
+		{
+			Targeting->SetZoomAiming(bEnable);
+			UE_LOG(LogGrimTargeting, Display, TEXT("줌인 조준 %s → %s"), bEnable ? TEXT("켬") : TEXT("끔"), *Targeting->Describe());
+		});
+	}
+
+	/** Grim.Targeting.ZoomToggle <0|1> [지연초] — 「조준 누르기 / 토글」 옵션 */
+	void ZoomToggleCommand(const TArray<FString>& Args)
+	{
+		const bool bToggle = Args.IsValidIndex(0) ? FCString::Atoi(*Args[0]) != 0 : true;
+		RunOnLocalTargeting(ArgFloat(Args, 1, 0.f), [bToggle](APlayerController*, UGrimTargetingComponent* Targeting)
+		{
+			Targeting->SetZoomToggleMode(bToggle);
+			UE_LOG(LogGrimTargeting, Display, TEXT("줌인 조준 방식 = %s"), bToggle ? TEXT("토글") : TEXT("누르는 동안"));
+		});
+	}
+
+	/** Grim.Targeting.DumpServer [지연초] — 서버에서 원격 플레이어까지 모든 컨트롤러의 줌 폰 효과(걷기 속력 · 몸 방향 · State.Aiming) */
+	void DumpServerCommand(const TArray<FString>& Args)
+	{
+		RunOnLocalTargeting(ArgFloat(Args, 0, 0.f), [](APlayerController* PC, UGrimTargetingComponent* Targeting)
+		{
+			UE_LOG(LogGrimTargeting, Display, TEXT("[%s %s] %s"), *GetNameSafe(PC), PC->IsLocalController() ? TEXT("로컬") : TEXT("원격"), *Targeting->Describe());
+		}, true);
+	}
+
+	/** Grim.Targeting.DumpAimingTags [지연초] — 이 기계가 보는 모든 폰의 State.Aiming(복제 확인용) */
+	void DumpAimingTagsCommand(const TArray<FString>& Args)
+	{
+		auto RunNow = []()
+		{
+			for (const FWorldContext& Context : GEngine->GetWorldContexts())
+			{
+				UWorld* World = Context.World();
+				if (!World || !World->IsGameWorld())
+				{
+					continue;
+				}
+				for (TActorIterator<APawn> It(World); It; ++It)
+				{
+					const UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(*It);
+					UE_LOG(LogGrimTargeting, Display, TEXT("폰 %s (%s): State.Aiming=%d"), *It->GetName(),
+						*UEnum::GetValueAsString(It->GetLocalRole()),
+						ASC && ASC->HasMatchingGameplayTag(GrimMagicFXTags::State_Aiming) ? 1 : 0);
+				}
+			}
+		};
+		const float Delay = ArgFloat(Args, 0, 0.f);
+		if (Delay <= 0.f)
+		{
+			RunNow();
+			return;
+		}
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([RunNow](float)
+		{
+			RunNow();
+			return false;
+		}), Delay);
+	}
+
+	FAutoConsoleCommand GDumpAimingTagsCommand(TEXT("Grim.Targeting.DumpAimingTags"),
+		TEXT("이 기계가 보는 모든 폰의 State.Aiming(줌 복제 확인). [지연초]"), FConsoleCommandWithArgsDelegate::CreateStatic(&DumpAimingTagsCommand));
+	FAutoConsoleCommand GDumpServerCommand(TEXT("Grim.Targeting.DumpServer"),
+		TEXT("모든 컨트롤러(서버에서는 원격 플레이어 포함)의 조준 · 줌 상태를 로그로. [지연초]"), FConsoleCommandWithArgsDelegate::CreateStatic(&DumpServerCommand));
+	FAutoConsoleCommand GZoomCommand(TEXT("Grim.Targeting.Zoom"),
+		TEXT("줌인 조준 켜기/끄기(R24, 입력 방식 무시). <0|1> [지연초]"), FConsoleCommandWithArgsDelegate::CreateStatic(&ZoomCommand));
+	FAutoConsoleCommand GZoomToggleCommand(TEXT("Grim.Targeting.ZoomToggle"),
+		TEXT("줌인 조준 방식. 1 = 토글, 0 = 누르는 동안. [지연초]"), FConsoleCommandWithArgsDelegate::CreateStatic(&ZoomToggleCommand));
 
 	FAutoConsoleCommand GSoftLockCommand(TEXT("Grim.Targeting.SoftLock"),
 		TEXT("소프트 락온 켜기/끄기(Q18). <0|1> [지연초]"), FConsoleCommandWithArgsDelegate::CreateStatic(&SoftLockCommand));
