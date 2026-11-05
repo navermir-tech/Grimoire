@@ -37,7 +37,7 @@ foreach ($Name in @("S1", "C1", "C2", "S2", "C3")) {
 }
 
 $Map = "/Game/Grimoire/Maps/L_M1_Sandbox?listen?SaveSlot=$Slot"
-$Common = @("-game", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
+$Common = @("-game", "-GrimStartingSpells", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
 
 function Start-Game([string]$Name, [string]$Url, [string]$PlayerId, [string[]]$Cmds) {
 	$ArgList = @("`"$Project`"", $Url, "-GrimPlayerId=$PlayerId", "-abslog=`"$($Logs[$Name])`"", "-ExecCmds=`"$($Cmds -join ",")`"") + $Common

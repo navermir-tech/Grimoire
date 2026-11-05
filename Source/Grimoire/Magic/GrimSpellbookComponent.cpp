@@ -167,7 +167,7 @@ void UGrimSpellbookComponent::InitializeSpellbook(UAbilitySystemComponent* ASC)
 		ASC->GiveAbility(Spec);
 	}
 
-	for (const TSoftObjectPtr<UGrimSpellDefinition>& SpellRef : Settings->StartingSpells)
+	for (const TSoftObjectPtr<UGrimSpellDefinition>& SpellRef : Settings->ShouldGrantStartingSpells() ? Settings->StartingSpells : TArray<TSoftObjectPtr<UGrimSpellDefinition>>())
 	{
 		if (UGrimSpellDefinition* Spell = SpellRef.LoadSynchronous())
 		{

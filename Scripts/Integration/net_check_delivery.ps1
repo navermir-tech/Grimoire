@@ -30,7 +30,7 @@ Remove-Item $ServerLog, $ClientLog -ErrorAction SilentlyContinue
 
 $Common = @()
 if ($LogCmds) { $Common += "-LogCmds=`"$LogCmds`"" }
-$Common += @("-game", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
+$Common += @("-game", "-GrimStartingSpells", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
 
 $ClientStart = 12
 function ClientAt([double]$ServerTime) { return $ServerTime - $ClientStart }

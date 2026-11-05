@@ -47,9 +47,17 @@ public:
 	/** 서클 N 의 최대 마나. 표보다 높은 서클이면 마지막 값. */
 	float GetMaxManaForCircle(int32 InCircle) const;
 
-	/** 새 플레이어가 받는 마법. */
+	/**
+	 * 개발 · 확인용 시작 마법(1서클 셋). 게임에서는 주지 않는다 — 시작할 때 아는 마법이 없고 튜토리얼에서 스킬북으로 배운다(R31).
+	 * bGrantStartingSpells 가 켜져 있거나 명령줄에 -GrimStartingSpells 가 있을 때만 준다(헤드리스 확인 스크립트가 쓴다).
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Start")
 	TArray<TSoftObjectPtr<UGrimSpellDefinition>> StartingSpells;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Start")
+	bool bGrantStartingSpells = false;
+
+	bool ShouldGrantStartingSpells() const;
 
 	/** 처음 쥐는 완드. 비우면 AGrimWand. */
 	UPROPERTY(Config, EditAnywhere, Category = "Start")

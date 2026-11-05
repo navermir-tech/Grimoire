@@ -24,7 +24,7 @@ Remove-Item $ServerLog, $ClientLog -ErrorAction SilentlyContinue
 
 $Common = @()
 if ($LogCmds) { $Common += "-LogCmds=`"$LogCmds`"" }
-$Common += @("-game", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
+$Common += @("-game", "-GrimStartingSpells", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
 
 # 서버 기준 초. 클라이언트는 12초 뒤에 시작하므로 클라이언트 지연 = 서버 시각 − 12.
 $ServerCmds = @(

@@ -135,7 +135,7 @@ void UGrimFistAbility::PerformFist()
 
 		// 플레이어끼리는 기본으로 피해가 없다(협동 — 자극은 준다). 마법의 ApplySpellHit 과 같은 규칙.
 		const bool bBothPlayers = TargetASC && Cast<APlayerState>(TargetASC->GetOwnerActor()) && Cast<APlayerState>(SourceASC->GetOwnerActor());
-		if (TargetASC && TargetASC != SourceASC && (!bBothPlayers || UGrimMagicSettings::Get()->bFriendlyFire))
+		if (TargetASC && TargetASC != SourceASC && (!bBothPlayers || UGrimMagicSettings::Get()->bFriendlyFire) && !UGrimSpellAbility::IsCombatBlocked(SourceASC, TargetASC))
 		{
 			FGameplayEffectSpecHandle Damage = MakeOutgoingGameplayEffectSpec(UGrimGE_SpellDamage::StaticClass(), GetAbilityLevel());
 			if (Damage.IsValid())

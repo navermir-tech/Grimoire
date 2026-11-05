@@ -66,6 +66,9 @@ public:
 	/** 조준 결과가 대상을 따라가야 하나(대상 있음 · 줌인 조준 아님). 유도 · 조준점 덮어쓰기에 쓴다. */
 	static bool FollowsTarget(const FGrimAimResult& Aim);
 
+	/** 시전자나 대상이 전투 금지 구역(Zone.NoCombat)에 있으면 true — 피해만 막는다. */
+	static bool IsCombatBlocked(const UAbilitySystemComponent* SourceASC, const UAbilitySystemComponent* TargetASC);
+
 	static bool TraceStreamArc(const UWorld* World, const UGrimSpellDefinition* Definition, const FVector& Start, const FVector& AimPoint, const AActor* IgnoreActor, TArray<FVector>& OutPoints, TArray<FHitResult>* OutHits);
 
 	/** 완드 보정 · 숙련도 배율(Q26)까지 넣은 마나 비용. */

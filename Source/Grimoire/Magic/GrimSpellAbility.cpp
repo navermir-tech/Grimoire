@@ -727,6 +727,17 @@ FGrimAimResult UGrimSpellAbility::ComputeViewAim(const UGrimSpellDefinition* Def
 	return Aim;
 }
 
+bool UGrimSpellAbility::IsCombatBlocked(const UAbilitySystemComponent* SourceASC, const UAbilitySystemComponent* TargetASC)
+{
+	// 태그는 Factions 쪽(AGrimNoCombatVolume)이 붙인다 — 이름으로 찾아 의존을 만들지 않는다.
+	static const FGameplayTag NoCombat = FGameplayTag::RequestGameplayTag(TEXT("Zone.NoCombat"), false);
+	if (!NoCombat.IsValid())
+	{
+		return false;
+	}
+	return (SourceASC && SourceASC->HasMatchingGameplayTag(NoCombat)) || (TargetASC && TargetASC->HasMatchingGameplayTag(NoCombat));
+}
+
 bool UGrimSpellAbility::FollowsTarget(const FGrimAimResult& Aim)
 {
 	// 줌인 조준은 대상이 조준점 아래에 있어도 따라가지 않는다 — 유도 없이 겨눈 곳으로 곧게(R24).
@@ -1142,7 +1153,8 @@ void UGrimSpellAbility::ApplySpellHit(const UGrimSpellDefinition* Definition, UA
 	{
 		// 플레이어끼리는 기본으로 피해가 없다(협동 — 속성 자극은 준다).
 		const bool bBothPlayers = Cast<APlayerState>(TargetASC->GetOwnerActor()) && SourceASC && Cast<APlayerState>(SourceASC->GetOwnerActor());
-		if (!bBothPlayers || UGrimMagicSettings::Get()->bFriendlyFire)
+		// 전투 금지 구역(마법탑 실내 — 중립 지대, R31): 피해만 막고 속성 자극은 그대로 준다(양초 · 아궁이 · 작물은 실내에서도 마법으로).
+		if ((!bBothPlayers || UGrimMagicSettings::Get()->bFriendlyFire) && !IsCombatBlocked(SourceASC, TargetASC))
 		{
 			if (SourceASC)
 			{

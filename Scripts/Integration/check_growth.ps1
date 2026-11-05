@@ -40,7 +40,7 @@ $Cmds = @(
 	"Grim.UI.Grimoire 32"
 ) -join ","
 
-$GameArgs = @("`"$Project`"", "/Game/Grimoire/Maps/L_M1_Sandbox", "-game", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log",
+$GameArgs = @("`"$Project`"", "/Game/Grimoire/Maps/L_M1_Sandbox", "-game", "-GrimStartingSpells", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log",
 	"-windowed", "-ResX=320", "-ResY=240", "-abslog=`"$Log`"", "-ExecCmds=`"$Cmds`"")
 $Game = Start-Process -FilePath $Exe -PassThru -ArgumentList $GameArgs
 Start-Sleep -Seconds $RunSeconds
