@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+ONE single texture sprite on a PURE BLACK background (#000000), square image: a single soft wispy smoke-like energy tendril, horizontal, feathered and translucent, brighter in the middle, fading at both ends. Grayscale only, nothing touching the border. Used as an additive particle texture.
+
+No text, no labels, no UI.
+
+Save the final image as raw/tex_wisp.png in the current working directory.

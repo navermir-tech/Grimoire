@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+ONE single texture sprite on a PURE BLACK background (#000000), square image: a soft round glow flare centred with a small white-hot centre, smooth radial falloff and a few faint thin star rays, fading fully to black well before the border. Grayscale only. Used as an additive particle texture.
+
+No text, no labels, no UI.
+
+Save the final image as raw/tex_flare.png in the current working directory.

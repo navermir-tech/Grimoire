@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+ONE single texture sprite on a PURE BLACK background (#000000), square image: a radial burst of many thin sharp spark streaks flying outward from the centre in all directions, a bright small core, streaks fading toward their outer ends, wispy energy, all within 45% radius of the centre. Grayscale only, nothing touching the border. Used as an additive particle texture.
+
+No text, no labels, no UI.
+
+Save the final image as raw/tex_burst.png in the current working directory.

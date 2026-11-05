@@ -1,0 +1,13 @@
+$imagegen
+Use the attached reference images ONLY as a style and layout reference (do not copy them exactly). They show magic bolt visual effects from a game: on each strip the LEFT dark sphere is the wand tip and the RIGHT dark sphere is the target.
+
+Make ONE new wide landscape image (about 3:2) in the same layout: three horizontal strips stacked vertically, dark slate-blue background (#2A3448 fading darker), each strip has a matte black sphere on the far left (wand tip) and a matte black sphere on the far right (target), with a soft faint ground shadow under the right sphere.
+- Top strip = CAST moment: a small radial splash of sparks and wisps bursting out of the left sphere, the bolt just leaving it, one short streak near the left.
+- Middle strip = MID-FLIGHT: two or three thin bolt streaks at different moments along the path from left to right, sparks scattered along the path.
+- Bottom strip = IMPACT: a bolt arriving at the right sphere and bursting: radial spark burst, a thin ring / spherical shockwave shell around the target, a soft glow flare.
+
+Bolt look: thin, sharp, tapered needle / comet-like light streak pointing to the right, white-hot core that fades into the element colour, feathered motion-blurred wispy tail trailing to the left, fine spark particles scattered along the path. Additive glow, high-end stylized game VFX (Unreal Niagara look), crisp and readable, no characters, no text, no UI, no labels.
+
+Element: wind. Colour: soft mint green, exactly hue #7CC9A6 for the glow and tail, white-hot core. Sparks: thin mint-green streak flecks, airy wisps. Every strip uses this single colour family only.
+
+Save the final image as raw/sheet_wind.png in the current working directory.

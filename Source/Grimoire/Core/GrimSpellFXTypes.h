@@ -46,6 +46,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
 	TObjectPtr<UFXSystemAsset> Impact;
 
+	/** 볼트 투사체의 색 구를 숨긴다 — 꼬리(Trail) 이펙트가 머리 빛까지 그릴 때 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	bool bHideProjectileMesh = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> CastSound;
 

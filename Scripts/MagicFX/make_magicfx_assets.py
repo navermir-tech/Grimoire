@@ -1,7 +1,8 @@
 # M1.5 갈래 C 「연출 · 동작」 에셋을 만든다 / 고친다. 값은 이 스크립트가 정본이다.
 #  - 머티리얼: M_GrimFX_Glow(색 펄스 · 줄기 구슬) · M_GrimFX_Book(그리모어) · M_GrimFX_Decal(그을음 · 젖음)
 #  - GameplayCue: GC_Spell_Cast · GC_Spell_Impact · GC_Spell_Channel (C++ 처리기의 블루프린트 자식)
-#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 이펙트는 Niagara Examples Pack(없는 칸은 엔진 기본 템플릿)
+#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 볼트(불씨 · 기본 공격)는 make_bolt_fx.py 의
+#    NS_Bolt_*, 나머지는 Niagara Examples Pack(없는 칸은 엔진 기본 템플릿)
 #  - 애님: ABP_GrimPlayer = 템플릿 ABP_Unarmed 복제 + 부모를 UGrimSpellPoseAnimInstance 로
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
@@ -34,6 +35,12 @@ FX_RIBBON_TRAIL = PACK + "FX_Weapons/Trails/NS_SimpleRibbonTrail.NS_SimpleRibbon
 FX_EXPLOSION_SMALL = PACK + "FX_Explosions/NS_Explosion_Small.NS_Explosion_Small"
 FX_DIRT_EXPLOSION_SMALL = PACK + "FX_Explosions/NS_Dirt_Explosion_Small.NS_Dirt_Explosion_Small"
 FX_BUBBLE_BURST = PACK + "FX_Misc/NS_Bubble_Burst.NS_Bubble_Burst"
+
+# 볼트 이펙트(사용자 참고 그림 2026-11-06 — 바늘 빛줄기 · 불티 · 고리). make_bolt_fx.py 가 만든다 — 그것부터 돌린다.
+BOLT = "/Game/Grimoire/MagicFX/Bolt/Systems/"
+FX_BOLT_CAST = BOLT + "NS_Bolt_Cast.NS_Bolt_Cast"
+FX_BOLT_TRAIL = BOLT + "NS_Bolt_Trail.NS_Bolt_Trail"
+FX_BOLT_IMPACT = BOLT + "NS_Bolt_Impact.NS_Bolt_Impact"
 
 # 엔진 기본 소리(임시).
 SND_PING = "/Engine/EngineSounds/1kSineTonePing.1kSineTonePing"
@@ -270,24 +277,26 @@ def make_visual_sets(decal_mat):
     off = pulse(SHAPE.NONE, (0, 0, 0), (0, 0, 0), 0.1, 0.0)
     no_decal = decal(None, unreal.LinearColor(0, 0, 0, 1), 0.9, 0.0, 60.0, 1.0, 0.0)
 
-    # 불씨 — 주황, 작은 불꽃 덩어리 · 화염 터짐 · 그을음. 튕기기(Bolt).
+    # 불씨 — 주황 바늘 빛줄기 · 불티 · 고리 터짐 · 그을음. 튕기기(Bolt).
     make_visual_set("VS_Ember", {
         "element_color": srgb("#E0582B"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
-        "muzzle_flash": load(FX_DIRECTIONAL_BURST),
-        "trail": load(FX_ROCKET_TRAIL),
-        "impact": load(FX_EXPLOSION_SMALL),
-        "muzzle_flash_scale": 0.3,
-        "trail_scale": 0.35,
-        "impact_scale": 0.5,
+        "muzzle_flash": load(FX_BOLT_CAST),
+        "trail": load(FX_BOLT_TRAIL),
+        "impact": load(FX_BOLT_IMPACT),
+        "hide_projectile_mesh": True,
+        "muzzle_flash_scale": 1.0,
+        "trail_scale": 1.0,
+        "impact_scale": 1.0,
         "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.12, "cast_sound_pitch": 1.6,
         "impact_sound": noise, "impact_sound_volume": 0.3, "impact_sound_pitch": 1.5, "impact_sound_duration": 0.15,
         "loop_sound": None,
         "camera_shake": shake, "camera_shake_scale": 1.0,
-        "muzzle_pulse": pulse(SHAPE.SPHERE, (4, 4, 4), (24, 24, 24), 0.12, 10.0, 0.0, 4000.0, 250.0),
+        # 구 펄스는 끈다 — 볼트 이펙트가 번쩍임 · 고리를 직접 그린다(참고 그림에 둥근 공은 없다).
+        "muzzle_pulse": off,
         "cast_wave": off,
-        "impact_pulse": pulse(SHAPE.SPHERE, (10, 10, 10), (90, 90, 90), 0.3, 8.0, 0.0, 6000.0, 450.0),
+        "impact_pulse": off,
         "impact_decal": decal(decal_mat, unreal.LinearColor(0.02, 0.015, 0.01, 1), 0.95, 0.9, 70.0, 12.0, 4.0),
         "stream_bead_count": 0,
     })
@@ -341,25 +350,26 @@ def make_visual_sets(decal_mat):
         "stream_bead_count": 0,
     })
 
-    # 기본 공격(R26, M2 갈래 K) — 순수 마력(무속성): 옅은 하늘빛 흰색, 작은 섬광 · 작은 터짐 · 자국 없음. 튕기기(Bolt).
+    # 기본 공격(R26, M2 갈래 K) — 순수 마력(무속성): 옅은 하늘빛 흰색 바늘 빛줄기 · 작은 터짐 · 자국 없음. 튕기기(Bolt).
     # 연타 리듬(0.3초)에 맞춰 책장 한 장을 0.15초에 넘긴다(spell-feel 「왼손 그리모어」).
     make_visual_set("VS_BasicAttack", {
         "element_color": srgb("#CFE3FF"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
         "page_flip_duration": 0.15,
-        "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
-        "trail": load(FX_RIBBON_TRAIL),
-        "impact": load(FX_RADIAL_BURST),
-        "muzzle_flash_scale": 0.2,
+        "muzzle_flash": load(FX_BOLT_CAST),
+        "trail": load(FX_BOLT_TRAIL),
+        "impact": load(FX_BOLT_IMPACT),
+        "hide_projectile_mesh": True,
+        "muzzle_flash_scale": 0.8,
         "trail_scale": 1.0,
-        "impact_scale": 0.3,
+        "impact_scale": 0.8,
         "cast_sound": ping, "cast_sound_volume": 0.06, "cast_sound_pitch": 2.0,
         "loop_sound": None,
         "impact_sound": noise, "impact_sound_volume": 0.15, "impact_sound_pitch": 2.0, "impact_sound_duration": 0.08,
         "camera_shake": shake, "camera_shake_scale": 0.4,
-        "muzzle_pulse": pulse(SHAPE.SPHERE, (3, 3, 3), (14, 14, 14), 0.08, 8.0, 0.0, 2000.0, 180.0),
+        "muzzle_pulse": off,
         "cast_wave": off,
-        "impact_pulse": pulse(SHAPE.SPHERE, (6, 6, 6), (40, 40, 40), 0.18, 6.0, 0.0, 2500.0, 250.0),
+        "impact_pulse": off,
         "impact_decal": no_decal,
         "stream_bead_count": 0,
     })

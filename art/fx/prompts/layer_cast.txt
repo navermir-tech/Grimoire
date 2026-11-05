@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+A layer breakdown sheet of the CAST SPLASH element of a magic bolt effect, isolated on a PURE BLACK background (#000000, no gradient, no scene, no spheres). Show four variations in a 2x2 grid with generous black space between them: a small radial splash of short sharp spark streaks and soft wisps bursting outward from a centre point, mostly toward the right, white-hot centre fading into pale sky-white (#CFE3FF). Additive glow look.
+
+No text, no labels, no UI.
+
+Save the final image as raw/layer_cast.png in the current working directory.

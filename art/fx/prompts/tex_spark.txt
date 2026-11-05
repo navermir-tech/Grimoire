@@ -1,0 +1,8 @@
+$imagegen
+Use the attached reference images only as a style reference for magic-bolt game VFX (thin tapered comet streaks, white-hot core, feathered tail, fine sparks, ring shockwave, flare).
+
+ONE single texture sprite on a PURE BLACK background (#000000), square image: a single small elongated glowing spark fleck centred, horizontal, white hot centre with a soft glow falloff, slightly tapered at both ends, about 60% of the width. Grayscale only, nothing touching the border. Used as an additive particle texture.
+
+No text, no labels, no UI.
+
+Save the final image as raw/tex_spark.png in the current working directory.
