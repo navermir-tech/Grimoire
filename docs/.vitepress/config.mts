@@ -54,6 +54,7 @@ export default defineConfig({
             { text: 'M1 작업 분할', link: '/systems/m1-plan' },
             { text: 'M1.5 작업 분할', link: '/systems/m15-plan' },
             { text: 'M2 작업 분할', link: '/systems/m2-plan' },
+            { text: 'M2 후반 작업 분할', link: '/systems/m2b-plan' },
           ],
         },
       ],
