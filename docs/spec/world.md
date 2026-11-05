@@ -49,6 +49,18 @@
 - **빛의 성소(7)** 는 분탑이 아니라 성소 자체다. 오아시스 성소탑(4)의 순례자들이 이곳을 향해 걷는다.
 - 분탑 사이 이동(이동진 · 빠른 이동)을 둘지는 미결(Q37).
 
+#### 분탑 콘셉트 (GPT — 제안안)
+
+각 그림은 짝이 되는 의상 시안을 참고로 넣어 그렸다. 프롬프트는 `art/world/prompts/tower-*.txt`.
+
+| 안개 서원 — 깊은 숲 (F) | 조수의 등대탑 — 폭풍 해안 (E) |
+|---|---|
+| ![안개 서원](/art/world/tower-f-mist-academy.jpg) | ![조수의 등대탑](/art/world/tower-e-tide-lighthouse.jpg) |
+| **오아시스 성소탑 — 화산 황야 · 붉은 모래 (G)** | **서리 룬 북탑 — 설산 (H)** |
+| ![오아시스 성소탑](/art/world/tower-g-oasis-sanctum.jpg) | ![서리 룬 북탑](/art/world/tower-h-frost-rune.jpg) |
+
+안개 서원은 다른 구도의 안이 하나 더 나왔다 — ![안개 서원 다른 안](/art/world/tower-f-mist-academy-b.jpg)
+
 ### 월드 지도 (제안안 — GPT)
 
 ![월드 지도 제안안](/art/world/world-map-v1.jpg)
