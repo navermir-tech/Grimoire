@@ -172,6 +172,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_InteractPot(AGrimCookingPot* Pot);
 
+	/** 소유 클라이언트가 가방 화면을 열었다 — 튜토리얼 「가방 열기」(퀘스트 이벤트 UI.Inventory.Opened) */
+	UFUNCTION(Server, Reliable)
+	void Server_NotifyBagOpened();
+
 	/** 콘솔 명령을 서버에서(개발 빌드만 동작). docs/systems/building 「콘솔」 */
 	UFUNCTION(Server, Reliable)
 	void ServerDebugCommand(const FString& Command, const FString& Arg, int32 A, int32 B);

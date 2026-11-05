@@ -36,7 +36,7 @@
 | `Event` | 신호 — 다른 시스템이 `UGrimQuestComponent::NotifyQuestEvent(플레이어, 이벤트 ID)` | 이벤트 ID |
 
 - 새 단계는 **다음 주기부터** 조회한다 — 단계 시작의 세계 쪽 일(소품 되돌리기)이 끝난 뒤에 보려고(되돌리기 전의 켜진 양초로 시험이 바로 끝나지 않게).
-- **Give**(단계 시작에 주는 것, `|` 로 여럿): `Skillbook:<마법 ID>`(월드에 스킬북을 놓는다 — 다가가면 읽힌다, 태그 `Given_Skillbook_<ID>`), `Bedroll`(침낭, 태그 `Given_Bedroll`), `Item:<ID>`(플레이어 가방에 하나 — `UGrimItemStatics::GiveItem`, 표에 없는 아이템(거점 핵 M4)은 기록만). 뒤에 `@<태그>` 를 붙이면 그 액터 곁, 없으면 플레이어 앞 1.5m. 정의가 없는 마법(기본 공격 · 파크툼)은 경고만 하고 넘어간다.
+- **Give**(단계 시작에 주는 것, `|` 로 여럿): `Skillbook:<마법 ID>`(**가방에 스킬북 아이템 `Skillbook_<마법 ID>` 를 넣는다** — 아이템 표에 그 행이 없을 때만 예전처럼 월드에 책을 놓는다, 태그 `Given_Skillbook_<ID>`), `Bedroll`(침낭, 태그 `Given_Bedroll`), `Item:<ID>`(플레이어 가방에 하나 — `UGrimItemStatics::GiveItem`, 표에 없는 아이템(거점 핵 M4)은 기록만). 뒤에 `@<태그>` 를 붙이면 그 액터 곁, 없으면 플레이어 앞 1.5m. 정의가 없는 마법(기본 공격 · 파크툼)은 경고만 하고 넘어간다.
 
 ### 이벤트(아직 없는 시스템이 부를 자리)
 
@@ -58,7 +58,7 @@
 | 단계 | 할 일 | 목표 | 판정 |
 |---|---|---|---|
 | 0 | 스승에게 말 걸기(완드) | TalkToNpc Master | 진짜 |
-| 1 | 기본 공격 스킬북 읽기 | KnowSpell BasicAttack (Give) | 진짜 — 정의는 갈래 K |
+| 1 | 가방 열기 · 기본 공격 스킬북 사용 | Event `UI.Inventory.Opened`(가방 화면을 열면 소유 클라이언트가 서버로 알림) + KnowSpell BasicAttack (Give → 가방) | 진짜 |
 | 2 | 수련실 과녁을 기본 공격으로 부수기 | BreakTarget Tut_TrainingTarget(세 번) | 진짜 |
 | 3 | 스승에게 | TalkToNpc | 진짜 |
 | 4 | 플라미스 · 아쿠엘 · 벤투스 스킬북 읽기 | KnowSpell × 3 (Give) | 진짜 |

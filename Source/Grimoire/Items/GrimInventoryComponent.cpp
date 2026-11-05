@@ -545,6 +545,11 @@ void UGrimInventoryComponent::Server_UseItem_Implementation(int32 SlotIndex)
 	UseItem(SlotIndex);
 }
 
+void UGrimInventoryComponent::Server_NotifyBagOpened_Implementation()
+{
+	NotifyQuest(TEXT("UI.Inventory.Opened"));
+}
+
 void UGrimInventoryComponent::Server_DropItem_Implementation(int32 SlotIndex, int32 Count)
 {
 	DropItem(SlotIndex, Count);

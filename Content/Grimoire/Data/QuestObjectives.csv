@@ -1,5 +1,6 @@
 Name,Quest,Step,Type,Target,State,Compare,Value,Count,Text
 Tutorial_00_Talk,Tutorial,0,TalkToNpc,Master,None,AtLeast,0,1,"스승과 대화"
+Tutorial_01_Bag,Tutorial,1,Event,UI.Inventory.Opened,None,AtLeast,0,1,"가방 열기(L)"
 Tutorial_01_Basic,Tutorial,1,KnowSpell,BasicAttack,None,AtLeast,0,1,"기본 공격 익히기"
 Tutorial_02_Break,Tutorial,2,BreakTarget,Tut_TrainingTarget,None,AtLeast,0,1,"과녁 부수기"
 Tutorial_03_Talk,Tutorial,3,TalkToNpc,Master,None,AtLeast,0,1,"스승과 대화"

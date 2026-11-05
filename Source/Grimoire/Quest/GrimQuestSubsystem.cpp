@@ -156,6 +156,17 @@ void UGrimQuestSubsystem::GiveItems(const TArray<FGrimQuestGive>& Gives, UGrimQu
 	for (int32 Index = 0; Index < Gives.Num(); ++Index)
 	{
 		const FGrimQuestGive& Give = Gives[Index];
+		if (Give.Kind == FGrimQuestGive::EKind::Skillbook)
+		{
+			// 스킬북은 가방에 아이템으로 넣는다(Skillbook_<마법 ID> — 사용자 결정 2026-11-05: 가방 여는 법도 튜토리얼에서 배운다).
+			// 아이템 표에 그 책이 없으면 예전처럼 바닥에 놓는다(아래).
+			const FName BookItem(*FString::Printf(TEXT("Skillbook_%s"), *Give.Id.ToString()));
+			if (UGrimItemStatics::GiveItem(Quest ? Quest->GetOwner() : nullptr, BookItem, 1) > 0)
+			{
+				UE_LOG(LogGrimQuest, Display, TEXT("[Server] 스킬북 %s 를 가방에 넣었다"), *BookItem.ToString());
+				continue;
+			}
+		}
 		if (Give.Kind == FGrimQuestGive::EKind::Item)
 		{
 			// 플레이어 가방에 하나 넣는다(M3 갈래 I). 표에 없는 아이템(거점 핵 — M4)은 기록만.

@@ -8,7 +8,7 @@
 #
 # 시간표(시작 기준 초) — 기대:
 #   15 덤프: Tutorial 0 · 16~17 스승 → 대화 → 1(기본 공격 스킬북) → 18 Skip → 2(과녁 켜짐) → 19~20 과녁 세 번 → 부서짐 → 3
-#   21 대화 → 4(세 스킬북을 앞에 놓음) → 22 플라미스 책 읽기 → 5 · 23 양초 불 → 6 · 24 바람 → 7 · 25 물 → 8 · 26 작물 셋에 물 → 9
+#   21 대화 → 4(세 스킬북을 가방에) → 22 가방에서 세 책 사용 → 5 · 23 양초 불 → 6 · 24 바람 → 7 · 25 물 → 8 · 26 작물 셋에 물 → 9
 #   27 앞마당(Zone.NoCombat 뗌) → 10 · 28 사냥 · 28.5 고기 → 12(파크툼) → 29 Skip → 13 · 29.5 30% · 30 길들임 → 15
 #   31 주방(Zone.NoCombat 붙임) → 16 · 32 아궁이 불 → 17 · 33~33.5 재료 · 완성 → 18 · 34 먹기 → 19
 #   35~36 스승 → 대화 → 20(해넘이, 모닥불 곁 침낭) · 37 모닥불 → 21 · 38 침낭 곁 → 39 눕기 → (페이드 3초) 밤 건너뜀, 피로 0 → 22 · 45 덤프
@@ -39,8 +39,9 @@ $Cmds = @(
 	"Grim.Quest.At 19.5 Stimulus Tut_TrainingTarget Element.Fire 1",
 	"Grim.Quest.At 20 Stimulus Tut_TrainingTarget Element.Fire 1",
 	"Grim.Quest.At 21 Talk Master",
-	"Grim.Quest.At 22 Teleport Given_Skillbook_Ember 60",
-	"Grim.Magic.ReadSkillbook 22.5",
+	"Grim.Items.At 22 Eat Skillbook_Ember",
+	"Grim.Items.At 22.2 Eat Skillbook_WaterJet",
+	"Grim.Items.At 22.4 Eat Skillbook_Breeze",
 	"Grim.Quest.At 23 Stimulus Tut_Candle Element.Fire 1",
 	"Grim.Quest.At 24 Stimulus Tut_Candle Element.Wind 1",
 	"Grim.Quest.At 25 Stimulus Tut_Candle Element.Water 1",
@@ -108,7 +109,7 @@ $Checks = [ordered]@{
 	"과녁 부숨" = "부서짐"
 	"전투 금지 구역 붙임" = "Zone.NoCombat 붙임"
 	"전투 금지 구역 뗌" = "Zone.NoCombat 뗌"
-	"스킬북 놓음" = "스킬북 Ember 를 놓았다"
+	"스킬북 가방에" = "스킬북 Skillbook_Ember 를 가방에 넣었다"
 	"침낭 놓음" = "침낭을 놓았다"
 	"첫 밤 신호" = "밤을 건너뛰었다"
 	"튜토리얼 완료" = "퀘스트 완료: Tutorial"

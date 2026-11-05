@@ -519,6 +519,8 @@ bool FGrimQuestTutorialFlowTest::RunTest(const FString& Parameters)
 	Talk();
 	TestEqual(TEXT("1 기본 공격 스킬북"), Step(), 1);
 	Learn(TEXT("BasicAttack"));
+	TestEqual(TEXT("익혀도 가방을 안 열었으면 아직 1"), Step(), 1);
+	Event(TEXT("UI.Inventory.Opened"));
 	TestEqual(TEXT("2 과녁 부수기"), Step(), 2);
 	Signal(EGrimQuestObjectiveType::HitTarget, TEXT("Tut_TrainingTarget"));
 	TestEqual(TEXT("맞히기만으로는 모자람(부숴야)"), Step(), 2);

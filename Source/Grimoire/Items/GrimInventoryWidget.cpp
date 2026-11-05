@@ -358,6 +358,10 @@ void UGrimInventoryWidget::SetBagOpen(bool bOpen)
 
 	if (bOpen)
 	{
+		if (UGrimInventoryComponent* Owned = Inventory.Get())
+		{
+			Owned->Server_NotifyBagOpened();
+		}
 		if (UGrimUISubsystem* UI = PC->GetLocalPlayer() ? PC->GetLocalPlayer()->GetSubsystem<UGrimUISubsystem>() : nullptr)
 		{
 			UI->SetGrimoireOpen(false);
