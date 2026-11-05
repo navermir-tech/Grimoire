@@ -21,6 +21,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Motion")
 	EGrimCastMotion CastMotion = EGrimCastMotion::Auto;
 
+	/** 시전 한 번의 책장 넘김 시간(초). 0 = 책의 기본(FlipDuration). 기본 공격은 연타 리듬에 맞춰 짧게(0.15) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Motion", meta = (ClampMin = "0", Units = "s"))
+	float PageFlipDuration = 0.f;
+
 	/** 완드 끝 색 펄스(섬광 덩어리 + 빛) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pulse")
 	FGrimFXPulseSpec MuzzlePulse;

@@ -73,7 +73,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 ## 시전 흐름
 
-1. 입력: 캐릭터가 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.Cast)`. **선택된 마법 Spec 만** `Input.Spell.Cast` 를 동적 태그로 가지므로 그 마법만 발동한다.
+1. 입력: 캐릭터가 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.BasicAttack | Input.Spell.Slot1~4)`. 서버가 **지금 세트의 칸 i 에 놓인 마법 Spec 에만** `Input.Spell.Slot(i+1)`, 기본 공격 Spec 에 `Input.Spell.BasicAttack` 을 동적 태그로 붙여 두므로(아래 [조작](#조작-q29)) 그 마법만 발동한다.
 2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
    - `CanActivateAbility` — 정의 있음 · 완드 있음(완드 없으면 주먹 기본 공격만, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
    - `CommitAbility` — 비용 `UGrimGE_SpellCost`(즉시, `Mana += SetByCaller.Magic.ManaCost`), 쿨다운 `UGrimGE_SpellCooldown`(지속 `SetByCaller.Magic.Cooldown` 초, `CooldownTag` 를 Spec 의 `DynamicGrantedTags` 로). 클라이언트도 예측 적용한다.
@@ -82,7 +82,8 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
    - **시전자(로컬)**: `UGrimTargetingStatics::FindAimProvider(폰)->GetCurrentAim(사거리)`(Cone 은 `ConeRange`), 제공자가 없으면 카메라 정면 Visibility 트레이스 → `FGrimAimResult`. 원격 클라이언트는 이것을 `FGameplayAbilityTargetData_SingleTargetHit`(TraceStart = 시선 시작, Location = 조준점, Actor = 대상, Item = 모드)로 서버에 보내고, 바로 **Cast 큐(예측)** · Stream 이면 **Channel 큐(예측, 끝나면 거둠)** 를 띄우고, Bolt 면 `CastWindup` 뒤 **가짜 볼트**를 쏜다.
    - **서버**: TargetData 를 받으면 검증(`IsClientAimPlausible` — 시선 시작이 폰 근처, 조준점이 사거리 안, 방향이 폰 조준과 60° 안. 대상은 `CanBeTargetedBy` · 거리를 다시 보고 조준점을 서버에서 다시 구함). 어긋나면 서버 조준(카메라 캐시 · 컨트롤 회전). 그 콜백 안(클라이언트 예측 키 창)에서 같은 Cast · Channel 큐를 실행 → 시전자는 두 번 보지 않는다. 지연 = 핑 ÷ 2 로 `SplitLag` → 남은 Windup 만큼 기다렸다가 판정, 이미 지난 시간은 Bolt 를 앞으로 당김(`CatchUp`, 상한 0.15초).
    - 리슨 서버 호스트 · 단독은 TargetData 없이 바로 서버 경로.
-   - Bolt · Cone · Beam 은 **서버가 판정 뒤 어빌리티를 끝낸다**(복제). 시전자가 먼저 끝내면 서버가 판정 전에 끝날 수 있어서다. 끝 복제가 안 오면 2초 뒤 스스로 끝낸다. Stream 은 시전자가 떼면(`InputReleased`) 끝낸다 — 서버는 판정을 한 번도 못 했으면 끝나기 전에 한 번 한다.
+   - Bolt · Cone · Beam 은 **서버가 판정 뒤 어빌리티를 끝낸다**(복제). 끝 복제가 안 오면 2초 뒤 스스로 끝낸다. Stream 은 시전자가 떼면(`InputReleased`) 끝낸다 — 서버는 판정을 한 번도 못 했으면 끝나기 전에 한 번 한다(`EndAbility` 안에서 아직 안 쐈으면 쏜다 — Bolt 도 같다).
+   - 예외: **기본 공격**은 원격 시전자가 가짜 볼트를 쏘자마자 끝낸다. 끝 RPC 는 조준(TargetData) RPC 뒤에 가므로 서버는 이미 쏠 수 있고, 판정 전에 끝이 오면 위의 「끝나기 전에 한 번」으로 나간다 — 연타 리듬(0.3초)이 왕복 지연에 묶이지 않게.
 4. 판정(서버, 시작점 · 방향은 시차 보정 `GrimSpellDelivery::ComputeLaunch` — 완드 끝 → 조준점, 2m 안은 가슴에서):
    - **Bolt**: `AGrimSpellProjectile` 스폰(복제 · 위치 복제). 지형 · 사물(WorldStatic/Dynamic)에 막히고 폰 · 물리체는 겹쳐 맞는다. 시전자는 무시. 수명 = `Range ÷ BoltSpeed`. 대상이 있으면 틱마다 `SteerTowards`(초당 `HomingStrength`°, 60° 넘게 빗나가면 안 휨). 맞으면 Impact 큐.
    - **Stream**: `StreamTickInterval` 마다 `TraceStreamArc` — 조준점을 지나는 낮은 호(`SolveLaunchDirection`)를 `StreamSegments` 구간으로 구 스윕, 첫 지형 · 사물에서 끝나고 그 자리 `StreamSplashRadius`(40cm) 안의 것도 맞는다(바닥의 양초를 낮게 스칠 때 바닥이 먼저 닿으므로). 걸린 대상마다 `StreamStimulusInterval` 에 한 번 자극 · 피해 · Impact 큐(처음 닿으면 바로). 틱마다 `ChannelManaPerSecond × 주기` 마나, 모자라면 끝. 시작 때 잡은 대상이 폰 조준에서 45° 안이면 계속 따라가고, 아니면 지금 시선으로.
@@ -109,6 +110,42 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
 
 - 콘솔 `Grim.Magic.Cast <마법 이름 일부> [대상 클래스|None] [누르는 초] [지연초]` — 로컬 플레이어가 원점에 가장 가까운 그 클래스 액터를 고정 조준해 시전(0.5초 뒤 누름). `Grim.Magic.Place <대상 클래스> <거리cm> [지연초]` — 서버가 원격 클라이언트 폰을 그 대상 −X 쪽에 두고 대상을 보게.
 - `Scripts/Integration/net_check_delivery.ps1` — 헤드리스 리슨 서버 + 클라이언트에서 원격 클라이언트가 불씨 → 먼 미풍 → 가까운 미풍 → 불씨 → 물줄기(1.5초)를 양초에 쏘고 양쪽 `Grim.Interaction.Dump` 를 비교한다. 결과 `Saved/NetCheck/delivery_*.log`.
+- 조작(실제 입력과 같은 길): `Grim.Input.Press <Basic|Slot1~4|Protego|Dodge> [대상 클래스|None] [누르는 초] [지연초] [횟수] [간격초]` · `Grim.Input.SlotSet <1부터> [지연초]` · `Grim.Input.Dump [지연초]`(플레이어마다 보이는 세트 · Spec 입력 태그 · 연타 번째). `Scripts/Integration/net_check_controls.ps1 [-Shift 60]` — 원격 클라이언트가 배우기 전 기본 공격 입력(= 주먹질) → 기본 공격 스킬북 읽기 → 슬롯 1(Bolt) → 기본 공격 4연타 → 슬롯 2(Stream) → 세트 2 의 빈 칸 → 세트 1 → 너무 빠른 연타를 하고 양쪽 로그를 비교한다. 결과 `Saved/NetCheck/controls_*.log`. 기기가 바빠 맵 로드가 늦으면 `-Shift` 로 시간표를 미룬다.
+
+## 조작 (Q29)
+
+> **M2 갈래 K** — 호그와트 레거시 배치를 그대로 따른다(키보드 · 마우스와 패드 둘 다). 근거 · 불확실한 짝은 [레퍼런스 — 조작](../spec/references#호그와트-레거시-—-조작-q29).
+
+| 동작 | 키보드 · 마우스 | 패드 | 입력 에셋 → 태그 |
+|---|---|---|---|
+| 기본 공격 | 좌클릭 | R2/RT **짧게**(0.2초 안에 뗌 — `Tap`) | `IA_BasicAttack` · `IA_BasicAttackPad` → `Input.Spell.BasicAttack` |
+| 지금 세트 슬롯 1~4 바로 시전 | 1 ~ 4 | R2/RT **누른 채** Y · B · A · X (△ · ○ · ✕ · □) | `IA_SpellSlot1~4` · `IA_SpellSlotPad1~4`(`IA_SpellSetHold` Chord) → `Input.Spell.Slot1~4` |
+| 세트 고르기 | F1 ~ F4(UI 갈래 `IA_SpellSet1~4`) | R2/RT 누른 채 십자키 ↑ → ↓ ← | `IA_SpellSetPad1~4`(Chord) → `RequestSlotSet` |
+| 다음 · 이전 세트(보조) | 마우스 휠 | — | `IA_SpellSetNext/Prev` → `CycleSlotSet`(`bMouseWheelCyclesSets`) |
+| 방어(Protego 자리) | Q | Y/△ | `IA_Protego` → `Input.Action.Protego` — **자리만**(어빌리티 없음) |
+| 회피 구르기 | 왼쪽 Ctrl | B/○ | `IA_Dodge` → `Input.Action.Dodge` — **자리만** |
+| 점프 | Space | A/✕ | 템플릿 `IA_Jump` |
+
+- 키는 `Content/Grimoire/Input` 의 `IMC_Spell`(`Scripts/Character/make_input.py` — 패드 칸 · 세트 순서는 `PAD_SLOT_KEYS` · `PAD_SET_KEYS`). 트리거는 액션에 둔다: 패드 기본 공격 = `Tap`(0.2초), 패드 슬롯 · 세트 = `ChordAction(IA_SpellSetHold)`, 나머지는 트리거 없음(누름 = Started, 뗌 = Completed — 물줄기가 뗌을 받는다). 조준 입력(`IA_LockOn` · `IA_AimZoom` · `IMC_Targeting`)은 그대로.
+- **세트 활성(패드)**: `IA_SpellSetHold`(R2/RT) 를 누르는 동안 캐릭터의 `bSpellSetHeld` — 얼굴 버튼은 슬롯이 되고 점프 · 방어 · 회피로 가지 않는다(C++ 에서 거른다). 누른 사이 슬롯 · 세트를 썼으면 뗄 때의 Tap 은 기본 공격으로 치지 않는다. HUD 는 그동안 슬롯 테두리를 밝힌다.
+- **슬롯 입력 태그(서버)**: `GrimSpellSlotInput::RefreshSlotInputTags(ASC, 마법서)` — Spec 마다 `FGrimSpellSlotInputMath::ComputeInputTag`(기본 공격 → `BasicAttack`, 지금 세트 칸 i → `Slot(i+1)`, 아니면 없음)를 붙이고 관리 태그(슬롯 1~4 · 기본 공격)만 지운다. 바뀐 Spec 만 `MarkAbilitySpecDirty` → 소유 클라이언트로 복제되어 예측 발동도 같은 마법을 고른다. 부르는 곳: 캐릭터가 마법서 `OnSelectedSpellChanged`(배움 · 슬롯 배치)를 받을 때, 그리고 틱마다 `ActiveSlotSet` 이 바뀌었는지 보고(세트는 OnRep 이 없어 캐릭터가 본다). 세트를 바꾼 직후 태그가 복제되기 전(왕복 지연)의 누름은 앞 세트 마법이 나갈 수 있다.
+- 옛 방식(「선택된 마법만 `Input.Spell.Cast`」 · 휠 = 다음/이전 마법)은 입력에서 뺐다. 마법서의 `SelectSpell` · `UGrimSpellSelectAbility`(`Input.Spell.Next/Prev`)는 남아 있지만 그 태그를 보내는 입력이 없다 — 그리모어 화면의 「지금 마법」 고르기에만 쓰인다(마법서 · UI 갈래 몫, 정리는 통합 때).
+- 그리모어 책 촤르륵(R21)은 이제 **세트를 바꿀 때** — 캐릭터가 세트 변경을 보고 `FlipTo(세트, 그 세트 첫 마법 색)`(모든 기기, 세트는 복제된다).
+- 설정 `[/Script/Grimoire.GrimSpellInputSettings]`: HUD 키 글자 `KeyboardSlotLabels`(1~4) · `GamepadSlotLabels`(RT+Y · RT+B · RT+A · RT+X) · `KeyboardBasicAttackLabel`(좌클릭) · `GamepadBasicAttackLabel`(RT) · `LabelSeparator` · `bMouseWheelCyclesSets`.
+
+## 기본 공격 (R26)
+
+> **M2 갈래 K** — 정의 `DA_Spell_BasicAttack`(`Scripts/Magic/make_basic_attack.py`), 어빌리티 `UGrimBasicAttackAbility`(`UGrimSpellAbility` 자식), 볼트 `AGrimBasicAttackProjectile`, 대신 나가는 주먹질 `UGrimFistAbility`. 표시 이름은 데이터(정의의 `DisplayName`) — 코드는 이름을 모른다.
+
+- **정의**: 표시 이름 「기본 공격」(데이터), `Spell.BasicAttack`, 무속성 `Element.None`(자극도 무속성 — 반응 규칙표 · 상성표에 행이 없어 사물엔 「충격」만, 속성 상태는 그대로), 1서클, Bolt(반지름 8 · 사거리 25m · 9000cm/s · 유도 60°/s), 마나 0 · 쿨다운 0(쿨다운 태그 없음), `CastWindup` 0, 피해 5, `bTracksProficiency = false`(그리모어 맨 앞 「기본」, 슬롯에 안 들어감, 숙련도 없음), 연출 `VS_BasicAttack`(옅은 하늘빛 `#CFE3FF`, 책장 0.15초).
+- **스킬북으로 배운다**(사용자 스펙 변경, 2026-11-05): 시작 지급이 아니라 튜토리얼 첫 단계의 「기본 공격 스킬북」(`AGrimSkillbook::TeachesSpell = DA_Spell_BasicAttack`) — 보통 스킬북과 같은 `UseSkillbook` 길(1서클, 숙련도 없음 → 배우면 끝, 다시 읽으면 「이미 앎」). `UGrimBasicAttackSettings::BasicAttackSpell` 은 그 정의가 무엇인지 알려 주는 자리(튜토리얼 · 테스트가 읽는다).
+- **연타 리듬**: 한 발 사이 `AttackInterval`(0.3초). 쿨다운이 아니라 `CanActivateAbility` 가 인스턴스의 마지막 발 시각으로 막는다 — 시전자는 그대로, 서버는 원격 시전자에게 `ServerIntervalTolerance`(0.08초)를 봐준다(거절되면 `[Server] 기본 공격 거절` 로그).
+- **4연타 강타**: 첫 발부터 `ComboWindow`(1.5초) 안에 이어 친 `ComboLength`(4) 번째가 강타 — 피해 × `HeavyDamageMultiplier`(3), 볼트 크기 × `HeavyBoltScale`(1.6, 모두에게), 맞은 대상 밀어냄(캐릭터 `LaunchCharacter` 수평 900 · 위 250cm/s, 물리 사물 속도 변화 600cm/s, 플레이어끼리는 아군 피해 설정을 따름). 창을 넘기거나 강타 뒤면 1번째부터. 서버와 시전자가 **각자 시계로 같은 규칙**을 센다 — 판정 · 피해는 서버 값, 시전자 값은 가짜 볼트 크기 · HUD 「n/4」에만(`FGrimBasicAttackMath`).
+- **조준 · 책**: 부모 그대로(소프트 락온 쪽으로 휨, 줌인 조준이면 곧게, Cast 큐 → 책장 한 장 · 무속성 문양 · 튕기기 동작).
+- **주먹질 `UGrimFistAbility`(Q4, 임시)**: 기본 공격을 **아직 배우지 않았거나 완드가 없을 때**(부러진 완드 포함 — 내구도 M4 가 생기면 「완드 없음」으로 친다) 같은 입력(`Input.Spell.BasicAttack`)이 주먹질이 된다. 마법 정의가 없는 어빌리티라 캐릭터가 서버에서 한 번 준다(`EnsureGranted`, 태그 관리 밖). 기본 공격 Spec(그 입력 태그를 가진 마법)이 있고 완드가 있으면 `CanActivate` 가 물러나고, 기본 공격은 완드가 없으면 부모 검사로 막힌다 — 둘 중 하나만 나간다. 서버가 앞쪽 `FistRange`(130cm) · 반지름 `FistRadius`(35cm) 구 스윕, 받는 쪽 · ASC 가 있는 첫 대상에 피해 `FistDamage`(3, 플레이어끼리는 아군 피해 설정) · 무속성 자극 `FistStimulusIntensity`(0.5). 리듬은 같은 `AttackInterval`, 강타 · 동작 · 책장 · 이펙트 없음.
+- 부모에 더한 고리(최소): `UGrimSpellAbility::MakeDamageSpec` 을 virtual 로, `OnSpellProjectileSpawning`(FinishSpawning 직전 — 진짜 · 가짜), `AGrimSpellProjectile::HandleHit` 을 virtual 로.
+- 설정 `[/Script/Grimoire.GrimBasicAttackSettings]`: `BasicAttackSpell` · `AttackInterval` · `ServerIntervalTolerance` · `ComboWindow` · `ComboLength` · `HeavyDamageMultiplier` · `HeavyKnockbackSpeed` · `HeavyKnockbackUpSpeed` · `HeavyPhysicsSpeed` · `HeavyBoltScale` · `FistRange` · `FistRadius` · `FistDamage` · `FistStimulusIntensity`.
+- 테스트: `Grimoire.Input.SlotMath` · `.Labels` · `.SpecTags`(주먹질 한 번 지급 · 기본 공격 스킬북으로 배움 · 마법서 · ASC 로 세트를 바꾸며 태그가 옮겨 붙음), `Grimoire.Magic.BasicAttack.Rhythm` · `.Combo` · `.Definition`(에셋 값).
 
 ## 마법서 `UGrimSpellbookComponent`
 
@@ -119,7 +156,7 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
   - `KeepRelativeTransform` 을 쓰면 안 된다 — 스폰한 월드 좌표가 그대로 손 기준 오프셋이 되어 완드가 몸에서 떨어진다(M1 통합 때 실제로 난 버그).
 - `LearnSpell(Spell)` — 서클 확인 → `GiveAbility(SourceObject = Spell)` → `KnownSpells` 에 추가(복제) → 숙련도 칸 · 첫 빈 단축 슬롯. 첫 마법이면 선택. 스킬북은 `UseSkillbook`([스킬북](#스킬북-·-배우기)).
 - `Server_SelectSpell(i)` — 그리모어 화면에서 고르기. 숙련도 · 단축 슬롯은 [숙련도](#숙련도-q26) · [UI](#ui).
-- `CycleSelection(±1)` · `SelectSpell(i)` — 선택 Spec 에만 `Input.Spell.Cast` 를 넣고 바뀐 Spec 을 `MarkAbilitySpecDirty`. `SelectedIndex` 복제, `OnSelectedSpellChanged`(서버 · 클라이언트) 로 HUD 갱신.
+- `CycleSelection(±1)` · `SelectSpell(i)` — 선택 Spec 에만 `Input.Spell.Cast` 를 넣고 바뀐 Spec 을 `MarkAbilitySpecDirty`. `SelectedIndex` 복제, `OnSelectedSpellChanged`(서버 · 클라이언트) 로 HUD 갱신. **M2 갈래 K 부터 이 태그 · `Input.Spell.Next/Prev` 를 보내는 입력은 없다** — 시전은 슬롯 입력 태그([조작](#조작-q29)).
 - `UGrimSpellSelectAbility` 는 ServerOnly — 입력은 클라이언트, 선택 변경은 서버, 결과는 복제.
 
 ## 숙련도 (Q26)
@@ -466,7 +503,7 @@ M1 규칙(11행 — 원본은 CSV):
 | 클래스 | 하는 일 |
 |---|---|
 | `UGrimUISubsystem` | `ULocalPlayerSubsystem`. 0.25초마다 로컬 컨트롤러가 바뀌었는지 보고, 바뀌면 HUD 를 띄우고 **Enhanced Input 에 `IMC_UI` 를 더하고 자기 입력 컴포넌트를 컨트롤러 입력 스택에 올린다** — 컨트롤러 · 캐릭터 파일을 고치지 않는다. 그리지 못하는 프로세스(`-nullrhi` · 전용 서버)는 위젯을 만들지 않는다 |
-| `UGrimHUDWidget` | 왼쪽 아래: 서클 · 호칭 + 막대들. 가운데 아래: **기본 공격 자리(R26)** + **지금 세트의 단축 슬롯 4칸**(속성색 · 선택 테두리 · 쿨다운 막과 초 · 숙련도 등급 글자, S 는 금색). 위: 알림(등급 오름 · 배움 · 스킬북 · 승급). 가운데 아래 위: 스킬북 곁이면 안내(배운다 / 숙련도 / 이미 통달 / 서클 모자람) |
+| `UGrimHUDWidget` | 왼쪽 아래: 서클 · 호칭 + 막대들. 가운데 아래: **기본 공격 자리(R26 — 연타 「n/4」)** + **지금 세트의 단축 슬롯 4칸**(키 글자 · 속성색 · 패드 세트 활성 테두리 · 쿨다운 막과 초 · 숙련도 등급 글자, S 는 금색). 위: 알림(등급 오름 · 배움 · 스킬북 · 승급). 가운데 아래 위: 스킬북 곁이면 안내(배운다 / 숙련도 / 이미 통달 / 서클 모자람) |
 | `UGrimGrimoireWidget` | 그리모어 화면 — 탭 셋. **마법**: 완드 보정(마나 절약 · 시전 속도), 단축 슬롯 배치(세트 버튼 → 마법 줄 누르기 → 칸 누르기, 같은 마법 칸을 누르면 비움), 속성 필터(전체 + 설정의 속성), 목록(숙련도 없는 항목 「기본」 → 서클별 머리 「1서클 — 견습」 → 배운 순서). 줄마다 속성색 띠 · 이름 · 속성 · 서클 · 등급 글자(없으면 「—」) · 등급 이름 · 다음 등급 막대 · 경험 · 실제 마나/쿨타임(완드 · 숙련도 반영) · 「지금 마법」. S 는 금테. 줄을 누르면 그 마법을 고른다(`Server_SelectSpell`). **성장 트리** · **도감**: 빈 자리(다음 묶음) |
 | `UGrimIdButton` | 자기 번호를 알리는 버튼(목록 · 필터 · 탭 · 슬롯) |
 | `FGrimUIMath` | 순수 계산: 막대 비율 · 어트리뷰트 이름 나누기 · 쿨다운 비율/글 · 속성 필터 · 그리모어 순서 · 슬롯 배치 · 등급 글자 |
@@ -476,8 +513,8 @@ M1 규칙(11행 — 원본은 CSV):
 - 막대(`VitalBars`): HP(Health/MaxHealth) · 마나(Mana/MaxMana) · 배고픔(Hunger/MaxHunger, 없으면 100) · 체온(BodyTemperature, 30~44°C) · 피곤함(Fatigue/MaxFatigue). **어트리뷰트를 이름으로 읽고 없으면 그 줄을 숨긴다**(1초마다 다시 찾는다) — 생존 갈래가 `Fatigue` 를 만들면 저절로 나타난다. 생존 값은 읽기만 한다.
 - 기존 생존 디버그 글(`grim.Survival.ShowDebug`)은 지우지 않았다. HUD 를 띄우면 `bHideSurvivalDebugWithHUD` 로 0 으로 바꾸고, 콘솔 `grim.Survival.ShowDebug 1` 로 다시 켠다.
 - 단축 슬롯(호그와트 레거시 — 4칸 세트 여러 개): 데이터는 마법서 `SlotSpells`(세트 × 칸, 모두에게 복제) · `ActiveSlotSet`, 수는 `[/Script/Grimoire.GrimSpellbookSettings] SpellSlotsPerSet`(4) · `SpellSlotSets`(4) · `bAutoAssignSlots`(새로 배운 마법을 첫 빈 칸에). 같은 마법은 한 칸에만. 서버 `AssignSlot` · `SetActiveSlotSet`, 클라이언트 `Server_AssignSlot` · `Server_SetActiveSlotSet`. 숙련도 없는 항목은 슬롯에 넣지 않고 HUD 의 기본 공격 자리에(`bSeparateBasicAttackSlot`).
-  - **슬롯으로 시전하기(1~4 키 · 패드 R2 + 얼굴 버튼)는 아직 없다** — 시전 입력은 캐릭터 쪽이고 Q29(조작 배치) 결정 뒤. 지금 시전은 여전히 「선택된 마법」(휠 · 그리모어에서 고르기).
-- 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 PC 배치): `IA_ToggleGrimoire` = Tab · 패드 View(`Gamepad_Special_Left`), `IA_SpellSet1~4` = F1~F4(패드 세트 바꾸기는 Q29 뒤). 컨텍스트 `IMC_UI`(우선순위 1).
+  - **슬롯 바로 시전(1~4 키 · 패드 R2 + 얼굴 버튼)** · 패드 세트 고르기(R2 + 십자키)는 M2 갈래 K — [조작](#조작-q29). HUD 칸마다 키 글자(「1 · RT+Y」, 기본 공격 「좌클릭 · RT」), 패드 세트 활성 중엔 테두리가 밝고, 기본 공격 칸의 등급 자리에 연타 번째(「2/4」).
+- 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 PC 배치): `IA_ToggleGrimoire` = Tab · 패드 View(`Gamepad_Special_Left`), `IA_SpellSet1~4` = F1~F4(패드 세트 고르기는 캐릭터의 `IMC_Spell`). 컨텍스트 `IMC_UI`(우선순위 1). 호그와트는 마법 배치 메뉴가 T · 십자키 →, Tab 은 도구 휠, View 는 지도다 — 다르다([레퍼런스](../spec/references#호그와트-레거시-—-조작-q29), 통합 때 판단).
 - 그리모어가 열리면 Game+UI 입력 · 마우스 커서 · 시점 고정(`SetIgnoreLookInput`), 키는 게임으로 계속 가서 같은 키로 닫는다. 왼손 책이 다가오는 연출(스펙 「제안」)은 연출 쪽 몫.
 - 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.SlotSet <1부터>`.
 - 테스트 `Grimoire.UI.*`: `BarFraction`(쿨다운 글 포함) · `AttributeName`(실제 ASC 에서 이름으로 찾기) · `ElementFilter` · `GrimoireOrder` · `SlotLayout` · `Settings`(ini 값).

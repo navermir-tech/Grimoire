@@ -55,7 +55,8 @@ protected:
 	UFUNCTION()
 	void OnProjectileStop(const FHitResult& ImpactResult);
 
-	void HandleHit(AActor* HitActor, const FHitResult& Hit, bool bHasHitResult);
+	/** 서버: 맞음 처리. 자식(기본 공격 강타)이 앞에 밀어냄을 더한다. */
+	virtual void HandleHit(AActor* HitActor, const FHitResult& Hit, bool bHasHitResult);
 
 	/** 정의에 맞춰 크기 · 속도 · 색 · 유도를 맞춘다(서버 · 클라이언트). */
 	void ApplyDefinitionVisuals();

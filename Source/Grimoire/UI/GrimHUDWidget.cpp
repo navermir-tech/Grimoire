@@ -2,8 +2,12 @@
 #include "UI/GrimUIData.h"
 #include "UI/GrimUIMath.h"
 #include "UI/GrimUISettings.h"
+#include "Character/GrimPlayerCharacter.h"
+#include "Magic/GrimBasicAttackAbility.h"
+#include "Magic/GrimBasicAttackTypes.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimProficiencySettings.h"
+#include "Magic/GrimSpellSlotInput.h"
 #include "Magic/GrimProgressionComponent.h"
 #include "Magic/GrimSkillbook.h"
 #include "Magic/GrimSpellDefinition.h"
@@ -99,15 +103,17 @@ void UGrimHUDWidget::BuildTree()
 	UHorizontalBox* SlotRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	SlotColumn->AddChildToVerticalBox(SlotRow);
 
+	// 키 글자(호그와트 배치 — 키보드 · 패드, 아이콘 대신 글자): UGrimSpellInputSettings
+	const UGrimSpellInputSettings* InputSettings = UGrimSpellInputSettings::Get();
 	if (Settings->bSeparateBasicAttackSlot)
 	{
-		BasicSlot = MakeSlot(LOCTEXT("BasicKey", "기본"));
+		BasicSlot = MakeSlot(FText::FromString(InputSettings->GetBasicAttackLabel()));
 		SlotRow->AddChildToHorizontalBox(BasicSlot.Root)->SetPadding(FMargin(0.f, 0.f, 14.f, 0.f));
 		BasicSlot.Root->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	for (int32 Index = 0; Index < UGrimSpellbookSettings::Get()->SpellSlotsPerSet; ++Index)
 	{
-		FSlotWidgets SlotW = MakeSlot(FText::AsNumber(Index + 1));
+		FSlotWidgets SlotW = MakeSlot(FText::FromString(InputSettings->GetSlotLabel(Index)));
 		SlotRow->AddChildToHorizontalBox(SlotW.Root)->SetPadding(FMargin(3.f, 0.f));
 		Slots.Add(SlotW);
 	}
@@ -144,11 +150,11 @@ UGrimHUDWidget::FSlotWidgets UGrimHUDWidget::MakeSlot(const FText& KeyLabel)
 	NameSlot->SetHorizontalAlignment(HAlign_Center);
 	NameSlot->SetVerticalAlignment(VAlign_Center);
 
-	SlotW.Key = GrimUIData::MakeText(WidgetTree, KeyLabel, 9, FLinearColor(0.85f, 0.85f, 0.85f));
+	SlotW.Key = GrimUIData::MakeText(WidgetTree, KeyLabel, 8, FLinearColor(0.85f, 0.85f, 0.85f));
 	UOverlaySlot* KeySlot = Overlay->AddChildToOverlay(SlotW.Key);
 	KeySlot->SetHorizontalAlignment(HAlign_Left);
 	KeySlot->SetVerticalAlignment(VAlign_Top);
-	KeySlot->SetPadding(FMargin(4.f, 2.f));
+	KeySlot->SetPadding(FMargin(3.f, 1.f));
 
 	SlotW.Grade = GrimUIData::MakeText(WidgetTree, FText::GetEmpty(), 13, FLinearColor::White, true);
 	UOverlaySlot* GradeSlot = Overlay->AddChildToOverlay(SlotW.Grade);
@@ -355,7 +361,6 @@ void UGrimHUDWidget::RefreshSlots(UAbilitySystemComponent* ASC, const UGrimSpell
 			SlotKnown.Add(Spell ? Known.IndexOfByKey(Spell) : INDEX_NONE);
 		}
 	}
-	const int32 Selected = Spellbook ? Spellbook->GetSelectedIndex() : INDEX_NONE;
 	const FGrimSlotLayout Layout = FGrimUIMath::ComputeSlotLayout(SlotKnown, Tracked, Spellbook ? Spellbook->GetActiveSlotSet() : 0,
 		SlotSettings->SpellSlotsPerSet, SlotSettings->SpellSlotSets, Settings->bSeparateBasicAttackSlot);
 
@@ -364,10 +369,13 @@ void UGrimHUDWidget::RefreshSlots(UAbilitySystemComponent* ASC, const UGrimSpell
 		return Spellbook && Spellbook->GetKnownSpells().IsValidIndex(Index) ? Spellbook->GetKnownSpells()[Index].Get() : nullptr;
 	};
 
+	// 고른 마법 하나만 시전하던 방식은 없어졌다(슬롯 바로 시전) — 패드에서 세트를 활성(R2/RT 누름)하면 칸 테두리가 밝아진다.
+	const AGrimPlayerCharacter* Character = Cast<AGrimPlayerCharacter>(GetOwningPlayerPawn());
+	const bool bSetHeld = Character && Character->IsSpellSetHeld();
 	for (int32 SlotIndex = 0; SlotIndex < Slots.Num(); ++SlotIndex)
 	{
 		const int32 SpellIndex = Layout.Slots.IsValidIndex(SlotIndex) ? Layout.Slots[SlotIndex] : INDEX_NONE;
-		FillSlot(Slots[SlotIndex], ASC, Spellbook, SpellAt(SpellIndex), SpellIndex != INDEX_NONE && SpellIndex == Selected);
+		FillSlot(Slots[SlotIndex], ASC, Spellbook, SpellAt(SpellIndex), bSetHeld && SpellIndex != INDEX_NONE);
 	}
 
 	if (BasicSlot.Root)
@@ -376,7 +384,12 @@ void UGrimHUDWidget::RefreshSlots(UAbilitySystemComponent* ASC, const UGrimSpell
 		BasicSlot.Root->SetVisibility(Basic ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		if (Basic)
 		{
-			FillSlot(BasicSlot, ASC, Spellbook, Basic, Layout.BasicIndex == Selected);
+			FillSlot(BasicSlot, ASC, Spellbook, Basic, false);
+			// 연타(R26): 이어 친 번째 「2/4」 — 숙련도 글자 자리(기본 공격은 숙련도가 없다).
+			const int32 Step = UGrimBasicAttackAbility::GetVisibleComboStep(ASC);
+			BasicSlot.Grade->SetText(Step > 0
+				? FText::Format(LOCTEXT("ComboStep", "{0}/{1}"), Step, UGrimBasicAttackSettings::Get()->ComboLength)
+				: FText::GetEmpty());
 		}
 	}
 

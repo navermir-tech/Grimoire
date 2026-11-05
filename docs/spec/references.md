@@ -83,9 +83,42 @@
 | 성격 | 피해가 작은 원거리 공격, **쿨타임 없음** |
 | 연타 | R2 를 연달아 누르면 볼트가 나가고, **네 번째**가 훨씬 세며 적을 밀어낸다 |
 | 쓰임 | 공중에 띄운 적에게 기본 시전을 이어 넣는 콤보, 큰 마법 사이를 메움. 특성으로 기본 시전이 마법 쿨타임을 조금 줄이기도 한다 |
-| 버튼 | 패드 R2(PlayStation). 마법 슬롯 버튼은 출처가 엇갈림 — 확인 필요 |
+| 버튼 | 패드 R2(PlayStation) · RT(Xbox) · PC 좌클릭. 슬롯 마법은 R2 를 누른 채 얼굴 버튼 — 아래 「조작」 |
 
 → 그리모리 적용: 고정 락온 = **R3 · Caps Lock 토글**, 고정 중 오른쪽 스틱 튕김 · 마우스로 전환, 카메라는 대상을 부드럽게 따라감(이 부분은 레퍼런스 자료가 없어 우리 안). 「카메라 기준 / 스틱 기준」 옵션도 따른다.
+
+## 호그와트 레거시 — 조작 (Q29)
+
+공식 조작 문서는 찾지 못했다. 공략 사이트 여러 곳(아래 출처)이 일치한 기본 배치다. 패드 표는 PlayStation 5 / Xbox Series 를 함께 적은 공략 기준이다. 사이트마다 틀린 줄이 조금씩 있어(같은 버튼이 두 동작에 적힌 표 등) 두 곳 이상이 맞는 것만 확정으로 둔다.
+
+| 동작 | PC (키보드 · 마우스) | PlayStation | Xbox | 그리모리 (M2 갈래 K) |
+|---|---|---|---|---|
+| 기본 시전 | 좌클릭 | R2 짧게 | RT 짧게 | **기본 공격** — `IA_BasicAttack`(좌클릭) · `IA_BasicAttackPad`(R2/RT, Tap 0.2초) |
+| 슬롯 마법 시전 | 숫자 1 ~ 4 | **R2 누른 채** △ · ○ · ✕ · □ | **RT 누른 채** Y · B · A · X | 같음 — `IA_SpellSlot1~4` · `IA_SpellSlotPad1~4`(R2/RT 를 Chord 로) |
+| 슬롯 세트 고르기 | F1 ~ F4 (5 ~ 8 도) | R2 누른 채 십자키 | RT 누른 채 십자키 | F1 ~ F4 = UI 갈래가 이미 같게 묶음 · 패드 `IA_SpellSetPad1~4` |
+| 다음 · 이전 세트 | 마우스 휠 | — | — | `IA_SpellSetNext/Prev`(보조, 끌 수 있음) |
+| 마법 배치 메뉴 | T | 십자키 → | 십자키 → | 그리모어 화면 = Tab · 패드 View (**다름** — 아래) |
+| Protego(누름 = 막기 · 길게 = Stupefy) | Q | △ | Y | `IA_Protego` — 입력 자리만(`Input.Action.Protego`) |
+| 회피 구르기 | Ctrl | ○ | B | `IA_Dodge` — 입력 자리만(`Input.Action.Dodge`) |
+| 상호작용 | F | □ | X | F(침대 — 생존 갈래). 패드 □/X 는 아직 없음 |
+| 점프 | Space | ✕ | A | 템플릿 `IA_Jump` 그대로(같음) |
+| 달리기 | 왼쪽 Shift | L3 | LS 누르기 | 없음(후속) |
+| 조준(줌인) | 우클릭 누름 | L2 | LT | `IA_AimZoom`(R24 — 이미) |
+| 고정 락온 | Caps Lock | R3 | RS 누르기 | `IA_LockOn`(Q17 — 이미) |
+| Revelio · 회복 · 나침반 | R · G · — | 십자키 ← · ↓ · ↑ | 십자키 ← · ↓ · ↑ | 없음 |
+| 고대 마법 · 던지기 | X · Z | L1 + R1 · R1 | LB + RB · RB | 없음 |
+| 도구(휠) | Tab | L1 | LB | 없음 |
+| 지도 · 필드 가이드 | M · Esc | 터치패드 · Options | View · Menu | — |
+
+**불확실** (공략에서 확인하지 못함 — 데이터만 바꾸면 된다, `Scripts/Character/make_input.py` 의 `PAD_SLOT_KEYS` · `PAD_SET_KEYS`):
+
+- 패드 **칸 번호 ↔ 얼굴 버튼** 짝. 공략은 「칸마다 얼굴 버튼 하나」까지만 적는다. 지금은 위에서 시계 방향 — 칸 1 = Y/△, 2 = B/○, 3 = A/✕, 4 = X/□.
+- 패드 **세트 ↔ 십자키 방향** 짝(세트 1 = ↑, 2 = →, 3 = ↓, 4 = ← 로 둠). 세트는 특성으로 늘어난다는 글만 있다.
+- R2 를 **눌렀다가 길게 쥐면** 기본 시전이 나가는지(우리는 0.2초 안에 떼야 기본 공격 — 세트 활성과 안 겹치게). 기본 시전을 눌러 바로 쏘는지 뗄 때 쏘는지 공략에 없다.
+- 마우스 휠 = 다음 · 이전 세트는 공략 한 곳만 적었다.
+- 한 공략이 R1(RB) 을 세트 활성 버튼으로 적었으나 나머지가 모두 R2(RT) — R2 로 본다.
+
+**호그와트와 다른 곳(갈래 K 소유 밖 — 통합 때 판단)**: 그리모리의 그리모어 화면(마법 목록 · 슬롯 배치)은 Tab · 패드 View 다(UI 갈래). 호그와트는 마법 배치 메뉴가 T · 십자키 →, Tab 은 도구 휠, View 는 지도다. 패드 십자키 → 는 R2 없이 누를 때만 메뉴가 되므로 세트 고르기(R2 + 십자키)와 함께 쓸 수 있다.
 
 ## 마법 이펙트 에셋 (Q20)
 
@@ -140,6 +173,7 @@
 - 호그와트 레거시 기본 시전: [MP1st 전투](https://mp1st.com/guides/hogwarts-legacy-advanced-combat-guide-optimizing-your-spell-usage) · [Fextralife Basic Cast](https://hogwartslegacy.wiki.fextralife.com/Basic+Cast)
 - 호그와트 레거시 조준: [GameSkinny 조작 목록](https://www.gameskinny.com/b7804/all-hogwarts-legacy-controls-list-for-pc-playstation-xbox) · [CyberPost 탈것 전투](https://cyberpost.co/?p=1207300)
 - 호그와트 레거시: [Fextralife 조작](https://hogwartslegacy.wiki.fextralife.com/Controls) · [Twinfinite](https://twinfinite.net/guides/how-to-lock-on-in-hogwarts-legacy/) · [GameSkinny 설정](https://www.gameskinny.com/tips/hogwarts-legacy-how-to-change-controller-settings-guide/) · [WB 접근성](https://portkeygamessupport.wbgames.com/hc/en-us/articles/11893402078355)
+- 호그와트 레거시 조작 배치(Q29, 2026-11-05): [Samurai Gamers PS5 · Xbox](https://samurai-gamers.com/hogwarts-legacy/game-controls-52/) · [Magic Game World PC](https://www.magicgameworld.com/hogwarts-legacy-pc-controls-keyboard-gamepad/) · [Shortcut Posters PC · 패드](https://shortcutposters.com/games/hogwarts-legacy/) · [Gamepressure](https://www.gamepressure.com/hogwarts-legacy/controls/z31085e) · [SegmentNext 세트 바꾸기](https://segmentnext.com/hogwarts-legacy-change-spells/) · [DiamondLobby 슬롯](https://diamondlobby.com/hogwarts-legacy/how-to-unlock-spell-slots-hl/)
 - 내구도: [팰월드 건축 피해 설정](https://xgamingserver.com/docs/palworld/structure-damage) · [팰월드 수리](https://vandal.elespanol.com/en/palworld/palworld-how-to-repair-weapons-armor-tools-and-base-structures.html) · [팰월드 수리대](https://gamewith.net/palworld/44330) · [인슈라오디드 수리](https://primagames.com/gaming/how-to-repair-weapons-and-tools-in-enshrouded) · [Destructoid](https://destructoid.com/?p=454095)
 - 대규모 서버: [XGamingServer 최대 인원](https://xgamingserver.com/docs/palworld/max-players) · [Nodecraft](https://nodecraft.com/support/games/palworld/setup/how-to-change-the-max-players-on-a-palworld-server) · [FREAKHOSTING 길드 상한](https://help.freakhosting.com/games/palworld/increasing-the-32-player-limit-guild-limit) · [GeekChamp](https://geekchamp.com/how-to-play-palworld-with-more-than-32-players-on-a-server/)
 - 이펙트: [Niagara Examples Pack 발표](https://www.unrealengine.com/en-US/news/discover-over-50-free-niagara-systems-ready-to-use-in-unreal-engine-5-7) · [Fab 라이선스](https://dev.epicgames.com/documentation/en-us/fab/licenses-and-pricing-in-fab) · [Paragon](https://www.pcgamer.com/epic-has-released-dollar12-million-worth-of-paragon-assets-free-of-charge) · [Fab 격주 무료](https://www.cgchannel.com/2024/11/epic-games-to-share-new-free-assets-on-fab-every-two-weeks)

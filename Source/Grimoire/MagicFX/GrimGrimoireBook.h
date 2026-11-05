@@ -2,8 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "MagicFX/GrimMagicFXTypes.h"
 #include "GrimGrimoireBook.generated.h"
+
+class UStaticMesh;
 
 class UStaticMeshComponent;
 class UPointLightComponent;
@@ -27,9 +30,25 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	/** 한 장 넘긴다. 넘기는 면의 글자가 Color 로 번쩍인다. 넘기는 중이면 이어서 넘긴다(최대 몇 장 쌓임). */
+	/** 한 장 넘긴다. 넘기는 면의 글자가 Color 로 번쩍인다. 넘기는 중이면 이어서 넘긴다(최대 몇 장 쌓임). 문양은 마지막 시전의 것. */
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Book")
 	void FlipPage(FLinearColor Color);
+
+	/**
+	 * 시전 한 번에 한 장(R21 — 기본 공격 포함 모든 시전). 넘어간 면에 Element 의 속성 문양(UGrimBookSigilSettings)이 Color 로 번쩍인다.
+	 * FlipDurationOverride > 0 이면 이 장은 그 시간에 넘긴다(기본 공격 0.15초 — VisualSet 의 PageFlipDuration).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Book")
+	void FlipPageForSpell(FLinearColor Color, FGameplayTag Element, float FlipDurationOverride);
+
+	/** 지금 펼친(왼쪽) 면에 보이는 문양 번호(UGrimBookSigilSettings::Sigils). 아직 없으면 INDEX_NONE */
+	int32 GetShownSigilIndex() const { return LeftSigilIndex; }
+
+	/** 넘기는 판 뒷면에 실린 문양 번호(넘기는 중일 때). 없으면 INDEX_NONE */
+	int32 GetFlippingSigilIndex() const { return bFlipping ? CurrentFlipSigil : INDEX_NONE; }
+
+	/** 지금 넘기는 장의 시간 */
+	float GetCurrentFlipDuration() const { return CurrentFlipDuration; }
 
 	/** 마법 선택이 SlotIndex 로 바뀌었다 — 그 쪽까지 촤르륵 넘긴다(처음 한 번은 넘기지 않고 기억만). */
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Book")
@@ -66,6 +85,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	void StartNextFlip();
+	void QueueFlip(const FLinearColor& Color, float Duration);
+	/** 문양 조각을 SigilIndex 의 모양으로 놓는다. bFlipSide = 넘기는 판 뒷면(다 넘기면 왼쪽 면 자리와 겹친다) */
+	void ApplySigil(bool bFlipSide, int32 SigilIndex);
 	void TickFlip(float DeltaSeconds);
 	void TickStow(float DeltaSeconds);
 	void TickPlacement();
@@ -105,6 +127,22 @@ protected:
 	/** 펼친 면의 은은한 빛 */
 	UPROPERTY(VisibleAnywhere, Category = "Book")
 	TObjectPtr<UPointLightComponent> GlowLight;
+
+	/** 속성 문양 조각 — 왼쪽(펼친) 면 · 넘기는 판 뒷면. 엔진 기본 도형을 납작하게(UGrimBookSigilSettings) */
+	UPROPERTY(VisibleAnywhere, Category = "Book")
+	TArray<TObjectPtr<UStaticMeshComponent>> SigilLeftPieces;
+
+	UPROPERTY(VisibleAnywhere, Category = "Book")
+	TArray<TObjectPtr<UStaticMeshComponent>> SigilFlipPieces;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> SigilCubeMesh;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> SigilDiscMesh;
+
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> SigilTriangleMesh;
 
 	// ---- 수치 (블루프린트 자식에서 조정) ----
 
@@ -205,6 +243,19 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> PagesMaterial;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> SigilLeftMaterials;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> SigilFlipMaterials;
+
+	// 문양: 다음에 넘길 장 · 지금 넘기는 장 · 펼친 면
+	int32 PendingFlipSigil = INDEX_NONE;
+	int32 CurrentFlipSigil = INDEX_NONE;
+	int32 LeftSigilIndex = INDEX_NONE;
+	FLinearColor CurrentFlipColor = FLinearColor::White;
+	FLinearColor LeftSigilColor = FLinearColor::White;
 
 	float LocalTime = 0.f;
 

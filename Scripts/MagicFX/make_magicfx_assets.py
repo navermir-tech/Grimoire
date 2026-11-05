@@ -1,7 +1,7 @@
 # M1.5 갈래 C 「연출 · 동작」 에셋을 만든다 / 고친다. 값은 이 스크립트가 정본이다.
 #  - 머티리얼: M_GrimFX_Glow(색 펄스 · 줄기 구슬) · M_GrimFX_Book(그리모어) · M_GrimFX_Decal(그을음 · 젖음)
 #  - GameplayCue: GC_Spell_Cast · GC_Spell_Impact · GC_Spell_Channel (C++ 처리기의 블루프린트 자식)
-#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze (UGrimMagicFXVisualSet) — 이펙트는 엔진 기본 Niagara 템플릿(임시)
+#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 이펙트는 엔진 기본 Niagara 템플릿(임시)
 #  - 애님: ABP_GrimPlayer = 템플릿 ABP_Unarmed 복제 + 부모를 UGrimSpellPoseAnimInstance 로
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
@@ -330,6 +330,29 @@ def make_visual_sets(decal_mat):
         "stream_bead_count": 0,
     })
 
+    # 기본 공격(R26, M2 갈래 K) — 순수 마력(무속성): 옅은 하늘빛 흰색, 작은 섬광 · 작은 터짐 · 자국 없음. 튕기기(Bolt).
+    # 연타 리듬(0.3초)에 맞춰 책장 한 장을 0.15초에 넘긴다(spell-feel 「왼손 그리모어」).
+    make_visual_set("VS_BasicAttack", {
+        "element_color": srgb("#CFE3FF"),
+        "cast_motion": unreal.GrimCastMotion.AUTO,
+        "page_flip_duration": 0.15,
+        "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
+        "trail": load(FX_FOUNTAIN_LW),
+        "impact": load(FX_RADIAL_BURST),
+        "muzzle_flash_scale": 0.2,
+        "trail_scale": 0.2,
+        "impact_scale": 0.3,
+        "cast_sound": ping, "cast_sound_volume": 0.06, "cast_sound_pitch": 2.0,
+        "loop_sound": None,
+        "impact_sound": noise, "impact_sound_volume": 0.15, "impact_sound_pitch": 2.0, "impact_sound_duration": 0.08,
+        "camera_shake": shake, "camera_shake_scale": 0.4,
+        "muzzle_pulse": pulse(SHAPE.SPHERE, (3, 3, 3), (14, 14, 14), 0.08, 8.0, 0.0, 2000.0, 180.0),
+        "cast_wave": off,
+        "impact_pulse": pulse(SHAPE.SPHERE, (6, 6, 6), (40, 40, 40), 0.18, 6.0, 0.0, 2500.0, 250.0),
+        "impact_decal": no_decal,
+        "stream_bead_count": 0,
+    })
+
 
 # ---------------------------------------------------------------- 애님
 
@@ -358,16 +381,28 @@ def main():
         if not EAL.does_directory_exist(folder):
             EAL.make_directory(folder)
 
-    make_glow_material()
-    make_book_material()
-    decal_mat = make_decal_material()
+    # 일부만 다시 만들 때: 환경 변수 GRIM_FX_STEPS=visual_sets(쉼표로 여럿: materials · cues · visual_sets · anim). 비우면 전부.
+    steps = [s.strip() for s in os.environ.get("GRIM_FX_STEPS", "").split(",") if s.strip()]
 
-    make_cue("GC_Spell_Cast", unreal.GrimCueNotify_SpellCast)
-    make_cue("GC_Spell_Impact", unreal.GrimCueNotify_SpellImpact)
-    make_cue("GC_Spell_Channel", unreal.GrimCueNotify_SpellChannel)
+    def want(step):
+        return not steps or step in steps
 
-    make_visual_sets(decal_mat)
-    make_anim_blueprint()
+    if want("materials"):
+        make_glow_material()
+        make_book_material()
+        decal_mat = make_decal_material()
+    else:
+        decal_mat = load(MAT_DIR + "/M_GrimFX_Decal")
+
+    if want("cues"):
+        make_cue("GC_Spell_Cast", unreal.GrimCueNotify_SpellCast)
+        make_cue("GC_Spell_Impact", unreal.GrimCueNotify_SpellImpact)
+        make_cue("GC_Spell_Channel", unreal.GrimCueNotify_SpellChannel)
+
+    if want("visual_sets"):
+        make_visual_sets(decal_mat)
+    if want("anim"):
+        make_anim_blueprint()
 
     # 설정(DefaultGame.ini)이 이 에셋들을 가리키는지 — 설정 클래스는 파이썬에 노출되지 않아 이름으로 찾는다.
     try:

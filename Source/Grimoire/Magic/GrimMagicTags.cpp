@@ -18,4 +18,7 @@ namespace GrimMagicTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Spell_WaterJet, "Spell.WaterJet", "물줄기");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Spell_Breeze, "Spell.Breeze", "미풍");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Spell_Fireball, "Spell.Fireball", "화염구 (2서클, 스킬북)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Spell_BasicAttack, "Spell.BasicAttack", "기본 공격 (R26) — 그리모어 맨 앞, 숙련도 없음");
+
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Element_None, "Element.None", "무속성 — 순수 마력 (R22)");
 }

@@ -1,4 +1,5 @@
 #include "MagicFX/GrimGrimoireBook.h"
+#include "MagicFX/GrimBookSigils.h"
 #include "MagicFX/GrimMagicFXMath.h"
 #include "MagicFX/GrimMagicFXStatics.h"
 #include "MagicFX/GrimMagicFXTags.h"
@@ -84,6 +85,23 @@ AGrimGrimoireBook::AGrimGrimoireBook()
 	FlipPivot->SetRelativeLocation(FVector(0.f, 0.f, PagesTop + 0.15f));
 	FlipPageMesh = MakeBox(this, TEXT("FlipPage"), FlipPivot, Cube, FVector(0.f, HalfWidth * 0.5f - 0.2f, 0.f), FVector(PageHeight - 0.5f, HalfWidth - 0.8f, 0.2f));
 
+	// 속성 문양 조각(R21): 왼쪽 면 위에 한 벌, 넘기는 판 뒷면에 한 벌. 모양 · 자리는 시전 때 정한다(UGrimBookSigilSettings).
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylinderFinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConeFinder(TEXT("/Engine/BasicShapes/Cone.Cone"));
+	SigilCubeMesh = Cube;
+	SigilDiscMesh = CylinderFinder.Succeeded() ? CylinderFinder.Object.Get() : Cube;
+	SigilTriangleMesh = ConeFinder.Succeeded() ? ConeFinder.Object.Get() : Cube;
+	for (int32 Index = 0; Index < GrimBookSigilMath::MaxPieces; ++Index)
+	{
+		for (const bool bFlipSide : { false, true })
+		{
+			UStaticMeshComponent* Piece = MakeBox(this, *FString::Printf(TEXT("Sigil%s%d"), bFlipSide ? TEXT("Flip") : TEXT("Left"), Index),
+				bFlipSide ? FlipPivot.Get() : FloatPivot.Get(), Cube, FVector::ZeroVector, FVector(1.f));
+			Piece->SetVisibility(false);
+			(bFlipSide ? SigilFlipPieces : SigilLeftPieces).Add(Piece);
+		}
+	}
+
 	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
 	GlowLight->SetupAttachment(FloatPivot);
 	GlowLight->SetRelativeLocation(FVector(0.f, 0.f, 6.f));
@@ -107,6 +125,14 @@ void AGrimGrimoireBook::BeginPlay()
 		PagesRight->SetMaterial(0, PagesMaterial);
 	}
 	FlipPageMaterial = MakeBookMaterial(FlipPageMesh, Base, PageColor, IdleGlowColor, IdleGlow);
+	for (UStaticMeshComponent* Piece : SigilLeftPieces)
+	{
+		SigilLeftMaterials.Add(MakeBookMaterial(Piece, Base, FLinearColor::White, FLinearColor::White, 0.f));
+	}
+	for (UStaticMeshComponent* Piece : SigilFlipPieces)
+	{
+		SigilFlipMaterials.Add(MakeBookMaterial(Piece, Base, FLinearColor::White, FLinearColor::White, 0.f));
+	}
 
 	// 시작 위상을 책마다 달리해 두 사람의 책이 똑같이 오르내리지 않게 한다.
 	LocalTime = FMath::FRandRange(0.f, Float.BobPeriod);
@@ -150,17 +176,29 @@ void AGrimGrimoireBook::Tick(float DeltaSeconds)
 
 void AGrimGrimoireBook::FlipPage(FLinearColor Color)
 {
+	QueueFlip(Color, FlipDuration);
+}
+
+void AGrimGrimoireBook::FlipPageForSpell(FLinearColor Color, FGameplayTag Element, float FlipDurationOverride)
+{
+	const UGrimBookSigilSettings* Sigils = UGrimBookSigilSettings::Get();
+	PendingFlipSigil = GrimBookSigilMath::FindSigilIndex(Sigils->Sigils, Element.GetTagName(), Sigils->FallbackElement);
+	QueueFlip(Color, FlipDurationOverride > 0.f ? FlipDurationOverride : FlipDuration);
+}
+
+void AGrimGrimoireBook::QueueFlip(const FLinearColor& Color, float Duration)
+{
 	NotifyCombatActivity();
 	FlipColor = Color;
 	if (bFlipping)
 	{
 		// 앞으로 넘기기만 쌓는다(촤르륵 중이면 그 뒤에).
 		QueuedFlips = FMath::Clamp(FMath::Max(QueuedFlips, 0) + 1, 0, MaxQueuedFlips);
-		QueuedFlipDuration = FlipDuration;
+		QueuedFlipDuration = Duration;
 		return;
 	}
 	QueuedFlips = 1;
-	QueuedFlipDuration = FlipDuration;
+	QueuedFlipDuration = Duration;
 	StartNextFlip();
 }
 
@@ -177,6 +215,8 @@ void AGrimGrimoireBook::FlipTo(int32 SlotIndex, FLinearColor Color)
 	{
 		return;
 	}
+	// 세트 바꾸기의 촤르륵 장에는 문양을 싣지 않는다(펼친 면은 마지막 시전의 문양 그대로).
+	PendingFlipSigil = INDEX_NONE;
 	FlipColor = Color;
 	QueuedFlips = Count;
 	QueuedFlipDuration = GrimMagicFXMath::CalcRapidFlipDuration(Count, FlipToDuration, 0.04f, FlipDuration);
@@ -222,6 +262,53 @@ void AGrimGrimoireBook::StartNextFlip()
 	SinceGlowStart = 0.f;
 	bFlipping = true;
 	FlipPivot->SetRelativeRotation(GrimMagicFXMath::CalcFlipPageRotation(0.f, Direction));
+
+	// 앞으로 넘기는 장의 뒷면에 문양 — 다 넘기면 왼쪽 면에 남는다.
+	CurrentFlipSigil = Direction > 0 ? PendingFlipSigil : INDEX_NONE;
+	CurrentFlipColor = FlipColor;
+	ApplySigil(true, CurrentFlipSigil);
+}
+
+void AGrimGrimoireBook::ApplySigil(bool bFlipSide, int32 SigilIndex)
+{
+	const TArray<TObjectPtr<UStaticMeshComponent>>& Pieces = bFlipSide ? SigilFlipPieces : SigilLeftPieces;
+	const TArray<TObjectPtr<UMaterialInstanceDynamic>>& Materials = bFlipSide ? SigilFlipMaterials : SigilLeftMaterials;
+	const UGrimBookSigilSettings* Settings = UGrimBookSigilSettings::Get();
+	const FGrimBookSigil* Sigil = Settings->Sigils.IsValidIndex(SigilIndex) ? &Settings->Sigils[SigilIndex] : nullptr;
+
+	// 왼쪽 면 가운데. 다 넘긴 판(두께 0.2)이 그 위에 눕는 높이보다 살짝 위 — 넘긴 판 뒷면의 문양과 같은 자리.
+	const FTransform LeftFace(FQuat::Identity, FVector(0.f, -HalfWidth * 0.5f, PagesTop + 0.27f));
+	const FTransform Landed(GrimMagicFXMath::CalcFlipPageRotation(1.f, 1), FlipPivot->GetRelativeLocation());
+
+	for (int32 Index = 0; Index < Pieces.Num(); ++Index)
+	{
+		UStaticMeshComponent* Component = Pieces[Index];
+		if (!Component)
+		{
+			continue;
+		}
+		if (!Sigil || !Sigil->Pieces.IsValidIndex(Index))
+		{
+			Component->SetVisibility(false);
+			continue;
+		}
+		const FGrimSigilPiece& Piece = Sigil->Pieces[Index];
+		UStaticMesh* Mesh = Piece.Shape == EGrimSigilShape::Disc ? SigilDiscMesh.Get() : (Piece.Shape == EGrimSigilShape::Triangle ? SigilTriangleMesh.Get() : SigilCubeMesh.Get());
+		if (Component->GetStaticMesh() != Mesh)
+		{
+			Component->SetStaticMesh(Mesh);
+			if (Materials.IsValidIndex(Index) && Materials[Index])
+			{
+				Component->SetMaterial(0, Materials[Index]);
+			}
+		}
+		FTransform OnPage = GrimBookSigilMath::MakePieceTransform(Piece, Settings->PieceThickness);
+		// 겹치는 조각끼리 깜빡이지 않게 조금씩 띄운다.
+		OnPage.AddToTranslation(FVector(0.f, 0.f, 0.01f * Index));
+		const FTransform OnLeft = OnPage * LeftFace;
+		Component->SetRelativeTransform(bFlipSide ? OnLeft * Landed.Inverse() : OnLeft);
+		Component->SetVisibility(true);
+	}
 }
 
 void AGrimGrimoireBook::TickFlip(float DeltaSeconds)
@@ -250,8 +337,17 @@ void AGrimGrimoireBook::TickFlip(float DeltaSeconds)
 		if (FlipElapsed >= CurrentFlipDuration)
 		{
 			// 다 넘긴 판은 오른쪽 면으로 돌아가 다음 장이 된다(두 면이 같은 모양이라 티가 나지 않는다).
+			// 판 뒷면의 문양은 같은 자리의 왼쪽 면 문양이 이어받는다.
 			bFlipping = false;
 			FlipPivot->SetRelativeRotation(FQuat::Identity);
+			if (CurrentFlipSigil != INDEX_NONE)
+			{
+				LeftSigilIndex = CurrentFlipSigil;
+				LeftSigilColor = CurrentFlipColor;
+				ApplySigil(false, LeftSigilIndex);
+			}
+			CurrentFlipSigil = INDEX_NONE;
+			ApplySigil(true, INDEX_NONE);
 			StartNextFlip();
 		}
 	}
@@ -272,6 +368,28 @@ void AGrimGrimoireBook::ApplyGlow(float Glow, const FLinearColor& Color)
 	const float Visible = 1.f - StowAlpha;
 	GlowLight->SetLightColor(Emissive);
 	GlowLight->SetIntensity((IdleLightIntensity + FlipLightIntensity * Strength) * Visible);
+
+	// 문양: 그 마법 이펙트 색으로 번쩍였다가 은은하게 남는다.
+	const UGrimBookSigilSettings* Sigils = UGrimBookSigilSettings::Get();
+	const float SigilGlow = Sigils->IdleGlow + Glow * Sigils->FlashGlowScale;
+	for (UMaterialInstanceDynamic* Material : SigilFlipMaterials)
+	{
+		if (Material)
+		{
+			Material->SetVectorParameterValue(TEXT("Color"), CurrentFlipColor);
+			Material->SetVectorParameterValue(TEXT("EmissiveColor"), CurrentFlipColor);
+			Material->SetScalarParameterValue(TEXT("Glow"), SigilGlow);
+		}
+	}
+	for (UMaterialInstanceDynamic* Material : SigilLeftMaterials)
+	{
+		if (Material)
+		{
+			Material->SetVectorParameterValue(TEXT("Color"), LeftSigilColor);
+			Material->SetVectorParameterValue(TEXT("EmissiveColor"), LeftSigilColor);
+			Material->SetScalarParameterValue(TEXT("Glow"), SigilGlow);
+		}
+	}
 }
 
 // ---- 거두기 (Q25) ----
