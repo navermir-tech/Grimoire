@@ -37,7 +37,7 @@
 ### 접속
 
 - M3: `OnlineSubsystemNull` — 메인 메뉴에서 "서버 열기 / IP 로 참가 / LAN 찾기"(`FindSessions`).
-- Steam 출시 시 `OnlineSubsystemSteam`(또는 EOS)로 교체 — 세션 인터페이스는 같게 추상화(`UGrimSessionSubsystem`).
+- Steam 출시 시 `OnlineSubsystemSteam` + Steam Sockets(접속 중계 — 포트 포워딩 없음)로 교체(R32): 친구 초대(`SendSessionInviteToFriend` · 오버레이), 친구 목록 「게임 참가」(Rich Presence + `OnSessionUserInviteAccepted` · `OnJoinSessionComplete`), 세션 공개 범위(친구만 · 초대만 · 공개). EOS 는 크로스플랫폼이 필요해지면 — 세션 인터페이스는 같게 추상화(`UGrimSessionSubsystem`).
 - 플레이어 식별: `FUniqueNetId` → 저장용 `FGuid PlayerId` 매핑(Null 서브시스템에서는 로컬 생성 GUID 를 설정 파일에 보관).
 
 ### 서버 권위 규칙 (모든 시스템 공통)
