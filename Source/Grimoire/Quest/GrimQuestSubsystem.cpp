@@ -4,6 +4,7 @@
 #include "Quest/GrimQuestTypes.h"
 #include "Factions/GrimNoCombatVolume.h"
 #include "Factions/GrimTrialTarget.h"
+#include "Items/GrimItemStatics.h"
 #include "GameFramework/Pawn.h"
 #include "Core/GrimPlayerState.h"
 #include "Environment/GrimTimeOfDaySubsystem.h"
@@ -157,8 +158,9 @@ void UGrimQuestSubsystem::GiveItems(const TArray<FGrimQuestGive>& Gives, UGrimQu
 		const FGrimQuestGive& Give = Gives[Index];
 		if (Give.Kind == FGrimQuestGive::EKind::Item)
 		{
-			// TODO(M4): 인벤토리가 생기면 아이템 Give.Id 를 플레이어 가방에 넣는다.
-			UE_LOG(LogGrimQuest, Display, TEXT("[Server] 아이템 %s 지급 — 인벤토리(M4) 전이라 기록만"), *Give.Id.ToString());
+			// 플레이어 가방에 하나 넣는다(M3 갈래 I). 표에 없는 아이템(거점 핵 — M4)은 기록만.
+			const int32 Given = UGrimItemStatics::GiveItem(Quest ? Quest->GetOwner() : nullptr, Give.Id, 1);
+			UE_LOG(LogGrimQuest, Display, TEXT("[Server] 아이템 %s 지급 — %s"), *Give.Id.ToString(), Given > 0 ? TEXT("가방에 넣음") : TEXT("가방에 못 넣음(표에 없거나 가득) — 기록만"));
 			continue;
 		}
 

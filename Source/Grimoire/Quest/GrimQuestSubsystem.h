@@ -34,7 +34,7 @@ public:
 
 	/**
 	 * 서버: 줄 것을 놓는다 — 인벤토리(M4) 전이라 월드에: 스킬북(다가가면 읽힌다, 태그 Given_Skillbook_<ID>) · 침낭(태그 Given_Bedroll).
-	 * 아이템(Item:<ID>)은 TODO(M4) — 인벤토리가 생기면 거기에 넣는다(지금은 기록만).
+	 * 아이템(Item:<ID>)은 플레이어 가방에 하나(UGrimItemStatics::GiveItem — 표에 없으면 기록만).
 	 */
 	void GiveItems(const TArray<FGrimQuestGive>& Gives, UGrimQuestComponent* Quest);
 

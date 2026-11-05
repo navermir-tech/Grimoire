@@ -16,7 +16,7 @@ Tutorial_13,Tutorial,13,"소형 생물을 기본 공격으로 체력 30% 이하�
 Tutorial_14,Tutorial,14,"파크툼으로 소형 생물을 길들인다",0,"",None,""
 Tutorial_15,Tutorial,15,"배가 고프다 — 탑 북동쪽 주방으로 간다",0,"",None,""
 Tutorial_16,Tutorial,16,"플라미스로 아궁이에 불을 붙인다",0,"",None,""
-Tutorial_17,Tutorial,17,"받은 요리 재료와 고기를 아궁이에 넣어 요리를 완성한다",0,"",None,"Item:CookingIngredients"
+Tutorial_17,Tutorial,17,"받은 요리 재료와 고기를 아궁이에 넣어 요리를 완성한다",0,"",None,"Item:Herb|Item:Salt|Item:Grain"
 Tutorial_18,Tutorial,18,"요리를 먹는다",0,"",None,""
 Tutorial_19,Tutorial,19,"스승에게 간다",0,"",None,""
 Tutorial_20,Tutorial,20,"해가 졌다 — 앞마당 모닥불을 플라미스로 피운다",0,"Dusk+0.2",None,"Bedroll@Tut_CampSite"
