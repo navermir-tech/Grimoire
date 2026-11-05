@@ -1,0 +1,129 @@
+{
+  "_comment": "지형 1차(M3 갈래 W) 오픈 베타 지역 1 — 마법탑 · 온난 지대 레이아웃. 구조체 FGrimTerrainLayout(Source/Grimoire/World/GrimTerrainTypes.h)의 JSON. 지도 좌표(m): 남서 모서리 (0, 0), X = 동쪽, Y = 북쪽. 설명은 docs/systems/terrain.md",
+  "Seed": 3601,
+
+  "SectionQuads": 127,
+  "SectionsPerComponent": 2,
+  "ComponentsX": 8,
+  "ComponentsY": 16,
+  "QuadSize": 1.0,
+  "WorldOrigin": { "X": 1000, "Y": 380 },
+
+  "BaseHeight": 22,
+  "NorthRise": 16,
+  "NorthRiseStart": 600,
+  "NorthRiseEnd": 3600,
+  "NoiseAmplitude": 9,
+  "NoiseScale": 380,
+  "NoiseOctaves": 5,
+  "RollingAmplitude": 4,
+  "RollingScale": 150,
+  "DetailAmplitude": 0.5,
+  "DetailScale": 24,
+
+  "WestRidgeWidth": 230,
+  "WestRidgeHeight": 110,
+  "NorthRidgeWidth": 280,
+  "NorthRidgeHeight": 140,
+  "EastRidgeWidth": 150,
+  "EastRidgeHeight": 75,
+  "RidgeNoiseScale": 260,
+  "RidgeWobble": 0.5,
+
+  "SeaLevel": 0,
+  "SeaDepth": 25,
+  "SeaSlopeWidth": 180,
+  "CoastLine": 230,
+  "CoastWobble": 45,
+  "CoastWobbleScale": 420,
+  "CoastWidth": 120,
+  "HeadlandBulge": 70,
+  "HeadlandWidth": 160,
+  "CliffWidth": 55,
+
+  "TowerHill": { "Center": { "X": 1000, "Y": 380 }, "PlateauRadius": 45, "Radius": 230, "Height": 42, "Irregularity": 0.15 },
+
+  "Valley": {
+    "Name": "Valley",
+    "Points": [
+      { "X": 520, "Y": 3780 }, { "X": 650, "Y": 3450 }, { "X": 900, "Y": 3200 }, { "X": 1150, "Y": 3020 },
+      { "X": 1400, "Y": 2870 }, { "X": 1620, "Y": 2790 }, { "X": 1720, "Y": 2760 }
+    ],
+    "Width": 220, "Depth": 16, "BankWidth": 0, "WaterBelowGround": 0
+  },
+
+  "River": {
+    "Name": "BigRiver",
+    "Points": [
+      { "X": 1790, "Y": 4120 }, { "X": 1760, "Y": 3600 }, { "X": 1700, "Y": 3100 }, { "X": 1770, "Y": 2500 },
+      { "X": 1720, "Y": 1900 }, { "X": 1800, "Y": 1300 }, { "X": 1740, "Y": 700 }, { "X": 1800, "Y": 300 }, { "X": 1860, "Y": -60 }
+    ],
+    "Width": 70, "Depth": 5, "BankWidth": 70, "WaterBelowGround": 0
+  },
+
+  "Creeks": [
+    {
+      "Name": "Creek_Valley",
+      "Points": [
+        { "X": 540, "Y": 3740 }, { "X": 650, "Y": 3450 }, { "X": 900, "Y": 3200 }, { "X": 1150, "Y": 3020 },
+        { "X": 1400, "Y": 2870 }, { "X": 1620, "Y": 2790 }, { "X": 1735, "Y": 2762 }
+      ],
+      "Width": 5, "Depth": 0.8, "BankWidth": 5, "WaterBelowGround": 0.9
+    },
+    {
+      "Name": "Creek_Meadow",
+      "Points": [
+        { "X": 1228, "Y": 1345 }, { "X": 1400, "Y": 1310 }, { "X": 1560, "Y": 1240 }, { "X": 1795, "Y": 1215 }
+      ],
+      "Width": 4, "Depth": 0.6, "BankWidth": 4, "WaterBelowGround": 0.8
+    }
+  ],
+
+  "Ponds": [
+    { "Name": "Pond_TowerWest", "Center": { "X": 700, "Y": 520 }, "Radius": 38, "Depth": 3, "ShoreWidth": 14, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Meadow", "Center": { "X": 1180, "Y": 1350 }, "Radius": 45, "Depth": 3.5, "ShoreWidth": 14, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Reed", "Center": { "X": 760, "Y": 2000 }, "Radius": 32, "Depth": 2.5, "ShoreWidth": 12, "WaterBelowGround": 0.8 },
+    { "Name": "Pond_Upper", "Center": { "X": 1250, "Y": 3450 }, "Radius": 36, "Depth": 3, "ShoreWidth": 12, "WaterBelowGround": 0.8 }
+  ],
+
+  "Paths": [
+    {
+      "Name": "Path_TowerToValley",
+      "Points": [
+        { "X": 1000, "Y": 398 }, { "X": 1005, "Y": 520 }, { "X": 1040, "Y": 760 }, { "X": 1060, "Y": 1050 },
+        { "X": 1010, "Y": 1400 }, { "X": 930, "Y": 1800 }, { "X": 880, "Y": 2200 }, { "X": 870, "Y": 2600 },
+        { "X": 890, "Y": 2950 }, { "X": 920, "Y": 3150 }
+      ],
+      "Width": 4, "Depth": 0, "BankWidth": 0, "WaterBelowGround": 0
+    }
+  ],
+
+  "BaseSites": [
+    { "Name": "Base_EastMeadow", "Center": { "X": 1350, "Y": 900 }, "Radius": 28, "BlendWidth": 25 },
+    { "Name": "Base_WestMeadow", "Center": { "X": 640, "Y": 1550 }, "Radius": 28, "BlendWidth": 25 },
+    { "Name": "Base_Creekside", "Center": { "X": 1330, "Y": 2250 }, "Radius": 28, "BlendWidth": 25 },
+    { "Name": "Base_NorthMeadow", "Center": { "X": 1480, "Y": 3480 }, "Radius": 28, "BlendWidth": 25 }
+  ],
+
+  "Markers": [
+    { "Name": "Site_Tower", "Tag": "Terrain.Site.Tower", "Center": { "X": 1000, "Y": 380 }, "Radius": 45 },
+    { "Name": "Site_TowerYard", "Tag": "Terrain.Site.TowerYard", "Center": { "X": 1000, "Y": 408 }, "Radius": 20 },
+    { "Name": "Habitat_Jackalope", "Tag": "Habitat.Jackalope", "Center": { "X": 820, "Y": 1250 }, "Radius": 200 },
+    { "Name": "Habitat_Kelpie", "Tag": "Habitat.Kelpie", "Center": { "X": 1250, "Y": 1330 }, "Radius": 150 },
+    { "Name": "Habitat_BlackDog", "Tag": "Habitat.BlackDog", "Center": { "X": 900, "Y": 3210 }, "Radius": 230 }
+  ],
+
+  "ForestNoiseScale": 340,
+  "ForestThreshold": 0.18,
+  "TowerClearance": 40,
+  "Foliage": [
+    { "Name": "Tree", "DensityPerHa": 2.5, "ForestDensityPerHa": 70, "ValleyDensityPerHa": 0, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
+      "MaxSlopeDeg": 28, "MinHeight": 2, "MaxHeight": 120, "MinWaterDistance": 6, "MinPathDistance": 4, "MinScale": 0.8, "MaxScale": 1.4, "SinkCm": 10 },
+    { "Name": "DarkTree", "DensityPerHa": 0, "ForestDensityPerHa": 0, "ValleyDensityPerHa": 150, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
+      "MaxSlopeDeg": 38, "MinHeight": 1, "MaxHeight": 150, "MinWaterDistance": 4, "MinPathDistance": 4, "MinScale": 1.0, "MaxScale": 1.7, "SinkCm": 10 },
+    { "Name": "Bush", "DensityPerHa": 8, "ForestDensityPerHa": 25, "ValleyDensityPerHa": 40, "SteepDensityPerHa": 0, "SteepSlopeDeg": 30,
+      "MaxSlopeDeg": 32, "MinHeight": 1, "MaxHeight": 130, "MinWaterDistance": 2, "MinPathDistance": 2.5, "MinScale": 0.6, "MaxScale": 1.3, "SinkCm": 20 },
+    { "Name": "Rock", "DensityPerHa": 1.5, "ForestDensityPerHa": 1.5, "ValleyDensityPerHa": 4, "SteepDensityPerHa": 30, "SteepSlopeDeg": 32,
+      "MaxSlopeDeg": 70, "MinHeight": 0.3, "MaxHeight": 250, "MinWaterDistance": 1, "MinPathDistance": 3, "MinScale": 0.6, "MaxScale": 2.2, "SinkCm": 35 }
+  ]
+}
