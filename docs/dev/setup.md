@@ -32,6 +32,11 @@ Git LFS 가 설치돼 있으면 `.uasset` 등 바이너리 에셋도 함께 내�
 
 선택기의 `/fileassociations` 는 관리자 권한이 없으면 조용히 실패한다(종료 코드 1). Git Bash 에서 `reg add /v …` 를 부르면 `/v` 가 경로로 바뀌어 실패하므로 PowerShell 로 한다.
 
+## 플레이(PIE) 단축키
+
+- **플레이 종료: Ctrl+Esc** (보조 **Shift+Esc**). Esc 단독으로는 꺼지지 않는다 — 게임 안에서 Esc 를 메뉴 등에 쓰기 위해서다. 설정은 `Config/DefaultEditorSettings.ini` 의 `ProjectDefinedChords` 라 저장소를 받은 누구에게나 같다. Windows 가 Ctrl+Esc 를 시작 메뉴로 가로채면 Shift+Esc 를 쓴다.
+- 에디터 환경설정 → 키보드 단축키에서 직접 바꾼 값이 있으면 그쪽이 이긴다.
+
 ## Visual Studio 로 작업하기
 
 `Grimoire.uproject` 우클릭 → **Generate Visual Studio project files** → `Grimoire.sln`. 구성 `Development Editor` / `Win64`, 시작 프로젝트 `Grimoire`, F5.
