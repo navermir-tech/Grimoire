@@ -76,6 +76,15 @@
 | 대상 표시 | 아씨오 같은 마법은 겨눈 대상이 하얀 외곽선으로 빛날 때 쏜다 |
 | 탈것 · 빗자루 | 타고 있어도 시전할 수 있다는 글이 있다(그래폰 위 전투 등) — 근거가 적어 불확실 |
 
+**기본 시전 (R26 조사, 2026-11-05)** — 공략 사이트 기준.
+
+| 항목 | 호그와트 레거시 |
+|---|---|
+| 성격 | 피해가 작은 원거리 공격, **쿨타임 없음** |
+| 연타 | R2 를 연달아 누르면 볼트가 나가고, **네 번째**가 훨씬 세며 적을 밀어낸다 |
+| 쓰임 | 공중에 띄운 적에게 기본 시전을 이어 넣는 콤보, 큰 마법 사이를 메움. 특성으로 기본 시전이 마법 쿨타임을 조금 줄이기도 한다 |
+| 버튼 | 패드 R2(PlayStation). 마법 슬롯 버튼은 출처가 엇갈림 — 확인 필요 |
+
 → 그리모리 적용: 고정 락온 = **R3 · Caps Lock 토글**, 고정 중 오른쪽 스틱 튕김 · 마우스로 전환, 카메라는 대상을 부드럽게 따라감(이 부분은 레퍼런스 자료가 없어 우리 안). 「카메라 기준 / 스틱 기준」 옵션도 따른다.
 
 ## 마법 이펙트 에셋 (Q20)
@@ -120,6 +129,7 @@
 - 브이 라이징: [서버 설정](https://low.ms/knowledgebase/v-rising-server-configuration) · [공식 FAQ](https://guides.playvrising.com/hc/en-us/articles/28588823248029-Can-You-Transfer-Characters-or-Change-Servers-in-V-Rising)
 - 코난 엑자일: [공지](https://www.conanexiles.com/?p=21107)
 - 돈스타브 · 테라리아: [DST Wiki](https://dontstarve.wiki.gg/wiki/Day-Night_Cycle) · [Terraria Wiki](https://terraria.wiki.gg/wiki/Server)
+- 호그와트 레거시 기본 시전: [MP1st 전투](https://mp1st.com/guides/hogwarts-legacy-advanced-combat-guide-optimizing-your-spell-usage) · [Fextralife Basic Cast](https://hogwartslegacy.wiki.fextralife.com/Basic+Cast)
 - 호그와트 레거시 조준: [GameSkinny 조작 목록](https://www.gameskinny.com/b7804/all-hogwarts-legacy-controls-list-for-pc-playstation-xbox) · [CyberPost 탈것 전투](https://cyberpost.co/?p=1207300)
 - 호그와트 레거시: [Fextralife 조작](https://hogwartslegacy.wiki.fextralife.com/Controls) · [Twinfinite](https://twinfinite.net/guides/how-to-lock-on-in-hogwarts-legacy/) · [GameSkinny 설정](https://www.gameskinny.com/tips/hogwarts-legacy-how-to-change-controller-settings-guide/) · [WB 접근성](https://portkeygamessupport.wbgames.com/hc/en-us/articles/11893402078355)
 - 내구도: [팰월드 건축 피해 설정](https://xgamingserver.com/docs/palworld/structure-damage) · [팰월드 수리](https://vandal.elespanol.com/en/palworld/palworld-how-to-repair-weapons-armor-tools-and-base-structures.html) · [팰월드 수리대](https://gamewith.net/palworld/44330) · [인슈라오디드 수리](https://primagames.com/gaming/how-to-repair-weapons-and-tools-in-enshrouded) · [Destructoid](https://destructoid.com/?p=454095)
