@@ -73,8 +73,21 @@ struct GRIMOIRE_API FGrimElementColor
 	FColor Color = FColor::White;
 };
 
+/** 속성 상태 태그 → 줌인 조준 정보 글자 한 줄(예: State.Wet → 「젖음」) */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimStateLabel
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Zoom", meta = (Categories = "State"))
+	FGameplayTag State;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Zoom")
+	FText Label;
+};
+
 /**
- * 조준 · 소프트 락온 · 고정 락온 설정 (R17 · Q17 · Q18).
+ * 조준 · 소프트 락온 · 고정 락온 · 줌인 조준 설정 (R17 · R24 · Q17 · Q18).
  * 값은 DefaultGame.ini 의 [/Script/Grimoire.GrimTargetingSettings] 로 덮어쓴다.
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Grimoire Targeting"))
@@ -93,6 +106,14 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Options")
 	EGrimTargetingReference DefaultReference = EGrimTargetingReference::Camera;
+
+	/** 줌인 조준을 토글로(R24 옵션 「조준 누르기 / 토글」). 끄면 누르는 동안만 */
+	UPROPERTY(Config, EditAnywhere, Category = "Options")
+	bool bZoomAimToggleByDefault = false;
+
+	/** 줌인 조준 중 시점 감도 배율(평소 감도와 따로, R24 옵션) */
+	UPROPERTY(Config, EditAnywhere, Category = "Options", meta = (ClampMin = "0.05", ClampMax = "4"))
+	float ZoomLookSensitivityScale = 0.6f;
 
 	// --- 선정 ---
 
@@ -206,6 +227,54 @@ public:
 	/** 속성(Element.*) → 표식 색. 트레일 · 피격과 같은 속성색(spell-feel) */
 	UPROPERTY(Config, EditAnywhere, Category = "Marker")
 	TArray<FGrimElementColor> ElementColors;
+
+	// --- 줌인 조준 (R24) ---
+
+	/** 카메라가 어깨 쪽으로 당겨지고 돌아오는 시간(초) */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0", Units = "s"))
+	float ZoomBlendSeconds = 0.2f;
+
+	/** 줌 중 스프링암 길이(cm). 평소 값은 캐릭터의 것을 그대로 쓰고 떼면 되돌린다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0", Units = "cm"))
+	float ZoomTargetArmLength = 160.f;
+
+	/** 줌 중 스프링암 끝 오프셋(cm, 컨트롤 회전 기준: X 앞 · Y 오른쪽 · Z 위) — 오른쪽 어깨 너머 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom")
+	FVector ZoomSocketOffset = FVector(0.f, 55.f, 50.f);
+
+	/** 줌 중 카메라 시야각(도) */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "5", ClampMax = "170"))
+	float ZoomFieldOfView = 65.f;
+
+	/** 줌 중 이동 속력 상한(cm/s) — 걷기. 평소가 이보다 느리면(감속 중) 그대로 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0", Units = "cm/s"))
+	float ZoomMaxWalkSpeed = 230.f;
+
+	/**
+	 * 떼고 나서 몸 방향 설정을 이 시간 동안 지켜본다(초). 줌 중에 시작한 시전 몸 돌리기가 끝나며
+	 * 줌 값을 되돌려 넣으면 이 끝에 바로잡는다 — 캐릭터 CastFaceTurnTime + CastFaceHoldTime(0.5초)보다 길게
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0", Units = "s"))
+	float ZoomRestoreGuardSeconds = 0.6f;
+
+	/** 화면 가운데 원 조준점 반지름(px, 세로 1080 기준으로 늘고 준다) — 임시 캔버스 그리기 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "1"))
+	float ZoomReticleRadius = 9.f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0.5"))
+	float ZoomReticleThickness = 1.5f;
+
+	/** 조준점 아래 대상의 흰 링 반지름(px, 1080 기준). 정식은 하얀 외곽선 — HUD 작업 때 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "1"))
+	float ZoomHoverRingRadius = 26.f;
+
+	/** 이 세기보다 센 속성 상태만 글자로 보인다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom", meta = (ClampMin = "0"))
+	float ZoomStateMinIntensity = 0.05f;
+
+	/** 조준점 아래 대상에 보일 속성 상태 글자. 순서대로 「·」로 잇는다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Zoom")
+	TArray<FGrimStateLabel> ZoomStateLabels;
 
 	/** 속성의 표식 색(부모 태그까지 찾는다). 없으면 MarkerDefaultColor */
 	FColor GetElementColor(const FGameplayTag& Element) const;

@@ -308,8 +308,9 @@ M1 규칙(11행 — 원본은 CSV):
 
 | 부품 | 위치 | 역할 |
 |---|---|---|
-| `UGrimTargetingComponent` | `AGrimPlayerController` 의 기본 하위 객체(`Targeting`). 로컬 컨트롤러에서만 고른다(틱에서 `IsLocalController` 확인, 전용 서버는 틱 끔) | `IGrimAimProvider` 구현. **0.05초 간격**(`SelectionInterval`)으로 후보를 모아 점수를 매기고 현재 대상을 정한다. 고정 락온 · 카메라 추적 · 옆 대상 넘기기 · 대상 표식 |
+| `UGrimTargetingComponent` | `AGrimPlayerController` 의 기본 하위 객체(`Targeting`). 로컬 컨트롤러에서만 고른다(틱에서 `IsLocalController` 확인). 전용 서버에서도 틱은 돈다 — 원격 플레이어의 줌 폰 효과만 맞춘다 | `IGrimAimProvider` 구현. **0.05초 간격**(`SelectionInterval`)으로 후보를 모아 점수를 매기고 현재 대상을 정한다. 고정 락온 · 카메라 추적 · 옆 대상 넘기기 · 대상 표식 · [줌인 조준](#줌인-조준-r24) |
 | `FGrimTargetingMath` | `Targeting/GrimTargetingMath` | 순수 계산 — 원뿔 각도 · 점수 · 분류 · 정렬/상한 · 화면상 넘김 대상, 가림 타이머(`FGrimOcclusionTimer`), 튕김 감지(`FGrimLookFlickDetector`) |
+| `FGrimZoomAimMath` 외 | `Targeting/GrimZoomAim` | 줌인 조준 순수 계산 — 모드 결정, 누르기/토글 입력(`FGrimZoomInputState`), 카메라 보간(`FGrimZoomBlend`), 폰 값 바꾸고 되돌리기(`FGrimZoomSpeedOverride` · `FGrimZoomFlagOverride`) |
 | `IGrimTargetable` | 적 · 생물 · 상호작용 사물 | 조준점(`GetTargetPoint`), 종류(`EGrimTargetKind`), 대상이 될 수 있는지(`CanBeTargetedBy` — 죽음 · 숨음이면 false). 사물은 `AGrimElementalObject`(종류 Object, 조준점 = 몸체 바운드 가운데에서 반높이 × `TargetPointHeightRatio` 0.6 위) |
 | `AGrimTargetDummy` | `Targeting/GrimTargetDummy` | 생물 · 적이 생기기 전 시험용 대상(구체, 기본 종류 Enemy, 왕복 이동 옵션) |
 | `UGrimTargetingSettings` | `DefaultGame.ini` `[/Script/Grimoire.GrimTargetingSettings]` | 아래 「수치」 |
@@ -330,12 +331,14 @@ M1 규칙(11행 — 원본은 CSV):
 
 ### 조준 결과 (`GetCurrentAim(MaxRange)`)
 
+위에서부터 먼저 맞는 줄(`FGrimZoomAimMath::DecideAimMode`).
+
 | 상태 | `Mode` | `Target` · `AimPoint` |
 |---|---|---|
+| 줌인 조준 중 | `Zoom` | 자동 대상 없음. `AimPoint` = 화면 가운데 트레이스가 닿은 **바로 그 지점**(없으면 사거리 끝, 트레이스는 `Free` 와 같음). `Target` = 맞은 액터(또는 그것이 붙은 부모)가 `IGrimTargetable` 이고 대상이 될 수 있으면(아군 · 종류 없음 · `CanBeTargetedBy` false 제외) 그 액터, 아니면 없음 |
 | 고정 락온 | `Locked` | 고정 대상 · 조준점. **사거리와 상관없이** 돌려준다(마법 쪽이 사거리에서 자른다) |
 | 소프트 대상이 있고 캐릭터에서 `MaxRange` 안 | `Soft` | 대상 · 조준점 |
 | 그 밖 | `Free` | 없음 · 카메라 정면 트레이스가 닿은 곳(없으면 사거리 끝). 트레이스는 캐릭터 깊이에서 시작해 사거리만큼(카메라와 캐릭터 사이 것을 맞히지 않게) |
-| 줌인 조준 | `Zoom` | **아직 없음** — R24 조사 중. 입력 `IA_AimZoom` 과 `SetZoomAimHeld` 자리만 있다(TODO) |
 
 `ViewOrigin` 은 언제나 카메라 위치.
 
@@ -353,6 +356,22 @@ M1 규칙(11행 — 원본은 CSV):
 - 카메라: 매 프레임 스프링암 피벗(`AGrimPlayerCharacter::GetCameraBoom()` 위치)에서 대상을 보는 회전으로 **컨트롤 회전을 보간**(`RInterpTo`, 속도 `LockCameraInterpSpeed` 8, 피치 +`LockCameraPitchOffset` −5°, −60°~40° 제한). 캐릭터 파일은 고치지 않는다 — 스프링암이 컨트롤 회전을 따른다.
 - 옆 대상 넘기기: 컨트롤러가 `AddYawInput` · `AddPitchInput` 을 가로채 고정 중이면 카메라를 돌리지 않고 `HandleLookInput` 으로 보낸다(마우스 · 오른쪽 스틱이 같은 길). 입력을 모아 `LockSwitchInputThreshold`(6)를 넘으면 그 방향(화면 좌표)으로 `LockSwitchMaxAngleDegrees`(60°) 안의 화면상 후보(카메라 평면 투영 `ProjectToViewPlane` — 뷰포트 없이 계산해 헤드리스에서도 된다, 시야각 밖은 뺌) 중 `거리 × (1 + 각/허용각)` 이 가장 작은 것으로 넘긴다(가려졌으면 다음 것). 입력이 0.2초 없으면 모은 값을 버리고(천천히 흘린 입력은 넘김이 아님), 넘긴 뒤 0.35초 쿨다운.
 
+### 줌인 조준 (R24)
+
+> 스펙: [조준 방식 네 가지](../spec/magic#조준-방식-네-가지-r24-—-호그와트-레거시-레퍼런스). M1.5 마무리(갈래 Z). 캐릭터 파일은 고치지 않고 조준 컴포넌트가 폰 · `GetCameraBoom()` 을 런타임에 조절하고 되돌린다.
+
+- **입력** `IA_AimZoom`(PC 오른쪽 마우스 · 패드 L2, `IMC_Targeting`) → 컨트롤러가 Started/Completed 를 `HandleZoomInput(눌림/뗌)` 으로. **누르는 동안**이 기본, 옵션 `bZoomAimToggleByDefault` · `SetZoomToggleMode` 로 토글(눌림 = 뒤집기, 뗌 = 무시). 폰이 없으면 켜지지 않고, 폰을 잃으면 꺼진다.
+- **선정**: 줌 중에는 소프트 선정을 하지 않는다. 매 프레임 화면 가운데 트레이스 한 번(`TraceZoomAim`) — 맞은 대상(위 표의 `Zoom` 규칙)이 `CurrentTarget` 이 되고 `OnTargetChanged` 가 `Mode = Zoom` 으로 알린다. 떼면 다음 틱에 바로 소프트 선정을 다시 한다.
+- **고정 락온과 겹침**: 고정 중 누르면 고정 대상을 기억하고 풀었다가(카메라가 대상을 따라가지 않게), 떼면 그 대상이 아직 대상이 될 수 있고 고정 사거리 안이면 다시 고정한다. 줌 중 `ToggleLock`(Caps Lock · R3)은 「떼고 나서 고정할 대상」만 바꾼다 — 기억한 고정이 있으면 버리고, 없으면 조준점 아래 대상을 예약.
+- **카메라**(로컬만): 당기기 시작할 때 캐릭터의 스프링암 `TargetArmLength` · `SocketOffset` 과 카메라 `FieldOfView` 를 기억하고, `ZoomBlendSeconds`(0.2초) 동안 SmoothStep 으로 `ZoomTargetArmLength` 160 · `ZoomSocketOffset` (0, 55, 50) · `ZoomFieldOfView` 65° 로 옮긴다. 떼면 같은 시간에 기억한 값으로 돌아온다(되돌아가는 중에 다시 누르면 그 자리에서 다시 당긴다). 폰이 바뀌면 옛 폰은 바로 되돌린다.
+- **조준 감도**: 컨트롤러의 `AddYawInput` · `AddPitchInput` 이 줌 중에 `ZoomLookSensitivityScale`(0.6)을 곱한다(`SetZoomLookSensitivityScale` 옵션).
+- **이동 · 몸 방향**(소유 클라이언트와 서버 둘 다 — 컨트롤러 `Server_SetZoomAiming` RPC 로 서버에 알린다. 한쪽만 바꾸면 서버 이동 판정이 위치를 되돌리고 다른 사람 화면에서 몸이 이동 방향을 본다):
+  - `MaxWalkSpeed` → `min(ZoomMaxWalkSpeed 230, 평소)`. 줌 중에 다른 시스템이 값을 바꾸면 그 값을 새 기준으로 삼고 떼면 그 값으로 둔다(`FGrimZoomSpeedOverride`).
+  - `bOrientRotationToMovement` 끔 · `bUseControllerDesiredRotation` 켬 → 몸이 조준(컨트롤) 방향을 본다. 떼면 되돌린다(`FGrimZoomFlagOverride`).
+  - 캐릭터의 「시전 때 몸 돌리기」(`FaceAimForCast`)도 `bOrientRotationToMovement` 를 잠깐 껐다 되돌린다. 겹쳐도 꼬이지 않게: 줌 중에 누가 값을 바꾸면 그것을 되돌릴 값으로 기억하고 다시 줌 값을 넣는다. 떼고 나서 `ZoomRestoreGuardSeconds`(0.6초 — 몸 돌리기 0.1 + 0.4초보다 길게) 끝에 값이 줌 값(끔)으로 돌아가 있으면(줌 중에 시작한 몸 돌리기가 줌 값을 기억했다가 끝나며 넣은 것) 한 번 바로잡는다.
+- **`State.Aiming`**(`GrimMagicFXTags`) — 줌 동안 폰의 ASC(플레이어 스테이트)에 루스 태그 1개. 서버는 `TagOnly` 복제(모두에게 — 다른 사람 화면의 그리모어), 소유 클라이언트는 바로 붙인다(서버 복제가 같은 값으로 덮는다). 그리모어가 탈것 위에서도 떠오르는 판정(Q25)이 읽는다.
+- **임시 화면 표시**(디버그 캔버스 `UDebugDrawService` "Game", 출시 빌드엔 안 그려짐): 화면 가운데 흰 **원 조준점**(반지름 `ZoomReticleRadius` 9px · 세로 1080 기준), 조준점 아래 대상에 **흰 링**(`ZoomHoverRingRadius` 26px) + 그 아래 **속성 상태 글자**(`ZoomStateLabels` — 기본 `State.Wet` 「젖음」 · `State.Burning` 「불붙음」 · `State.Charred` 「다 탐」, `UGrimElementalStatics::GetStateIntensity` 가 `ZoomStateMinIntensity` 0.05 넘는 것만 「·」로 잇는다). 줌 중에는 평소 대상 표식(속성색 링)을 그리지 않는다. 투명도는 카메라 보간을 따른다. 정식은 하얀 외곽선 — HUD 작업 때 `OnTargetChanged` · `IsZoomAiming` · `GetZoomBlendAlpha` 를 읽는다.
+
 ### 수치 (`UGrimTargetingSettings`)
 
 | 항목 | 기본 | 뜻 |
@@ -368,26 +387,35 @@ M1 규칙(11행 — 원본은 CSV):
 | `LockCamera*` | 속도 8 · 피치 −5° · −60°~40° | 고정 카메라 |
 | `LockSwitch*` | 문턱 6 · 쉼 0.2초 · 쿨다운 0.35초 · 60° | 옆 대상 넘기기 |
 | `Marker*` · `ElementColors` | 반지름 20cm + 거리 × 0.012, 고정 × 1.4. 물 `#3A7BD5` · 불 `#E0582B` · 바람 `#7CC9A6` | 임시 표식 |
+| `bZoomAimToggleByDefault` · `ZoomLookSensitivityScale` | 끔(누르는 동안) · 0.6 | 줌 옵션 기본값 |
+| `ZoomBlendSeconds` | 0.2초 | 카메라 당기기 · 되돌리기 |
+| `ZoomTargetArmLength` · `ZoomSocketOffset` · `ZoomFieldOfView` | 160cm · (0, 55, 50) · 65° | 줌 카메라 |
+| `ZoomMaxWalkSpeed` | 230cm/s | 줌 중 이동 속력 상한 |
+| `ZoomRestoreGuardSeconds` | 0.6초 | 떼고 난 뒤 몸 방향 감시 |
+| `ZoomReticleRadius` · `ZoomReticleThickness` · `ZoomHoverRingRadius` | 9px · 1.5 · 26px | 임시 조준점 · 대상 링 |
+| `ZoomStateMinIntensity` · `ZoomStateLabels` | 0.05 · 젖음 · 불붙음 · 다 탐 | 상태 글자 |
 
 ### 콘솔 (개발 빌드)
 
-`Grim.Targeting.SoftLock <0|1>` · `Grim.Targeting.Reference <Camera|Movement>` · `Grim.Targeting.Lock`(토글) · `Grim.Targeting.Look <요> <피치>`(시점 입력 한 번 — 넘기기 확인) · `Grim.Targeting.Dump`(상태 + `GetCurrentAim` 결과) · `Grim.Targeting.SpawnDummy [앞cm] [오른쪽cm] [종류]` · 변수 `Grim.Targeting.Debug 1`(후보 · 점수 그리기). 끝에 지연(초)을 붙이면 헤드리스 `-ExecCmds` 에서도 쓸 수 있다.
+`Grim.Targeting.SoftLock <0|1>` · `Grim.Targeting.Reference <Camera|Movement>` · `Grim.Targeting.Lock`(토글) · `Grim.Targeting.Look <요> <피치>`(시점 입력 한 번 — 넘기기 확인) · `Grim.Targeting.Zoom <0|1>`(입력 방식 무시하고 줌 켜기/끄기) · `Grim.Targeting.ZoomToggle <0|1>`(누르기/토글 옵션) · `Grim.Targeting.DumpServer`(서버에서 원격 플레이어 컨트롤러까지) · `Grim.Targeting.DumpAimingTags`(이 기계가 보는 모든 폰의 `State.Aiming` — 복제 확인) · `Grim.Targeting.Dump`(상태 + 줌 · 스프링암 · 시야각 · 걷기 속력 · 몸 방향 · `State.Aiming` + `GetCurrentAim` 결과) · `Grim.Targeting.SpawnDummy [앞cm] [오른쪽cm] [종류]` · 변수 `Grim.Targeting.Debug 1`(후보 · 점수 그리기). 끝에 지연(초)을 붙이면 헤드리스 `-ExecCmds` 에서도 쓸 수 있다.
 
 ### 멀티 · 성능
 
 - 선정은 각 클라이언트가 자기 화면 기준으로 한다. 서버는 시전 때 검증만 한다. 조준 컴포넌트는 복제하지 않는다.
+- 줌 상태만 컨트롤러 RPC(`Server_SetZoomAiming`, Reliable)로 서버에 간다 — 서버는 그 플레이어 폰의 걷기 속력 · 몸 방향 · `State.Aiming` 을 맞추고, 카메라는 건드리지 않는다. 줌 중 트레이스는 로컬에서 프레임마다 한 번.
 - 후보 상한 32, 시야 트레이스는 점수 상위 8개만, 선정은 0.05초마다(카메라 추적 · 표식만 매 프레임).
 - 사물은 `IGrimTargetable` 을 구현하되 휴면 상태를 깨우지 않는다(바운드 · 상태 조회만).
 
 ### 아직 없는 것
 
-- 줌인 조준(R24, `Mode = Zoom`) — 스펙 조사 뒤 이어 붙인다.
+- 줌인 조준의 정식 표시(대상 하얀 외곽선 · 조준점 위젯) — HUD 작업 때. 지금은 디버그 캔버스.
+- 줌 중 「유도 없이 조준점으로 곧게」(스펙) — 마법 쪽 몫. 지금 마법은 `Target` 이 있으면 대상 조준점으로 살짝 휘어 간다(`Mode` 를 보지 않음).
 - 「나를 노리는 적 가산」 — 적 AI 가 생기면 종류 가중에 더한다.
 - 정식 대상 표식 위젯 · 옵션 화면(Q18 · 선정 기준 저장).
 
 ### 테스트
 
-- 순수 계산은 자동화 테스트 `Grimoire.Targeting.*` — `Cone` · `Score` · `Priority.Category` · `Priority.SortAndCap` · `Occlusion` · `Lock.Switch` · `Lock.Flick`.
+- 순수 계산은 자동화 테스트 `Grimoire.Targeting.*` — `Cone` · `Score` · `Priority.Category` · `Priority.SortAndCap` · `Occlusion` · `Lock.Switch` · `Lock.Flick`, 줌인 조준 `Zoom.Mode` · `Zoom.Input`(누르기 · 토글 · 취소) · `Zoom.Blend`(0.2초 보간 · 중간에 되돌리기) · `Zoom.Speed`(감속 · 다른 시스템의 기준 변경) · `Zoom.Orient`(몸 방향 되돌리기 · 시전 몸 돌리기와 겹침).
 
 ## UI
 
