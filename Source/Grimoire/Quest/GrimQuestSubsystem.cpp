@@ -41,6 +41,22 @@ void UGrimQuestSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	// 표를 미리 읽어 문제를 시작 로그에 남긴다.
 	UGrimQuestSettings::GetQuestDatabase();
 
+	// PlayerState 가 생기자마자 붙인다 — 세이브(갈래 V)가 플레이어 몫을 읽기 전에 컴포넌트가 있어야 퀘스트 진행도 되돌려진다.
+	ActorSpawnedHandle = InWorld.AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateWeakLambda(this, [this](AActor* Actor)
+	{
+		if (APlayerState* PlayerState = Cast<APlayerState>(Actor))
+		{
+			EnsureComponent(PlayerState);
+		}
+	}));
+	if (const AGameStateBase* GameState = InWorld.GetGameState())
+	{
+		for (APlayerState* PlayerState : GameState->PlayerArray)
+		{
+			EnsureComponent(PlayerState);
+		}
+	}
+
 	InWorld.GetTimerManager().SetTimer(PollTimer, FTimerDelegate::CreateUObject(this, &UGrimQuestSubsystem::PollNow),
 		UGrimQuestSettings::Get()->PollIntervalSeconds, true);
 
@@ -57,6 +73,7 @@ void UGrimQuestSubsystem::Deinitialize()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(PollTimer);
+		World->RemoveOnActorSpawnedHandler(ActorSpawnedHandle);
 	}
 	Super::Deinitialize();
 }
@@ -79,7 +96,7 @@ bool UGrimQuestSubsystem::IsAutoStartMap() const
 
 UGrimQuestComponent* UGrimQuestSubsystem::EnsureComponent(APlayerState* PlayerState)
 {
-	if (!PlayerState || !IsServer())
+	if (!PlayerState || !IsServer() || !Cast<AGrimPlayerState>(PlayerState))
 	{
 		return nullptr;
 	}
@@ -185,7 +202,7 @@ void UGrimQuestSubsystem::GiveItems(const TArray<FGrimQuestGive>& Gives, UGrimQu
 			{
 				// TODO(통합): 기본 공격(갈래 K) · 길들이기(M3, 이름 미정) 정의가 생기면 그 ID 로.
 				UE_LOG(LogGrimQuest, Warning, TEXT("[Server] 스킬북 %s 를 줄 수 없다 — 마법 정의 %s 가 없다"), *Give.Id.ToString(),
-					*FString::Format(*UGrimQuestSettings::Get()->SpellAssetPathFormat, { Give.Id.ToString() }));
+					*UGrimQuestSettings::GetSpellAssetPath(Give.Id));
 				continue;
 			}
 			const FTransform Transform(Rotation, Location + FVector(0.f, 0.f, 40.f));

@@ -5,12 +5,13 @@
 #     -run=pythonscript -script="$PWD\Scripts\Tutorial\build_tower_map.py" -unattended -nop4 -nosplash -nullrhi
 #
 # 좌표(cm): +X = 동쪽(탑 문 · 초원), +Y = 북쪽, 탑 1층 = X −1600~1600 · Y −1200~1200, 벽 높이 5m · 지붕은 그 위.
-#   북: 시작 방(X −400~600) · 숙소(북서, 침대) · 서고(북동)   가운데: 홀(스승 · 게시판) · 서고(서)   남: 시험의 방
+#   북: 시작 방(X −400~600) · 숙소(북서, 침대) · 주방(북동, 아궁이)   가운데: 홀(스승 · 게시판 · 화단) · 서고(서)   남: 수련실 · 시험의 방
+#   탑 실내(북 · 가운데)는 전투 금지 볼륨(Zone.NoCombat), 수련실과 탑 밖(앞마당)은 전투 가능.
+#   밖(동): 앞마당(생물 자리 · 모닥불 · 침낭 자리) · 초원 · 거점 세울 곳(북동) · 멀리 사냥꾼 거점(남동, 퀘스트 발동 볼륨)
 # 퀘스트 표(Content/Grimoire/Data/Quest*.csv)는 액터 태그로 사물을 찾는다 — 태그 이름을 바꾸면 표도 고친다.
 import unreal
 
 MAP_PATH = "/Game/Grimoire/Maps/L_Tower"
-SPELL_DIR = "/Game/Grimoire/Magic/Spells"
 
 H = 500.0        # 벽 높이
 T = 40.0         # 벽 두께
@@ -20,9 +21,14 @@ level_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 eal = unreal.EditorAssetLibrary
 
+# 맵이 있으면 열어서 액터를 모두 지우고(기본 맵이라 에셋째 지우면 잠겨 있을 수 있다), 없으면 새로 만든다.
 if eal.does_asset_exist(MAP_PATH):
-    eal.delete_asset(MAP_PATH)
-if not level_subsystem.new_level(MAP_PATH):
+    if not level_subsystem.load_level(MAP_PATH):
+        raise RuntimeError(f"load_level 실패: {MAP_PATH}")
+    for old_actor in actor_subsystem.get_all_level_actors():
+        if not isinstance(old_actor, unreal.WorldSettings):
+            actor_subsystem.destroy_actor(old_actor)
+elif not level_subsystem.new_level(MAP_PATH):
     raise RuntimeError(f"new_level 실패: {MAP_PATH}")
 
 CUBE = unreal.load_asset("/Engine/BasicShapes/Cube")
@@ -133,11 +139,11 @@ wall_x("Wall_North", Y1, X0 - T / 2, X1 + T / 2)
 wall_x("Wall_South", Y0, X0 - T / 2, X1 + T / 2)
 wall_y("Wall_West", X0, Y0, Y1)
 wall_y("Wall_East", X1, Y0, Y1, gaps=[(-200, 200)])                          # 탑 문(동)
-wall_x("Wall_HallNorth", 400, X0, X1, gaps=[(-1100, -900), (50, 250), (1000, 1200)])  # 숙소↔서고(서) · 시작 방 · 서고(북동)
+wall_x("Wall_HallNorth", 400, X0, X1, gaps=[(-1100, -900), (50, 250), (1000, 1200)])  # 숙소↔서고(서) · 시작 방 · 주방
 wall_x("Wall_HallSouth", -400, X0, X1, gaps=[(500, 800)])                   # 시험의 방 문
 wall_y("Wall_LibraryEast", -400, -400, 400, gaps=[(-100, 100)])             # 서고(서) ↔ 홀
 wall_y("Wall_StartWest", -400, 400, Y1)                                     # 숙소 | 시작 방
-wall_y("Wall_StartEast", 600, 400, Y1)                                      # 시작 방 | 서고(북동)
+wall_y("Wall_StartEast", 600, 400, Y1)                                      # 시작 방 | 주방
 
 box("Roof", 0, 0, H + 15, X1 - X0 + 2 * T + 40, Y1 - Y0 + 2 * T + 40, 30)
 shape(CYLINDER, "TowerSpire", 0, 0, H + 30 + 1500, 2000, 2000, 3000)
@@ -155,18 +161,36 @@ for i, x in enumerate([-1300, -800]):
     spawn("/Script/Grimoire.GrimBed", x, 1000, 0, label=f"Tut_Bed_{i}", folder="Tower/Dormitory", tags=["Tut_Bed"])
 point_light("Light_Dormitory", -1000, 800)
 
-# 서고(서 · 북동): 책장
+# 서고(서): 책장
 for i, y in enumerate([-250, 0, 250]):
     box(f"Library_Shelf_{i}", -1520, y, 125, 60, 160, 250, folder="Tower/Library")
-for i, x in enumerate([800, 1100, 1400]):
-    box(f"Study_Shelf_{i}", x, 1120, 125, 160, 60, 250, folder="Tower/Library")
 point_light("Light_Library", -1000, 0)
-point_light("Light_Study", 1100, 800)
+
+# 주방(북동): 아궁이(모닥불 액터 — 플라미스로 켠다) · 조리대. 요리(M4)는 이벤트로.
+marker("Tut_Kitchen", 1100, 800)
+box("Kitchen_Hearth", 1300, 1050, 25, 200, 140, 50, folder="Tower/Kitchen")
+spawn("/Script/Grimoire.GrimCampfire", 1300, 1050, 50, label="Tut_Stove", folder="Tower/Kitchen", tags=["Tut_Stove"])
+box("Kitchen_Counter", 800, 1120, 45, 260, 70, 90, folder="Tower/Kitchen")
+point_light("Light_Kitchen", 1100, 800)
 
 # 홀: 스승 · 게시판
 spawn("/Script/Grimoire.GrimTowerNPC", 300, 0, 92, yaw=90, label="Npc_Master", folder="Tower/Hall", tags=["Npc_Master"])
 spawn("/Script/Grimoire.GrimQuestBoard", 1100, 330, 100, yaw=-90, label="QuestBoard", folder="Tower/Hall", tags=["QuestBoard"])
+# 홀 화단: 작물 자리 셋(아쿠엘로 물 주기 — 작물 M4 전 임시)
+box("Hall_Planter", 1050, -300, 15, 520, 120, 30, folder="Tower/Hall")
+for i, x in enumerate([880, 1050, 1220]):
+    spawn("/Script/Grimoire.GrimCropPlot", x, -300, 30, label=f"Tut_Crop_{i}", folder="Tower/Hall", tags=["Tut_Crop"])
 point_light("Light_Hall", 600, 0)
+
+# 전투 금지(중립 지대): 북쪽 방들 · 홀과 서고. 수련실(남)은 뺀다.
+for label, cy in [("NoCombat_North", 800), ("NoCombat_Middle", 0)]:
+    zone = spawn("/Script/Grimoire.GrimNoCombatVolume", 0, cy, 250, label=label, folder="Tower/Zones")
+    zone.get_component_by_class(unreal.BoxComponent).set_box_extent(unreal.Vector(1600, 400, 300))
+
+# 수련실(남, 시험의 방과 같은 방): 기본 공격으로 부술 과녁(세 번 맞으면 부서짐, 튜토리얼 단계에서만 켜짐)
+training = spawn("/Script/Grimoire.GrimTrialTarget", 300, -1000, 120, label="Tut_TrainingTarget", folder="Tower/TrialRoom", tags=["Tut_TrainingTarget", "Tut_TrainingProp"])
+training.set_editor_property("move_amplitude", unreal.Vector(0, 0, 0))
+training.set_editor_property("hits_to_break", 3)
 
 # 시험의 방(남): 2서클 — 양초 셋(3m 간격, 번지지 않게), 3서클 — 움직이는 표적 + 젖은 양초
 marker("Trial_Room", 650, -800)
@@ -181,9 +205,13 @@ target.set_editor_property("move_amplitude", unreal.Vector(0, 300, 0))
 target.set_editor_property("move_period_seconds", 4.0)
 point_light("Light_TrialRoom", 0, -800, intensity=60.0, radius=2200.0)
 
-# ───── 탑 밖 초원(동) ─────
-marker("Tut_Exit", 2200, 0)
-spawn("/Script/Grimoire.GrimCampfire", 3000, 400, 0, label="Tut_Campfire", folder="Meadow", tags=["Tut_Campfire"])
+# ───── 탑 밖: 앞마당(동) · 초원 ─────
+marker("Tut_Yard", 2600, 0)
+marker("Tut_CreatureSpot", 3300, -700)      # 소형 생물이 나올 자리(생물 M3)
+spawn("/Script/Grimoire.GrimCampfire", 3000, 400, 0, label="Tut_Campfire", folder="Meadow/Yard", tags=["Tut_Campfire"])
+marker("Tut_CampSite", 3000, 650)            # 튜토리얼이 침낭을 놓는 곳(모닥불 곁)
+for i, (x, y) in enumerate([(2900, 280), (3120, 300), (2950, 520)]):
+    box(f"Yard_CampStone_{i}", x, y, 15, 50, 50, 30, folder="Meadow/Yard")
 for i in range(5):
     spawn("/Script/Grimoire.GrimDryGrass", 3600, -300 - i * 100, 0, label=f"Meadow_DryGrass_{i}", folder="Meadow", tags=["Meadow_DryGrass"])
 for i, y in enumerate([1000, 1300]):
@@ -195,14 +223,22 @@ SX, SY = 4000.0, 1500.0
 for i, (dx, dy) in enumerate([(-180, -180), (180, -180), (-180, 180), (180, 180)]):
     box(f"Shelter_Post_{i}", SX + dx, SY + dy, 150, 20, 20, 300, folder="Meadow/Shelter")
 box("Shelter_Roof", SX, SY, 310, 420, 420, 20, folder="Meadow/Shelter")
-bedroll = load_class("/Script/Grimoire.GrimBed")
-roll = spawn(bedroll, SX, SY, 0, label="Shelter_Bedroll", folder="Meadow/Shelter", tags=["Shelter_Bedroll"])
-roll.set_editor_property("bedroll", True)
 
-# 화염구 스킬북: 남동쪽 바위 위(2서클이 되어야 읽힌다)
-box("Skillbook_Rock", 5500, -2500, 30, 160, 160, 60, folder="Meadow")
-book = spawn("/Script/Grimoire.GrimSkillbook", 5500, -2500, 90, label="Tut_Skillbook", folder="Meadow", tags=["Tut_Skillbook"])
-book.set_editor_property("teaches_spell", unreal.load_asset(f"{SPELL_DIR}/DA_Spell_Fireball"))
+# 거점 세울 곳(북동): 돌판. 거점 핵 · 건축은 M4 — 지금은 자리만.
+marker("Tut_BaseSite", 5500, 2500)
+box("BaseSite_Slab", 5500, 2500, 5, 600, 600, 10, folder="Meadow/BaseSite")
+
+# 사냥꾼 거점(먼 남동): 천막 · 상자 · 꺼진 모닥불 + 첫 등장 퀘스트 발동 볼륨(튜토리얼을 끝낸 뒤에만 시작된다)
+HX, HY = 11000.0, -7000.0
+marker("Hunter_Camp", HX, HY)
+for i, (dx, dy) in enumerate([(-500, -300), (400, -400), (0, 500)]):
+    shape(CONE, f"Hunter_Tent_{i}", HX + dx, HY + dy, 150, 400, 400, 300, folder="Hunter/Camp")
+for i, (dx, dy) in enumerate([(-200, 100), (250, 150), (300, -100)]):
+    box(f"Hunter_Crate_{i}", HX + dx, HY + dy, 40, 80, 80, 80, folder="Hunter/Camp")
+spawn("/Script/Grimoire.GrimCampfire", HX, HY, 0, label="Hunter_Campfire", folder="Hunter/Camp", tags=["Hunter_Campfire"])
+trigger = spawn("/Script/Grimoire.GrimQuestTriggerVolume", HX, HY, 200, label="Hunter_QuestTrigger", folder="Hunter/Camp")
+trigger.set_editor_property("quest_to_start", "Hunter_FirstEncounter")
+trigger.get_component_by_class(unreal.BoxComponent).set_box_extent(unreal.Vector(1200, 1200, 400))
 
 # 나무(원통 + 원뿔)
 for i, (x, y) in enumerate([(2500, -1800), (3500, 2500), (4500, -800), (6000, 1000), (5000, 2800), (-2500, 2500), (-2600, -2200), (1000, 2800), (1200, -2900), (7000, -1500)]):

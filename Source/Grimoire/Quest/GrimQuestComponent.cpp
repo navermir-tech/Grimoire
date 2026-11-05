@@ -7,6 +7,9 @@
 #include "Core/GrimPlayerState.h"
 #include "Interaction/GrimElementalStateComponent.h"
 #include "Magic/GrimProgressionComponent.h"
+#include "Progression/GrimLevelComponent.h"
+#include "Progression/GrimProgressionTags.h"
+#include "Progression/GrimSkillTreeComponent.h"
 #include "Magic/GrimSpellbookComponent.h"
 #include "Magic/GrimSpellDefinition.h"
 #include "Survival/GrimSurvivalComponent.h"
@@ -520,9 +523,11 @@ void UGrimQuestComponent::GrantRewards(const FGrimQuestDef& Def)
 
 	if (Def.RewardXP > 0)
 	{
-		// TODO(통합): 레벨 갈래 L 의 AwardExperience(Def.RewardXP, 출처 태그 UGrimQuestSettings::QuestXPSourceTag) 를 부른다.
-		UE_LOG(LogGrimQuest, Display, TEXT("[Server] %s 경험치 %d (출처 %s) — 레벨 시스템 통합 전이라 기록만"), *GetNameSafe(PlayerState), Def.RewardXP,
-			*UGrimQuestSettings::Get()->QuestXPSourceTag.ToString());
+		if (UGrimLevelComponent* Level = PlayerState->GetCharacterLevel())
+		{
+			const float Gained = Level->AwardExperience(static_cast<float>(Def.RewardXP), GrimProgressionTags::XPSource_Quest);
+			UE_LOG(LogGrimQuest, Display, TEXT("[Server] %s 퀘스트 경험치 %d → %.0f 받음(레벨 %d)"), *GetNameSafe(PlayerState), Def.RewardXP, Gained, Level->GetLevel());
+		}
 	}
 }
 
@@ -617,10 +622,16 @@ FName UGrimQuestComponent::ExecuteService(AActor* Npc, FName Service)
 		return StartQuest(Trial->Id) == EGrimQuestStartResult::Started ? GrimDialogueContexts::TrialStarted : GrimDialogueContexts::TrialNone;
 	}
 
-	if (Service == GrimTowerServices::Purify)
+	FName TreeId;
+	if (GrimTowerServices::ParsePurify(Service, TreeId))
 	{
-		// TODO(통합): 레벨 갈래 L 의 ResetTree(TreeId) — 고를 트리 · 재화(Q31)가 정해지면 메뉴에서 트리를 고르게 한다. 지금은 대사만.
-		return GrimDialogueContexts::Purify;
+		// 정화 의식(Q31): 트리 하나를 비우고 포인트를 돌려준다. TODO(재화): 의식 비용이 정해지면 CostCheck 로 묻는다(지금은 무료).
+		UGrimSkillTreeComponent* SkillTree = PlayerState ? PlayerState->GetSkillTree() : nullptr;
+		if (!SkillTree || SkillTree->GetSpentPoints(TreeId) <= 0)
+		{
+			return GrimDialogueContexts::PurifyEmpty;
+		}
+		return SkillTree->ResetTree(TreeId) ? GrimDialogueContexts::Purify : GrimDialogueContexts::PurifyEmpty;
 	}
 	if (Service == GrimTowerServices::Repair)
 	{

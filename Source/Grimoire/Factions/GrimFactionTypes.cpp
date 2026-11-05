@@ -10,9 +10,21 @@ namespace GrimTowerServices
 	const FName Repair(TEXT("Repair"));
 	const FName Erase(TEXT("Erase"));
 
+	bool ParsePurify(FName Service, FName& OutTreeId)
+	{
+		const FString Text = Service.ToString();
+		if (!Text.StartsWith(TEXT("Purify:")) || Text.Len() <= 7)
+		{
+			return false;
+		}
+		OutTreeId = FName(*Text.Mid(7));
+		return true;
+	}
+
 	bool IsKnown(FName Service)
 	{
-		return Service == Trial || Service == Purify || Service == Repair || Service == Erase;
+		FName Tree;
+		return Service == Trial || Service == Purify || Service == Repair || Service == Erase || ParsePurify(Service, Tree);
 	}
 }
 
@@ -26,13 +38,14 @@ namespace GrimDialogueContexts
 	const FName TrialNone(TEXT("Trial.None"));
 	const FName TrialBusy(TEXT("Trial.Busy"));
 	const FName Purify(TEXT("Purify"));
+	const FName PurifyEmpty(TEXT("Purify.Empty"));
 	const FName Repair(TEXT("Repair"));
 	const FName Erase(TEXT("Erase"));
 	const FName Refused(TEXT("Refused"));
 
 	TArray<FName> RequiredForServices()
 	{
-		return { Menu, TrialStarted, TrialNotReady, TrialLocked, TrialNone, TrialBusy, Purify, Repair, Erase, Refused };
+		return { Menu, TrialStarted, TrialNotReady, TrialLocked, TrialNone, TrialBusy, Purify, PurifyEmpty, Repair, Erase, Refused };
 	}
 }
 

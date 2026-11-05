@@ -64,4 +64,5 @@ private:
 	void HandleNightSkipCancelled();
 
 	FTimerHandle PollTimer;
+	FDelegateHandle ActorSpawnedHandle;
 };

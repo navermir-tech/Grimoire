@@ -16,6 +16,9 @@ namespace GrimTowerServices
 	GRIMOIRE_API extern const FName Erase;
 
 	GRIMOIRE_API bool IsKnown(FName Service);
+
+	/** "Purify:<트리 ID>" 면 트리 ID 를 꺼낸다(정화 의식은 트리마다 메뉴 하나 — 한 번에 트리 하나, Q31) */
+	GRIMOIRE_API bool ParsePurify(FName Service, FName& OutTreeId);
 }
 
 /** 대사 맥락 (TowerDialogue.csv 의 Context). 서비스 결과는 서버가 고른 맥락을 클라이언트가 이 표로 보여 준다. */
@@ -35,6 +38,8 @@ namespace GrimDialogueContexts
 	/** 이미 시험 중 */
 	GRIMOIRE_API extern const FName TrialBusy;
 	GRIMOIRE_API extern const FName Purify;
+	/** 정화할 것(찍은 노드)이 없다 */
+	GRIMOIRE_API extern const FName PurifyEmpty;
 	GRIMOIRE_API extern const FName Repair;
 	GRIMOIRE_API extern const FName Erase;
 	/** 너무 멀다 · 잘못된 요청 */
@@ -57,7 +62,7 @@ struct GRIMOIRE_API FGrimNpcRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FString Title;
 
-	/** 서비스 ID 를 | 로(Trial|Purify|Repair|Erase). 비우면 대화만. */
+	/** 서비스 ID 를 | 로(Trial|Purify:<트리>|Repair|Erase). 비우면 대화만. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "NPC")
 	FString Services;
 

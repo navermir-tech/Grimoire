@@ -68,16 +68,15 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Progress", meta = (ClampMin = "0", Units = "cm"))
 	float DefaultLocationRadius = 400.f;
 
-	/** 마법 ID → 에셋 경로. {0} 이 ID */
+	/** 마법 ID → 에셋: <SpellAssetDirectory>/<SpellAssetPrefix><ID> (예: /Game/Grimoire/Magic/Spells/DA_Spell_Ember) */
 	UPROPERTY(Config, EditAnywhere, Category = "Progress")
-	FString SpellAssetPathFormat = TEXT("/Game/Grimoire/Magic/Spells/DA_Spell_{0}.DA_Spell_{0}");
+	FString SpellAssetDirectory = TEXT("/Game/Grimoire/Magic/Spells");
 
 	UPROPERTY(Config, EditAnywhere, Category = "Progress")
 	FString SpellAssetPrefix = TEXT("DA_Spell_");
 
-	/** 경험치 출처 태그 이름(레벨 갈래의 AwardExperience 에 넘긴다 — 통합 때) */
-	UPROPERTY(Config, EditAnywhere, Category = "Progress")
-	FName QuestXPSourceTag = TEXT("XP.Source.Quest");
+	/** 마법 ID 의 에셋 경로 */
+	static FString GetSpellAssetPath(FName SpellId);
 
 	// ───── 마법탑 NPC ─────
 

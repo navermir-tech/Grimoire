@@ -62,8 +62,13 @@ UGrimSpellDefinition* UGrimQuestSettings::LoadSpell(FName SpellId)
 	{
 		return nullptr;
 	}
-	const FString Path = FString::Format(*Get()->SpellAssetPathFormat, { SpellId.ToString() });
-	return LoadObject<UGrimSpellDefinition>(nullptr, *Path, nullptr, LOAD_NoWarn);
+	return LoadObject<UGrimSpellDefinition>(nullptr, *GetSpellAssetPath(SpellId), nullptr, LOAD_NoWarn);
+}
+
+FString UGrimQuestSettings::GetSpellAssetPath(FName SpellId)
+{
+	const FString Name = Get()->SpellAssetPrefix + SpellId.ToString();
+	return FString::Printf(TEXT("%s/%s.%s"), *Get()->SpellAssetDirectory, *Name, *Name);
 }
 
 bool UGrimQuestSettings::SpellMatchesId(const UGrimSpellDefinition* Spell, FName SpellId)

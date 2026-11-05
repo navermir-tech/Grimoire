@@ -161,7 +161,7 @@ bool FGrimQuestTableTest::RunTest(const FString& Parameters)
 	}
 	TestTrue(TEXT("대사 표 문제 없음"), bDialogueOk);
 	const FGrimNpcDef* Master = Dialogues.FindNpc(TEXT("Master"));
-	TestTrue(TEXT("스승은 서비스 넷"), Master && Master->Services.Num() == 4);
+	TestTrue(TEXT("스승은 서비스 일곱(시험 · 정화 넷 · 수리 · 지우기)"), Master && Master->Services.Num() == 7);
 	return true;
 }
 
