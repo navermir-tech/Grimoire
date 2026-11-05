@@ -11,6 +11,8 @@ class UGrimMagicAttributeSet;
 class UGrimSpellbookComponent;
 class UGrimProgressionComponent;
 class UGrimSurvivalComponent;
+class UGrimLevelComponent;
+class UGrimSkillTreeComponent;
 
 /**
  * 플레이어 상태. ASC 와 어트리뷰트 · 마법서 · 생존을 가진다 — 폰이 죽거나 바뀌어도(탑승) 유지된다.
@@ -32,6 +34,8 @@ public:
 	UGrimSpellbookComponent* GetSpellbook() const { return Spellbook; }
 	UGrimProgressionComponent* GetProgression() const { return Progression; }
 	UGrimSurvivalComponent* GetSurvival() const { return Survival; }
+	UGrimLevelComponent* GetCharacterLevel() const { return CharacterLevel; }
+	UGrimSkillTreeComponent* GetSkillTree() const { return SkillTree; }
 
 	/** ASC 의 Owner = 이 PlayerState, Avatar = 폰. 서버 · 클라이언트 양쪽에서 호출한다. */
 	void InitAbilityActorInfoForPawn(APawn* NewPawn);
@@ -60,4 +64,11 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Survival")
 	TObjectPtr<UGrimSurvivalComponent> Survival;
+
+	/** 캐릭터 레벨 · 성장 트리 (R27, M2 후반) */
+	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Progression")
+	TObjectPtr<UGrimLevelComponent> CharacterLevel;
+
+	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Progression")
+	TObjectPtr<UGrimSkillTreeComponent> SkillTree;
 };
