@@ -64,7 +64,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 1. 입력: 캐릭터가 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.Cast)`. **선택된 마법 Spec 만** `Input.Spell.Cast` 를 동적 태그로 가지므로 그 마법만 발동한다.
 2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
-   - `CanActivateAbility` — 정의 있음 · 완드 있음(맨손 시전 없음, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
+   - `CanActivateAbility` — 정의 있음 · 완드 있음(완드 없으면 주먹 기본 공격만, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
    - `CommitAbility` — 비용 `UGrimGE_SpellCost`(즉시, `Mana += SetByCaller.Magic.ManaCost`), 쿨다운 `UGrimGE_SpellCooldown`(지속 `SetByCaller.Magic.Cooldown` 초, `CooldownTag` 를 Spec 의 `DynamicGrantedTags` 로). 클라이언트도 예측 적용한다.
    - 완드 보정: 비용 = `ManaCost × (1 − ManaEfficiency)`, 쿨다운 = `Cooldown ÷ CastSpeed`(`GrimMagicMath`).
    - `CastTime` > 0 이면 `WaitDelay` 뒤, 아니면 바로 `Deliver()`.
@@ -102,7 +102,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 - 스킬북은 아이템(`UGrimItemDefinition`, `ItemType = Skillbook`, `TeachesSpell`).
 - 사용 → `Server_UseItem` → `UGrimSpellbookComponent::LearnSpell(SpellId)`: 서클 확인 → `GiveAbility` → 목록에 추가(복제 · 저장) → 책 소모.
-- 필사(Q5): `AGrimScribeStation` 에서 아는 마법 선택 + 잉크 → 스킬북 아이템 생성. 레시피는 `DT_Recipes` 의 특수 행.
+- 필사는 없다(Q5 미채택). 스킬북은 탑 · 던전 · 유적 · 전리품으로만 얻는다.
 
 ## 서클
 
@@ -114,7 +114,9 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 - 속성 태그 `Element.Water / Fire / Wind / Earth / Light / Dark` 는 `Core/GrimGameplayTags`(네이티브). Magic 전용 태그(`SetByCaller.Magic.*` · `Cooldown.Spell.*` · `Spell.*`)는 `Magic/GrimMagicTags`.
 - 피해 계산 `UGrimDamageExecution`(`UGrimGE_SpellDamage` 의 실행): `Health −= SetByCaller.Magic.Damage × 상성(공격 속성, 대상 속성)`. 공격 속성 = Spec 에셋 태그의 `Element.*`, 대상 속성 = 대상 ASC 태그의 `Element.*`(없으면 무속성 ×1).
-- 상성 표는 `UGrimMagicSettings::ElementAffinities`(ini). 표만 바꾸면 밸런스가 바뀐다(Q2 · Q3). 현재 값(스펙 제안):
+- 상성 표는 `UGrimMagicSettings::ElementAffinities`(ini). 표만 바꾸면 밸런스가 바뀐다(Q2 · Q3).
+- **9속성 초안(Q2)**: 스펙이 6계열 9속성 상성표를 제안했다([마법 — 속성과 상성](../spec/magic#속성과-상성-r07)). 확정되면 태그를 계열 아래로 나눈다 — `Element.Water.Liquid` · `Element.Water.Ice` · `Element.Fire` · `Element.Wind` · `Element.Earth.Stone` · `Element.Earth.Plant` · `Element.Light.Holy` · `Element.Light.Lightning` · `Element.Dark.Hex`(이름은 확정 때 정함). 반응 규칙표는 하위 태그도 맞으므로 `Element.Water` 규칙은 물 · 얼음 둘 다에 걸린다. 전기 + 젖음 = 감전은 상성이 아니라 반응 규칙 한 줄이다.
+- 지금 코드 값(6속성, 9속성 확정 전):
 
 | 공격 → 대상 | 배율 |
 |---|---|
@@ -248,12 +250,12 @@ M1 규칙(11행 — 원본은 CSV):
 
 - `UGrimSpellAbility` 가 활성화될 때 타게팅 컴포넌트의 현재 대상을 TargetData 로 담는다. 대상이 없으면 지금처럼 카메라 정면.
 - 캐릭터 회전: 시전 순간 대상 방향으로 몸을 돌린다(서버 확정, 0.15초 보간).
-- 투사체 유도: `AGrimSpellProjectile` 의 `ProjectileMovementComponent` 에 `HomingTargetComponent` 를 주고 `HomingAccelerationMagnitude` 를 마법 정의의 `HomingStrength` 로(0 = 유도 없음). 스펙의 "살짝 휨"(Q16).
+- 투사체 유도: `AGrimSpellProjectile` 의 `ProjectileMovementComponent` 에 `HomingTargetComponent` 를 주고 `HomingAccelerationMagnitude` 를 마법 정의의 `HomingStrength` 로(0 = 유도 없음). 스펙의 "살짝 휨"(Q16 확정).
 - 광선(미풍)은 대상 방향으로 쏘고, 대상까지 거리만큼만 그린다.
 
 ### 고정 락온
 
-- 입력 `IA_LockOn`(휠 클릭 · R3) → `Input.Targeting.Lock` 태그. 고정 중에는 선정 3단계를 건너뛰고, 카메라가 대상 쪽으로 부드럽게 따라간다(스프링암 회전 보간). 대상이 죽거나 범위를 벗어나면 자동 해제.
+- 입력 `IA_LockOn`(R3 · Caps Lock 토글 — 호그와트 레거시와 같음, Q17) → `Input.Targeting.Lock` 태그. 고정 중에는 선정 3단계를 건너뛰고, 카메라가 대상 쪽으로 부드럽게 따라간다(스프링암 회전 보간). 대상이 죽거나 범위를 벗어나면 자동 해제.
 - 패드 오른쪽 스틱 튕기기: 고정 중 스틱 방향으로 화면상 가장 가까운 다음 후보로 넘김.
 
 ### 멀티 · 성능

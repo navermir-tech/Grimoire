@@ -51,7 +51,7 @@
 
 ### 서버 옵션 `FGrimServerSettings` (GameState 복제)
 
-하루 길이, PvP(Q13), 최대 인원(Q11), 하드코어(Q7), 생존 배율, 경험치 배율, 번식 속도. 호스트 UI 와 `ServerSettings.ini`.
+하루 길이, 최대 인원(8, Q11), 하드코어(Q7), 생존 배율, 경험치 배율, 번식 속도. 호스트 UI 와 `ServerSettings.ini`.
 
 ## 세이브 `UGrimSaveSubsystem` (서버 전용)
 

@@ -32,6 +32,7 @@ export default defineConfig({
             { text: '세력 · 서사', link: '/spec/factions' },
             { text: '멀티플레이', link: '/spec/multiplayer' },
             { text: '결정 기록 · 미결 질문', link: '/spec/decisions' },
+            { text: '레퍼런스 조사', link: '/spec/references' },
           ],
         },
       ],

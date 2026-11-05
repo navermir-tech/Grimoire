@@ -54,14 +54,14 @@
 
 ### 시설 `AGrimCraftStation` + `UGrimCraftingComponent`
 
-- `StationTag`(Workbench · Kiln · Cookpot · WandWorkshop · ScribeDesk · Storage).
+- `StationTag`(Workbench · Kiln · Cookpot · WandWorkshop · Storage).
 - 대기열: `TArray<FGrimCraftJob { RecipeRow, Remaining, Assignee }>`(복제). 서버 타이머가 진행.
 - **가열 시설**은 `GrimElementalState` 를 가지며 `State.Burning` 세기가 속도 배율(불 마법으로 점화, 바람으로 ↑, 비에 꺼짐 — 지붕 필요).
 - 일꾼: 작업 보드에 `Work.Craft`(적성 생물 배정 시 속도 ×1.5), `Work.Fuel`(불 생물이 가열 유지).
 
 ### 레시피 `DT_Recipes`
 
-`RecipeId, StationTag, Inputs[], Output, Seconds, RequiredCircle, RequiredSpell(필사 · 각인용)`
+`RecipeId, StationTag, Inputs[], Output, Seconds, RequiredCircle, RequiredSpell(각인용)`
 
 ### 완드 공방
 
