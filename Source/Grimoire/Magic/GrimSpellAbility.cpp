@@ -8,6 +8,7 @@
 #include "Magic/GrimMagicMath.h"
 #include "Magic/GrimMagicSettings.h"
 #include "Magic/GrimMagicTags.h"
+#include "Magic/GrimProficiencySettings.h"
 #include "Magic/GrimWand.h"
 #include "Core/GrimPlayerState.h"
 #include "Core/GrimElementalTypes.h"
@@ -98,14 +99,65 @@ AGrimWand* UGrimSpellAbility::GetWand(const FGameplayAbilityActorInfo* ActorInfo
 	return Spellbook ? Spellbook->GetWand() : nullptr;
 }
 
-float UGrimSpellAbility::GetEffectiveManaCost(const UGrimSpellDefinition* Definition, const AGrimWand* Wand)
+float UGrimSpellAbility::GetEffectiveManaCost(const UGrimSpellDefinition* Definition, const AGrimWand* Wand, float ProficiencyMultiplier)
 {
-	return Definition ? GrimMagicMath::CalcManaCost(Definition->ManaCost, Wand ? Wand->GetManaEfficiency() : 0.f) : 0.f;
+	return Definition ? GrimMagicMath::CalcManaCost(Definition->ManaCost, Wand ? Wand->GetManaEfficiency() : 0.f) * FMath::Max(ProficiencyMultiplier, 0.f) : 0.f;
 }
 
-float UGrimSpellAbility::GetEffectiveCooldown(const UGrimSpellDefinition* Definition, const AGrimWand* Wand)
+float UGrimSpellAbility::GetEffectiveCooldown(const UGrimSpellDefinition* Definition, const AGrimWand* Wand, float ProficiencyMultiplier)
 {
-	return Definition ? GrimMagicMath::CalcCooldown(Definition->Cooldown, Wand ? Wand->GetCastSpeed() : 1.f) : 0.f;
+	return Definition ? GrimMagicMath::CalcCooldown(Definition->Cooldown * FMath::Max(ProficiencyMultiplier, 0.f), Wand ? Wand->GetCastSpeed() : 1.f) : 0.f;
+}
+
+namespace GrimSpellAbilityCasterLocal // 유니티 빌드에서 다른 파일과 부딪히지 않게
+{
+	/** 이름으로 어트리뷰트 값을 읽는다(생존 갈래의 배율 — 셋이 없으면 Default). */
+	float ReadAttributeByName(const UAbilitySystemComponent* ASC, const FName& Name, float Default)
+	{
+		if (!ASC || Name.IsNone())
+		{
+			return Default;
+		}
+		for (const UAttributeSet* Set : ASC->GetSpawnedAttributes())
+		{
+			const FStructProperty* Property = Set ? FindFProperty<FStructProperty>(Set->GetClass(), Name) : nullptr;
+			if (Property && Property->Struct && Property->Struct->IsChildOf(FGameplayAttributeData::StaticStruct()))
+			{
+				return ASC->GetNumericAttribute(FGameplayAttribute(const_cast<FStructProperty*>(Property)));
+			}
+		}
+		return Default;
+	}
+}
+
+FGrimProficiencyMultipliers UGrimSpellAbility::GetCasterMultipliers(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC)
+{
+	using namespace GrimSpellAbilityCasterLocal;
+	const UGrimSpellbookComponent* Spellbook = UGrimSpellbookComponent::FindForASC(ASC);
+	FGrimProficiencyMultipliers Result = Spellbook ? Spellbook->GetProficiencyMultipliers(Definition) : FGrimProficiencyMultipliers();
+
+	const UGrimSpellbookSettings* Settings = UGrimSpellbookSettings::Get();
+	Result.ManaCost *= FMath::Max(0.f, ReadAttributeByName(ASC, Settings->ManaCostScaleAttribute, 1.f));
+	Result.Cooldown /= FMath::Max(KINDA_SMALL_NUMBER, ReadAttributeByName(ASC, Settings->CastSpeedScaleAttribute, 1.f));
+	return Result;
+}
+
+bool UGrimSpellAbility::HasCastBlockingTag(const UAbilitySystemComponent* ASC)
+{
+	if (!ASC)
+	{
+		return false;
+	}
+	for (const FName& TagName : UGrimSpellbookSettings::Get()->CastBlockingTags)
+	{
+		// 태그가 아직 없으면(생존 갈래 전) 건너뛴다.
+		const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TagName, false);
+		if (Tag.IsValid() && ASC->HasMatchingGameplayTag(Tag))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 FVector UGrimSpellAbility::GetTargetPointOf(const AActor* Actor)
@@ -214,6 +266,12 @@ bool UGrimSpellAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Hand
 		return false;
 	}
 
+	// 잠 · 쓰러짐 · 기절 중에는 시전하지 않는다(생존 갈래의 상태 태그). TODO(통합): 감기(Status.Sick.Cold)의 「가끔 끊김」.
+	if (HasCastBlockingTag(ASC))
+	{
+		return false;
+	}
+
 	return Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags);
 }
 
@@ -221,11 +279,12 @@ bool UGrimSpellAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const
 {
 	const UGrimSpellDefinition* Definition = GetSpellDefinition(Handle, ActorInfo);
 	const AGrimWand* Wand = GetWand(ActorInfo);
-	float Cost = GetEffectiveManaCost(Definition, Wand);
+	const float ProficiencyMana = GetCasterMultipliers(Definition, ActorInfo->AbilitySystemComponent.Get()).ManaCost;
+	float Cost = GetEffectiveManaCost(Definition, Wand, ProficiencyMana);
 	// 누르는 마법은 시작 비용 + 첫 판정 한 번 몫이 있어야 시작한다.
 	if (Definition && Definition->bChanneled)
 	{
-		Cost += GrimMagicMath::CalcManaCost(Definition->ChannelManaPerSecond * Definition->StreamTickInterval, Wand ? Wand->GetManaEfficiency() : 0.f);
+		Cost += GrimMagicMath::CalcManaCost(Definition->ChannelManaPerSecond * Definition->StreamTickInterval, Wand ? Wand->GetManaEfficiency() : 0.f) * ProficiencyMana;
 	}
 	const float Mana = ActorInfo->AbilitySystemComponent->GetNumericAttribute(UGrimMagicAttributeSet::GetManaAttribute());
 	if (!GrimMagicMath::CanAfford(Mana, Cost))
@@ -241,7 +300,8 @@ bool UGrimSpellAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const
 
 void UGrimSpellAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
-	const float Cost = GetEffectiveManaCost(GetSpellDefinition(Handle, ActorInfo), GetWand(ActorInfo));
+	const UGrimSpellDefinition* Definition = GetSpellDefinition(Handle, ActorInfo);
+	const float Cost = GetEffectiveManaCost(Definition, GetWand(ActorInfo), GetCasterMultipliers(Definition, ActorInfo->AbilitySystemComponent.Get()).ManaCost);
 	if (Cost <= 0.f)
 	{
 		return;
@@ -273,7 +333,7 @@ bool UGrimSpellAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handle, c
 void UGrimSpellAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
 {
 	const UGrimSpellDefinition* Definition = GetSpellDefinition(Handle, ActorInfo);
-	const float Duration = GetEffectiveCooldown(Definition, GetWand(ActorInfo));
+	const float Duration = GetEffectiveCooldown(Definition, GetWand(ActorInfo), GetCasterMultipliers(Definition, ActorInfo->AbilitySystemComponent.Get()).Cooldown);
 	if (!Definition || Duration <= 0.f || !Definition->CooldownTag.IsValid())
 	{
 		return;
@@ -444,6 +504,12 @@ void UGrimSpellAbility::BeginAuthorityCast(const FGrimAimResult& Aim, float OneW
 	if (Definition->bChanneled)
 	{
 		K2_AddGameplayCueWithParams(GrimCueTags::Spell_Channel, MakeSpellCueParameters(Definition, Pawn, Launch.Start, Launch.Direction), true);
+	}
+
+	// 숙련도(Q26): 서버가 시전을 확정했다 — 시전 경험(같은 대상 반복 감쇠).
+	if (UGrimSpellbookComponent* Spellbook = UGrimSpellbookComponent::FindForASC(ASC))
+	{
+		Spellbook->AwardCastXP(Definition, Aim.Target.Get());
 	}
 
 	const GrimSpellDelivery::FLagSplit Lag = GrimSpellDelivery::SplitLag(OneWayLatency, Definition->CastWindup, UGrimMagicSettings::Get()->MaxLagCompensation);
@@ -979,7 +1045,8 @@ void UGrimSpellAbility::StreamTick()
 	}
 
 	// 초당 마나(Q19). 모자라면 멈춘다.
-	const float Cost = GrimMagicMath::CalcManaCost(Definition->ChannelManaPerSecond * Definition->StreamTickInterval, Wand->GetManaEfficiency());
+	const float Cost = GrimMagicMath::CalcManaCost(Definition->ChannelManaPerSecond * Definition->StreamTickInterval, Wand->GetManaEfficiency())
+		* GetCasterMultipliers(Definition, ASC).ManaCost;
 	if (Cost > 0.f)
 	{
 		const float Mana = ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetManaAttribute());
@@ -1066,6 +1133,8 @@ void UGrimSpellAbility::ApplySpellHit(const UGrimSpellDefinition* Definition, UA
 	{
 		return;
 	}
+	// 숙련도(Q26): 반응 여부는 자극을 주기 전에 본다.
+	const bool bMeaningfulHit = UGrimSpellbookComponent::IsMeaningfulHit(Definition, SourceASC, HitActor);
 
 	if (UAbilitySystemComponent* TargetASC = FindTargetASC(HitActor); TargetASC && DamageSpec.IsValid())
 	{
@@ -1096,5 +1165,13 @@ void UGrimSpellAbility::ApplySpellHit(const UGrimSpellDefinition* Definition, UA
 	if (UGrimElementalStatics::ApplyStimulusToActor(HitActor, Stimulus, Instigator))
 	{
 		UE_LOG(LogGrimMagic, Verbose, TEXT("%s → %s 자극 %s %.2f"), *Definition->GetName(), *HitActor->GetName(), *Stimulus.Element.ToString(), Stimulus.Intensity);
+	}
+
+	if (bMeaningfulHit)
+	{
+		if (UGrimSpellbookComponent* Spellbook = UGrimSpellbookComponent::FindForASC(SourceASC))
+		{
+			Spellbook->AwardHitXP(Definition, HitActor);
+		}
 	}
 }

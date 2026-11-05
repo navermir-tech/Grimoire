@@ -4,6 +4,7 @@
 #include "Abilities/GameplayAbility.h"
 #include "Core/GrimTargetingTypes.h"
 #include "Magic/GrimSpellDelivery.h"
+#include "Magic/GrimProficiencyTypes.h"
 #include "GrimSpellAbility.generated.h"
 
 class UGrimSpellDefinition;
@@ -67,11 +68,20 @@ public:
 
 	static bool TraceStreamArc(const UWorld* World, const UGrimSpellDefinition* Definition, const FVector& Start, const FVector& AimPoint, const AActor* IgnoreActor, TArray<FVector>& OutPoints, TArray<FHitResult>* OutHits);
 
-	/** 완드 보정까지 넣은 마나 비용. */
-	static float GetEffectiveManaCost(const UGrimSpellDefinition* Definition, const AGrimWand* Wand);
+	/** 완드 보정 · 숙련도 배율(Q26)까지 넣은 마나 비용. */
+	static float GetEffectiveManaCost(const UGrimSpellDefinition* Definition, const AGrimWand* Wand, float ProficiencyMultiplier = 1.f);
 
-	/** 완드 보정까지 넣은 쿨다운(초). */
-	static float GetEffectiveCooldown(const UGrimSpellDefinition* Definition, const AGrimWand* Wand);
+	/** 완드 보정 · 숙련도 배율(Q26)까지 넣은 쿨다운(초). */
+	static float GetEffectiveCooldown(const UGrimSpellDefinition* Definition, const AGrimWand* Wand, float ProficiencyMultiplier = 1.f);
+
+	/**
+	 * 시전자 배율(마나 · 쿨다운) = 숙련도(마법서) × 생존 상태(어트리뷰트 ManaCostScale · CastSpeedScale — 이름으로 읽고 없으면 1).
+	 * 추위 · 피곤함은 시전을 느리게(쿨다운 ÷ CastSpeedScale), 더위는 마나를 더(× ManaCostScale). 어트리뷰트 이름은 UGrimSpellbookSettings.
+	 */
+	static FGrimProficiencyMultipliers GetCasterMultipliers(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
+
+	/** 시전을 막는 상태 태그(잠 · 쓰러짐 · 기절 — 이름은 UGrimSpellbookSettings::CastBlockingTags)가 붙어 있는가 */
+	static bool HasCastBlockingTag(const UAbilitySystemComponent* ASC);
 
 #if !UE_BUILD_SHIPPING
 	/** 디버그(Grim.Magic.Cast): 이 폰의 다음 로컬 조준을 이 대상으로 고정한다. */

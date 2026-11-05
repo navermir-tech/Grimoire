@@ -9,6 +9,7 @@ class UGrimAbilitySystemComponent;
 class UGrimVitalAttributeSet;
 class UGrimMagicAttributeSet;
 class UGrimSpellbookComponent;
+class UGrimProgressionComponent;
 class UGrimSurvivalComponent;
 
 /**
@@ -29,6 +30,7 @@ public:
 	UGrimVitalAttributeSet* GetVitalSet() const { return VitalSet; }
 	UGrimMagicAttributeSet* GetMagicSet() const { return MagicSet; }
 	UGrimSpellbookComponent* GetSpellbook() const { return Spellbook; }
+	UGrimProgressionComponent* GetProgression() const { return Progression; }
 	UGrimSurvivalComponent* GetSurvival() const { return Survival; }
 
 	/** ASC 의 Owner = 이 PlayerState, Avatar = 폰. 서버 · 클라이언트 양쪽에서 호출한다. */
@@ -51,6 +53,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Magic")
 	TObjectPtr<UGrimSpellbookComponent> Spellbook;
+
+	/** 서클 승급 (R06, M2) */
+	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Magic")
+	TObjectPtr<UGrimProgressionComponent> Progression;
 
 	UPROPERTY(VisibleAnywhere, Category = "Grimoire|Survival")
 	TObjectPtr<UGrimSurvivalComponent> Survival;

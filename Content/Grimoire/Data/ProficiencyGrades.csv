@@ -1,0 +1,6 @@
+Grade,DisplayName,XPToReach,ManaCostMultiplier,CooldownMultiplier,ExtraEffectScale
+D,입문,0,1.00,1.00,0.0
+C,익숙,100,0.95,0.95,0.25
+B,숙달,300,0.90,0.90,0.5
+A,능숙,700,0.85,0.85,0.75
+S,마스터,1500,0.75,0.80,1.0

@@ -10,8 +10,8 @@
 | 마나 소모 · 쿨다운 | Ability 의 Cost GE · Cooldown GE(서클 · 완드 보정은 GE 의 SetByCaller) |
 | 피해 · 화상 · 젖음 등 | `UGameplayEffect`(즉시 / 지속 / 주기) + 부여 태그 `State.*` |
 | 속성 | GameplayTag `Element.Fire` 등. 마법 · 완드 · 생물 · GE 모두 이 태그를 단다 |
-| 서클 | `Circle` 어트리뷰트 + 태그 `Circle.N`. 마법 정의의 `RequiredCircle` 과 비교 |
-| 배운 마법 | ASC 의 `GiveAbility` + `UGrimSpellbookComponent` 의 목록(저장용) |
+| 서클 | `Circle` 어트리뷰트(마법 정의의 `Circle` 과 비교). 승급은 `UGrimProgressionComponent` |
+| 배운 마법 | ASC 의 `GiveAbility` + `UGrimSpellbookComponent` 의 목록(저장용) · 숙련도(마법별 XP) · 단축 슬롯 |
 | 상성 | 피해 계산 `UGrimDamageExecution`(GameplayEffectExecutionCalculation)에서 공격 속성 × 대상 속성 → 배율 |
 
 ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자신**이 소유한다. 플레이어 캐릭터가 죽어도 서클 · 마법은 남는다.
@@ -37,7 +37,8 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | `Damage` · `ImpactEffect` | 기본 피해(0 이면 피해 없음). 비우면 `UGrimGE_SpellDamage` |
 | `Stimulus` | 사물에 주는 속성 자극 `FGrimElementalStimulus`(속성 · 세기 · 출처). Cone 은 세기를 `ConeFalloff` 로 바꾼다 |
 | `VisualSet` | 연출 묶음 `UGrimSpellVisualSet`(Core/GrimSpellFXTypes). 연출 쪽(MagicFX) 큐 처리기가 읽는다. 비어도 게임은 돈다 |
-| `Color` | VisualSet 이 없을 때 투사체 임시 구 색(엔진 기본 구 + `BasicShapeMaterial` 의 `Color`) |
+| `Color` | VisualSet 이 없을 때 투사체 임시 구 색(엔진 기본 구 + `BasicShapeMaterial` 의 `Color`). 스킬북 표지 색 |
+| `bTracksProficiency` · `ProficiencyProfile` · `ProficiencyExtraEffect` | 숙련도를 쌓는가(기본 공격 = false) · 경험 곡선 바꾸기 · 추가 효과 — [숙련도](#숙련도-q26) |
 
 - 에셋 `Content/Grimoire/Magic/Spells/DA_Spell_*` 은 `Scripts/Magic/make_spells.py` 가 만든다 — **스크립트가 수치의 정본**이다.
 - 하나의 `UGrimSpellAbility` 클래스가 여러 마법을 낸다: 마법서가 `GiveAbility` 할 때 Spec 의 `SourceObject` 에 정의를 넣고, 어빌리티는 Spec 에서 정의를 꺼낸다.
@@ -76,7 +77,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
    - `CanActivateAbility` — 정의 있음 · 완드 있음(완드 없으면 주먹 기본 공격만, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
    - `CommitAbility` — 비용 `UGrimGE_SpellCost`(즉시, `Mana += SetByCaller.Magic.ManaCost`), 쿨다운 `UGrimGE_SpellCooldown`(지속 `SetByCaller.Magic.Cooldown` 초, `CooldownTag` 를 Spec 의 `DynamicGrantedTags` 로). 클라이언트도 예측 적용한다.
-   - 완드 보정: 비용 = `ManaCost × (1 − ManaEfficiency)`, 쿨다운 = `Cooldown ÷ CastSpeed`(`GrimMagicMath`). 누르는 마법은 시작할 때 `ManaCost` + 첫 판정 몫이 있어야 한다.
+   - 완드 · 숙련도 보정: 비용 = `ManaCost × (1 − ManaEfficiency) × 숙련도 ManaCostMultiplier`, 쿨다운 = `Cooldown × 숙련도 CooldownMultiplier ÷ CastSpeed`(`GrimMagicMath` · [숙련도](#숙련도-q26)). 누르는 마법은 시작할 때 `ManaCost` + 첫 판정 몫이 있어야 한다.
 3. 조준 · 네트워크 — 자세한 표는 [투사체 · 시전 감각 — 네트워크](./spell-feel#네트워크-—-내-화면에서는-즉시):
    - **시전자(로컬)**: `UGrimTargetingStatics::FindAimProvider(폰)->GetCurrentAim(사거리)`(Cone 은 `ConeRange`), 제공자가 없으면 카메라 정면 Visibility 트레이스 → `FGrimAimResult`. 원격 클라이언트는 이것을 `FGameplayAbilityTargetData_SingleTargetHit`(TraceStart = 시선 시작, Location = 조준점, Actor = 대상, Item = 모드)로 서버에 보내고, 바로 **Cast 큐(예측)** · Stream 이면 **Channel 큐(예측, 끝나면 거둠)** 를 띄우고, Bolt 면 `CastWindup` 뒤 **가짜 볼트**를 쏜다.
    - **서버**: TargetData 를 받으면 검증(`IsClientAimPlausible` — 시선 시작이 폰 근처, 조준점이 사거리 안, 방향이 폰 조준과 60° 안. 대상은 `CanBeTargetedBy` · 거리를 다시 보고 조준점을 서버에서 다시 구함). 어긋나면 서버 조준(카메라 캐시 · 컨트롤 회전). 그 콜백 안(클라이언트 예측 키 창)에서 같은 Cast · Channel 큐를 실행 → 시전자는 두 번 보지 않는다. 지연 = 핑 ÷ 2 로 `SplitLag` → 남은 Windup 만큼 기다렸다가 판정, 이미 지난 시간은 Bolt 를 앞으로 당김(`CatchUp`, 상한 0.15초).
@@ -116,26 +117,27 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
 - **처음 한 번(서버)**: `Circle = StartingCircle`, `MaxMana = Mana = MaxManaByCircle[서클]`, 마나 회복 `UGrimGE_ManaRegen`(무한 · 1초 주기 `Mana += ManaRegenPerSecond`), 선택 어빌리티 `UGrimSpellSelectAbility` 를 `Input.Spell.Next` · `Input.Spell.Prev` 태그로 두 번, `StartingSpells` 를 `LearnSpell`.
 - **폰이 바뀔 때마다(서버)**: 완드가 없으면 스폰하고 `Owner = 폰`, 폰 스켈레탈 메시의 `WandSocketName`(본 · 소켓 모두)에 `SnapToTargetNotIncludingScale` 로 부착(완드 루트 = 소켓, 상대 변환 없음). 메시 · 소켓이 없으면 폰 루트. 부착은 완드의 움직임 복제로 클라이언트에 간다.
   - `KeepRelativeTransform` 을 쓰면 안 된다 — 스폰한 월드 좌표가 그대로 손 기준 오프셋이 되어 완드가 몸에서 떨어진다(M1 통합 때 실제로 난 버그).
-- `LearnSpell(Spell)` — 서클 확인 → `GiveAbility(SourceObject = Spell)` → `KnownSpells` 에 추가(복제). 첫 마법이면 선택.
+- `LearnSpell(Spell)` — 서클 확인 → `GiveAbility(SourceObject = Spell)` → `KnownSpells` 에 추가(복제) → 숙련도 칸 · 첫 빈 단축 슬롯. 첫 마법이면 선택. 스킬북은 `UseSkillbook`([스킬북](#스킬북-·-배우기)).
+- `Server_SelectSpell(i)` — 그리모어 화면에서 고르기. 숙련도 · 단축 슬롯은 [숙련도](#숙련도-q26) · [UI](#ui).
 - `CycleSelection(±1)` · `SelectSpell(i)` — 선택 Spec 에만 `Input.Spell.Cast` 를 넣고 바뀐 Spec 을 `MarkAbilitySpecDirty`. `SelectedIndex` 복제, `OnSelectedSpellChanged`(서버 · 클라이언트) 로 HUD 갱신.
 - `UGrimSpellSelectAbility` 는 ServerOnly — 입력은 클라이언트, 선택 변경은 서버, 결과는 복제.
 
 ## 숙련도 (Q26)
 
-> 스펙: [마법 — 숙련도](../spec/magic#숙련도-q26-확정). 구현 예정 **M2**(스킬북 · 서클 1→3 과 함께).
+> 스펙: [마법 — 숙련도](../spec/magic#숙련도-q26-확정). **M2 갈래 G 에서 구현.** 코드 `Magic/GrimProficiencyTypes` · `GrimProficiencySettings` · `GrimSpellbookComponent`.
 
-**밸런스는 표 두 개와 설정 하나로만 바꾼다.** 코드에는 등급 수 · 수치를 적지 않는다.
+**밸런스는 표 하나(CSV)와 설정 섹션으로만 바꾼다.** 코드에는 등급 수 · 수치를 적지 않는다.
 
 ### 데이터
 
 | 무엇 | 형식 | 내용 |
 |---|---|---|
-| `DT_ProficiencyGrades` | DataTable `FGrimProficiencyGradeRow` | 행 = 등급 하나. `Grade`(D · C · B · A · S), `DisplayName`(입문 … 마스터), `XPToReach`(누적), `ManaCostMultiplier`, `CooldownMultiplier`, `ExtraEffectScale`(계약 확률 같은 마법별 추가 효과 배율). 행 순서가 등급 순서 — 등급을 늘리거나 줄여도 코드는 그대로 |
-| `UGrimProficiencyProfile` | DataAsset | 마법 묶음별 경험 곡선 바꾸기: `GradeTable`(위 표 참조, 기본은 공용), `XPScale`(필요 경험 배율 — 높은 서클 마법은 크게), `XPPerCast` · `XPPerMeaningfulHit` |
-| `UGrimSpellDefinition` 추가 필드 | | `ProficiencyProfile`(비우면 서클별 기본 프로필), `ProficiencyExtraEffect`(선택: 예 `Taming.CaptureBonus` 와 그 최대값) |
-| `UGrimProficiencySettings` | DeveloperSettings (`DefaultGame.ini`) | `GlobalXPRate`(서버 옵션으로도 노출), `RepeatTargetDecay`(같은 대상 반복 감쇠, 예 0.5 → 두 번째부터 절반씩), `RepeatWindowSeconds`, `DefaultProfileByCircle[1..10]` |
+| 등급표 `ProficiencyGrades.csv` | `Content/Grimoire/Data/` CSV → 런타임 DataTable(`FGrimProficiencyGradeRow`) | 행 이름 = 등급 글자(D · C · B · A · S), 열 `DisplayName`(입문 … 마스터) · `XPToReach`(누적, 배율 전) · `ManaCostMultiplier` · `CooldownMultiplier` · `ExtraEffectScale`. **행 순서가 등급 순서** — 등급을 늘리거나 줄여도 코드는 그대로. 반응 규칙표와 같은 이유로 CSV 가 정본(바이너리 없음 · 테스트가 같은 파일을 읽음). 에디터에서 다루고 싶으면 `DT_ProficiencyGrades` 로 임포트해 설정 `GradeTableAsset` 에 지정. 개발 중 다시 읽기: 콘솔 `Grim.Magic.ReloadProficiency` |
+| `UGrimProficiencyProfile` | DataAsset(선택) | 마법 묶음별로 바꿀 때: `GradeTable`(비우면 공용 표) · `Curve`(`FGrimProficiencyCurve { XPScale, XPPerCast, XPPerMeaningfulHit }`). 지금 만든 에셋은 없다 — 서클별 기본 곡선으로 충분 |
+| `UGrimSpellDefinition` 추가 필드 | | `bTracksProficiency`(기본 true — 기본 공격(R26)처럼 숙련도 없는 항목은 false: 경험 · 배율 없음, 그리모어에 「—」), `ProficiencyProfile`(비우면 서클별 기본 곡선), `ProficiencyExtraEffect { EffectTag, MaxValue }`(계약 포획 확률 같은 추가 효과 — 필드만, 생물은 M3) |
+| `UGrimProficiencySettings` | `[/Script/Grimoire.GrimProficiencySettings]` | `GlobalXPRate`(1 — 콘솔 `Grim.Magic.XPRate` 로 서버에서 바꿀 수 있다), `RepeatTargetDecay`(0.5), `RepeatWindowSeconds`(30), `DefaultCurveByCircle[1..10]`, `GradeTableCSV` · `GradeTableAsset` |
 
-예시 `DT_ProficiencyGrades` (CSV 로도 관리 — `Content/Grimoire/Data/ProficiencyGrades.csv`):
+M2 값(제안 — 밸런스 표에서 바꾼다):
 
 ```
 Grade,DisplayName,XPToReach,ManaCostMultiplier,CooldownMultiplier,ExtraEffectScale
@@ -146,19 +148,34 @@ A,능숙,700,0.85,0.85,0.75
 S,마스터,1500,0.75,0.80,1.0
 ```
 
+| 서클 | XPScale(문턱 배율) | XPPerCast | XPPerMeaningfulHit |
+|---|---|---|---|
+| 1 · 2 · 3 · 4 · 5 | 1.0 · 1.6 · 2.5 · 3.5 · 5 | 1 | 4 |
+| 6 · 7 · 8 · 9 · 10 | 7 · 10 · 14 · 20 · 30 | 1 | 4 |
+
+1서클 마법은 의미 있게 맞히는 시전 약 20번에 C, 60번에 B, 140번에 A, 300번에 S(반복 감쇠 전).
+
 ### 계산 · 적용
 
-- 저장: `UGrimSpellbookComponent` 에 `TArray<FGrimSpellProficiency { SpellId, XP }>`(FastArray, 소유자에게만 복제, 플레이어 세이브). 등급은 저장하지 않고 XP 와 표로 **매번 계산**한다 → 표를 바꾸면 기존 세이브도 새 기준을 따른다.
-- 순수 계산 `FGrimProficiencyMath`(액터 모름, 테스트가 직접 부름): `GetGrade(XP, Profile)` · `GetMultipliers(Grade)` · `ComputeXPGain(Def, bMeaningfulHit, RepeatCount, Settings)`.
-- 경험 지급: 서버에서 시전 확정 때 `XPPerCast`, 명중 처리(피해 · 자극 · 계약 결과) 때 `XPPerMeaningfulHit`. 같은 (마법, 대상) 쌍의 최근 기록으로 `RepeatTargetDecay` 를 곱한다. 마지막에 `× XPScale × GlobalXPRate`.
-- 마나: `UGrimSpellAbility` 의 비용 GE 를 `SetByCaller.Magic.ManaCost = 기본 마나 × ManaCostMultiplier` 로(완드 마나 효율 · 인챈트와 곱셈).
-- 쿨타임: 쿨다운 GE 지속시간 `SetByCaller.Magic.Cooldown = 기본 쿨타임 × CooldownMultiplier / CastSpeed`.
-- 계약 확률 같은 추가 효과: `ProficiencyExtraEffect` 최대값 × `ExtraEffectScale`.
-- 등급이 오르면 소유 클라이언트에 `OnProficiencyGradeUp(SpellId, Grade)` → UI 알림 · 그리모어 쪽 갱신.
+- 저장: `UGrimSpellbookComponent` 의 `FGrimSpellProficiencyArray`(FastArray `{ Spell, XP }`, **소유자에게만 복제**, 플레이어 세이브 대상). 등급은 저장하지 않고 XP 와 표로 **매번 계산**한다 → 표를 바꾸면 기존 세이브도 새 기준을 따른다. 배울 때 칸이 생긴다(XP 0).
+- 순수 계산 `FGrimProficiencyMath`(액터 모름, 테스트가 직접 부름): `ReadGrades(표)` · `GetGradeIndex(XP, 등급들, XPScale)` · `GetMultipliers(등급들, i)` · `MakeView(XP, 등급들, XPScale)` → `FGrimProficiencyView`(등급 · 이름 · 지금/다음 문턱 · 막대 · 최고 여부 · 배율) · `ComputeXPGain(기본, 반복 수, 감쇠, 전역 배율)` · `ComputeSkillbookXP(뷰, 비율, 고정)`. 반복 기록 `FGrimRepeatTracker`(순수).
+- **문턱 = `XPToReach × XPScale`**(높은 서클 마법일수록 더 든다). 쌓이는 양 = `기본 × RepeatTargetDecay^반복 수 × GlobalXPRate`. (설계 초안의 「얻는 경험 × XPScale」은 높은 서클을 오히려 빠르게 만들어서 문턱 쪽으로 옮겼다.)
+- 경험 지급(서버만):
+  - **시전 확정** — `UGrimSpellAbility::BeginAuthorityCast`(서버가 조준을 정한 순간)에서 `AwardCastXP(정의, 조준 대상)`. 누르는 마법(물줄기)은 시작할 때 한 번.
+  - **의미 있는 명중** — `ApplySpellHit` 에서 `IsMeaningfulHit` 이면 `AwardHitXP(정의, 맞은 액터)`. 의미 있음 = 조준 종류 적 · 생물(`IGrimTargetable`), 플레이어가 아닌 ASC(협동 플레이어는 아님 — `bFriendlyFire` 면 예외), **이 마법 자극에 맞는 규칙이 있는 속성 사물**(반응 규칙표를 조회만 — 자극을 주기 **전에** 본다. 젖은 양초에 불씨처럼 반응이 없으면 아님).
+  - 같은 (마법, 대상) 쌍은 `RepeatWindowSeconds` 안에서 이어 쓸수록 줄어든다(시전 대상 없음 = 「허공」도 한 대상으로 센다). 시전 경험과 명중 경험은 따로 센다(한 번 쏘아 맞히면 둘 다 온전히). 창이 지나면 다시 처음 값.
+- 마나: 비용 = `ManaCost × (1 − 완드 ManaEfficiency) × ManaCostMultiplier × 생존 ManaCostScale`. 누르는 마법의 초당 마나에도 곱한다. 쿨타임 = `Cooldown × CooldownMultiplier ÷ 생존 CastSpeedScale ÷ 완드 CastSpeed`. `UGrimSpellAbility::GetEffectiveManaCost/Cooldown(정의, 완드, 배율)` · `GetCasterMultipliers(정의, ASC)`(숙련도 × 생존) — `CheckCost` · `ApplyCost` · `ApplyCooldown` · `StreamTick` 의 비용 자리에서만 곱한다(전달 방식 코드는 그대로). 클라이언트 예측도 복제된 XP 로 같은 값을 쓴다.
+- 생존 쪽 연결(이름으로 — 없으면 1 · 무시, `[/Script/Grimoire.GrimSpellbookSettings]`): 어트리뷰트 `ManaCostScale`(더위) · `CastSpeedScale`(추위 · 피곤함), 시전 차단 태그 `Status.Sleeping` · `Status.Downed` · `Status.Collapsed`(`CanActivateAbility`). 감기(`Status.Sick.Cold`)의 「가끔 끊김」은 통합 뒤.
+- 추가 효과: `GetProficiencyExtraEffect(정의)` = `ProficiencyExtraEffect.MaxValue × ExtraEffectScale`.
+- 등급이 오르면 `OnProficiencyGradeUp(마법서, 정의, 등급 번호)` — 서버는 계산 직후, 소유 클라이언트는 FastArray 복제 콜백(처음 받은 값은 기준으로만 삼고 알리지 않는다). HUD 가 알림을 띄운다. 등급은 내려가지 않는다(XP 는 줄지 않는다).
 
 ### 테스트
 
-`Grimoire.Magic.Proficiency.Grade`(경계값) · `.Multipliers` · `.RepeatDecay` · `.TableEdit`(행을 바꾸면 결과가 따라 바뀌는지).
+`Grimoire.Magic.Proficiency.Grade`(경계값 · XPScale · 막대) · `.Multipliers`(어빌리티 비용 식까지) · `.RepeatDecay`(감쇠 · 창) · `.TableEdit`(CSV 를 읽고 행을 고치거나 등급을 더하면 결과가 따라 바뀜, 실제 `ProficiencyGrades.csv`) · `.SkillbookXP` · `.CircleUp`(승급 조건) · `.Spellbook`(PlayerState 를 띄워 배움 · 경험 · 반복 감쇠 · 스킬북 세 경우 · 슬롯 · 강제 승급 — 최대 마나 그대로).
+
+### 콘솔 (개발 빌드, 끝의 [지연초]는 헤드리스용)
+
+`Grim.Magic.Proficiency [지연초]`(로컬 플레이어의 서클 · 마나 · 마법별 등급/XP/배율 · 다음 서클 조건) · `Grim.Magic.AddXP <마법 이름 일부> <양> [지연초]`(클라이언트면 서버 RPC) · `Grim.Magic.XPRate [배율]` · `Grim.Magic.ReloadProficiency`.
 
 ## 마법 어트리뷰트 `UGrimMagicAttributeSet`
 
@@ -174,15 +191,40 @@ S,마스터,1500,0.75,0.80,1.0
 
 ## 스킬북 · 배우기
 
-- 스킬북은 아이템(`UGrimItemDefinition`, `ItemType = Skillbook`, `TeachesSpell`).
-- 사용 → `Server_UseItem` → `UGrimSpellbookComponent::LearnSpell(SpellId)`: 서클 확인 → `GiveAbility` → 목록에 추가(복제 · 저장) → 책 소모.
+> 스펙: [마법 — 스킬북으로 배우기](../spec/magic#스킬북으로-배우기-r05). **M2 갈래 G.**
+
+- 스킬북은 「아이템을 사용」해서 배운다. **사용 로직은 아이템과 무관한 함수 하나** — `UGrimSpellbookComponent::UseSkillbook(정의)`(서버). 인벤토리(M4)가 생기면 아이템(`ItemType = Skillbook`, `TeachesSpell`)의 사용이 이것을 부른다.
+  - 모르는 마법 → 서클 확인 → `LearnSpell`(`GiveAbility(SourceObject = 정의)` → `KnownSpells` 복제 → 숙련도 칸 · 빈 단축 슬롯) → `Learned`.
+  - 이미 아는 마법 → 숙련도 경험 `ComputeSkillbookXP` = (다음 문턱 − 지금 문턱) × `SkillbookXPFractionOfGrade`(0.4) + `SkillbookFlatXP`(0) → `ProficiencyGained`.
+  - 이미 S → `AlreadyMastered`(쓸 수 없다, 책이 남는다). 숙련도 없는 항목(기본 공격) → `AlreadyKnown`. 서클 모자람 → `CircleTooLow`.
+  - 결과는 `OnLearnResult(마법서, 정의, EGrimLearnResult)` — 서버 · 소유 클라이언트(`Client_LearnResult`). HUD 알림.
+  - 미리 보기 `PreviewSkillbook(정의)`(HUD 안내 · 테스트).
+- 월드 액터 `AGrimSkillbook`(지금의 「아이템」 자리): 엔진 기본 상자(책 크기 22 × 30 × 5cm, 바닥 1m 위) + 속성색 표지(`BasicShapeMaterial` `Color` = 정의의 `Color`), 초당 30° 돈다. 충돌 없음(마법 판정을 막지 않는다). `TeachesSpell`(복제) · `PickupRadius`(90cm, 폰 겹침 구) · `ReadRadius`(250cm — 콘솔 · HUD 안내 거리) · `ServerReadSlack`(150cm).
+  - **집기 = 사용**: 폰이 겹침 구에 들어오면(서버) `PickUpSkillbook(책, 폰)` → 거리 확인 → `UseSkillbook` → `Learned` · `ProficiencyGained` 면 책이 사라진다(`ConsumeBook` = `Destroy`, 복제). 못 쓰면 남고 알림만.
+  - 「모든 상호작용은 마법」(R16)의 직접 상호작용 예외(침대와 같이, 제안). 상호작용 키는 쓰지 않는다(겹침).
 - 필사는 없다(Q5 미채택). 스킬북은 탑 · 던전 · 유적 · 전리품으로만 얻는다.
+- 시험용 스킬북 마법 `DA_Spell_Fireball`「화염구」: 2서클 · 불 · Bolt 5000cm/s · 반지름 25 · 유도 40°/s · 마나 25 · 쿨 2초 · Windup 0.15 · 피해 30 · 자극 2.0 · 30m. 불씨를 수치만 키웠다(`Scripts/Magic/make_spells.py`, `GRIM_SPELLS=DA_Spell_Fireball` 로 그것만 다시 만든다). 시작 마법에는 없다. VisualSet 은 비어 있어 연출 쪽이 속성(불)으로 `VS_Ember` 를 고른다.
+- 콘솔: `Grim.Magic.SpawnSkillbook <마법 이름 일부> [앞cm] [지연초]`(서버 — 플레이어마다 앞에 책) · `Grim.Magic.ReadSkillbook [지연초]`(로컬 플레이어가 `ReadRadius` 안의 가장 가까운 책을 집는다 — 클라이언트면 `Server_PickUpSkillbook`).
 
 ## 서클
 
-- `UGrimMagicAttributeSet`: `Circle`, `MaxMana`(서클 함수), `CastSpeed`, `SpellPower`, 속성별 `Power_Fire` …(완드 · 버프가 더함).
-- 승급: `UGrimProgressionComponent`(PlayerState)가 조건(시험 퀘스트 완료 · 소재)을 확인하고 `Circle + 1` → `Circle.N` 태그 갱신 → 그리모어 UI 갱신.
-- 사냥꾼의 "금지된 승급"은 같은 컴포넌트의 다른 경로(`AbsorbMana`) — NPC 전용이지만 같은 데이터 구조.
+> 스펙: [마법 — 서클 제도](../spec/magic#서클-제도-r06). **M2 갈래 G** — 1→3서클.
+
+- 서클은 `UGrimMagicAttributeSet::Circle`(복제). `Circle.N` 태그는 아직 쓰지 않는다(정의의 `Circle` 과 어트리뷰트를 바로 비교).
+- 승급: `UGrimProgressionComponent`(`AGrimPlayerState` 의 하위 객체 `Progression`).
+  - `EvaluateNextCircle()` → `FGrimCircleCheck`(지금 서클 · 다음 서클 · 배운 마법 수 · 등급 합 · 필요치 · 충족). 순수 판정 `UGrimProgressionSettings::Evaluate(조건표, 서클, 마법 수, 등급 합)`.
+  - `TryCircleUp(bForce)`(서버): 조건이 맞으면(강제면 무시) `Circle + 1`. **최대 마나는 서클에 묶지 않는다** — 캐릭터 레벨(HP · 마나 · 성장 트리 포인트)이 정한다(레벨 묶음, TODO 자리만). `UGrimMagicSettings::MaxManaByCircle` 은 처음 마나(시작 서클 값)로만 쓰인다.
+  - 결과 `OnCircleUpResult(승급, 서클, 성공)` — 서버 · 소유 클라이언트(`Client_CircleUpResult`).
+  - `Server_RequestCircleUp(bForce)` · `RequestCircleUp` — `bForce` 는 개발 빌드에서만 듣는다.
+- 조건표 `[/Script/Grimoire.GrimProgressionSettings] CircleRequirements` — 지금은 데이터 조건만(`MinKnownSpells` = 숙련도를 쌓는 배운 마법 수, `MinGradeSum` = 그 마법들의 등급 번호 합: D 0 · C 1 …). 표에 있는 서클까지만 오른다:
+
+| 오르는 서클 | 배운 마법 | 등급 합 | 뜻 |
+|---|---|---|---|
+| 2 | 3 | 2 | 시작 마법 셋 중 둘을 C 로 |
+| 3 | 4 | 5 | 2서클 스킬북(화염구)을 배우고 더 익힌다 |
+
+- 마법탑 시험 · 의식은 다음 묶음(튜토리얼)에서 이 조건 앞에 붙인다. 사냥꾼의 "금지된 승급"은 같은 컴포넌트의 다른 경로(`AbsorbMana`, R09) — 아직 없음.
+- 콘솔 `Grim.Magic.CircleUp [강제 0|1] [지연초]`.
 
 ## 속성 태그 · 상성 표
 
@@ -419,11 +461,30 @@ M1 규칙(11행 — 원본은 CSV):
 
 ## UI
 
-- HUD: 단축 슬롯(마법 아이콘 · 쿨다운 · 서클 색), 마나, 조준점(대상의 속성 상태 아이콘 표시 — "젖음" 보이기).
-- 그리모어(`WBP_Grimoire`): 배운 마법 · 필터 · 슬롯 배치 · 완드 정보 · 발견한 반응 규칙 도감.
+> **M2 갈래 G** — 코드 `Source/Grimoire/UI/`. 위젯 트리는 C++ 가 짠다(WBP 없음 — 헤드리스로 만들 바이너리가 없고, 리뷰가 텍스트 diff). 모양을 다듬을 때는 이 클래스를 부모로 WBP 를 만들어도 된다.
+
+| 클래스 | 하는 일 |
+|---|---|
+| `UGrimUISubsystem` | `ULocalPlayerSubsystem`. 0.25초마다 로컬 컨트롤러가 바뀌었는지 보고, 바뀌면 HUD 를 띄우고 **Enhanced Input 에 `IMC_UI` 를 더하고 자기 입력 컴포넌트를 컨트롤러 입력 스택에 올린다** — 컨트롤러 · 캐릭터 파일을 고치지 않는다. 그리지 못하는 프로세스(`-nullrhi` · 전용 서버)는 위젯을 만들지 않는다 |
+| `UGrimHUDWidget` | 왼쪽 아래: 서클 · 호칭 + 막대들. 가운데 아래: **기본 공격 자리(R26)** + **지금 세트의 단축 슬롯 4칸**(속성색 · 선택 테두리 · 쿨다운 막과 초 · 숙련도 등급 글자, S 는 금색). 위: 알림(등급 오름 · 배움 · 스킬북 · 승급). 가운데 아래 위: 스킬북 곁이면 안내(배운다 / 숙련도 / 이미 통달 / 서클 모자람) |
+| `UGrimGrimoireWidget` | 그리모어 화면 — 탭 셋. **마법**: 완드 보정(마나 절약 · 시전 속도), 단축 슬롯 배치(세트 버튼 → 마법 줄 누르기 → 칸 누르기, 같은 마법 칸을 누르면 비움), 속성 필터(전체 + 설정의 속성), 목록(숙련도 없는 항목 「기본」 → 서클별 머리 「1서클 — 견습」 → 배운 순서). 줄마다 속성색 띠 · 이름 · 속성 · 서클 · 등급 글자(없으면 「—」) · 등급 이름 · 다음 등급 막대 · 경험 · 실제 마나/쿨타임(완드 · 숙련도 반영) · 「지금 마법」. S 는 금테. 줄을 누르면 그 마법을 고른다(`Server_SelectSpell`). **성장 트리** · **도감**: 빈 자리(다음 묶음) |
+| `UGrimIdButton` | 자기 번호를 알리는 버튼(목록 · 필터 · 탭 · 슬롯) |
+| `FGrimUIMath` | 순수 계산: 막대 비율 · 어트리뷰트 이름 나누기 · 쿨다운 비율/글 · 속성 필터 · 그리모어 순서 · 슬롯 배치 · 등급 글자 |
+| `GrimUIData` | 어트리뷰트를 이름으로 찾기(`"Health"` · `"GrimVitalAttributeSet.Health"`) · 쿨다운 남은 초(쿨다운 태그 GE) · 속성색 · 위젯 만들기 도우미 |
+| `UGrimUISettings` | `[/Script/Grimoire.GrimUISettings]` — 아래 |
+
+- 막대(`VitalBars`): HP(Health/MaxHealth) · 마나(Mana/MaxMana) · 배고픔(Hunger/MaxHunger, 없으면 100) · 체온(BodyTemperature, 30~44°C) · 피곤함(Fatigue/MaxFatigue). **어트리뷰트를 이름으로 읽고 없으면 그 줄을 숨긴다**(1초마다 다시 찾는다) — 생존 갈래가 `Fatigue` 를 만들면 저절로 나타난다. 생존 값은 읽기만 한다.
+- 기존 생존 디버그 글(`grim.Survival.ShowDebug`)은 지우지 않았다. HUD 를 띄우면 `bHideSurvivalDebugWithHUD` 로 0 으로 바꾸고, 콘솔 `grim.Survival.ShowDebug 1` 로 다시 켠다.
+- 단축 슬롯(호그와트 레거시 — 4칸 세트 여러 개): 데이터는 마법서 `SlotSpells`(세트 × 칸, 모두에게 복제) · `ActiveSlotSet`, 수는 `[/Script/Grimoire.GrimSpellbookSettings] SpellSlotsPerSet`(4) · `SpellSlotSets`(4) · `bAutoAssignSlots`(새로 배운 마법을 첫 빈 칸에). 같은 마법은 한 칸에만. 서버 `AssignSlot` · `SetActiveSlotSet`, 클라이언트 `Server_AssignSlot` · `Server_SetActiveSlotSet`. 숙련도 없는 항목은 슬롯에 넣지 않고 HUD 의 기본 공격 자리에(`bSeparateBasicAttackSlot`).
+  - **슬롯으로 시전하기(1~4 키 · 패드 R2 + 얼굴 버튼)는 아직 없다** — 시전 입력은 캐릭터 쪽이고 Q29(조작 배치) 결정 뒤. 지금 시전은 여전히 「선택된 마법」(휠 · 그리모어에서 고르기).
+- 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 PC 배치): `IA_ToggleGrimoire` = Tab · 패드 View(`Gamepad_Special_Left`), `IA_SpellSet1~4` = F1~F4(패드 세트 바꾸기는 Q29 뒤). 컨텍스트 `IMC_UI`(우선순위 1).
+- 그리모어가 열리면 Game+UI 입력 · 마우스 커서 · 시점 고정(`SetIgnoreLookInput`), 키는 게임으로 계속 가서 같은 키로 닫는다. 왼손 책이 다가오는 연출(스펙 「제안」)은 연출 쪽 몫.
+- 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.SlotSet <1부터>`.
+- 테스트 `Grimoire.UI.*`: `BarFraction`(쿨다운 글 포함) · `AttributeName`(실제 ASC 에서 이름으로 찾기) · `ElementFilter` · `GrimoireOrder` · `SlotLayout` · `Settings`(ini 값).
+- 아직 없는 것: 조준점 · 대상의 속성 상태 표시(「젖음」), 마법 아이콘(정의의 `Icon` 이 비어 이름 글자로), 도감 기록(반응 규칙을 발견하면 쓰기), 성장 트리, 옵션 화면.
 
 ## M1 범위
 
 불씨 · 물줄기 · 미풍 3개 마법, 완드 1종, 양초 · 모닥불 · 마른 풀 3개 사물, 반응 규칙표 10행, 상성 표. 서클 UI 는 숫자만.
 
-아직 없는 것: 그리모어 UI, 스킬북 아이템, 완드 정의 데이터 · 장착 해제, 서클 승급. 시전 동작 · 섬광 · 터짐 연출은 M1.5 갈래 C(MagicFX)가 큐 처리기로 붙인다.
+아직 없는 것(M1 기준): 완드 정의 데이터 · 장착 해제. 그리모어 UI · 스킬북 · 서클 승급 · 숙련도는 M2 갈래 G 에서 들어왔다(위 각 절). 시전 동작 · 섬광 · 터짐 연출은 M1.5 갈래 C(MagicFX)가 큐 처리기로 붙인다.

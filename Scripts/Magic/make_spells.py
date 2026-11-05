@@ -1,10 +1,12 @@
-# 시작 마법 3개(불씨 = Bolt · 물줄기 = Stream · 미풍 = Cone)의 DataAsset 을 만든다 / 고친다 (M1.5, docs/systems/spell-feel).
+# 시작 마법 3개(불씨 = Bolt · 물줄기 = Stream · 미풍 = Cone)와 M2 스킬북 마법(화염구)의 DataAsset 을 만든다 / 고친다 (docs/systems/spell-feel · magic).
 # 이 스크립트가 수치의 정본이다 — 에셋을 에디터에서 고쳤다면 여기에도 옮긴다.
 # 연출 묶음(VisualSet)은 연출 갈래(MagicFX)가 채운다 — 이 스크립트는 건드리지 않는다(있으면 그대로 둔다).
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
 #   & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
 #     -run=pythonscript -script="$PWD\Scripts\Magic\make_spells.py" -unattended -nop4 -nosplash -nullrhi
+
+import os
 
 import unreal
 
@@ -77,10 +79,35 @@ SPELLS = [
         cone_range=1000.0,
         cone_falloff=dict(near_distance=150.0, near_intensity=2.8, far_intensity=0.6, exponent=1.0),
     ),
+    # M2 시험용 스킬북 마법(2서클) — 불씨를 Bolt 그대로 수치만 키웠다. 스킬북으로만 배운다(StartingSpells 에 없음).
+    dict(
+        asset="DA_Spell_Fireball",
+        name="화염구",
+        description="묵직한 불덩이를 쏜다. 불씨보다 느리지만 더 세게 태운다. 2서클 스킬북으로 배운다.",
+        spell_tag="Spell.Fireball",
+        element="Element.Fire",
+        cooldown_tag="Cooldown.Spell.Fireball",
+        delivery=unreal.GrimSpellDelivery.BOLT,
+        circle=2,
+        mana_cost=25.0,
+        cooldown=2.0,
+        cast_windup=0.15,
+        radius=25.0,
+        range=3000.0,
+        damage=30.0,
+        stimulus=2.0,
+        color=unreal.LinearColor(1.0, 0.45, 0.1, 1.0),
+        bolt_speed=5000.0,
+        homing_strength=40.0,
+    ),
 ]
+
+# 일부만 다시 만들 때: 환경 변수 GRIM_SPELLS=DA_Spell_Fireball(쉼표로 여럿). 비우면 전부.
+ONLY = [name.strip() for name in os.environ.get("GRIM_SPELLS", "").split(",") if name.strip()]
 
 # 정의에 없는 키의 기본값(전달 방식마다 쓰지 않는 필드도 깨끗이 맞춘다)
 DEFAULTS = dict(
+    circle=1,
     channeled=False,
     channel_mana_per_second=0.0,
     cast_windup=0.0,
@@ -119,6 +146,8 @@ def make_or_load(asset_name):
 def main():
     unreal.EditorAssetLibrary.make_directory(SPELL_DIR)
     for data in SPELLS:
+        if ONLY and data["asset"] not in ONLY:
+            continue
         spell = make_or_load(data["asset"])
         if spell is None:
             raise RuntimeError("에셋을 만들지 못함: " + data["asset"])
@@ -139,7 +168,7 @@ def main():
         spell.set_editor_property("description", unreal.Text(values["description"]))
         spell.set_editor_property("spell_tag", tag(values["spell_tag"]))
         spell.set_editor_property("element", tag(values["element"]))
-        spell.set_editor_property("circle", 1)
+        spell.set_editor_property("circle", values["circle"])
         spell.set_editor_property("mana_cost", values["mana_cost"])
         spell.set_editor_property("channel_mana_per_second", values["channel_mana_per_second"])
         spell.set_editor_property("cooldown", values["cooldown"])
