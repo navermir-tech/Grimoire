@@ -71,7 +71,7 @@
 
 - **장비 내구도**: 장비는 아이템 인스턴스 데이터 `FGrimItemInstance { Durability, MaxDurability, RepairCount, Enchants[] }` 를 가진다(인벤토리 슬롯에 같이 복제 · 저장). 서버만 깎는다 — 완드는 `UGrimSpellAbility` 의 시전 확정 때 `DurabilityCostPerCast`, 방어구는 피해 실행(`UGrimDamageExecution`) 뒤 피해량 비례. 0 → 장비 해제 + 잔해 아이템으로 교체(완드는 `bBroken` 표시만 — Q22).
 - **건축 내구도**: 조각의 `Health`(세이브에 이미 있음)를 쓰고, 피해는 GAS 가 아닌 조각 전용 `ApplyStructureDamage` 하나로 받는다(습격 · 불 · 노후 모두). 불은 속성 상태 컴포넌트가 `State.Burning` 세기 × 초당 피해로 넘긴다 — 조각도 `UGrimElementalStateComponent` 를 가진다(재료 태그 `Material.Flammable` 은 나무만).
-- **수리**: 대상(장비 · 조각) + 재료 아이템 + 속성 자극. 수리 마법은 일반 마법과 같은 `IGrimElementalReceiver` 경로로 "수리 자극"을 보내고, 받는 쪽이 재료가 맞으면 회복한다 — 상호작용이 마법이라는 R16 을 그대로 쓴다. 수치는 `UGrimDurabilitySettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%.
+- **수리**: 대상(장비 · 조각) + 재료 아이템 + 무속성 수리 마법 「수리」(스킬북으로 배움 — R28). 수리 마법은 일반 마법과 같은 `IGrimElementalReceiver` 경로로 "수리 자극"(`Element.None` + 수리 태그)을 보내고, 받는 쪽이 재료가 맞으면 회복한다 — 상호작용이 마법이라는 R16 을 그대로 쓴다. 마법탑 NPC 대리 수리 · 지우기는 같은 함수를 NPC 가 부르고 수수료를 받는다. 같은 장비 합치기는 순수 계산 `FGrimEnchantMergeMath`(마인크래프트 모루 규칙 — 작업 횟수 `RepairCount` 를 `PriorWork` 로 같이 씀). 수치는 `UGrimDurabilitySettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%.
 - **인챈트**: `UGrimEnchantDefinition`(DataAsset — 대상 슬롯 · 단계별 효과 GE · 비용 · 각인 속성 · 요구 서클). 장착 시 효과 GE 를 플레이어 ASC 에 Infinite 로 걸고 해제 시 지운다. 「자가 회복」 · 「견고」는 내구도 코드가 읽는 태그.
 - 마일스톤: 내구도 · 수리 = **M4**(인벤토리 완성과 함께), 인챈트 · 각인대 = **M5**(완드 공방과 함께).
 
