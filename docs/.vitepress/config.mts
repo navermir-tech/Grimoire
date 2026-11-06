@@ -18,7 +18,7 @@ export default defineConfig({
       { text: '시스템', link: '/systems/', activeMatch: '/systems/' },
       { text: '아트', link: '/art/costumes-tutorial', activeMatch: '/art/' },
       { text: '개발', link: '/dev/setup', activeMatch: '/dev/' },
-      { text: 'QA', link: '/qa/m4-base', activeMatch: '/qa/' },
+      { text: 'QA', link: '/qa/', activeMatch: '/qa/' },
     ],
 
     sidebar: {
@@ -84,14 +84,6 @@ export default defineConfig({
           ],
         },
       ],
-      '/qa/': [
-        {
-          text: 'QA 기록 (항목 · 방법 · 기대 · 결과)',
-          items: [
-            { text: 'M4 거점 + 생물 보관 통합', link: '/qa/m4-base' },
-          ],
-        },
-      ],
       '/dev/': [
         {
           text: '개발 가이드',
@@ -100,8 +92,29 @@ export default defineConfig({
             { text: '규칙 · 명명', link: '/dev/conventions' },
             { text: '문서 사이트 · 배포', link: '/dev/docs-site' },
             { text: '성능 측정 방법', link: '/dev/perf-measure' },
+            { text: 'QA 절차', link: '/dev/qa' },
             { text: '테스트 치트', link: '/dev/cheats' },
             { text: '레벨 디자인 노트', link: '/dev/level-design' },
+          ],
+        },
+      ],
+      '/qa/': [
+        {
+          text: 'QA (직접 검증)',
+          items: [
+            { text: 'QA 현황', link: '/qa/' },
+            { text: '버그 목록', link: '/qa/bugs' },
+            { text: '캐릭터 · 입력 · 조준', link: '/qa/character' },
+            { text: '마법 · 상호작용', link: '/qa/magic' },
+            { text: '생존 · 밤낮 · 날씨', link: '/qa/survival' },
+            { text: '튜토리얼 · 세이브 · 접속', link: '/qa/tutorial' },
+            { text: '생물 · 길들이기 · 보관함', link: '/qa/creatures' },
+            { text: '커스터마이징', link: '/qa/customization' },
+            { text: '치트 · 개발 명령', link: '/qa/cheats' },
+            { text: '이펙트', link: '/qa/fx' },
+            { text: '성능 예산', link: '/qa/perf' },
+            { text: 'M4 거점 + 생물 보관 통합', link: '/qa/m4-base' },
+            { text: 'QA 절차', link: '/dev/qa' },
           ],
         },
       ],
