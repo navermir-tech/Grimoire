@@ -2,7 +2,7 @@
 
 > 관련 요구사항: R19(인챈트), R18(내구도), R27(성장 요소 — 인챈트는 무작위 · 재화는 특수 광석), R28(같은 장비 합치기), R25 · R29(체온 · 피곤함)
 >
-> 규칙의 뼈대(각인대 · 후보 3개 · 각인서 · 지우기 · 합치기)는 [장비 — 인챈트](./equipment#인챈트-—-강화-r19)에 있다. 이 문서는 **무엇을 붙일 수 있고 단계마다 얼마나 센가**를 정한다. 수치의 정본은 `Content/Grimoire/Data/Enchants.csv` · `EnchantLevels.csv` 이고, 이 문서의 표는 그 사본이다. 상태: **제안**(Q51~Q58).
+> 규칙의 뼈대(각인대 · 후보 3개 · 각인서 · 지우기 · 합치기)는 [장비 — 인챈트](./equipment#인챈트-—-강화-r19)에 있다. 이 문서는 **무엇을 붙일 수 있고 단계마다 얼마나 센가**를 정한다. 수치의 정본은 `Content/Grimoire/Data/Enchants.csv` · `EnchantLevels.csv` 이고, 이 문서의 표는 그 사본이다. 상태: **제안**(Q51~Q58). 구현 상태: 두 CSV 는 있지만 아직 읽는 코드가 없다(인챈트 시스템 M5 계획) — 아이템 한 칸 `FGrimItemInstance` 의 `Enchantments`(인챈트 ID 배열)만 저장 · 복제된다.
 
 ## 한눈에
 
@@ -300,7 +300,7 @@
 | `Content/Grimoire/Data/EnchantLevels.csv` | 단계 Ⅰ~Ⅲ — `ValueScale`(k), `PowerPoints`, `OreCost`, `MaterialCount`, `MaterialGrade`, `ManaCost`, `MinCircleOnTable`, `MinGearTier` |
 
 - `Tier1~3` 은 `round(BaseValue × ValueScale)` 로 만든 값이다. 밸런스를 바꿀 때는 `BaseValue` 나 `ValueScale` 을 고치고 단계값을 다시 계산한다(손으로 한 칸만 고치면 규칙이 깨진다).
-- 전체 상한(마나 0.5 · 피해 감소 50% · 이동 25% · 시전 30% · 질병 75%)은 구현 때 `Config/DefaultGame.ini` 로 간다(M5). 구현 설계는 [건축 · 장비 시스템](../systems/building)의 `UGrimEnchantDefinition`.
+- 전체 상한(마나 0.5 · 피해 감소 50% · 이동 25% · 시전 30% · 질병 75%)은 구현 때 `Config/DefaultGame.ini` 로 간다(M5). 구현 설계(설계안)는 [건축 · 장비 시스템](../systems/building)의 `UGrimEnchantDefinition`.
 
 ## 미결
 

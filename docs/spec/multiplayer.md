@@ -36,6 +36,20 @@
 - **세이브**는 서버가 한다. 호스트가 서버를 닫으면 세계가 저장되고, 다시 열면 이어진다.
 - 플레이어 데이터(서클 · 마법 · 가방)는 계정별로 저장된다. 다른 서버로 ▢ 가져갈 수 있는지는 미결(Q12).
 
+## 구현 상태 (2026-11-06)
+
+어떻게는 [월드 · 멀티플레이 · 세이브](../systems/world-multiplayer).
+
+| 항목 | 상태 | 코드 |
+|---|---|---|
+| 호스트 플레이(리슨 서버) · 혼자 하기 · 메인 메뉴 · Esc 메뉴 | 구현(M3) | `Source/Grimoire/Online/GrimSessionSubsystem.h`, `Source/Grimoire/UI/GrimMenuWidgets.h` |
+| LAN 찾기 · IP 직접 입력 참가 | 구현 — 온라인 서브시스템 Null | `Source/Grimoire/Online/GrimSessionBackend.h` |
+| 최대 8명(Q11) | 구현 — 넘치면 거절 | `Config/DefaultGame.ini` 의 `[/Script/Engine.GameSession] MaxPlayers` |
+| 세이브는 서버가 · 닫으면 저장 · 다시 열면 이어짐 | 구현(세이브 v1) — 세계 슬롯 하나에 세계 파일 + 플레이어별 파일 | `Source/Grimoire/Save/GrimSaveSubsystem.h` |
+| 플레이어 데이터 「계정별」 저장 | 지금은 PC 마다 만든 id(GUID)로 — Steam 계정 id 는 Steam 때 | `Source/Grimoire/Save/GrimPlayerIdentity.h` |
+| Steam 친구 초대(R32) | 자리만(「친구 초대」 메뉴 · 백엔드 함수) | `Source/Grimoire/Online/GrimSessionBackend.h` |
+| 전용 서버 · 파티 인스턴스 던전 · 공용 거점 | 아직 | — |
+
 ## 미결
 
 - 서버 간 캐릭터 이동(Q12 — 레퍼런스 조사 뒤 결정), Steam 시점 → [결정 기록](./decisions)

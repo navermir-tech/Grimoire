@@ -25,8 +25,8 @@
 |---|---|---|
 | **게임 스레드** | **10** | 아래 합. 리슨 호스트는 서버 몫 포함 |
 | 액터 · 컴포넌트 틱 | 2.5 | 틱 정책(아래) — 기본 끔 · 간격 · 거리별 |
-| 이동(플레이어 + 생물 CharacterMovement) | 2.0 | 생물 활성 40마리 상한(`MaxActiveCreatures`) |
-| 생물 AI · 생태계 | 1.0 | 생각 0.25 초 타이머, 생태계 1 초 |
+| 이동(플레이어 + 생물 CharacterMovement) | 2.0 | 생물 활성 40마리 상한(`[/Script/Grimoire.GrimCreatureSettings]` 의 `Ecosystem.MaxActiveCreatures`) |
+| 생물 AI · 생태계 | 1.0 | 생각 0.25 초 타이머(`AI.ThinkInterval`), 생태계 1 초(`Ecosystem.UpdateInterval`) |
 | GAS · 마법 · 상호작용 반응 | 1.0 | 반응 전파는 서브시스템 일괄 |
 | 물리 · 충돌 질의 | 1.0 | 오버랩은 타이머에서, 틱에서 하지 않는다 |
 | 스트리밍(World Partition) · 가비지 컬렉션 | 0.5 (평균) | 끊김은 위 「끊김」 규칙으로 |
@@ -104,7 +104,7 @@
 24. **Niagara**: 모든 시스템에 Effect Type(확장성 · 거리 컬 · 중요도 예산)을 준다 — 마법 = `EFT_Grim_Spell`, 날씨 = `EFT_Grim_Weather`, 환경 = `EFT_Grim_Ambient`.
     입자 수 상한: 마법 하나 2,000, 비 · 눈 20,000(GPU 시뮬), 화면 전체 50,000. 자주 나는 이펙트는 풀링(`ENCPoolMethod::AutoRelease`).
 25. 반투명은 겹침이 비싸다 — 큰 반투명 판(안개 판 · 빛줄기)은 화면에 몇 장 이하, 월드 공간 위젯(개발 글씨)은 거리 · 화면 밖에서 그리지 않는다.
-26. 확장성(Scalability) 그룹은 `Config/DefaultScalability.ini` 에서만 손댄다 — 코드에서 `r.` 변수를 직접 바꾸지 않는다(사용자 옵션이 덮인다).
+26. 확장성(Scalability) 그룹은 `Config/DefaultScalability.ini`(아직 없음 — 다음 할 일 3)에서만 손댄다 — 코드에서 `r.` 변수를 직접 바꾸지 않는다(사용자 옵션이 덮인다).
 
 ## 측정 기록
 
@@ -139,9 +139,9 @@ GPU 에서는 **그림자 깊이(가상 섀도 맵) 2.0 ~ 2.7 ms** 가 가장 �
 
 | 무엇 | 파일 | 효과 |
 |---|---|---|
-| 해 · 달 빛을 0.1도 움직였을 때만 돌린다(`SunRotationStepDegrees`, 콘솔 `Grim.Sky.SunRotationStep`) | `Environment/GrimSkyController` | GPU 그림자 깊이 −1.5 ~ −2.1 ms, GPU 20 ~ 30 % ↓ |
-| 개발 글씨: 250 m 밖 숨김(`MaxVisibleDistance`, 콘솔 `Grim.DevLabels.MaxDistance`), 렌더 타깃에 한 번만 그림, 위젯 컴포넌트 틱 끔 · 화면 밖 갱신 끔 | `World/GrimDevLabel` | 위젯 틱 44 → 0, 반투명 판 44 → 0 ~ 10 |
-| 측정 도구 `Grim.Perf.Goto/Sample/Net`, `Scripts/Perf/measure.ps1` · `summarize.ps1` | `Core/Perf/GrimPerfCapture.cpp` | 되풀이 측정 |
+| 해 · 달 빛을 0.1도 움직였을 때만 돌린다(`SunRotationStepDegrees`, 콘솔 `Grim.Sky.SunRotationStep`) | `Source/Grimoire/Environment/GrimSkyController.h` | GPU 그림자 깊이 −1.5 ~ −2.1 ms, GPU 20 ~ 30 % ↓ |
+| 개발 글씨: 250 m 밖 숨김(`MaxVisibleDistance`, 콘솔 `Grim.DevLabels.MaxDistance`), 렌더 타깃에 한 번만 그림, 위젯 컴포넌트 틱 끔 · 화면 밖 갱신 끔 | `Source/Grimoire/World/GrimDevLabel.h` | 위젯 틱 44 → 0, 반투명 판 44 → 0 ~ 10 |
+| 측정 도구 `Grim.Perf.Goto/Sample/Net`, `Scripts/Perf/measure.ps1` · `summarize.ps1` | `Source/Grimoire/Core/Perf/GrimPerfCapture.cpp` | 되풀이 측정 |
 
 ## 다음 할 일 (계속 갱신)
 
@@ -150,7 +150,7 @@ GPU 에서는 **그림자 깊이(가상 섀도 맵) 2.0 ~ 2.7 ms** 가 가장 �
 1. **쿡한 Development 빌드로 측정** — 에디터 바이너리는 렌더 · 게임 스레드가 무겁다. `measure.ps1 -Cooked` 를 더해 패키지 실행 파일로 같은 자리를 잰다. 측정은 다른 게임 · 에디터를 끈 채로.
 2. **늘 로드 그레이박스 826개 → 인스턴스 · 공간 로드** — 기본 도형 StaticMeshActor 하나하나가 프리미티브 · 그림자 캐스터라 렌더 스레드(가시성 · RDG)를 키운다.
    같은 메시 · 머티리얼끼리 ISM 으로 묶거나(`landmark_greybox.py`), 랜드마크만 늘 로드 + 나머지 공간 로드 + HLOD. 지형 · 레벨 디자인 갈래와 함께.
-3. **확장성 프로필 검증** — `sg.*` 를 High(2) · TSR 67 % 로 두고 권장 사양 흉내 측정, Low 에서 Lumen 끔 확인. 필요하면 `Config/DefaultScalability.ini` 를 만든다(규칙 26).
+3. **확장성 프로필 검증** — `sg.*` 를 High(2) · TSR 67 % 로 두고 권장 사양 흉내 측정, Low 에서 Lumen 끔 확인. 필요하면 `Config/DefaultScalability.ini`(아직 없음) 를 만든다(규칙 26).
 4. **Niagara Effect Type** — 아직 하나도 없다. `EFT_Grim_Spell` · `EFT_Grim_Weather` · `EFT_Grim_Ambient` 를 만들고 마법 · 날씨 이펙트에 붙인다(마법 연출 갈래와 함께).
 5. **생물 거리별 갱신** — 플레이어에게서 50 m 밖 생물은 CharacterMovement 틱 간격 0.1 초 · `NetUpdateFrequency` 10, 스켈레탈 메시가 붙으면 URO · `OnlyTickPoseWhenRendered`(규칙 15).
 6. **끊김** — 순간이동 · 첫 이펙트 사용 때 30 ~ 230 ms 멈춤(셰이더 컴파일 · 스트리밍). 출시 전 PSO 프리캐시 · 셰이더 예열 목록.

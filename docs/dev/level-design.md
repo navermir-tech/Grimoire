@@ -130,7 +130,7 @@
 
 ### 결과 (2026-11-05, 지형 2차)
 
-만드는 법 · 숫자의 정본은 [지형 — 오픈 베타 땅](../systems/terrain). 검사는 C++ `FGrimTerrainAnalysis` + 테스트 `Grimoire.Terrain.Design.*`(기준값은 레이아웃 `Analysis`) — 레이아웃을 고치면 맵을 만들지 않고도 숫자를 다시 볼 수 있다.
+만드는 법 · 숫자의 정본은 [지형 — 오픈 베타 땅](../systems/terrain). 검사는 C++ `FGrimTerrainAnalysis`(`Source/Grimoire/World/GrimTerrainAnalysis.h`) + 테스트 `Grimoire.Terrain.Design.*`(`Source/Grimoire/World/Tests/GrimTerrainTests.cpp`, 기준값은 레이아웃 `Scripts/Terrain/openbeta_layout.json` 의 `Analysis`) — 레이아웃을 고치면 맵을 만들지 않고도 숫자를 다시 볼 수 있다.
 
 | 확인할 것 | 기준 | 결과 |
 |---|---|---|
@@ -183,7 +183,7 @@
 | 랜드마크 · POI | 기본 도형 소품 | **블록(크기 · 색으로 실루엣)** + **떠 있는 글씨**(「거대 고목 — 높이 40 m 둥근 덩어리 · 오르면 전망」처럼 무엇이 들어갈지) |
 | 확인 | 하늘 · 먼 스크린숏 | **사람 눈높이(1.8 m)** 스크린숏을 길 위 여러 곳에서 |
 
-### 결과 (2026-11-05, 마탑 구간 — 지형 3차의 첫 구간)
+### 결과 (2026-11-05, 마탑 구간 — 구간별로 완성하는 첫 구간)
 
 만드는 법 · 숫자의 정본은 [지형 — 마탑 구간](../systems/terrain#마탑-구간-먼저-완성하는-구간). 검사는 `FGrimTerrainAnalysis::RunSector` + 테스트 `Grimoire.Terrain.Design.TowerSector`(기준값은 레이아웃 `Analysis.Sector`). 「2차」 열은 같은 검사를 2차 레이아웃에 돌린 값이다.
 
@@ -201,6 +201,7 @@
 | 랜드마크 | 길 위 점의 90% 이상에서 2 개 이상, 어디서나 1 개 이상 | — | **96%**(평균 3.2, 가장 적은 곳 1 — 큰길 탑 아래 비탈 1 곳 · 풍차 언덕 동쪽 기슭 2 곳) |
 | 랜드마크 블록 + 글씨 | 무엇이 들어갈지 한글로 | — | 랜드마크 8 · 구간 POI 21 에 떠 있는 글씨 + 종류 색 블록, 경계에 「공사 중」 기둥 47 · 글씨 15 |
 
+- 랜드마크는 2차의 7 에 부유석(`Landmark_FloatingRock`, 마탑 구간 서쪽)을 더해 8 이다.
 - 큰 땅의 2차 검사(경사 71.4% · 구역 높이 차 28.3 / 61.4 m · 길 위 시선 최소 3 · 밀도 244 m · 길 경사 14.6°)도 모두 지킨다. 바위 노두 자리가 바뀌어 모자라던 시선 두 곳은 POI 둘(`Poi_Valley_Den` · `Poi_Pass_Watchpost`)을 옮겨 맞췄다.
 - 스크린숏(눈높이 1.8 m): [탑 문 앞](/art/terrain/openbeta-door-v3.jpg) · 큰길 [100 m](/art/terrain/openbeta-path100-v3.jpg) · [200 m](/art/terrain/openbeta-path200-v3.jpg) · [400 m](/art/terrain/openbeta-path400-v3.jpg) · [봉화 언덕 꼭대기](/art/terrain/openbeta-hilltop-v3.jpg) · [연못가](/art/terrain/openbeta-pond-v3.jpg) · [북쪽 경계(공사 중)](/art/terrain/openbeta-fence-v3.jpg) · [하늘에서 마탑 구간](/art/terrain/openbeta-sector-aerial-v3.jpg) · [등고선 지도](/art/terrain/openbeta-sector-map-v3.png). 2차 그림은 그대로 둔다(`openbeta-*.jpg`, 지도 `openbeta-preview-v2.png`).
 

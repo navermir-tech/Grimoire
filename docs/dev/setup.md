@@ -16,7 +16,9 @@ git clone https://github.com/navermir-tech/Grimoire.git
 cd Grimoire
 ```
 
-Git LFS 가 설치돼 있으면 `.uasset` 등 바이너리 에셋도 함께 내려온다.
+Git LFS 가 설치돼 있으면 `.uasset` 등 바이너리 에셋도 함께 내려온다(LFS 대상은 `.gitattributes` — 언리얼 에셋 · 3D · 그림 · 소리 · 글꼴. `docs/` 아래 그림은 LFS 가 아니다).
+
+에디터는 `L_OpenBeta`(오픈 베타 지형)로 열리고, 게임으로 실행하면 메인 메뉴 `L_MainMenu` 부터 뜬다(`Config/DefaultEngine.ini` 의 `EditorStartupMap` · `GameDefaultMap`).
 
 ## 에디터 열기
 
@@ -61,10 +63,15 @@ powershell -NoProfile -Command "& 'C:\Program Files\Epic Games\UE_5.8\Engine\Bui
 ## 폴더 구조
 
 ```
-Grimoire.uproject        프로젝트 파일 (엔진 5.8 연결)
-Source/Grimoire/         C++ 게임 모듈
-Content/Grimoire/        우리 에셋 (Maps · Blueprints · Characters · Magic · UI · Art · Audio · VFX)
-Config/                  프로젝트 설정 ini
+Grimoire.uproject        프로젝트 파일 (엔진 5.8 연결, 켠 플러그인)
+Source/Grimoire/         C++ 게임 모듈 — 시스템별 폴더 (docs/systems/index 「모듈 · 폴더 구성」)
+Source/*.Target.cs       빌드 타깃 Grimoire(게임) · GrimoireEditor
+Content/Grimoire/        우리 에셋 (Maps · Magic · MagicFX · Creatures · Environment · Terrain · Characters · Input · UI · Data · Art · Audio · VFX · Blueprints)
+Content/Grimoire/Data/   런타임에 읽는 CSV 표 (아이템 · 반응 규칙 · 기후 · 레벨 · 퀘스트 · 외형 …)
+Content/<팩>/            마켓 · 샘플 · 템플릿 에셋 (NiagaraExamples · Characters · Input)
+Config/                  프로젝트 설정 ini (DefaultGame.ini 의 [/Script/Grimoire.Grim*Settings] 가 수치의 정본)
+Scripts/<시스템>/         에셋 만드는 에디터 파이썬 · 헤드리스 확인 PowerShell (net_check*.ps1 등)
+art/                     그림 · 3D 원본 작업 폴더와 도구(art/tools) — art/README.md
 docs/                    이 문서 사이트 (VitePress)
 Binaries/ Intermediate/  생성물 — git 에 넣지 않는다
 Saved/ DerivedDataCache/
@@ -73,7 +80,9 @@ Saved/ DerivedDataCache/
 ## 자주 겪는 문제
 
 - **이상한 컴파일 · 링크 오류** → `Binaries/`, `Intermediate/` 삭제 후 다시 빌드.
-- **LFS 파일이 포인터 텍스트로 보인다** → `git lfs pull`.
+- **LFS 파일이 포인터 텍스트로 보인다** → `git lfs pull`. 새 git 워크트리도 `.uasset` 이 포인터라 에셋을 읽는 테스트가 실패한다 → 그 워크트리에서 `git lfs checkout`.
+- **빌드가 「Live Coding is active」 로 실패** → 에디터가 켜져 있다(다른 워크트리의 에디터도 뮤텍스를 같이 쓴다). 에디터를 닫거나 `Build.bat … -NoHotReloadFromIDE`.
+- **헤드리스 실행 뒤 `Config/DefaultEngine.ini` 의 AndroidFileServer 섹션이 바뀜** → 에디터가 자동으로 쓴 것. 내 변경이 아니면 커밋 전에 되돌린다.
 - **OneDrive 안에 두지 않는다** → 생성물 수만 개가 동기화되고 빌드 중 파일이 잠긴다. 지금 위치 `C:\Dev\Grimoire` 는 OneDrive 밖이다(아래 「프로젝트 경로」).
 
 ## 프로젝트 경로 — 영문 경로에 둔다

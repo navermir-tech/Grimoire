@@ -12,7 +12,9 @@
 | **노말 스킬**(무속성) | 10 | 기본 공격 · 방어 · 염동 · 감지, 생활 스킬(수리 · 지우기 · 생물 보관) |
 | **계약**(파크툼) | 12 | 길들이기 — 기본 · 속성별 10 · 거대 개체용 |
 
-- 이미 코드에 있는 것은 11권이다: 기본 공격 · 플라미스 · 아쿠엘 · 벤투스 · 이그니스, 파크툼 · 파크툼 이그니스 · 아쿠아 · 벤투스 · 테라 · 움브라(`Items.csv` 의 `Skillbook_*`). 나머지는 행만 있다(`bImplemented=False`).
+- 이미 코드에 있는 마법은 11권이다: 기본 공격 · 플라미스 · 아쿠엘 · 벤투스 · 이그니스, 파크툼 · 파크툼 이그니스 · 아쿠아 · 벤투스 · 테라 · 움브라(`Content/Grimoire/Data/Items.csv` 의 `Skillbook_*` + 마법 정의 `DA_Spell_*`). 나머지는 행만 있다(`bImplemented=False`).
+- 그 밖에 노말 스킬 **쿠스토디아**(생물 보관)도 책이 있다 — `Items.csv` 의 `Skillbook_CreatureStorage`(`TeachesSpell = Skill:CreatureStorage`, 마법 정의 없이 노말 스킬로 배움, [생물](../systems/creatures)). 목록 CSV 의 `CUSTODIA` 행은 아직 `bImplemented=False` · 상태 M4 라 아래 표와 어긋난다(CSV 를 고칠 때 맞춘다).
+- 읽기: 가방의 스킬북을 「사용」 → `UGrimInventoryComponent::ReadSkillbook`(`Source/Grimoire/Items/GrimInventoryComponent.h`) → `UGrimSpellbookComponent::UseSkillbook`([마법 시스템 — 스킬북](../systems/magic#스킬북-·-배우기)).
 - 수직 슬라이스(M7)의 「마법 24 · 속성당 4」는 아래 [M7 슬라이스 24](#m7-슬라이스-24) 로 골랐다.
 
 ## 이름 짓는 법 (R31)
@@ -269,10 +271,10 @@
 
 ## 구현할 때
 
-- 책을 실제로 넣을 때는 `Items.csv` 에 `Skillbook_<SpellId>` 행(Kind = Skillbook, `TeachesSpell` = SpellId)과 마법 정의 `DA_Spell_<SpellId>` 를 만든다. `Skillbooks.csv` 는 기획 목록이라 게임이 읽지 않는다.
+- 책을 실제로 넣을 때는 `Items.csv` 에 `Skillbook_<SpellId>` 행(Kind = Skillbook, `TeachesSpell` = SpellId)과 마법 정의 `DA_Spell_<SpellId>`(`Scripts/Magic/make_spells.py` 처럼 스크립트로)를 만든다. 튜토리얼 · 퀘스트의 `Skillbook:<SpellId>` 지급은 이 아이템을 가방에 넣는다. `Skillbooks.csv` 는 기획 목록이라 게임이 읽지 않는다(표 뽑기 `Scripts/Magic/skillbooks_md.py` 만 읽는다).
 - 속성 태그는 그리모어 문양 · 연출이 쓰는 이름을 따랐다: 빛 = `Element.Light.Radiance`, 흑마법 = `Element.Dark.Hex`. `PactumSpells.csv` 의 자리 행은 `Element.Light` · `Element.Dark.Curse` 라 그 행을 만들 때 맞춘다.
 - 이그니스는 지금 「큰 플라미스」(수치만 큰 Bolt)다. 목록의 「맞은 곳 둘레 1.5m 에 불이 옮는다」는 제안 — 넣으면 플라미스와 원리가 갈려 이름 규칙 3에도 맞는다.
-- 새 방식(자신 · 아군 · 지점 · 몸 둘레 · 지역)은 `EGrimSpellDelivery` 에 값을 더하고 [마법 시스템](../systems/magic) 시전 흐름에 판정을 하나씩 붙인다. 슬라이스에 필요한 것은 자신 · 아군 · 지점 · 몸 둘레 넷이다.
+- 새 방식(자신 · 아군 · 지점 · 몸 둘레 · 지역)은 `EGrimSpellDelivery`(`Source/Grimoire/Magic/GrimSpellDefinition.h` — 지금 값은 Bolt · Stream · Cone · Beam · Lob, Lob 은 Bolt 로 처리)에 값을 더하고 [마법 시스템](../systems/magic) 시전 흐름에 판정을 하나씩 붙인다. 슬라이스에 필요한 것은 자신 · 아군 · 지점 · 몸 둘레 넷이다.
 
 ## 미결
 

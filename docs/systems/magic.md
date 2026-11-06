@@ -1,6 +1,8 @@
 # 마법 · 상호작용 시스템
 
 > 스펙: [마법](../spec/magic) (R01 · R05 · R06 · R07 · R16)
+>
+> 상태: **구현 문서** (2026-11-06 코드 대조). 코드 `Source/Grimoire/Magic/` · `Source/Grimoire/MagicFX/` · `Source/Grimoire/Targeting/` · `Source/Grimoire/Interaction/`. 아직 없는 것은 절마다 「계획」 · 「(미구현)」으로 밝힌다.
 
 ## GAS 위에 올리는 방식
 
@@ -36,14 +38,16 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | `ConeHalfAngle` · `ConeRange` · `ConeFalloff` | Cone: 반각 · 거리 · 거리별 자극 세기 `FGrimConeFalloff { NearDistance, NearIntensity, FarIntensity, Exponent }` |
 | `Damage` · `ImpactEffect` | 기본 피해(0 이면 피해 없음). 비우면 `UGrimGE_SpellDamage` |
 | `Stimulus` | 사물에 주는 속성 자극 `FGrimElementalStimulus`(속성 · 세기 · 출처). Cone 은 세기를 `ConeFalloff` 로 바꾼다 |
-| `VisualSet` | 연출 묶음 `UGrimSpellVisualSet`(Core/GrimSpellFXTypes). 연출 쪽(MagicFX) 큐 처리기가 읽는다. 비어도 게임은 돈다 |
+| `VisualSet` | 연출 묶음 `UGrimSpellVisualSet`(`Source/Grimoire/Core/GrimSpellFXTypes.h`). 연출 쪽(MagicFX) 큐 처리기가 읽는다. 비어도 게임은 돈다 |
 | `Color` | VisualSet 이 없을 때 투사체 임시 구 색(엔진 기본 구 + `BasicShapeMaterial` 의 `Color`). 스킬북 표지 색 |
 | `bTracksProficiency` · `ProficiencyProfile` · `ProficiencyExtraEffect` | 숙련도를 쌓는가(기본 공격 = false) · 경험 곡선 바꾸기 · 추가 효과 — [숙련도](#숙련도-q26) |
 
-- 에셋 `Content/Grimoire/Magic/Spells/DA_Spell_*` 은 `Scripts/Magic/make_spells.py` 가 만든다 — **스크립트가 수치의 정본**이다.
+- 에셋 `Content/Grimoire/Magic/Spells/DA_Spell_*` 은 스크립트가 만든다 — **스크립트가 수치의 정본**이다: `Scripts/Magic/make_spells.py`(플라미스 · 아쿠엘 · 벤투스 · 이그니스), `Scripts/Magic/make_basic_attack.py`(기본 공격), `Scripts/Magic/make_pactum_spells.py`(파크툼 6 — 목록 `Content/Grimoire/Data/PactumSpells.csv`, [생물 — 파크툼 주문](./creatures#파크툼-주문)). 파크툼 볼트는 `Source/Grimoire/Magic/GrimPactumProjectile.h` 의 `AGrimPactumProjectile`(생물에 맞으면 피해 대신 포획 판정).
 - 하나의 `UGrimSpellAbility` 클래스가 여러 마법을 낸다: 마법서가 `GiveAbility` 할 때 Spec 의 `SourceObject` 에 정의를 넣고, 어빌리티는 Spec 에서 정의를 꺼낸다.
 
 ### 시작 마법 (M1.5 제안값)
+
+게임에서는 **시작할 때 아는 마법이 없다**(R31 — 기본 공격까지 튜토리얼 스킬북으로 배운다). 아래 셋은 설정 `bGrantStartingSpells`(기본 false)가 켜졌거나 명령줄에 `-GrimStartingSpells` 가 있을 때만 준다(`UGrimMagicSettings::ShouldGrantStartingSpells` — 헤드리스 확인 스크립트가 쓴다). 표시 이름은 데이터: 불씨 = 플라미스 · 물줄기 = 아쿠엘 · 미풍 = 벤투스.
 
 | 에셋 | 마법 | 속성 | 전달 | 마나 | 쿨다운 | Windup | 피해 | 자극 세기 | 사거리 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -55,13 +59,13 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 ## 수치 설정 `UGrimMagicSettings`
 
-`Config/DefaultGame.ini` 의 `[/Script/Grimoire.GrimMagicSettings]`(프로젝트 설정 > Game > Grimoire Magic).
+`Config/DefaultGame.ini` 의 `[/Script/Grimoire.GrimMagicSettings]`(프로젝트 설정 > Game > Grimoire Magic). 구현: `Source/Grimoire/Magic/GrimMagicSettings.h` 의 `UGrimMagicSettings`.
 
 | 키 | M1 값 |
 |---|---|
-| `StartingSpells` | 불씨 · 물줄기 · 미풍 |
+| `StartingSpells` · `bGrantStartingSpells` | 불씨 · 물줄기 · 미풍 · false — 개발 옵션일 때만 준다(위 「시작 마법」) |
 | `StartingWandClass` · `WandSocketName` | `AGrimWand` · `hand_r` |
-| `StartingCircle` · `MaxManaByCircle` | 1 · 100 / 130 / 160 / 200 / 250 / 300 / 360 / 430 / 510 / 600 |
+| `StartingCircle` · `MaxManaByCircle` | 1 · 100 / 130 / 160 / 200 / 250 / 300 / 360 / 430 / 510 / 600 — 표는 처음 마나(시작 서클 값)로만 쓰인다([서클](#서클)) |
 | `ManaRegenPerSecond` | 2 |
 | `bFriendlyFire` | false — 플레이어끼리는 피해 없음(속성 자극은 준다) |
 | `DefaultAffinity` · `ElementAffinities` | 1.0 · 상성 표(아래) |
@@ -72,6 +76,8 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | `MaxAimOriginError` · `MaxAimAngleError` · `AimRangeSlack` | 800 · 60 · 300 — 서버의 TargetData 검증 허용치 |
 
 ## 시전 흐름
+
+구현: `Source/Grimoire/Magic/GrimSpellAbility.h` 의 `UGrimSpellAbility`, 순수 계산 `Source/Grimoire/Magic/GrimSpellDelivery.h`(`GrimSpellDelivery`), 투사체 `Source/Grimoire/Magic/GrimSpellProjectile.h` 의 `AGrimSpellProjectile`, GE `Source/Grimoire/Magic/GrimMagicEffects.h`.
 
 1. 입력: 캐릭터가 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.BasicAttack | Input.Spell.Slot1~4)`. 서버가 **지금 세트의 칸 i 에 놓인 마법 Spec 에만** `Input.Spell.Slot(i+1)`, 기본 공격 Spec 에 `Input.Spell.BasicAttack` 을 동적 태그로 붙여 두므로(아래 [조작](#조작-q29)) 그 마법만 발동한다.
 2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
@@ -89,13 +95,15 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
    - **Stream**: `StreamTickInterval` 마다 `TraceStreamArc` — 조준점을 지나는 낮은 호(`SolveLaunchDirection`)를 `StreamSegments` 구간으로 구 스윕, 첫 지형 · 사물에서 끝나고 그 자리 `StreamSplashRadius`(40cm) 안의 것도 맞는다(바닥의 양초를 낮게 스칠 때 바닥이 먼저 닿으므로). 걸린 대상마다 `StreamStimulusInterval` 에 한 번 자극 · 피해 · Impact 큐(처음 닿으면 바로). 틱마다 `ChannelManaPerSecond × 주기` 마나, 모자라면 끝. 시작 때 잡은 대상이 폰 조준에서 45° 안이면 계속 따라가고, 아니면 지금 시선으로.
    - **Cone**: 시작점에서 `ConeRange` 구 오버랩 → 받는 쪽(속성 사물) · ASC 가 있는 것 중 `IsInCone`(반각) · 시야(벽 너머 제외) → 가까운 순 16개까지, 거리별 세기 `ConeIntensityAt` 로 자극 · Impact 큐.
    - **Beam**: 구 스윕(`SweepMultiByObjectType`) — 폰 · 물리체는 지나가며 맞히고, 첫 지형 · 사물에서 멈춘다. 맞은 곳마다 Impact 큐.
+   - 네 방식 모두 **감지용 영역**(질의 전용이고 아무것도 막지 않는 트리거 상자 — 전투 금지 구역 · 퀘스트 발동 · 서식 구역)은 맞은 것으로 치지 않고 지나간다(`AGrimSpellProjectile::IsSensorComponent`, 2026-11-05 플레이 테스트에서 마법탑 실내 상자에 맞아 몸 앞에서 터지던 버그).
+   - 조준점 · 유도: 대상이 있으면 발사 때 대상의 지금 조준점을 다시 읽고 Bolt 는 대상 쪽으로 휜다. **줌인 조준(`Mode = Zoom`)이면 대상이 있어도 따라가지 않고 겨눈 곳으로 곧게**(`UGrimSpellAbility::FollowsTarget`, R24).
 5. 맞은 대상마다 `UGrimSpellAbility::ApplySpellHit`:
-   - 대상 ASC(액터 → 폰이면 PlayerState 순으로 찾음)가 있으면 피해 GE 적용. 피해 Spec 은 `SetByCaller.Magic.Damage = Damage × 완드 속성 위력` 과 에셋 태그 `Element.*` · `Spell.*` 를 가진다.
+   - 대상 ASC(액터 → 폰이면 PlayerState 순으로 찾음)가 있으면 피해 GE 적용. 플레이어끼리는 `bFriendlyFire` 가 아니면 피해 없음. **전투 금지 구역**: 시전자나 대상 ASC 에 `Zone.NoCombat`(마법탑 실내 — `Source/Grimoire/Factions/GrimNoCombatVolume.h` 의 `AGrimNoCombatVolume` 이 붙인다)이 있으면 피해만 막고 속성 자극은 준다(`UGrimSpellAbility::IsCombatBlocked`, 주먹질도 같다). 피해 Spec 은 `SetByCaller.Magic.Damage = Damage × 완드 속성 위력` 과 에셋 태그 `Element.*` · `Spell.*` 를 가진다.
    - `UGrimElementalStatics::ApplyStimulusToActor(대상, Stimulus, 시전 폰)` — 받는 쪽(`IGrimElementalReceiver`)이 있으면 반응 규칙. Magic 은 구현체를 모른다. Cone 은 세기를 거리별 값으로 바꿔 준다.
 
 ### 연출 큐 (GameplayCue)
 
-Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행만** 한다. 처리기(MagicFX)가 없어도 게임은 돈다. 파라미터는 `UGrimSpellAbility::MakeSpellCueParameters`: `SourceObject` = 정의, `Location` · `Normal`, `AggregatedSourceTags` 에 `Element.*`, `Instigator` · `EffectCauser` = 시전 폰. ASC 는 시전자의 것(PlayerState — 늘 관련성 있음).
+Magic 은 그리지 않고 `GrimCueTags`(`Source/Grimoire/Core/GrimSpellFXTypes.h`) 큐를 **실행만** 한다. 처리기(MagicFX)가 없어도 게임은 돈다. 파라미터는 `UGrimSpellAbility::MakeSpellCueParameters`: `SourceObject` = 정의, `Location` · `Normal`, `AggregatedSourceTags` 에 `Element.*`, `Instigator` · `EffectCauser` = 시전 폰. ASC 는 시전자의 것(PlayerState — 늘 관련성 있음).
 
 | 큐 | 어디서 | Location · Normal |
 |---|---|---|
@@ -103,18 +111,19 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
 | `GameplayCue.Spell.Channel` (Add/Remove) | Stream(`bChanneled`)만. Cast 와 같은 곳에서 `K2_AddGameplayCueWithParams(.., bRemoveOnAbilityEnd)` → 어빌리티가 끝나면 거둔다 | 시작 때의 시작점 · 방향. 줄기 모양은 처리기가 `UGrimSpellAbility::TraceStreamArc` 로 매 프레임 같은 식을 그린다 |
 | `GameplayCue.Spell.Impact` (Execute) | 서버 확정 뒤(예측 키 없음 → 시전자 포함 모두): Bolt 투사체 명중, Stream 자극 때, Cone 대상마다, Beam 맞은 곳마다 | 맞은 곳 · 표면 법선(Cone 은 −발사 방향) |
 
-- Bolt 의 **꼬리**는 큐가 아니라 투사체(진짜 · 가짜 모두)가 `VisualSet.Trail` 을 직접 붙인다(움직이는 액터라서). Niagara 면 사용자 변수 `Color`, Cascade 면 색 파라미터 `Color` 에 `ElementColor`. VisualSet 이 없으면 속성색 구만.
+- Bolt 의 **꼬리**는 큐가 아니라 투사체(진짜 · 가짜 모두)가 `VisualSet.Trail` 을 직접 붙인다(움직이는 액터라서). 색은 `UGrimSpellVisualSet::TintNiagara`(`Source/Grimoire/Core/GrimSpellFXTypes.h`)가 Niagara 사용자 변수 중 이름에 `Color` 가 든 것 모두에 `ElementColor` 를 넣는다(팩마다 이름이 달라서 — 연기 · 흙 · 먼지 색은 둔다). VisualSet 의 `bHideProjectileMesh` 가 켜져 있으면 투사체의 색 구를 숨긴다(볼트 이펙트가 머리 빛까지 그릴 때 — 불씨 · 기본 공격). VisualSet 이 없으면 속성색 구만.
 - 시전자 클라이언트에서는 진짜 투사체 복제본을 숨기고(가짜가 대신 보인다), 진짜가 사라지면 같은 마법의 가장 오래된 가짜도 지운다. 가짜는 판정 없이 지형 · 사물에서 멈춰 사라지고, 터짐은 서버 Impact 큐가 그린다.
 
 ### 디버그 · 2인 확인
 
-- 콘솔 `Grim.Magic.Cast <마법 이름 일부> [대상 클래스|None] [누르는 초] [지연초]` — 로컬 플레이어가 원점에 가장 가까운 그 클래스 액터를 고정 조준해 시전(0.5초 뒤 누름). `Grim.Magic.Place <대상 클래스> <거리cm> [지연초]` — 서버가 원격 클라이언트 폰을 그 대상 −X 쪽에 두고 대상을 보게.
+- 콘솔(`Source/Grimoire/Magic/GrimMagicDebug.cpp`) `Grim.Magic.Cast <마법 이름 일부> [대상 클래스|None] [누르는 초] [지연초]` — 로컬 플레이어가 원점에 가장 가까운 그 클래스 액터를 고정 조준해 시전(0.5초 뒤 누름). `Grim.Magic.Place <대상 클래스> <거리cm> [지연초]` — 서버가 원격 클라이언트 폰을 그 대상 −X 쪽에 두고 대상을 보게. `Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm]` — 시전 없이 그 자리에서 볼트 연출만(판정 없는 가짜 투사체 + 섬광, 거리를 주면 거기서 터짐 연출 — `Scripts/MagicFX/capture_bolt.ps1` 이 쓴다).
+- 헤드리스 확인 스크립트는 시작 마법이 있어야 하므로 `-GrimStartingSpells` 를 붙여 띄운다.
 - `Scripts/Integration/net_check_delivery.ps1` — 헤드리스 리슨 서버 + 클라이언트에서 원격 클라이언트가 불씨 → 먼 미풍 → 가까운 미풍 → 불씨 → 물줄기(1.5초)를 양초에 쏘고 양쪽 `Grim.Interaction.Dump` 를 비교한다. 결과 `Saved/NetCheck/delivery_*.log`.
-- 조작(실제 입력과 같은 길): `Grim.Input.Press <Basic|Slot1~4|Protego|Dodge> [대상 클래스|None] [누르는 초] [지연초] [횟수] [간격초]` · `Grim.Input.SlotSet <1부터> [지연초]` · `Grim.Input.Dump [지연초]`(플레이어마다 보이는 세트 · Spec 입력 태그 · 연타 번째). `Scripts/Integration/net_check_controls.ps1 [-Shift 60]` — 원격 클라이언트가 배우기 전 기본 공격 입력(= 주먹질) → 기본 공격 스킬북 읽기 → 슬롯 1(Bolt) → 기본 공격 4연타 → 슬롯 2(Stream) → 세트 2 의 빈 칸 → 세트 1 → 너무 빠른 연타를 하고 양쪽 로그를 비교한다. 결과 `Saved/NetCheck/controls_*.log`. 기기가 바빠 맵 로드가 늦으면 `-Shift` 로 시간표를 미룬다.
+- 조작(실제 입력과 같은 길): `Grim.Input.Press <Basic|Slot1~4|Protego|Dodge> [대상 클래스|None] [누르는 초] [지연초] [횟수] [간격초]` · `Grim.Input.SlotSet <1부터> [지연초]` · `Grim.Input.Dump [지연초]`(플레이어마다 보이는 세트 · Spec 입력 태그 · 연타 번째). `Scripts/Integration/net_check_controls.ps1`(`-Shift 60` 선택) — 원격 클라이언트가 배우기 전 기본 공격 입력(= 주먹질) → 기본 공격 스킬북 읽기 → 슬롯 1(Bolt) → 기본 공격 4연타 → 슬롯 2(Stream) → 세트 2 의 빈 칸 → 세트 1 → 너무 빠른 연타를 하고 양쪽 로그를 비교한다. 결과 `Saved/NetCheck/controls_*.log`. 기기가 바빠 맵 로드가 늦으면 `-Shift` 로 시간표를 미룬다.
 
 ## 조작 (Q29)
 
-> **M2 갈래 K** — 호그와트 레거시 배치를 그대로 따른다(키보드 · 마우스와 패드 둘 다). 근거 · 불확실한 짝은 [레퍼런스 — 조작](../spec/references#호그와트-레거시-—-조작-q29).
+> **M2 갈래 K** — 호그와트 레거시 배치를 그대로 따른다(키보드 · 마우스와 패드 둘 다). 근거 · 불확실한 짝은 [레퍼런스 — 조작](../spec/references#호그와트-레거시-—-조작-q29). 구현: `Source/Grimoire/Magic/GrimSpellSlotInput.h`(`GrimSpellSlotInput` · `FGrimSpellSlotInputMath` · `UGrimSpellInputSettings`), 입력 받기는 `Source/Grimoire/Character/GrimPlayerCharacter.h`, 콘솔 `Source/Grimoire/Magic/GrimSpellInputDebug.cpp`.
 
 | 동작 | 키보드 · 마우스 | 패드 | 입력 에셋 → 태그 |
 |---|---|---|---|
@@ -135,10 +144,10 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
 
 ## 기본 공격 (R26)
 
-> **M2 갈래 K** — 정의 `DA_Spell_BasicAttack`(`Scripts/Magic/make_basic_attack.py`), 어빌리티 `UGrimBasicAttackAbility`(`UGrimSpellAbility` 자식), 볼트 `AGrimBasicAttackProjectile`, 대신 나가는 주먹질 `UGrimFistAbility`. 표시 이름은 데이터(정의의 `DisplayName`) — 코드는 이름을 모른다.
+> **M2 갈래 K** — 정의 `DA_Spell_BasicAttack`(`Scripts/Magic/make_basic_attack.py`), 어빌리티 `UGrimBasicAttackAbility`(`Source/Grimoire/Magic/GrimBasicAttackAbility.h`, `UGrimSpellAbility` 자식), 볼트 `AGrimBasicAttackProjectile`(`Source/Grimoire/Magic/GrimBasicAttackProjectile.h`), 대신 나가는 주먹질 `UGrimFistAbility`(`Source/Grimoire/Magic/GrimFistAbility.h`), 설정 · 순수 계산 `Source/Grimoire/Magic/GrimBasicAttackTypes.h`. 표시 이름은 데이터(정의의 `DisplayName`) — 코드는 이름을 모른다.
 
 - **정의**: 표시 이름 「기본 공격」(데이터), `Spell.BasicAttack`, 무속성 `Element.None`(자극도 무속성 — 반응 규칙표 · 상성표에 행이 없어 사물엔 「충격」만, 속성 상태는 그대로), 1서클, Bolt(반지름 8 · 사거리 25m · 9000cm/s · 유도 60°/s), 마나 0 · 쿨다운 0(쿨다운 태그 없음), `CastWindup` 0, 피해 5, `bTracksProficiency = false`(그리모어 맨 앞 「기본」, 슬롯에 안 들어감, 숙련도 없음), 연출 `VS_BasicAttack`(옅은 하늘빛 `#CFE3FF`, 책장 0.15초).
-- **스킬북으로 배운다**(사용자 스펙 변경, 2026-11-05): 시작 지급이 아니라 튜토리얼 첫 단계의 「기본 공격 스킬북」(`AGrimSkillbook::TeachesSpell = DA_Spell_BasicAttack`) — 보통 스킬북과 같은 `UseSkillbook` 길(1서클, 숙련도 없음 → 배우면 끝, 다시 읽으면 「이미 앎」). `UGrimBasicAttackSettings::BasicAttackSpell` 은 그 정의가 무엇인지 알려 주는 자리(튜토리얼 · 테스트가 읽는다).
+- **스킬북으로 배운다**(사용자 스펙 변경, 2026-11-05): 시작 지급이 아니라 튜토리얼 첫 단계의 「기본 공격 스킬북」(가방 아이템 `Skillbook_BasicAttack`, `TeachesSpell = BasicAttack` — 월드 책 `AGrimSkillbook` 으로도 된다) — 보통 스킬북과 같은 `UseSkillbook` 길(1서클, 숙련도 없음 → 배우면 끝, 다시 읽으면 「이미 앎」). `UGrimBasicAttackSettings::BasicAttackSpell` 은 그 정의가 무엇인지 알려 주는 자리(튜토리얼 · 테스트가 읽는다).
 - **연타 리듬**: 한 발 사이 `AttackInterval`(0.3초). 쿨다운이 아니라 `CanActivateAbility` 가 인스턴스의 마지막 발 시각으로 막는다 — 시전자는 그대로, 서버는 원격 시전자에게 `ServerIntervalTolerance`(0.08초)를 봐준다(거절되면 `[Server] 기본 공격 거절` 로그).
 - **4연타 강타**: 첫 발부터 `ComboWindow`(1.5초) 안에 이어 친 `ComboLength`(4) 번째가 강타 — 피해 × `HeavyDamageMultiplier`(3), 볼트 크기 × `HeavyBoltScale`(1.6, 모두에게), 맞은 대상 밀어냄(캐릭터 `LaunchCharacter` 수평 900 · 위 250cm/s, 물리 사물 속도 변화 600cm/s, 플레이어끼리는 아군 피해 설정을 따름). 창을 넘기거나 강타 뒤면 1번째부터. 서버와 시전자가 **각자 시계로 같은 규칙**을 센다 — 판정 · 피해는 서버 값, 시전자 값은 가짜 볼트 크기 · HUD 「n/4」에만(`FGrimBasicAttackMath`).
 - **조준 · 책**: 부모 그대로(소프트 락온 쪽으로 휨, 줌인 조준이면 곧게, Cast 큐 → 책장 한 장 · 무속성 문양 · 튕기기 동작).
@@ -149,9 +158,9 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
 
 ## 마법서 `UGrimSpellbookComponent`
 
-`AGrimPlayerState` 의 하위 객체. `BeginPlay` 에서 `OnAbilityActorInfoReady` 를 구독한다(이미 초기화돼 있으면 바로 처리).
+구현: `Source/Grimoire/Magic/GrimSpellbookComponent.h` 의 `UGrimSpellbookComponent`. `AGrimPlayerState` 의 하위 객체이자 플레이어 세이브 참여자(`IGrimSaveParticipant`, `Magic.Spellbook` — 배운 마법 · 숙련도 · 슬롯). `BeginPlay` 에서 `OnAbilityActorInfoReady` 를 구독한다(이미 초기화돼 있으면 바로 처리).
 
-- **처음 한 번(서버)**: `Circle = StartingCircle`, `MaxMana = Mana = MaxManaByCircle[서클]`, 마나 회복 `UGrimGE_ManaRegen`(무한 · 1초 주기 `Mana += ManaRegenPerSecond`), 선택 어빌리티 `UGrimSpellSelectAbility` 를 `Input.Spell.Next` · `Input.Spell.Prev` 태그로 두 번, `StartingSpells` 를 `LearnSpell`.
+- **처음 한 번(서버)**: `Circle = StartingCircle`, `MaxMana = Mana = MaxManaByCircle[서클]`, 마나 회복 `UGrimGE_ManaRegen`(무한 · 1초 주기 `Mana += ManaRegenPerSecond`), 선택 어빌리티 `UGrimSpellSelectAbility` 를 `Input.Spell.Next` · `Input.Spell.Prev` 태그로 두 번, 개발 옵션(`ShouldGrantStartingSpells`)일 때만 `StartingSpells` 를 `LearnSpell`.
 - **폰이 바뀔 때마다(서버)**: 완드가 없으면 스폰하고 `Owner = 폰`, 폰 스켈레탈 메시의 `WandSocketName`(본 · 소켓 모두)에 `SnapToTargetNotIncludingScale` 로 부착(완드 루트 = 소켓, 상대 변환 없음). 메시 · 소켓이 없으면 폰 루트. 부착은 완드의 움직임 복제로 클라이언트에 간다.
   - `KeepRelativeTransform` 을 쓰면 안 된다 — 스폰한 월드 좌표가 그대로 손 기준 오프셋이 되어 완드가 몸에서 떨어진다(M1 통합 때 실제로 난 버그).
 - `LearnSpell(Spell)` — 서클 확인 → `GiveAbility(SourceObject = Spell)` → `KnownSpells` 에 추가(복제) → 숙련도 칸 · 첫 빈 단축 슬롯. 첫 마법이면 선택. 스킬북은 `UseSkillbook`([스킬북](#스킬북-·-배우기)).
@@ -161,7 +170,7 @@ Magic 은 그리지 않고 `GrimCueTags`(Core/GrimSpellFXTypes) 큐를 **실행�
 
 ## 숙련도 (Q26)
 
-> 스펙: [마법 — 숙련도](../spec/magic#숙련도-q26-확정). **M2 갈래 G 에서 구현.** 코드 `Magic/GrimProficiencyTypes` · `GrimProficiencySettings` · `GrimSpellbookComponent`.
+> 스펙: [마법 — 숙련도](../spec/magic#숙련도-q26-확정). **M2 갈래 G 에서 구현.** 코드 `Source/Grimoire/Magic/GrimProficiencyTypes.h` · `Source/Grimoire/Magic/GrimProficiencySettings.h`(`UGrimProficiencySettings` · `UGrimProgressionSettings` · `UGrimSpellbookSettings` 가 이 파일에 함께 있다) · `Source/Grimoire/Magic/GrimSpellbookComponent.h`.
 
 **밸런스는 표 하나(CSV)와 설정 섹션으로만 바꾼다.** 코드에는 등급 수 · 수치를 적지 않는다.
 
@@ -216,31 +225,34 @@ S,마스터,1500,0.75,0.80,1.0
 
 ## 마법 어트리뷰트 `UGrimMagicAttributeSet`
 
-`Mana` · `MaxMana` · `Circle`(복제). `Mana` 는 현재값 · 기본값 모두 `[0, MaxMana]` 로 자르고, `MaxMana` 가 줄면 `Mana` 도 줄인다. `CastSpeed` · `SpellPower` · 속성별 위력 어트리뷰트는 아직 없다 — 완드 보정은 완드 액터 값을 직접 읽는다.
+`Source/Grimoire/Magic/GrimMagicAttributeSet.h`. `Mana` · `MaxMana` · `Circle`(복제). `Mana` 는 현재값 · 기본값 모두 `[0, MaxMana]` 로 자르고, `MaxMana` 가 줄면 `Mana` 도 줄인다. `CastSpeed` · `SpellPower` · 속성별 위력 어트리뷰트는 아직 없다 — 완드 보정은 완드 액터 값을 직접 읽는다.
 
 ## 완드 `AGrimWand`
 
-- 장비 액터(복제 · 움직임 복제). M1 모양은 엔진 기본 실린더(가늘게, 길이 35cm).
+- 구현: `Source/Grimoire/Magic/GrimWand.h` 의 `AGrimWand`. 장비 액터(복제 · 움직임 복제). M1 모양은 엔진 기본 실린더(가늘게, 길이 35cm).
 - 컴포넌트: `Root`(Scene, 변환 없음 — 소켓에 그대로 붙는다) → `Grip`(손 안에서 쥐는 자세, +X = 완드 끝) → `Mesh`(회전 · 비균일 스케일은 여기만) · `Muzzle`(Grip 아래 +X 27.5cm). 루트나 Muzzle 의 부모에 스케일을 걸지 않는다 — 자식이 찌그러진다.
 - `Grip` 기본값은 마네킹 `hand_r` 축을 재서 정했다: 손가락 −X, 손바닥 +Y, 엄지 쪽 +Z → 위치 (−9, 3.5, 0), 회전 Pitch 90(완드가 주먹에서 엄지 쪽으로 나옴). 캐릭터 뼈대 · 완드 모양이 바뀌면 블루프린트 자식에서 `Grip` 변환을 고친다. 콘솔 `Grim.Magic.DumpWands [지연초]` 가 부착 부모 · 손에서 떨어진 거리 · 손 공간 축을 찍는다.
 - 보정은 클래스 기본값: `ElementPower`(`TMap<Element, 배율>`, 없으면 1) · `ManaEfficiency`(0~1) · `CastSpeed`(쿨다운을 나눔). 완드 종류는 블루프린트 자식으로 만든다.
-- 나중(▢): `UGrimWandDefinition`(아이템 정의의 하위) · 등급 · 내구도, 장착 시 `GE_WandBonus` 로 어트리뷰트에 싣기.
+- 계획(미구현): `UGrimWandDefinition`(아이템 정의의 하위) · 등급 · 내구도, 장착 시 `GE_WandBonus` 로 어트리뷰트에 싣기. (아이템 인스턴스에는 `Durability` 칸이 이미 있다 — `Source/Grimoire/Items/GrimItemTypes.h`.)
 
 ## 스킬북 · 배우기
 
 > 스펙: [마법 — 스킬북으로 배우기](../spec/magic#스킬북으로-배우기-r05). **M2 갈래 G.**
 
-- 스킬북은 「아이템을 사용」해서 배운다. **사용 로직은 아이템과 무관한 함수 하나** — `UGrimSpellbookComponent::UseSkillbook(정의)`(서버). 인벤토리(M4)가 생기면 아이템(`ItemType = Skillbook`, `TeachesSpell`)의 사용이 이것을 부른다.
+- 스킬북은 「아이템을 사용」해서 배운다. **사용 로직은 아이템과 무관한 함수 하나** — `UGrimSpellbookComponent::UseSkillbook(정의)`(서버). 부르는 곳:
+  - **가방**: 스킬북 아이템(`Content/Grimoire/Data/Items.csv` 의 `Skillbook_<마법 ID>`, `Kind = Skillbook`, `TeachesSpell = 마법 ID`)을 쓰면 `UGrimInventoryComponent::ReadSkillbook`(`Source/Grimoire/Items/GrimInventoryComponent.h`) → `UseSkillbook`, `Learned` · `ProficiencyGained` 면 한 권 줄어든다. `TeachesSpell = Skill:<ID>` 는 마법이 아닌 노말 스킬(쿠스토디아 = `Skill:CreatureStorage` — [생물](./creatures)).
+  - **튜토리얼 · 퀘스트**: 스킬북 지급은 가방에 `Skillbook_<ID>` 를 넣는다(`UGrimQuestSubsystem`, 아이템 표에 없으면 아래 월드 책을 놓는다). 퀘스트 보상 마법(`RewardSpell`)은 `UseSkillbook` 을 바로 부른다.
+  - **월드 책** `AGrimSkillbook`(아래) — 콘솔 · 표에 없는 책.
   - 모르는 마법 → 서클 확인 → `LearnSpell`(`GiveAbility(SourceObject = 정의)` → `KnownSpells` 복제 → 숙련도 칸 · 빈 단축 슬롯) → `Learned`.
   - 이미 아는 마법 → 숙련도 경험 `ComputeSkillbookXP` = (다음 문턱 − 지금 문턱) × `SkillbookXPFractionOfGrade`(0.4) + `SkillbookFlatXP`(0) → `ProficiencyGained`.
   - 이미 S → `AlreadyMastered`(쓸 수 없다, 책이 남는다). 숙련도 없는 항목(기본 공격) → `AlreadyKnown`. 서클 모자람 → `CircleTooLow`.
   - 결과는 `OnLearnResult(마법서, 정의, EGrimLearnResult)` — 서버 · 소유 클라이언트(`Client_LearnResult`). HUD 알림.
   - 미리 보기 `PreviewSkillbook(정의)`(HUD 안내 · 테스트).
-- 월드 액터 `AGrimSkillbook`(지금의 「아이템」 자리): 엔진 기본 상자(책 크기 22 × 30 × 5cm, 바닥 1m 위) + 속성색 표지(`BasicShapeMaterial` `Color` = 정의의 `Color`), 초당 30° 돈다. 충돌 없음(마법 판정을 막지 않는다). `TeachesSpell`(복제) · `PickupRadius`(90cm, 폰 겹침 구) · `ReadRadius`(250cm — 콘솔 · HUD 안내 거리) · `ServerReadSlack`(150cm).
+- 월드 액터 `AGrimSkillbook`(`Source/Grimoire/Magic/GrimSkillbook.h` — 가방이 생기기 전의 「아이템」 자리, 지금은 콘솔 · 대체용): 엔진 기본 상자(책 크기 22 × 30 × 5cm, 바닥 1m 위) + 속성색 표지(`BasicShapeMaterial` `Color` = 정의의 `Color`), 초당 30° 돈다. 책 메시는 충돌 없음, 집기 구는 오브젝트 종류 `Destructible` · 폰 겹침만(마법 판정 · 조준에 걸리지 않는다). 겹친 채 스폰돼도 `BeginPlay` 에서 겹친 폰을 바로 집는다. `TeachesSpell`(복제) · `PickupRadius`(90cm, 폰 겹침 구) · `ReadRadius`(250cm — 콘솔 · HUD 안내 거리) · `ServerReadSlack`(150cm).
   - **집기 = 사용**: 폰이 겹침 구에 들어오면(서버) `PickUpSkillbook(책, 폰)` → 거리 확인 → `UseSkillbook` → `Learned` · `ProficiencyGained` 면 책이 사라진다(`ConsumeBook` = `Destroy`, 복제). 못 쓰면 남고 알림만.
   - 「모든 상호작용은 마법」(R16)의 직접 상호작용 예외(침대와 같이, 제안). 상호작용 키는 쓰지 않는다(겹침).
 - 필사는 없다(Q5 미채택). 스킬북은 탑 · 던전 · 유적 · 전리품으로만 얻는다.
-- 시험용 스킬북 마법 `DA_Spell_Fireball`「화염구」: 2서클 · 불 · Bolt 5000cm/s · 반지름 25 · 유도 40°/s · 마나 25 · 쿨 2초 · Windup 0.15 · 피해 30 · 자극 2.0 · 30m. 불씨를 수치만 키웠다(`Scripts/Magic/make_spells.py`, `GRIM_SPELLS=DA_Spell_Fireball` 로 그것만 다시 만든다). 시작 마법에는 없다. VisualSet 은 비어 있어 연출 쪽이 속성(불)으로 `VS_Ember` 를 고른다.
+- 시험용 스킬북 마법 `DA_Spell_Fireball`「화염구」(표시 이름 이그니스): 2서클 · 불 · Bolt 5000cm/s · 반지름 25 · 유도 40°/s · 마나 25 · 쿨 2초 · Windup 0.15 · 피해 30 · 자극 2.0 · 30m. 불씨를 수치만 키웠다(`Scripts/Magic/make_spells.py`, `GRIM_SPELLS=DA_Spell_Fireball` 로 그것만 다시 만든다). 시작 마법에는 없다. VisualSet 은 비어 있어 연출 쪽이 속성(불)으로 `VS_Ember` 를 고른다.
 - 콘솔: `Grim.Magic.SpawnSkillbook <마법 이름 일부> [앞cm] [지연초]`(서버 — 플레이어마다 앞에 책) · `Grim.Magic.ReadSkillbook [지연초]`(로컬 플레이어가 `ReadRadius` 안의 가장 가까운 책을 집는다 — 클라이언트면 `Server_PickUpSkillbook`).
 
 ## 서클
@@ -248,9 +260,9 @@ S,마스터,1500,0.75,0.80,1.0
 > 스펙: [마법 — 서클 제도](../spec/magic#서클-제도-r06). **M2 갈래 G** — 1→3서클.
 
 - 서클은 `UGrimMagicAttributeSet::Circle`(복제). `Circle.N` 태그는 아직 쓰지 않는다(정의의 `Circle` 과 어트리뷰트를 바로 비교).
-- 승급: `UGrimProgressionComponent`(`AGrimPlayerState` 의 하위 객체 `Progression`).
+- 승급: `UGrimProgressionComponent`(`Source/Grimoire/Magic/GrimProgressionComponent.h` — `AGrimPlayerState` 의 하위 객체 `Progression`, 세이브 참여자).
   - `EvaluateNextCircle()` → `FGrimCircleCheck`(지금 서클 · 다음 서클 · 배운 마법 수 · 등급 합 · 필요치 · 충족). 순수 판정 `UGrimProgressionSettings::Evaluate(조건표, 서클, 마법 수, 등급 합)`.
-  - `TryCircleUp(bForce)`(서버): 조건이 맞으면(강제면 무시) `Circle + 1`. **최대 마나는 서클에 묶지 않는다** — 캐릭터 레벨(HP · 마나 · 성장 트리 포인트)이 정한다(레벨 묶음, TODO 자리만). `UGrimMagicSettings::MaxManaByCircle` 은 처음 마나(시작 서클 값)로만 쓰인다.
+  - `TryCircleUp(bForce)`(서버): 조건이 맞으면(강제면 무시) `Circle + 1`. **최대 마나는 서클에 묶지 않는다** — 캐릭터 레벨(HP · 마나 · 성장 트리 포인트)이 정한다: `Source/Grimoire/Progression/GrimLevelComponent.h` 의 `UGrimLevelComponent` 가 레벨 보너스(`GetMaxManaBonus`)를 싣는다([성장](./progression)). `UGrimMagicSettings::MaxManaByCircle` 은 처음 마나(시작 서클 값)로만 쓰인다.
   - 결과 `OnCircleUpResult(승급, 서클, 성공)` — 서버 · 소유 클라이언트(`Client_CircleUpResult`).
   - `Server_RequestCircleUp(bForce)` · `RequestCircleUp` — `bForce` 는 개발 빌드에서만 듣는다.
 - 조건표 `[/Script/Grimoire.GrimProgressionSettings] CircleRequirements` — 지금은 데이터 조건만(`MinKnownSpells` = 숙련도를 쌓는 배운 마법 수, `MinGradeSum` = 그 마법들의 등급 번호 합: D 0 · C 1 …). 표에 있는 서클까지만 오른다:
@@ -265,10 +277,10 @@ S,마스터,1500,0.75,0.80,1.0
 
 ## 속성 태그 · 상성 표
 
-- 속성 태그 `Element.Water / Fire / Wind / Earth / Light / Dark` 는 `Core/GrimGameplayTags`(네이티브). Magic 전용 태그(`SetByCaller.Magic.*` · `Cooldown.Spell.*` · `Spell.*`)는 `Magic/GrimMagicTags`.
+- 속성 태그 `Element.Water / Fire / Wind / Earth / Light / Dark` 는 `Source/Grimoire/Core/GrimGameplayTags.h`(네이티브). 그 밖에 지금 등록된 것: `Element.None`(무속성 — `Source/Grimoire/Magic/GrimMagicTags.h`), `Element.Earth.Plant` · `Element.Dark.Shadow`(생물이 먼저 써서 `Source/Grimoire/Creatures/GrimCreatureTags.h`). Magic 전용 태그(`SetByCaller.Magic.*` · `Cooldown.Spell.*` · `Spell.*`)는 `Source/Grimoire/Magic/GrimMagicTags.h`, 파크툼의 `Spell.Pactum.*` · `Cooldown.Spell.Pactum.*` 는 `Source/Grimoire/Creatures/GrimTamingTags.h`.
 - 피해 계산 `UGrimDamageExecution`(`UGrimGE_SpellDamage` 의 실행): `Health −= SetByCaller.Magic.Damage × 상성(공격 속성, 대상 속성)`. 공격 속성 = Spec 에셋 태그의 `Element.*`, 대상 속성 = 대상 ASC 태그의 `Element.*`(없으면 무속성 ×1).
 - 상성 표는 `UGrimMagicSettings::ElementAffinities`(ini). 표만 바꾸면 밸런스가 바뀐다(Q2 · Q3).
-- **10속성 확정(Q2 · Q3, 코드 반영 전)**: 스펙이 무속성 + 6계열 10속성과 상성표(극성 ×1.5)를 정했다([마법 — 속성과 상성](../spec/magic#속성과-상성-r07)). 태그를 계열 아래로 나눈다 — `Element.None` · `Element.Water.Liquid` · `Element.Water.Ice` · `Element.Fire` · `Element.Wind` · `Element.Earth.Stone` · `Element.Earth.Plant` · `Element.Light.Holy` · `Element.Light.Radiance`(빛 — 번개류) · `Element.Dark.Hex`(흑마법) · `Element.Dark.Shadow`(그림자술). 태그 이름은 코드에 넣을 때 정한다. 극성은 갈래 짝 `Holy ↔ Hex` · `Radiance ↔ Shadow` 만 표에 넣고, 계열 태그(`Element.Light` ↔ `Element.Dark`) 행은 없앤다. `Element.None` 은 표에 행이 없어 늘 `DefaultAffinity`(×1.0). 반응 규칙표는 하위 태그도 맞으므로 `Element.Water` 규칙은 물 · 얼음 둘 다에 걸린다. 번개 + 젖음 = 감전은 상성이 아니라 반응 규칙 한 줄이다.
+- **10속성 확정(Q2 · Q3, 코드 반영 전)**: 스펙이 무속성 + 6계열 10속성과 상성표(극성 ×1.5)를 정했다([마법 — 속성과 상성](../spec/magic#속성과-상성-r07)). 태그를 계열 아래로 나눈다 — `Element.None` · `Element.Water.Liquid` · `Element.Water.Ice` · `Element.Fire` · `Element.Wind` · `Element.Earth.Stone` · `Element.Earth.Plant` · `Element.Light.Holy` · `Element.Light.Radiance`(빛 — 번개류) · `Element.Dark.Hex`(흑마법) · `Element.Dark.Shadow`(그림자술). 태그 이름은 코드에 넣을 때 정한다(지금 네이티브로 있는 하위 태그는 `Element.Earth.Plant` · `Element.Dark.Shadow` 둘 — 나머지 `Water.Liquid` · `Water.Ice` · `Earth.Stone` · `Light.Holy` · `Light.Radiance` · `Dark.Hex` 는 (미구현), 부속성 표지 `SubElement.*` 만 미리 있다). 극성은 갈래 짝 `Holy ↔ Hex` · `Radiance ↔ Shadow` 만 표에 넣고, 계열 태그(`Element.Light` ↔ `Element.Dark`) 행은 없앤다. `Element.None` 은 표에 행이 없어 늘 `DefaultAffinity`(×1.0). 반응 규칙표는 하위 태그도 맞으므로 `Element.Water` 규칙은 물 · 얼음 둘 다에 걸린다. 번개 + 젖음 = 감전은 상성이 아니라 반응 규칙 한 줄이다.
 - 지금 코드 값(6속성, 10속성 확정 전):
 
 | 공격 → 대상 | 배율 |
@@ -278,8 +290,8 @@ S,마스터,1500,0.75,0.80,1.0
 | 빛 → 어둠 · 어둠 → 빛 | ×1.5 |
 | 그 외(같은 속성 포함) | ×1.0 (`DefaultAffinity`) |
 
-- **두 속성 대상(Q35, M3 갈래 C)**: 대상 ASC 가 `Element.*` 를 둘 가지면 그중 **부속성은 같은 이름의 표지 태그 `SubElement.*`** 도 함께 가진다(예: `Element.Earth.Plant` + `SubElement.Earth.Plant`). `UGrimDamageExecution::ResolveDefenderElements` 가 표지 없는 쪽을 주, 표지 있는 쪽을 부로 가리고, 배율 = 상성(공격, 주) × (1 + W × (상성(공격, 부) − 1)), W = `UGrimDamageSettings::SecondaryElementWeight`(ini `[/Script/Grimoire.GrimDamageSettings]`, 0.5). 표지 없이 둘이면 태그 순서대로(정하지 않은 동작 — 생물은 늘 표지를 단다). `Element.None` 은 대상 속성으로 치지 않는다. 표지 태그는 10속성 하위 이름까지 `GrimDamageExecution.cpp` 에 미리 등록돼 있다. 자세히는 [생물 시스템 — 두 속성](./creatures#두-속성-상성-q35).
-- 테스트: `Grimoire.Magic.Affinity` · `Grimoire.Magic.Cost` · `Grimoire.Magic.Effects`(GE 실제 적용) · `Grimoire.Magic.StartingSpells`(에셋 값) · `Grimoire.Magic.Delivery.*`(시차 보정 · 유도 · 포물선 · 원뿔 · 거리별 세기 · 지연 보정 · TargetData 검증 · 시작 마법 전달 방식) — `Source/Grimoire/Magic/Tests/`.
+- **두 속성 대상(Q35, M3 갈래 C)**: 대상 ASC 가 `Element.*` 를 둘 가지면 그중 **부속성은 같은 이름의 표지 태그 `SubElement.*`** 도 함께 가진다(예: `Element.Earth.Plant` + `SubElement.Earth.Plant`). `UGrimDamageExecution::ResolveDefenderElements` 가 표지 없는 쪽을 주, 표지 있는 쪽을 부로 가리고, 배율 = 상성(공격, 주) × (1 + W × (상성(공격, 부) − 1)), W = `UGrimDamageSettings::SecondaryElementWeight`(ini `[/Script/Grimoire.GrimDamageSettings]`, 0.5). 표지 없이 둘이면 태그 순서대로(정하지 않은 동작 — 생물은 늘 표지를 단다). `Element.None` 은 대상 속성으로 치지 않는다. 표지 태그는 10속성 하위 이름까지 `Source/Grimoire/Magic/GrimDamageExecution.cpp` 에 미리 등록돼 있다. 자세히는 [생물 시스템 — 두 속성](./creatures#두-속성-상성-q35).
+- 테스트: `Grimoire.Magic.Affinity` · `Grimoire.Magic.Cost` · `Grimoire.Magic.Effects`(GE 실제 적용) · `Grimoire.Magic.StartingSpells`(에셋 값) · `Grimoire.Magic.Delivery.*`(시차 보정 · 유도 · 포물선 · 원뿔 · 거리별 세기 · 지연 보정 · TargetData 검증 · 시작 마법 전달 방식 · 줌인 조준은 대상을 따라가지 않음 `.ZoomAim`) — `Source/Grimoire/Magic/Tests/`.
 
 ## 속성 상호작용 엔진 (R16)
 
@@ -294,8 +306,8 @@ S,마스터,1500,0.75,0.80,1.0
 | `FGrimElementalReactionRow` | 규칙표 행(`FTableRowBase`) |
 | `FGrimElementalReactionLibrary` | 규칙 조회 · 적용 · 시간 진행. 액터 · 월드를 모르는 순수 로직(테스트가 직접 부른다) |
 | `UGrimElementalPropagationSubsystem` | 전파 스케줄러(TickableWorldSubsystem, 게임 · PIE 월드). 출처가 없으면 틱하지 않는다 |
-| `UGrimInteractionSettings` | 전역 예산 · 상한(`DefaultGame.ini` 의 `[/Script/Grimoire.GrimInteractionSettings]`) |
-| `AGrimElementalObject` → `AGrimCandle` · `AGrimCampfire` · `AGrimDryGrass` | 엔진 기본 도형 + 상태 컴포넌트 + 불꽃(원뿔) + 포인트 라이트 |
+| `UGrimInteractionSettings` | 전역 예산 · 상한(`DefaultGame.ini` 의 `[/Script/Grimoire.GrimInteractionSettings]` — 지금 ini 에 섹션이 없어 C++ 기본값) |
+| `AGrimElementalObject` → `AGrimCandle` · `AGrimCampfire` · `AGrimDryGrass` | `Source/Grimoire/Interaction/GrimElementalObject.h`. 엔진 기본 도형 + 상태 컴포넌트 + 불꽃(원뿔) + 포인트 라이트. 튜토리얼 밭 `AGrimCropPlot`(`Source/Grimoire/Quest/GrimTutorialProps.h`)도 이 자식 |
 | `GrimInteractionTags` | `Material.Flammable / Consumable / Conductive / Absorbent`, `State.Charred` |
 
 - 자극은 기반의 `FGrimElementalStimulus { Element, Intensity, Source }` 하나. 마법 · 날씨는 `UGrimElementalStatics::ApplyStimulusToActor` 로만 보낸다(구현체를 몰라도 된다).
@@ -310,7 +322,7 @@ S,마스터,1500,0.75,0.80,1.0
 - 원본이 하나다 — `.uasset` 결과물이 없어 CSV 와 에셋이 어긋날 일이 없고, 바이너리 충돌도 없다(갈래 병렬 작업 · 리뷰가 텍스트 diff).
 - 테스트가 게임과 똑같은 파일을 읽는다. 에디터 · 헤드리스 단계 없이 빌드만 하면 규칙이 바뀐다. 개발 중에는 콘솔 `Grim.Interaction.ReloadReactions` 로 다시 읽는다.
 - 나중에 에디터에서 다루고 싶으면 CSV 를 `DT_ElementalReactions` 로 임포트하고 설정 `ReactionTableAsset` 에 지정하면 그쪽을 쓴다(행 구조체가 같다).
-- 대가: 패키징 시 CSV 를 함께 넣어야 한다 — `DefaultGame.ini` `[/Script/UnrealEd.ProjectPackagingSettings]` 에 `+DirectoriesToAlwaysStageAsUFS=(Path="Grimoire/Data")`(통합 때).
+- 대가: 패키징 시 CSV 를 함께 넣어야 한다 — `DefaultGame.ini` `[/Script/UnrealEd.ProjectPackagingSettings]` 에 `+DirectoriesToAlwaysStageAsUFS=(Path="Grimoire/Data")`(들어가 있다 — `Content/Grimoire/Data/` 의 다른 CSV 도 같이 실린다).
 
 | 열 | 뜻 |
 |---|---|
@@ -375,14 +387,14 @@ M1 규칙(11행 — 원본은 CSV):
 - 확인: `Scripts/Integration/net_check.ps1` — 헤드리스 리슨 서버 + 클라이언트를 띄워 서버에서 `Grim.Interaction.Stimulus <속성> <세기> [지연초] [클래스]` 로 점화 · 바람 · 물을 주고, 양쪽 `Grim.Interaction.Dump [지연초]`(상태 · 불꽃 · 빛) 줄이 같은지 본다. 결과 로그는 `Saved/NetCheck/`.
 - 상태를 바꾸는 건 서버뿐(`HasAuthority` 아니면 무시).
 
-### 날씨 · 생물과의 연결 (통합 이후)
+### 날씨 · 생물과의 연결
 
-- `UGrimWeatherSubsystem` 은 비가 올 때 **야외**(지붕 없음: 위로 트레이스) 사물에 주기적으로 `Water` 자극을 준다 → 불이 꺼진다. 번개는 낙뢰 지점에 `Wind + Light` 고강도 자극.
-- 생물 · 플레이어도 같은 컴포넌트: `State.Wet` 이면 `UGrimDamageExecution` 이 번개 · 얼음 피해를 올린다. `State.Burning` 은 주기 피해 GE 를 ASC 에 적용한다(컴포넌트가 ASC 를 찾아 브리지 — 아직 없음).
+- 비: 구현 — `Source/Grimoire/Environment/GrimWeatherSubsystem.h` 의 `UGrimWeatherSubsystem::RunRainPass` 가 비가 올 때 **야외**(지붕 없음: 위로 트레이스) 사물에 주기적으로 `Element.Water` 자극(`Source = Weather`)을 준다 → 불이 꺼진다. 번개: 구현 — 낙뢰 대상에 `Element.Light` 자극 하나(설계안의 `Wind + Light` 두 자극이 아니다). 자세히는 [환경](./environment).
+- 생물 · 플레이어도 같은 컴포넌트를 단다. 생물의 `State.Burning` 은 `AGrimCreature` 가 스스로 초당 불 피해로 바꾼다(`Source/Grimoire/Creatures/GrimCreature.h` — 주기 GE 브리지가 아니다). 플레이어의 젖음 · 불붙음은 생존 체온 계산이 읽는다([생존](./survival)). (미구현) `State.Wet` 이면 `UGrimDamageExecution` 이 번개 · 얼음 피해를 올리는 것, 플레이어의 `State.Burning` 주기 피해.
 
 ## 소프트 락온 (R17)
 
-> 스펙: [조준 · 소프트 락온](../spec/magic#조준-소프트-락온-r17). 레퍼런스: 호그와트 레거시. **M1.5** 갈래 B 에서 구현 — 투사체 재설계와 한 묶음([투사체 · 시전 감각](./spell-feel)). 코드 `Source/Grimoire/Targeting/`.
+> 스펙: [조준 · 소프트 락온](../spec/magic#조준-소프트-락온-r17). 레퍼런스: 호그와트 레거시. **M1.5** 갈래 B 에서 구현 — 투사체 재설계와 한 묶음([투사체 · 시전 감각](./spell-feel)). 코드 `Source/Grimoire/Targeting/`, 공용 타입(`FGrimAimResult` · `IGrimAimProvider` · `IGrimTargetable` · `UGrimTargetingStatics`)은 `Source/Grimoire/Core/GrimTargetingTypes.h`. `IGrimTargetable` 구현: `AGrimElementalObject` · `AGrimCreature`(`Source/Grimoire/Creatures/GrimCreature.h`) · `AGrimTargetDummy`.
 
 ### 구성
 
@@ -407,7 +419,7 @@ M1 규칙(11행 — 원본은 CSV):
 
 **선정 기준 옵션** (호그와트 레거시의 Camera Relative Targeting): `Camera`(기본) = 카메라 위치 · 정면이 원뿔. `Movement` = 캐릭터 눈높이에서 **이동 입력 방향**(입력이 없으면 캐릭터 정면)이 축, 요 각도만 본다. `SetTargetingReference` · 콘솔 `Grim.Targeting.Reference Camera|Movement`.
 
-**소프트 락온 끄기 (Q18)**: `SetSoftLockEnabled(false)` · 콘솔 `Grim.Targeting.SoftLock 0`. 꺼지면 자동 대상이 없고 마법은 화면 중앙으로. 고정 락온은 여전히 쓸 수 있다(토글하면 그 순간 한 번 골라 고정). 기본값은 `bSoftLockEnabledByDefault` — 옵션 화면이 생기면 거기서 덮어쓴다.
+**소프트 락온 끄기 (Q18)**: `SetSoftLockEnabled(false)` · 콘솔 `Grim.Targeting.SoftLock 0`. 꺼지면 자동 대상이 없고 마법은 화면 중앙으로. 고정 락온은 여전히 쓸 수 있다(토글하면 그 순간 한 번 골라 고정). 기본값은 `bSoftLockEnabledByDefault`, 플레이어 옵션(`Source/Grimoire/Online/GrimUserOptions.h` 의 `FGrimUserOptions`, `GameUserSettings.ini` — 소프트 락온 · 줌 토글 · 줌 감도, 메뉴의 설정 패널)이 덮어쓴다.
 
 ### 조준 결과 (`GetCurrentAim(MaxRange)`)
 
@@ -489,9 +501,9 @@ M1 규칙(11행 — 원본은 CSV):
 ### 아직 없는 것
 
 - 줌인 조준의 정식 표시(대상 하얀 외곽선 · 조준점 위젯) — HUD 작업 때. 지금은 디버그 캔버스.
-- 줌 중 「유도 없이 조준점으로 곧게」(스펙) — 마법 쪽 몫. 지금 마법은 `Target` 이 있으면 대상 조준점으로 살짝 휘어 간다(`Mode` 를 보지 않음).
+- (들어옴) 줌 중 「유도 없이 조준점으로 곧게」 — 마법 쪽 `UGrimSpellAbility::FollowsTarget` 이 `Mode = Zoom` 이면 대상을 따라가지 않는다([시전 흐름](#시전-흐름) 4, 테스트 `Grimoire.Magic.Delivery.ZoomAim`).
 - 「나를 노리는 적 가산」 — 적 AI 가 생기면 종류 가중에 더한다.
-- 정식 대상 표식 위젯 · 옵션 화면(Q18 · 선정 기준 저장).
+- 정식 대상 표식 위젯 · 선정 기준(`Camera` / `Movement`) 옵션 저장. (소프트 락온 끄기 · 줌 토글 · 줌 감도는 플레이어 옵션에 들어왔다.)
 
 ### 테스트
 
@@ -505,7 +517,7 @@ M1 규칙(11행 — 원본은 CSV):
 |---|---|
 | `UGrimUISubsystem` | `ULocalPlayerSubsystem`. 0.25초마다 로컬 컨트롤러가 바뀌었는지 보고, 바뀌면 HUD 를 띄우고 **Enhanced Input 에 `IMC_UI` 를 더하고 자기 입력 컴포넌트를 컨트롤러 입력 스택에 올린다** — 컨트롤러 · 캐릭터 파일을 고치지 않는다. 그리지 못하는 프로세스(`-nullrhi` · 전용 서버)는 위젯을 만들지 않는다 |
 | `UGrimHUDWidget` | 왼쪽 아래: 서클 · 호칭 + 막대들. 가운데 아래: **기본 공격 자리(R26 — 연타 「n/4」)** + **지금 세트의 단축 슬롯 4칸**(키 글자 · 속성색 · 패드 세트 활성 테두리 · 쿨다운 막과 초 · 숙련도 등급 글자, S 는 금색). 위: 알림(등급 오름 · 배움 · 스킬북 · 승급). 가운데 아래 위: 스킬북 곁이면 안내(배운다 / 숙련도 / 이미 통달 / 서클 모자람) |
-| `UGrimGrimoireWidget` | 그리모어 화면 — 탭 셋. **마법**: 완드 보정(마나 절약 · 시전 속도), 단축 슬롯 배치(세트 버튼 → 마법 줄 누르기 → 칸 누르기, 같은 마법 칸을 누르면 비움), 속성 필터(전체 + 설정의 속성), 목록(숙련도 없는 항목 「기본」 → 서클별 머리 「1서클 — 견습」 → 배운 순서). 줄마다 속성색 띠 · 이름 · 속성 · 서클 · 등급 글자(없으면 「—」) · 등급 이름 · 다음 등급 막대 · 경험 · 실제 마나/쿨타임(완드 · 숙련도 반영) · 「지금 마법」. S 는 금테. 줄을 누르면 그 마법을 고른다(`Server_SelectSpell`). **성장 트리** · **도감**: 빈 자리(다음 묶음) |
+| `UGrimGrimoireWidget` | 그리모어 화면 — 탭 셋. **마법**: 완드 보정(마나 절약 · 시전 속도), 단축 슬롯 배치(세트 버튼 → 마법 줄 누르기 → 칸 누르기, 같은 마법 칸을 누르면 비움), 속성 필터(전체 + 설정의 속성), 목록(숙련도 없는 항목 「기본」 → 서클별 머리 「1서클 — 견습」 → 배운 순서). 줄마다 속성색 띠 · 이름 · 속성 · 서클 · 등급 글자(없으면 「—」) · 등급 이름 · 다음 등급 막대 · 경험 · 실제 마나/쿨타임(완드 · 숙련도 반영) · 「지금 마법」. S 는 금테. 줄을 누르면 그 마법을 고른다(`Server_SelectSpell`). **성장 트리**: `UGrimSkillTreeWidget`(`Source/Grimoire/UI/GrimSkillTreeWidget.h` — [성장](./progression)). **도감**: 빈 자리(다음 묶음) |
 | `UGrimIdButton` | 자기 번호를 알리는 버튼(목록 · 필터 · 탭 · 슬롯) |
 | `FGrimUIMath` | 순수 계산: 막대 비율 · 어트리뷰트 이름 나누기 · 쿨다운 비율/글 · 속성 필터 · 그리모어 순서 · 슬롯 배치 · 등급 글자 |
 | `GrimUIData` | 어트리뷰트를 이름으로 찾기(`"Health"` · `"GrimVitalAttributeSet.Health"`) · 쿨다운 남은 초(쿨다운 태그 GE) · 속성색 · 위젯 만들기 도우미 |
@@ -517,12 +529,12 @@ M1 규칙(11행 — 원본은 CSV):
   - **슬롯 바로 시전(1~4 키 · 패드 R2 + 얼굴 버튼)** · 패드 세트 고르기(R2 + 십자키)는 M2 갈래 K — [조작](#조작-q29). HUD 칸마다 키 글자(「1 · RT+Y」, 기본 공격 「좌클릭 · RT」), 패드 세트 활성 중엔 테두리가 밝고, 기본 공격 칸의 등급 자리에 연타 번째(「2/4」).
 - 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 배치): `IA_ToggleGrimoire` = **T · 패드 십자키 →**(호그와트의 마법 배치 메뉴 자리 — R2 를 누른 채면 세트 고르기라 열지 않는다), `IA_SpellSet1~4` = F1~F4(패드 세트 고르기는 캐릭터의 `IMC_Spell`). 컨텍스트 `IMC_UI`(우선순위 1).
 - 그리모어가 열리면 Game+UI 입력 · 마우스 커서 · 시점 고정(`SetIgnoreLookInput`), 키는 게임으로 계속 가서 같은 키로 닫는다. 왼손 책이 다가오는 연출(스펙 「제안」)은 연출 쪽 몫.
-- 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.SlotSet <1부터>`.
+- 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.SlotSet <1부터>` · `Grim.UI.Level [0|1]`(레벨 · 경험 막대 단독 — [성장](./progression)).
 - 테스트 `Grimoire.UI.*`: `BarFraction`(쿨다운 글 포함) · `AttributeName`(실제 ASC 에서 이름으로 찾기) · `ElementFilter` · `GrimoireOrder` · `SlotLayout` · `Settings`(ini 값).
-- 아직 없는 것: 조준점 · 대상의 속성 상태 표시(「젖음」), 마법 아이콘(정의의 `Icon` 이 비어 이름 글자로), 도감 기록(반응 규칙을 발견하면 쓰기), 성장 트리, 옵션 화면.
+- 아직 없는 것: 조준점 · 대상의 속성 상태 표시(「젖음」), 마법 아이콘(정의의 `Icon` 이 비어 이름 글자로), 도감 기록(반응 규칙을 발견하면 쓰기), 옵션 화면(조준 옵션은 메뉴 갈래의 `UGrimMenuSettingsPanel` 에 일부 — [월드 · 멀티플레이](./world-multiplayer)).
 
 ## M1 범위
 
-불씨 · 물줄기 · 미풍 3개 마법, 완드 1종, 양초 · 모닥불 · 마른 풀 3개 사물, 반응 규칙표 10행, 상성 표. 서클 UI 는 숫자만.
+불씨 · 물줄기 · 미풍 3개 마법, 완드 1종, 양초 · 모닥불 · 마른 풀 3개 사물, 반응 규칙표 11행, 상성 표. 서클 UI 는 숫자만.
 
-아직 없는 것(M1 기준): 완드 정의 데이터 · 장착 해제. 그리모어 UI · 스킬북 · 서클 승급 · 숙련도는 M2 갈래 G 에서 들어왔다(위 각 절). 시전 동작 · 섬광 · 터짐 연출은 M1.5 갈래 C(MagicFX)가 큐 처리기로 붙인다.
+아직 없는 것(M1 기준): 완드 정의 데이터 · 장착 해제. 그리모어 UI · 스킬북 · 서클 승급 · 숙련도는 M2 갈래 G 에서 들어왔다(위 각 절). 시전 동작 · 섬광 · 터짐 연출은 M1.5 갈래 C(MagicFX, `Source/Grimoire/MagicFX/`)가 큐 처리기로 붙였다([투사체 · 시전 감각](./spell-feel)).

@@ -1,8 +1,12 @@
 # 환경 · 날씨 시스템
 
 > 스펙: [세계 · 환경](../spec/world) (R04)
+>
+> 상태: M1 · M2(갈래 W) 구현됨(2026-11-06 코드 대조). 코드 `Source/Grimoire/Environment/`.
 
 ## 시간 `UGrimTimeOfDaySubsystem`
+
+구현: `Source/Grimoire/Environment/GrimTimeOfDaySubsystem.h`, 복제 `Source/Grimoire/Environment/GrimTimeOfDayReplicator.h`, 순수 계산 `Source/Grimoire/Environment/GrimTimeOfDayMath.h`, 설정 `Source/Grimoire/Environment/GrimEnvironmentSettings.h`.
 
 - `UTickableWorldSubsystem`(게임 · PIE 월드). 시각은 누적 일수 `TotalDays` — 정수부 = 날짜(`GetDayIndex`), 소수부 = 하루 비율(`GetTimeOfDay`, 0 = 자정, 0.5 = 정오).
 - **복제**: 서버가 `OnWorldBeginPlay` 에서 보이지 않는 `AGrimTimeOfDayReplicator`(`AInfo`, 항상 관련)를 만들고 스냅숏 `FGrimTimeSnapshot { TotalDays, ServerSeconds, DayLengthSeconds, DayRatio }` 를 복제한다. 기반 GameState 는 고치지 않는다.
@@ -13,7 +17,9 @@
 
 ## 하늘 `AGrimSkyController`
 
-- 레벨에 하나 놓는다. 자기 컴포넌트로 해 · 달 Directional Light(대기 태양 인덱스 0 · 1), Sky Atmosphere, Sky Light(실시간 캡처), Exponential Height Fog 를 가진다 — 레벨의 다른 해 · 하늘 · 안개는 뺀다. 복제하지 않고 각 머신이 서브시스템 시각으로 틱마다 갱신한다.
+구현: `Source/Grimoire/Environment/GrimSkyController.h`.
+
+- 레벨에 하나 놓는다(배치 스크립트 `Scripts/Tutorial/tower_greybox.py` · `Scripts/Terrain/build_openbeta.py` · `Scripts/Integration/place_m1_props.py` 가 `Sky` 로 놓는다). 자기 컴포넌트로 해 · 달 Directional Light(대기 태양 인덱스 0 · 1), Sky Atmosphere, Sky Light(실시간 캡처), Exponential Height Fog 를 가진다 — 레벨의 다른 해 · 하늘 · 안개는 뺀다. 복제하지 않고 각 머신이 서브시스템 시각으로 틱마다 갱신한다.
 - 해 궤도 각 `GetSunAngleDegrees`: 해돋이 0° → 정오 90° → 해넘이 180° → 자정 270°(낮 · 밤이 각자 반 바퀴). 궤도는 `SunriseYawDegrees` 에서 떠서 `OrbitTiltDegrees` 만큼 기운 천정을 지난다. 달은 해의 맞은편.
 - 밝기: 해 · 달은 지평선 근처 `HorizonFade` 에서 부드럽게 켜지고 꺼진다(`SunIntensity` 10 lux, `MoonIntensity` 0.4 lux). Sky Light 는 낮 1 · 밤 0.25.
 - **그림자 캐시**: 해 · 달 빛은 방향이 `SunRotationStepDegrees`(기본 0.1°, 48분 하루면 약 0.8초) 넘게 바뀔 때만 돌린다 — 방향광이 돌 때마다 가상 섀도 맵 캐시가 통째로 무효가 된다(GPU 그림자 2 ~ 2.6 ms → 0.4 ~ 0.6 ms, [성능](./performance#측정-기록)). 콘솔 `Grim.Sky.SunRotationStep <도>`(0 = 매 프레임).
@@ -21,13 +27,18 @@
 
 ## 기후 지역 `AGrimClimateRegionVolume` + 기후 표
 
+구현: `Source/Grimoire/Environment/GrimClimateRegionVolume.h`, 행 구조체 · 등급 `Source/Grimoire/Environment/GrimClimateTypes.h`.
+
 - **기후 표** `Content/Grimoire/Data/ClimateRegions.csv`(행 구조체 `FGrimClimateRow`, 행 이름 = 지역 id). 런타임에 CSV 를 DataTable 로 읽는다(반응 규칙표와 같은 방식, `Grimoire/Data` 는 패키징 때 함께 간다). 설정 `ClimateTableAsset` 을 주면 DataTable 에셋을 대신 쓴다. 표가 없거나 기본 지역 행이 없으면 환경 설정의 전역 곡선(M1)으로 만든 기본 지역 하나로 돈다.
 - 한 행: 기온 곡선(`MinTemperature` · `MaxTemperature` · `ColdestTimeOfDay` · `WarmestTimeOfDay`, M1 과 같은 반 코사인), 시간대 등급(`DayHeat` · `DayCold` · `NightHeat` · `NightCold`), 날씨 가산(`RainCold` · `SnowCold` · `SandstormHeat` · `ClearNoonHeat`), 강수 `Precipitation`(Rain / Snow), 전용 날씨 허용(`bAllowSnow` · `bAllowSandstorm` — Q14), `InitialWeather`, `MinWeatherSeconds`, 전이표 `FromClear` … `FromSandstorm`(각 행 = 다음 날씨 가중치 `(Clear=6,Cloudy=3,…)`).
 - 지금 행(스펙의 제안 지역): `Meadow`(탑 주변 초원, **기본 지역**) · `DeepForest` · `SnowPeak` · `VolcanicWaste` · `StormCoast` · `ShadowValley`. 등급은 스펙 「체온 모델」 예 그대로(초원 낮 0 · 밤 추위 1, 설산 낮 추위 2 · 밤 4, 화산 낮 더위 3 · 밤 1).
 - **볼륨**: 상자(`UBoxComponent` `Bounds`, 충돌 없음 · 복제 없음 — 레벨에 놓인 그대로 모든 머신에 있다) + `RegionId` + `BlendDistance`(기본 20m). 가중치는 바깥 0, 경계에서 안쪽으로 `BlendDistance` 들어가면 1(`FGrimWeatherMath::GetBoxBlendWeight`, 회전 · 크기 반영). 겹친 볼륨 합이 1 을 넘으면 나눠 합 1, 남는 몫은 기본 지역(`NormalizeRegionWeights`). 같은 `RegionId` 볼륨 여럿은 날씨 하나를 함께 쓴다. 표에 없는 id 는 경고하고 무시한다.
 - 볼륨은 `BeginPlay` 에 서브시스템에 등록한다(지역 수만큼이라 적다 — 상호작용 사물 목록과는 다르다).
+- 지금 맵에 놓인 것: 탑 · 오픈 베타 맵의 `Climate_Meadow`(`Scripts/Tutorial/tower_greybox.py` · `Scripts/Terrain/build_openbeta.py`). 다른 지역 볼륨은 시험 배치 스크립트만 놓는다(아래).
 
 ## 날씨 `UGrimWeatherSubsystem`
+
+구현: `Source/Grimoire/Environment/GrimWeatherSubsystem.h`, 복제 `Source/Grimoire/Environment/GrimWeatherReplicator.h`, 순수 계산 `Source/Grimoire/Environment/GrimWeatherMath.h`, 설정 `Source/Grimoire/Environment/GrimWeatherSettings.h`, 콘솔 `Source/Grimoire/Environment/GrimWeatherDebug.cpp`.
 
 - `UTickableWorldSubsystem`(게임 · PIE). 지역(표의 행)마다 **상태 머신** 하나: `EGrimWeatherType` = `Clear · Cloudy · Fog · Rain · Thunderstorm · Snow · Sandstorm`. Snow · Sandstorm 은 그 행이 허용할 때만 고른다(Q14). `Precipitation = Snow` 인 지역은 고른 Rain · Thunderstorm 이 Snow 가 된다.
 - **전이(서버)**: 한 날씨가 `MinWeatherSeconds`(지역마다, 기본 6분) 지난 뒤부터 `TransitionCheckIntervalSeconds`(60초)마다 지금 날씨의 전이표 행에서 가중치 비례로 다음 날씨를 고른다(자기 자신 가중치 = 머묾, `FGrimWeatherMath::PickNextWeather`). 바뀌면 `BlendSeconds`(150초 = 2분 30초) 동안 스무스스텝으로 섞는다. 블렌드 도중 또 바뀌면 지금 더 큰 쪽에서 새로 시작한다.
@@ -75,7 +86,8 @@
 - `UGrimWeatherSettings` = `DefaultGame.ini` `[/Script/Grimoire.GrimWeatherSettings]`: 표 경로 · 기본 지역 · 한낮 시간 · 전이 간격 · 블렌드 · 난수 씨앗(0 = 시계) · 비 자극 · 지붕 · 낙뢰 · 연출 값, 날씨 종류별 `ClearProfile` … `SandstormProfile`.
 - 콘솔(개발 빌드, 서버 월드에서): `Grim.Weather.Set <지역|All> <날씨> [블렌드초] [지연초]`, `Grim.Weather.Dump [지연초]`(지역 날씨 + 로컬 플레이어 위치의 지역 · 날씨 · 기온 · 등급 · 비 · 시야 · 지붕), `Grim.Weather.Probe <X> <Y> <Z> [지연초]`(그 위치의 지역 · 날씨 · 기온 · 몫별 등급 · 지붕), `Grim.Weather.Strike <지역> [지연초]`(바로 낙뢰 하나).
 - 2인 확인: `Scripts/Environment/net_check_weather.ps1` — 헤드리스 리슨 서버 + 클라이언트, 초원을 비로 바꿔 야외 양초가 꺼지고 젖는지, 양쪽 덤프가 같은지 본다(`Saved/NetCheckWeather/`).
-- 시험 배치: `Scripts/Environment/place_climate_test.py` — 맵에 설산 · 화산 황야 · 폭풍 해안 볼륨과 지붕 + 양초 둘(지붕 아래 · 밖)을 놓는다. 통합 때 L_M1_Sandbox 에 돌린다.
+- 시험 배치: `Scripts/Environment/place_climate_test.py` — 맵(기본 `L_M1_Sandbox`, 환경 변수 `GRIM_CLIMATE_TEST_MAP` 로 바꾼다)에 설산 · 화산 황야 · 폭풍 해안 볼륨과 지붕 + 양초 둘(지붕 아래 · 밖)을 놓는다(태그 `ClimateTest`, 다시 돌리면 지우고 다시 놓는다).
+- 환경 에셋 가져오기: `Scripts/Environment/import_env_asset.py` — 블렌더 GLB 를 `/Game/Grimoire/Environment/<종류>/<이름>/` 로(Nanite 켬). 환경 변수 `GRIM_ENV_GLB` · `GRIM_ENV_DEST`.
 
 ## 환경이 다른 시스템에 주는 것
 
@@ -90,13 +102,17 @@
 
 ## 세이브
 
-- 시간(`DayIndex`, `TimeOfDay`), 지역별 날씨 상태 · 남은 지속 시간 → 세이브 서브시스템에 등록.
+두 서브시스템이 `IGrimSaveParticipant`(`Source/Grimoire/Core/GrimSaveTypes.h`), World 범위:
+
+- `Environment.TimeOfDay` v1 — 누적 일수 `TotalDays`. 하루 길이는 서버 옵션이라 저장하지 않는다.
+- `Environment.Weather` v1 — 지역마다 id · 날씨 · 그 날씨가 된 지 몇 초(최소 지속을 잇는다). 읽으면 블렌드 없이 그 날씨로, 표에 없는 지역은 건너뛴다.
 
 ## 범위
 
 - M1: 밤 · 낮 사이클 + 전역 기온 하나. 환경 설정의 `MinAmbientTemperature` 6℃ · `MaxAmbientTemperature` 22℃ · `ColdestTimeOfDay` 0.2 · `WarmestTimeOfDay` 0.6 은 이제 기후 표가 없을 때의 기본 지역 곡선으로만 쓴다.
 - M2(갈래 W): 기후 지역 볼륨 · 기후 표 · 지역별 날씨 상태 머신 · 복제 · 등급 · 기온 · 지붕 판정 · 비 자극 · 낙뢰(자극만) · 안개 값 · 하늘 연출(임시 이펙트).
-- 아직 없음: 낙뢰 피해 GE · 비의 마법 보정 GE · 안개 걷기 · 바람(풍속 · 풍향) · 젖음 머티리얼(`MPC_Environment`) · 천둥 소리 · 정식 이펙트 · 세이브.
+- 세이브(시간 · 지역 날씨)는 들어갔다.
+- 아직 없음: 낙뢰 피해 GE · 비의 마법 보정 GE · 안개 걷기 · 바람(풍속 · 풍향) · 젖음 머티리얼(`MPC_Environment`) · 천둥 소리 · 정식 이펙트 · 볼류메트릭 구름 · 소프트 락온 배율의 조준 쪽 연결 · 앞으로만 가는 `SkipTo`(잠 건너뛰기용).
 
 ### 테스트
 

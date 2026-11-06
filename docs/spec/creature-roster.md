@@ -4,6 +4,8 @@
 
 10 × 10 km 세계의 8지역([세계 — 지역과 크기](./world#지역과-크기-r34-—-q36-확정))에 어떤 마법 생물을 두는지 정한 명단이다. 생물 하나하나의 규칙(속성 1~2 · 고유 능력 · 길들이기 · 개체 차이)은 [마법 생물](./creatures)을 따른다. 명단의 정본은 `art/creatures/make_prompts.py` 의 `CREATURES` 이고, 아래 표는 `python -X utf8 art/creatures/make_prompts.py --md` 로 뽑았다 — 명단을 고치면 그 파일을 고치고 표를 다시 뽑는다.
 
+> 구현 상태(2026-11-06): 게임 데이터(종 정의)가 있는 것은 **1번 지역의 재칼로프 · 켈피 · 검은 개 3종뿐**이다 — `Content/Grimoire/Creatures/Species/` 의 `DA_Creature_Jackalope` · `DA_Creature_Kelpie` · `DA_Creature_BlackDog`(값의 정본 `Scripts/Creatures/make_creature_species.py`, 규칙은 [마법 생물 — M3 생물 3종](./creatures)). 나머지 58종은 이 명단과 그림 프롬프트(`art/creatures/prompts/`)에만 있다. 아래 「기능」(날것 · 목축 · 손재주 · 운반 · 방범 · 속성 작업)은 아직 코드가 없다 — 탈것은 켈피만 된다.
+
 ## 고르는 기준
 
 - **바탕은 나무위키 「상상의 동물/목록」**(R37). 목록에서 동물 · 짐승 꼴인 것을 먼저 고르고, 지역의 기후 · 주 속성에 맞는 전승을 붙였다(설산 = 북유럽 · 히말라야 · 일본 설녀, 화산 황야 = 서아시아 · 이집트 · 연금술, 깊은 숲 = 핀란드 · 슬라브 · 웨일스).
@@ -92,7 +94,7 @@
 
 ## 지역별 명단
 
-`id` 는 그림 파일 · 종 데이터 이름(`raw/<id>.png`)이다. 희귀도: 흔함 · 보통 · 드묾(조건부 · 보스 포함) · 희귀 · 전설.
+`id` 는 그림 파일 이름(`raw/<id>.png`)이다. 종 데이터는 같은 이름을 파스칼 표기로 쓴다 — `black-dog` → 종 id `BlackDog` · 에셋 `DA_Creature_BlackDog`. 희귀도: 흔함 · 보통 · 드묾(조건부 · 보스 포함) · 희귀 · 전설.
 
 ### 기능별 생물 수
 
@@ -256,7 +258,8 @@ bash art/tools/run_batch.sh /c/dev/Grimoire/art/creatures 3 $(python -X utf8 art
 
 ## 남은 일
 
-- 종마다 **고유 능력 하나 · 주/부속성 설명**(도감 확장 룰 3 · 2)을 종 데이터를 만들 때 채운다 — 표의 「각색」 · 「길들이기 · 쓰임」 칸이 그 씨앗이다.
+- 종마다 **고유 능력 하나 · 주/부속성 설명**(도감 확장 룰 3 · 2)을 종 데이터를 만들 때 채운다 — 표의 「각색」 · 「길들이기 · 쓰임」 칸이 그 씨앗이다. 종 데이터는 `Scripts/Creatures/make_creature_species.py` 에 종을 더하고, `Config/DefaultGame.ini` `[/Script/Grimoire.GrimCreatureSettings]` 의 `Species` 목록에 에셋을 올린다(먹이 관계는 `Content/Grimoire/Data/CreatureEcology.csv`, 먹이 · 탈것 프로필은 `[/Script/Grimoire.GrimTamingSettings]` 의 `FoodRules` · `Mount`).
+- 표의 속성 중 얼음 · 풀 · 신성 · 빛 · 흑마법 생물을 넣으려면 그 속성의 파크툼(지금 `Content/Grimoire/Data/PactumSpells.csv` 에 행만 — `bImplemented=False`)과 상성 표 행이 먼저 있어야 한다. 지금 상성 표(`Config/DefaultGame.ini` `ElementAffinities`)에는 풀(`Element.Earth.Plant`) · 그림자술(`Element.Dark.Shadow`) 행이 없어 둘은 ×1 이다.
 - 오픈 베타 30종에 넣을 2 · 3번 지역 종 고르기(Q15), 서클 · 희귀도 수치 다듬기.
 - [마법 생물](./creatures) 「M3 생물 3종」의 재칼로프 「밭 해충 잡기(나중 일꾼)」는 이 명단에서 기능 없음으로 둠 — 두 문서를 맞출 때 정한다.
 - 콘셉트 그림이 나오면 사용자가 고르고, 고른 것만 4면 시트 → Tripo 로 넘긴다.

@@ -1,6 +1,8 @@
 # 마법 이펙트 자체 제작
 
-2026-11-06 사용자 요청: 「이펙트가 마음에 안 든다 — 지피티로 시안을 뽑아 그대로 만들 수 없나?」. Niagara 에디터를 손으로 만지지 않고, **GPT 시안 → 사양(파이썬) → 자동 생성 에셋 → 게임 화면 비교** 로 이펙트를 만드는 길을 조사하고 불씨 · 기본 공격 두 마법으로 끝까지 증명했다. **이 시험 이펙트(`NS_GrimEmber_*` · `NS_GrimBasic_*`)는 마법에 연결하지 않았다** — 볼트 이펙트는 사용자가 준 레퍼런스(바늘 빛줄기)대로 별도 갈래가 만든다. 이 문서와 도구는 그 갈래와 이후 물줄기 · 미풍이 쓰는 저작 도구다. 연출이 어디서 그려지는지는 [투사체 · 시전 감각](./spell-feel) · [마법](./magic).
+2026-11-06 사용자 요청: 「이펙트가 마음에 안 든다 — 지피티로 시안을 뽑아 그대로 만들 수 없나?」. Niagara 에디터를 손으로 만지지 않고, **GPT 시안 → 사양(파이썬) → 자동 생성 에셋 → 게임 화면 비교** 로 이펙트를 만드는 길을 조사하고 불씨 · 기본 공격 두 마법으로 끝까지 증명했다. **이 시험 이펙트(`NS_GrimEmber_*` · `NS_GrimBasic_*`)는 마법에 연결하지 않았다** — 볼트 이펙트는 그 뒤 별도 갈래가 사용자가 준 레퍼런스(바늘 빛줄기)대로 `NS_Bolt_*` 로 만들어 불씨 · 기본 공격에 연결했다([투사체 · 시전 감각 — 볼트 이펙트](./spell-feel#볼트-이펙트-—-사용자-참고-그림대로-2026-11-06)). 이 문서와 도구는 이후 물줄기 · 미풍이 쓰는 저작 도구다. 연출이 어디서 그려지는지는 [투사체 · 시전 감각](./spell-feel) · [마법](./magic).
+
+> 상태(2026-11-06 코드 대조): 이 갈래의 도구(`Scripts/MagicFX/make_fx_niagara.py` · `Scripts/MagicFX/fx_niagara_builder.py` · `Scripts/MagicFX/fx_materials.py` · `Scripts/MagicFX/make_fx_textures.py` · `Scripts/MagicFX/image_to_alpha.py` · `Scripts/MagicFX/capture_spell.ps1` · `Scripts/MagicFX/compare_fx.py`)와 에셋은 있고, 게임에 연결된 것은 없다. 볼트 갈래는 같은 툴셋을 자기 스크립트(`Scripts/MagicFX/make_bolt_fx.py` — `ToolsetRegistry.execute_tool` 을 직접 부름, 이 문서의 빌더를 쓰지 않음)로 불렀다.
 
 ## 결과 먼저
 
@@ -15,7 +17,7 @@
 | 불씨 | 주황 별 섬광 · 불티, 흰 심 + 주황 껍질 혜성과 꼬리, 터질 때 큰 섬광 · 주황 빛 번짐, 뒤늦게 오르는 짙은 연기 | 불꽃 **모양** — 시안은 말려 올라가는 불꽃 혀(꽃잎), 게임은 둥근 덩이. 절차적 플립북 텍스처의 한계(아래 「텍스처」). 터짐 한가운데가 아직 살구색으로 밝다. 바닥 그을음 링은 C++ 데칼 그대로 |
 | 기본 공격 | 얇은 마법진 고리 + 별빛, 밝은 구슬 + 보랏빛 광륜 + 가는 빛 꼬리, 별 섬광 + 퍼지는 고리 + 빛 알갱이 | 구슬 둘레를 **감는 빛 띠**(시안 2) — 궤도 리본이 없다. 시전 고리가 휘두르는 완드 끝(아래쪽)에 생겨 몸통과 떨어져 보인다(섬광 위치는 C++ 큐가 정함). 고리에 룬 점이 없다 |
 
-물줄기 · 미풍 시안도 뽑아 두었다(아래). 네 마법 모두 게임에는 아직 Niagara Examples Pack 이 그대로다.
+물줄기 · 미풍 시안도 뽑아 두었다(아래). 게임에 연결된 이펙트는 지금 불씨 · 기본 공격 = 볼트 갈래의 `NS_Bolt_*`, 물줄기 · 미풍 = Niagara Examples Pack + 엔진 템플릿이다([투사체 · 시전 감각 — 임시 이펙트](./spell-feel#임시-이펙트-—-엔진-기본-·-niagara-examples-pack)).
 
 | 물줄기 | 미풍 |
 |---|---|
@@ -26,7 +28,7 @@
 | 수단 | 할 수 있는 것 | 못 하는 것 · 함정 | 판정 |
 |---|---|---|---|
 | **(a) Niagara 툴셋**(엔진 실험 플러그인 `NiagaraToolsets` + `ToolsetRegistry`) | 템플릿에서 시스템 생성 · 에미터 추가/삭제 · 모듈 추가 · 모든 모듈 입력(숫자 · 색 · 열거 · **HLSL 식** · 링크) · 렌더러 값(머티리얼 · SubUV · 정렬) · 사용자 변수 · 컴파일 상태 읽기. 파이썬 `unreal.ToolsetRegistry.execute_tool(툴셋, 도구, JSON)` 한 줄로 부르고, **헤드리스 커맨드렛(-nullrhi)에서 돈다** | 실험 기능(이름 · 인자가 판마다 바뀔 수 있다). 곡선(Curve) 데이터 인터페이스 값은 「Unsupported」 — 대신 HLSL 식으로 쓴다. 경량(Lightweight) 에미터 · 데이터 채널 불가. 아래 「함정」 3개 | **채택** — 이펙트의 뼈대 |
-| (a′) 같은 API 를 C++ 로 직접(`UNiagaraExternalEditUtilities`) | 툴셋과 같은 기능. `NiagaraEditor` 모듈 의존을 에디터 빌드에만 걸면 된다 | 툴셋이 이미 JSON 으로 감싸 주므로 이점이 없다. 우리 모듈엔 컴파일 대기 함수 하나만 감쌌다(`UGrimMagicFXEditorLibrary`) | 필요할 때만 |
+| (a′) 같은 API 를 C++ 로 직접(`UNiagaraExternalEditUtilities`) | 툴셋과 같은 기능. `NiagaraEditor` 모듈 의존을 에디터 빌드에만 걸면 된다 | 툴셋이 이미 JSON 으로 감싸 주므로 이점이 없다. 우리 모듈엔 컴파일 대기 함수 하나만 감쌌다(`Source/Grimoire/MagicFX/GrimMagicFXEditorLibrary.h` 의 `UGrimMagicFXEditorLibrary`) | 필요할 때만 |
 | **(b) 머티리얼 파이썬**(`MaterialEditingLibrary`) | 노드 그래프를 통째로 만든다: 텍스처 · 파티클 색 · 패너(흘리기) · 프레넬 · **침식**(알파가 줄면 가장자리부터 깎임) · 플립북(ParticleSubUV) · 노출 되돌리기 · 인스턴스 | 쓰임 표시는 `set_material_usage` 대신 속성(`used_with_niagara_sprites`)으로 켜야 저장된다. 셰이더 결과는 게임에서만 보인다 | **채택** |
 | **(c) GPT 텍스처** | 콘셉트 시트(4칸)는 아주 잘 나온다 — 방향 · 색 · 모양을 정하는 기준 | 4×4 플립북처럼 **칸이 정확히 맞아야 하는 시트**는 칸 · 크기 · 연속성이 어긋난다. 알파가 없어 검은 배경 → 밝기 = 알파로 바꿔야 한다 | 시안용 채택. 텍스처는 다음 단계(아래) |
 | (c′) 절차적 텍스처(numpy) | 부드러운 빛 · 별 섬광 · 고리 · 불티 · 이어지는 노이즈 · 리본 결 · 불꽃/연기 플립북 — 칸이 정확하고 다시 만들기 쉽다 | 손그림 같은 불꽃 혀 · 물 왕관 같은 **복잡한 모양**은 못 낸다(불씨 터짐이 둥근 덩이인 까닭) | **채택**(지금 텍스처 전부) |
@@ -83,7 +85,7 @@ python Scripts/MagicFX/compare_fx.py art/fx/raw/ember.png art/fx/ingame/ember do
 | `MagicFX/Materials/Particles/` | `M_GrimFX_PAdd`(가산, 진한 곳 흰 심) · 인스턴스 Flare4 · Flare6 · Ring · Spark, `M_GrimFX_PFireSubUV`(반투명 불꽃 플립북, 침식, 가장자리 붉은빛), `M_GrimFX_PSmoke`, `M_GrimFX_RibbonAdd`(결 흘리기 + 노이즈, 꼬리 끝 가늘게) |
 | `MagicFX/Textures/T_FX_*` | 절차적 회색조 9장(밝기 = 알파) |
 
-캡처 때는 투사체의 엔진 기본 회색 구를 감췄다(Niagara 몸통이 있을 때). 그 변경은 볼트 갈래가 맡아 이 갈래에서는 되돌렸다.
+캡처 때는 투사체의 엔진 기본 회색 구를 감췄다(Niagara 몸통이 있을 때). 그 변경은 이 갈래에서는 되돌렸고, 볼트 갈래가 연출 묶음 칸 `bHideProjectileMesh`(`Source/Grimoire/Core/GrimSpellFXTypes.h`)로 넣었다.
 
 ## 함정 (이번에 밟은 것)
 

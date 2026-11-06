@@ -4,7 +4,9 @@
 >
 > **결정: 시안 A 「잉크와 양피지」가 마법사 기본 디자인이다.** 2차 시안 E · F · G · H 는 지역에 따라 다른 옷차림으로 킵한다. B · C · D 는 보류.
 >
-> 관련 스펙: [세력 · 서사 — 마법탑](../spec/factions) (R08), [마법 — 서클 · 속성](../spec/magic) (R06 · R07), [생존](../spec/survival) (R03)
+> 관련 스펙: [세력 · 서사 — 마법탑](../spec/factions) (R08), [마법 — 서클 · 속성](../spec/magic) (R06 · R07), [생존](../spec/survival) (R03), [커스터마이징](../spec/customization) (R39)
+>
+> 게임 반영(2026-11-06): 시안 A 의 네 역할이 외형 규칙 `Tower_Instructor` · `Tower_Librarian` · `Tower_Examiner` · `Tower_Apprentice`(`Content/Grimoire/Data/Appearance/NpcAppearanceRules.csv`)로 들어갔고, 속성 색 여섯은 `Content/Grimoire/Data/Appearance/AppearancePalettes.csv` 의 `Element` 팔레트다. 옷 조각 메시는 아직 없다 — 엔진 기본 도형 자리 표시([커스터마이징 기술 설계](../systems/customization)).
 
 ## 누가 입나 — 튜토리얼에서 만나는 마법탑 사람들
 
@@ -164,7 +166,7 @@ A 를 킵한 채로, A~D 가 모두 "서양 마법학교 로브" 계열이었던
 
 ### 앞으로 할 일
 
-1. 시안 A 로 튜토리얼 NPC 네 명의 **정면 · 측면 · 후면 설정화**(모델링용).
+1. 시안 A 로 튜토리얼 NPC 네 명의 **정면 · 측면 · 후면 설정화**(모델링용). 견습생 A 는 앞 · 뒤 설정화 · 조각 분해도까지 했다(프롬프트 `art/characters/prompts/`, 그림 `docs/public/art/characters/`) — 교관 · 사서 · 시험관은 계획.
 2. 플레이어 시작 복장 = 견습생(A) 복장으로 할지 정하기 — [커스터마이징](../spec/customization)에서 제안(Q75). 견습생 A 앞 · 뒤 설정화와 조각 분해도는 [기술 설계 — 아트 파이프라인](../systems/customization#아트-파이프라인-—-옷-조각-하나가-지나는-길).
 3. 지역 의상은 그 지역을 만들 때 같은 방식으로 설정화.
 

@@ -1,6 +1,8 @@
 # 마법 생물
 
 > 관련 요구사항: R02(식용 · 탈것 · 자동화), R14(생태계 — 몬스터 헌터 참고), R15(번식 · 돌연변이), R38(데리고 다니는 수 · 보관함 · 거점 생물 상자)
+>
+> 구현 상태(2026-11-06): M3 3종 · 개체 차이 · 생태계 스폰 · 길들이기 · 충성도 · 탑승(켈피)까지 들어갔다 — 코드 `Source/Grimoire/Creatures/`, 설계 [생물 시스템](../systems/creatures). 번식 · 일꾼 · 영역 다툼 · 날씨 반응은 아직 없다. 절마다 「구현:」 줄이 지금 코드다.
 
 ## 원칙
 
@@ -34,6 +36,8 @@
 | 쓰임 | 식용 · 탑승 · 일꾼 적성 · 채집물 · 전투 — 해당하는 것만 |
 | 길들이기 | 요구 서클, 잘 듣는 파크툼(속성) |
 
+- 구현: 도감 항목은 종 정의 `Source/Grimoire/Creatures/GrimCreatureSpecies.h` 의 `UGrimCreatureSpecies`(에셋 `DA_Creature_<종>`) 필드다 — 주 · 부속성 `PrimaryElement` · `SecondaryElement`, 고유 능력 `AbilityTags`(`Creature.Ability.*`), 활동 시간 `Activity`, 쓰임 `Loot` · `bMountable`, 길들이기 `TamingCircle` · `PreferredPactElement`. 에디터 검사(`IsDataValid`)가 주속성 없는 종(무속성)과 부속성 = 주속성을 막는다. 공격은 하나에 속성 하나(주속성 기술 · 부속성 기술이 따로).
+
 ## 생태계 (R14)
 
 - **서식지**: 종마다 사는 기후 · 지역 · 지형(물가, 동굴, 숲 천장)이 있다.
@@ -42,6 +46,7 @@
 - **영역**: 큰 생물은 영역을 가지고, 영역이 겹치면 **생물끼리 싸운다**(몬스터 헌터의 세력 다툼). 플레이어는 이것을 이용할 수 있다.
 - **날씨 반응**: 비가 오면 불 생물은 숨고 물 생물이 활발해진다. 번개가 치면 바람 생물이 하늘로 오른다.
 - **개체 수**: 지역마다 상한이 있고, 너무 잡으면 줄어들고 시간이 지나면 회복된다. 멸종은 없다(제안).
+- 구현(M3): 서식지 = 서식 구역 상자 `Source/Grimoire/Creatures/GrimHabitatVolume.h` 의 `AGrimHabitatVolume`(종 · 상한 · 시간대 · 회복 시간). 개체군 · 무리 스폰 · 회복(설정 240초에 하나, 멸종 없음)은 `Source/Grimoire/Creatures/GrimEcosystemSubsystem.h` 의 `UGrimEcosystemSubsystem`. 먹이 관계 표는 `Content/Grimoire/Data/CreatureEcology.csv`(지금 한 줄 — 검은 개 → 재칼로프, 피식자는 포식자를 보면 도망). 활동 시간은 낮 · 밤 · 낮 + 해 질 녘 · 언제나 넷이고 밖이면 잠든다(검은 개는 사라진다). 마나식은 먹이 습성 값만 있다. **영역 다툼 · 날씨 반응은 아직 없다**(M4~M5).
 
 ## 분류 (제안)
 
@@ -89,6 +94,9 @@
 | 체력 · 성격 | 약함 · 겁 많음 | 보통 · 온순(물에 끌고 들어가려는 장난기 — 원전) | 셈 · 공격적 |
 
 - 이름 · 수치는 제안이다. 데이터(종 정의)로 두어 바꾸기 쉽다.
+- 구현: 세 종 모두 데이터로 있다 — `Content/Grimoire/Creatures/Species/` 의 `DA_Creature_Jackalope` · `DA_Creature_Kelpie` · `DA_Creature_BlackDog`(종 id `Jackalope` · `Kelpie` · `BlackDog`, 값의 정본 `Scripts/Creatures/make_creature_species.py`). 오픈 베타 지도 `L_OpenBeta` 에는 `Scripts/Integration/place_openbeta_gameplay.py` 가 지형 표식 자리에 서식 구역을 놓는다(상한 재칼로프 8 · 켈피 3 · 검은 개 2).
+- 고유 능력 셋은 `Source/Grimoire/Creatures/GrimCreature.h` 의 `AGrimCreature` 가 한다. 「씨앗 퍼뜨리기」는 발밑 마른 풀에 풀 자극을 주지만, 반응 규칙표 `Content/Grimoire/Data/ElementalReactions.csv` 에 「풀이 다시 남」 행이 없어 아직 눈에 보이지 않는다. 「물 위 달리기」는 켈피가 물 볼륨 위를 달린다(탄 채도). 「그림자 걸음」은 밤 · 불빛 없음일 때 3초 숨고 빛 · 불 자극에 드러난다.
+- 쓰임 칸의 일(밭 해충 잡기 · 물 나르기 · 밤 경비)은 M5 일꾼 몫이라 아직 없다.
 
 ## 쓰임새 (R02)
 
@@ -96,17 +104,20 @@
 
 - 사냥해 고기 · 알 · 젖 · 부산물(가죽 · 뼈 · 마나 결정)을 얻는다. 불 마법으로 익혀 먹는다.
 - 길들인 생물도 알 · 젖을 준다(죽이지 않고 얻는 식량).
+- 구현: 죽으면 종 정의 `Loot` 를 굴려 줍기 아이템으로 떨군다(`Source/Grimoire/Items/GrimItemStatics.h` 의 `UGrimItemStatics::SpawnPickup`, 거대 개체는 두 배). 아이템은 `Content/Grimoire/Data/Items.csv` — 재칼로프 고기 · 털 · 뿔, 켈피 갈기 · 물 정수, 검은 개 가죽 · 송곳니. 날고기는 불에 익으면 `RoastedJackalopeMeat` 가 된다. 길들인 생물의 알 · 젖은 아직 없다.
 
 ### 탈것
 
 - 길들인 중 · 대형 생물에 탄다. 종마다 이동 방식이 다르다(달리기 · 헤엄 · 활공 · 비행은 높은 서클 종만).
 - 탄 채로 **마법 시전 가능**(Q9 확정). 탈것의 속성에 따라 플레이어 마법에 보정.
+- 구현: 탈것은 지금 켈피 하나(종 정의 `bMountable`, 설정 `[/Script/Grimoire.GrimTamingSettings] Mount` 의 프로필) — `Source/Grimoire/Creatures/GrimMountComponent.h` 의 `UGrimMountComponent`. 생물 메뉴(F) 「타기」, 탄 채 시전 · 물 위 달리기가 된다. 탑승 속도는 충성도 단계가 곱한다. 탈것 속성에 따른 마법 보정 · 헤엄 · 활공 · 비행 탈것은 아직 없다.
 
 ### 일꾼 · 자동화 (팰월드 참고)
 
 - 거점에 배치하면 **적성에 맞는 일**을 알아서 한다: 채집 · 벌목 · 채광 · 운반 · 농사(급수는 물 생물, 생장은 빛 생물) · 가마 불 때기(불 생물) · 경비.
 - 일꾼도 먹고 자야 한다. 혹사하면 병들고 도망친다.
 - 자동화는 **일부**다(R02). 완드로 하는 핵심 상호작용(마법 연구 · 완드 제작 · 승급)은 플레이어만 한다.
+- 구현: 아직 없다(M5 — 거점 · 작업 보드가 먼저). 충성도 단계 · 성격의 작업 속도 배율(`WorkSpeedScale`)만 설정에 자리가 있다.
 
 ## 개체 차이 — 성별 · 색 · 크기 (R23)
 
@@ -139,6 +150,13 @@
 - 드물게 **거대 개체**(1.3~1.5배)가 나온다(제안 2%). 체력 · 힘이 크게 높고 기술 하나를 더 가진다. 잡으면 크기를 그대로 지니고, 새끼에게 「거대」가 물려질 확률이 조금 있다.
 - **무리 우두머리 = 거대 개체**다. 무리에는 거대 개체가 하나 섞여 무리를 이끈다(종 수 배분의 「우두머리는 변이」와 같은 뜻).
 
+### 구현 — 개체 차이
+
+- 개체 굴림은 `Source/Grimoire/Creatures/GrimCreatureMath.h` 의 `GrimCreatureMath::RollInstance` — 서버가 생성 때 굴리고, 같은 종 + 같은 씨앗이면 같은 개체다. 개체 기록은 `Source/Grimoire/Creatures/GrimCreatureTypes.h` 의 `FGrimCreatureInstance`(성별 · 영역 색 · 크기 · 거대 · 돌연변이 · 성격 · 능력치 배율 + 주인 · 충성도 · 이름)이고, 복제 · 세이브 · 보관함이 이 기록을 그대로 쓴다.
+- 공통 수치는 `Config/DefaultGame.ini` `[/Script/Grimoire.GrimCreatureSettings]` 의 `Roll`(크기 0.9~1.1 · 거대 1.3~1.5 · 크기 ±0.1 당 능력치 ±5% · 거대 능력치 ×1.5 · 거대 전리품 ×2 · 야생 돌연변이 3% · 색조 ±4° · 채도 · 밝기 ±8%). 종마다 다른 값(색 영역 · 팔레트 · 암수 팔레트 · 변이 팔레트 · 수컷 비율 · 거대 확률 2%)은 종 정의.
+- 거대 개체의 「기술 하나 더」는 태그 `Creature.Ability.GiantRoar` 만 있고 효과는 없다. 무리를 스폰할 때 거대 개체가 있으면 그 무리의 첫째(우두머리) 자리에 둔다. 새끼에게 물려주기는 번식과 함께 아직 없다.
+- 모델은 아직 엔진 기본 도형 조합(종 정의 `BodyParts`)이고, 성별 부위는 부위를 켜고 끈다. 진짜 메시가 오면 같은 개체 기록으로 마스크 머티리얼을 칠한다.
+
 ## 길들이기
 
 - **기본 계약 마법 「파크툼」**: 1서클, **무속성**. 어떤 생물에게나 쓸 수 있다(확률은 기본). 튜토리얼 5단계에서 스킬북으로 배운다(Q34 확정).
@@ -146,10 +164,15 @@
 - 순서: 마법으로 약하게 만든 뒤(체력 30% 이하 · 잠듦 · 지침이면 확률 ↑) 계약 마법을 맞힌다.
 - 확률에 더해지는 것: 생물이 약한 정도, 좋아하는 먹이를 미리 줌, 완드의 속성 친화(생물과 같은 속성), 장신구, 내 서클 − 종의 요구 서클(전설급은 7서클 이상).
 - **숙련도(Q26 확정)**: 계약 마법 숙련도가 오르면 포획 확률이 조금 오른다(아래).
+- 구현: 파크툼 · 파크툼 이그니스 · 아쿠아 · 벤투스 · 테라(2서클) · 움브라(그림자술, 3서클)가 있다 — 목록 `Content/Grimoire/Data/PactumSpells.csv`, 에셋 `DA_Spell_Pactum*`(`Scripts/Magic/make_pactum_spells.py`), 스킬북 `Skillbook_Pactum*`. 글라키에스(얼음) · 플로라(풀) · 상투스(신성) · 룩스(빛) · 말레디카(흑마법)는 표에 행만 있다(`bImplemented=False`). 파크툼은 피해 없는 볼트이고 맞으면 `Source/Grimoire/Creatures/GrimTamingSubsystem.h` 의 `UGrimTamingSubsystem::TryTame` 이 판정한다.
+- 포획 확률은 `Source/Grimoire/Creatures/GrimTamingMath.h` 의 `GrimTamingMath::CalcCaptureChance`, 수치 `[/Script/Grimoire.GrimTamingSettings] Capture`(기본 30% + 약해짐 · 잠 · 지침 · 먹이 · 속성 일치 · 완드 친화 · 서클 차 · 숙련도 − 크기 등급 · 거대, 2~95%). 내 서클이 요구 서클보다 낮으면 **시도할 수 없고**, 높으면 한 단계마다 +5%p(최대 15%p). 장신구 몫은 자리만(M4). 실패하면 생물이 6초 동안 화내 덤빈다(겁 많은 종도).
+- 튜토리얼 5단계는 퀘스트 표에서 `Tutorial_12`(파크툼 익히기) · `Tutorial_14`(길들이기 — 이벤트 `Creature.Tamed.Small`)다 — `Content/Grimoire/Data/QuestObjectives.csv`.
 
 ### 숙련도 (Q26 확정)
 
 **마법 전체 숙련도**(D~S 5등급)로 정했다 — [마법 — 숙련도](./magic#숙련도-q26-확정). 계약 마법도 쓸수록 마나 · 쿨타임이 줄고, 계약 마법만의 추가 효과로 **포획 확률이 조금** 오른다(제안).
+
+- 구현: 파크툼의 숙련도 추가 효과 `Taming.CaptureBonus` — S 등급에서 포획 확률 +10%p(등급 배율이 곱해진다). 값은 `Scripts/Magic/make_pactum_spells.py` 의 `COMMON`.
 
 ## 충성도
 
@@ -175,6 +198,8 @@
 - **번식은 충성도 50 이상인 암수끼리만** 된다. 잘 돌본 생물이 좋은 새끼를 낳는다.
 - **성격(Q27 확정)**: 개체마다 성격 하나(먹보 · 일벌레 · 겁쟁이 · 싸움꾼 …)가 있어 충성도가 오르내리는 배율이 다르다. 먹보는 먹이로 잘 오르고 굶기면 크게 떨어지는 식.
 - 화면: 생물 정보에 충성도 막대와 「최근에 오르내린 까닭」 세 줄을 보여 준다.
+- 구현: 생물마다 `Source/Grimoire/Creatures/GrimCreatureTamingComponent.h` 의 `UGrimCreatureTamingComponent`(서버가 5초마다 사건을 센다). 위 두 표의 변화량 · 단계 경계(80 · 50 · 20 · 1 · 0) · 순종 확률 · 탑승 속도 · 타기 거부 · 떨어뜨림은 `[/Script/Grimoire.GrimTamingSettings] Loyalty`, 성격 여섯(평범 · 먹보 · 일벌레 · 겁쟁이 · 싸움꾼 · 잠꾸러기)은 `Personalities`. 「쓰러지게 함」 = 길들인 생물은 체력 0 이면 죽지 않고 20초 기절했다가 일어난다. 화면은 생물 메뉴(F) `Source/Grimoire/Creatures/GrimCreatureMenuWidget.h` 의 `UGrimCreatureMenuWidget`(충성도 막대 · 까닭 세 줄 · 따라오기 · 기다리기 · 타기 · 먹이 · 이름 · 놓아주기). 가진 생물은 주인 세이브에 남는다(`Source/Grimoire/Creatures/GrimTamerComponent.h` 의 `UGrimTamerComponent`).
+- 아직 없는 것: 충직 단계의 「주인이 쓰러지면 지킨다」, 작업 속도 · 일 거부(일꾼 M5), 번식 조건.
 
 ## 데리고 다니기 · 보관함 · 거점 생물 상자 (R38)
 
@@ -233,6 +258,7 @@
 - **돌연변이**: 낮은 확률(3%, 부모가 돌연변이면 ↑ — Q8, 나중에 조정 가능)로 태어난다. 돌연변이는 **색상이 다르고(팔레트 밖의 색) 개체값 상한이 높다**(R15). 모델은 같고 색만 바뀐다 — 제작 비용을 위해.
 - 새끼의 성별은 반반, 색은 영역마다 부모 중 한쪽, 크기는 부모 평균 근처(거대는 낮은 확률로 물림).
 - 교배로 새 종은 나오지 않는다(제안). 같은 종 안의 변이만.
+- 구현: 아직 없다(M4~M5, 번식장은 거점 뒤). 설계 자리는 [생물 시스템](../systems/creatures) 「나중 설계」. 지금 돌연변이는 야생 개체 굴림(3%)에서만 나온다.
 
 ## 미결
 

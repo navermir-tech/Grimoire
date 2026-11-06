@@ -4,12 +4,16 @@
 
 ## 오픈월드
 
-- **World Partition** 한 레벨(`L_World`). 셀 스트리밍 + 서버는 플레이어 주변만 로드(플레이어 위치 기반 스트리밍 소스).
-- **데이터 레이어**: 바이옴 장식, 사냥꾼 거점(이벤트로 켜고 끔), 계절(▢).
-- 랜드스케이프 + 지역 기후 볼륨. 지역 간 경계는 자연 지형(산맥 · 강)으로 숨긴다.
-- 대형 사물(나무 · 바위)은 HLOD. 상호작용 사물(양초 · 모닥불)은 액터 + Dormancy.
+- **World Partition** 한 레벨. 지금은 오픈 베타 땅 `L_OpenBeta`(2 × 4 km, M3 지형 1차 — [지형](./terrain)) 하나가 게임 맵이다(설정 `GameMap`, 에디터 시작 맵). 출시 월드(10 × 10 km)도 같은 방식. 셀 스트리밍 + 서버는 플레이어 주변만 로드(플레이어 위치 기반 스트리밍 소스).
+- 맵 만들기: `Scripts/Terrain/build_openbeta.py`(레이아웃 `Scripts/Terrain/openbeta_layout.json`, 높이 지도 `Source/Grimoire/World/GrimTerrainGenerator.h` 의 `FGrimTerrainGenerator`), 게임 배치 `Scripts/Integration/place_openbeta_gameplay.py`, 탑 그레이박스 `Scripts/Tutorial/tower_greybox.py`.
+- **데이터 레이어**(계획 — 아직 없음): 바이옴 장식, 사냥꾼 거점(이벤트로 켜고 끔), 계절(▢).
+- 랜드스케이프 + 지역 기후 볼륨(`AGrimClimateRegionVolume` — 구현: `Source/Grimoire/Environment/GrimClimateRegionVolume.h`). 지역 간 경계는 자연 지형(산맥 · 강)으로 숨긴다.
+- 대형 사물(나무 · 바위)은 HLOD(`HLODLayer_Merged` · `HLODLayer_Instanced` — [성능 규칙 7](./performance#월드-·-스트리밍)). 상호작용 사물(양초 · 모닥불)은 액터 + Dormancy.
+- 시험 맵: `L_Tower`(M2 튜토리얼 탑 — `Scripts/Tutorial/build_tower_map.py`), `L_M1_Sandbox`(M1 — `Scripts/Character/make_sandbox_map.py`), 메인 메뉴 `L_MainMenu`(게임 기본 맵 `GameDefaultMap`).
 
 ## 인스턴스 던전
+
+> 상태: **계획(M6)** — 코드 없음. `UGrimDungeonSubsystem` · `L_Dungeon_*` 는 아직 만들지 않았다.
 
 ### 결정: 같은 서버 프로세스 안에서 파티별 **레벨 인스턴스**를 띄운다
 
@@ -30,13 +34,13 @@
 
 | 형태 | 언제 | 빌드 |
 |---|---|---|
-| **리슨 서버**(호스트 플레이) | M3 부터 기본 | 게임 클라이언트 빌드에서 `?listen` 으로 맵 열기 |
-| 전용 서버 | M6 이후 | `GrimoireServer.Target.cs`(Type = Server) 추가. 런처 엔진은 전용 서버 타깃을 빌드할 수 없으므로 그때 엔진 소스 빌드 전환 검토 |
+| **리슨 서버**(호스트 플레이) | M3 부터 기본(구현) | 게임 클라이언트 빌드에서 `?listen` 으로 맵 열기 |
+| 전용 서버 | M6 이후(계획) | `GrimoireServer.Target.cs`(Type = Server) 추가 — 지금 타깃은 `Source/Grimoire.Target.cs` · `Source/GrimoireEditor.Target.cs` 둘뿐. 런처 엔진은 전용 서버 타깃을 빌드할 수 없으므로 그때 엔진 소스 빌드 전환 검토 |
 | 싱글(단독) | 항상 | 메뉴의 「혼자 시작 · 혼자 이어하기」 = `?listen` 없이 연 맵(`NM_Standalone`). 서버 권위 코드는 그대로 돈다(`HasAuthority` 참) — 친구를 받으려면 「호스트로 시작 · 서버 열기」 |
 
 ### 세션 · 접속 · 메뉴 (M3 갈래 J)
 
-코드는 `Source/Grimoire/Online/`, 메뉴 위젯은 `UI/GrimMenuWidgets.*`, 메인 메뉴 맵 `L_MainMenu`(`Scripts/Online/make_main_menu_map.py` — 빈 레벨 + GameMode Override `AGrimMenuGameMode`). 설정 `[/Script/Grimoire.GrimOnlineSettings]`(DefaultGame.ini), 온라인 서브시스템 `[OnlineSubsystem] DefaultPlatformService=Null`(DefaultEngine.ini).
+구현: `Source/Grimoire/Online/`, 메뉴 위젯은 `Source/Grimoire/UI/GrimMenuWidgets.h`, 메인 메뉴 맵 `L_MainMenu`(`Scripts/Online/make_main_menu_map.py` — 빈 레벨 + GameMode Override `AGrimMenuGameMode`). 설정 `[/Script/Grimoire.GrimOnlineSettings]`(DefaultGame.ini — `MainMenuMap` · `GameMap` · `DefaultPort` · `DefaultMaxPlayers` · `MaxPlayersLimit` · `ConnectTimeoutSeconds` · `bCreateOnlineSession` · `bLANSession` · `LANSearchSeconds` · `PlayerNameMaxLength` · `FallbackPlayerName` · 감도 범위 · `bPauseWhenStandalone`), 온라인 서브시스템 `[OnlineSubsystem] DefaultPlatformService=Null`(DefaultEngine.ini).
 
 | 클래스 | 하는 일 |
 |---|---|
@@ -50,7 +54,7 @@
 
 **열기 · 참가**
 
-- 서버 열기: 게임 맵(설정 `GameMap`, 지금 `L_Tower`)을 `<맵>?listen?SaveSlot=<슬롯>?MaxPlayers=<N>?GrimName=<이름>` 으로 `SetClientTravel`. 슬롯은 세이브 시스템이 읽는다(`?SaveSlot=`). 인원은 엔진 `AGameSession::MaxPlayers`(URL 옵션, 없으면 `[/Script/Engine.GameSession] MaxPlayers=8` — Q11, 호스트 포함). 넘치면 엔진이 `Server full.` 로 거절한다. 포트는 엔진 기본(7777) — 명령줄 `-port=` 가 앞선다.
+- 서버 열기: 게임 맵(설정 `GameMap`, 지금 `L_OpenBeta`)을 `<맵>?listen?SaveSlot=<슬롯>?MaxPlayers=<N>?GrimName=<이름>` 으로 `SetClientTravel`. 슬롯은 세이브 시스템이 읽는다(`?SaveSlot=`). 인원은 엔진 `AGameSession::MaxPlayers`(URL 옵션, 없으면 `[/Script/Engine.GameSession] MaxPlayers=8` — Q11, 호스트 포함). 넘치면 엔진이 `Server full.` 로 거절한다. 포트는 엔진 기본(7777) — 명령줄 `-port=` 가 앞선다.
 - 리슨 맵이 열리면(메뉴 · 콘솔로 연 경우만) 온라인 세션을 만든다(`NAME_GameSession`, LAN, 키 `GRIMSLOT` · `GRIMHOST`) → 「LAN 찾기」에 보인다. 명령줄로 바로 연 리슨 서버(확인 스크립트)는 세션을 만들지 않는다 — LAN 비컨 포트가 겹치지 않게.
 - IP 참가: 주소 칸(`ip` · `ip:port` · `이름:port` · `[IPv6]:port`) + 포트 칸 → `<호스트:포트>?GrimName=<이름>` 으로 `SetClientTravel` — 콘솔 `open <ip>:<port>` 와 같은 길. 메뉴 월드에 남은 채 접속하고(`PendingNetGame`), 맵이 열리면 접속됨. 설정 `ConnectTimeoutSeconds`(20초, 명령줄 `-GrimConnectTimeout=`) 안에 못 들어가면 접속 대기를 버리고(`?closed` — 엔진 `CancelPending` 은 protected) 메인 메뉴를 다시 열며 메시지 — 엔진 기본 대기(`InitialConnectTimeout`)보다 짧게.
 - LAN 찾기: `FindSessions`(LAN) → 고르면 `JoinSession` → `GetResolvedConnectString` 주소로 IP 참가와 같은 길.
@@ -58,7 +62,7 @@
 **실패 · 끊김**
 
 - 엔진 `OnNetworkFailure` · `OnTravelFailure` → `FGrimOnlineMath::DescribeNetworkFailure` 로 한국어 메시지(가득 참 · 호스트가 닫음 · 시간 초과 · 버전 다름 · 포트 사용 중 …, 엔진 글은 괄호로)를 게임 인스턴스에 남긴다. 메뉴가 아래 줄에 보여 준다.
-- 엔진은 실패 · 끊김 때 `?closed` 로 **기본 맵**(GameDefaultMap)을 연다. 기본 맵은 아직 `L_Tower` 라서, 첫 맵을 연 뒤 **이 프로세스에서만** 기본 맵을 `L_MainMenu` 로 바꿔 둔다(`UGameMapsSettings::SetGameDefaultMap` — ini 는 그대로, 시작 맵도 그대로, 에디터 PIE 에서는 하지 않음, 설정 `bReturnToMainMenuOnFailure`). 통합 때 기본 맵을 `L_MainMenu` 로 바꾸면 할 일이 없어진다.
+- 엔진은 실패 · 끊김 때 `?closed` 로 **기본 맵**(GameDefaultMap)을 연다. 기본 맵은 이제 `L_MainMenu` 다(`Config/DefaultEngine.ini`). 기본 맵이 메뉴가 아닌 설정이면 첫 맵을 연 뒤 **이 프로세스에서만** 기본 맵을 `MainMenuMap` 으로 바꿔 둔다(`UGrimSessionSubsystem::EnsureFailureReturnsToMenu` → `UGameMapsSettings::SetGameDefaultMap` — ini 는 그대로, 에디터 PIE 에서는 하지 않음, 설정 `bReturnToMainMenuOnFailure`).
 - 우리가 떠날 때(메인 메뉴로 · 나가기)의 끊김은 메시지로 남기지 않는다.
 
 **표시 이름**(세이브의 PlayerId 와 따로)
@@ -119,17 +123,26 @@
 
 ### 서버 옵션 `FGrimServerSettings` (GameState 복제)
 
+> 상태: **계획** — 묶음 구조체 · 호스트 UI · `ServerSettings.ini` 는 아직 없다. 지금은 각 값이 시스템별 설정(`Config/DefaultGame.ini`)과 콘솔에 흩어져 있다.
+
 하루 길이, 최대 인원(8, Q11), 하드코어(Q7), 생존 배율, 경험치 배율, 번식 속도. 호스트 UI 와 `ServerSettings.ini`.
+
+| 값 | 지금 있는 곳 |
+|---|---|
+| 하루 길이 | `[/Script/Grimoire.GrimEnvironmentSettings] DayLengthMinutes`(48), 콘솔 `grim.Time.DayLength` |
+| 최대 인원 | `[/Script/Engine.GameSession] MaxPlayers=8` · `GrimOnlineSettings` 의 `MaxPlayersLimit`, URL `?MaxPlayers=` |
+| 경험치 배율 | 레벨 `[/Script/Grimoire.GrimLevelSettings] GlobalXPRate`, 숙련도 `[/Script/Grimoire.GrimProficiencySettings] GlobalXPRate`(콘솔 `Grim.Magic.XPRate`) |
+| 하드코어 · 생존 배율 · 번식 속도 | 없음 |
 
 ## 세이브 `UGrimSaveSubsystem` (서버 전용)
 
-세이브 v1(M2 갈래 V). 코드는 `Source/Grimoire/Save/`, 공통 인터페이스는 `Core/GrimSaveTypes.h` 의 `IGrimSaveParticipant`.
+세이브 v1(M2 갈래 V). 구현: `Source/Grimoire/Save/GrimSaveSubsystem.h` 의 `UGrimSaveSubsystem`(월드 서브시스템), 공통 인터페이스는 `Source/Grimoire/Core/GrimSaveTypes.h` 의 `IGrimSaveParticipant`. 설정 `[/Script/Grimoire.GrimSaveSettings]`(DefaultGame.ini).
 
 ### 무엇이 어디에
 
 - **세계 세이브** `WorldSave_<슬롯>`: 월드 서브시스템 · 레벨에 놓인 액터(와 컴포넌트)의 `World` 몫, 게임 중 스폰된 저장 대상 액터(클래스 · 이름 · 위치 + 그 몫), 게임 중 없어진 놓인 액터 이름. 던전은 저장하지 않는다.
 - **플레이어 세이브** `Player_<PlayerId>`: PlayerState · 그 컴포넌트 · 폰의 `Player` 몫 + 세이브 시스템이 맡는 `Player.Attributes` · `Player.Transform`. 캐릭터는 세계 슬롯에 묶인다 — 다른 서버로 서클 · 배운 마법 · 그리모어 기록만 옮기는 서버 옵션은 나중(Q12).
-- 나중 묶음의 몫(거점 · 길들인 생물 · 개체군 · 인벤토리 · 레벨 · 성장 트리 · 퀘스트 · 세력)은 그 시스템이 인터페이스를 구현하면 저절로 모인다.
+- 뒤 묶음의 몫(레벨 · 성장 트리 · 퀘스트 · 가방 · 길들인 생물 · 보관함 · 외형)도 그 시스템이 인터페이스를 구현해 저절로 모였다(아래 표). 아직 없는 것: 거점 · 생태계 개체군(`UGrimEcosystemSubsystem` 은 저장하지 않는다 — 불러오면 서식 구역이 처음부터) · 세력.
 
 | SaveId | 범위 | 구현 | v1 내용 |
 |---|---|---|---|
@@ -143,11 +156,21 @@
 | `Elemental.<액터>` | 세계 | `UGrimElementalStateComponent` | 지속 상태(남은 시간 없음 — 켜진 양초 · 탄 풀)와 전파. 젖음 같은 시간 제한 상태는 안 함 |
 | `Skillbook.<액터>` | 세계 | `AGrimSkillbook` | 가르칠 마법 · 쓰였나 |
 | `Bed.<액터>` | 세계 | `AGrimBed` | 침낭인가 |
+| `Progression.Level` | 플레이어 | `UGrimLevelComponent` | 누적 경험(레벨은 곡선에서) · 보너스 포인트 · 발견한 지역 (M2 후반 갈래 L) |
+| `Progression.SkillTree` | 플레이어 | `UGrimSkillTreeComponent` | 찍은 노드 id |
+| `Quest.Log` | 플레이어 | `UGrimQuestComponent` | 끝낸 퀘스트 · 진행 중 단계 · 목표 수(시간 제한 시험은 안 함) (M2 후반 갈래 T) |
+| `Items.Inventory` | 플레이어 | `UGrimInventoryComponent` | 가방 칸(`FGrimItemInstance`). 표에 없는 아이템은 버림 (M3 갈래 I) |
+| `Creatures.Owned` | 플레이어 | `UGrimTamerComponent` | 길들인 개체 기록 · 체력 비율 · 명령 (M3 갈래 T) |
+| `Creatures.Storage` | 플레이어 | `UGrimCreatureStorageComponent` | 보관함을 배웠나 · 보관함 기록 (R38) |
+| `Player.Appearance` | 플레이어 | `UGrimPlayerAppearanceComponent` | 외형 (R39) |
+| `Item.Pickup.<액터>` | 세계 | `AGrimItemPickup` | 떨어진 아이템 · 요리 진행 |
+| `CookingPot.<액터>` | 세계 | `AGrimCookingPot` | 든 재료 · 진행 |
+| `CreatureBox.<액터>` | 세계 | `AGrimCreatureBox` | 거점 생물 상자 안 · 풀어놓은 생물 |
 
 ### 모으는 규칙
 
 - 플레이어: PlayerState 와 컴포넌트, 폰과 컴포넌트 중 `GetSaveScope() == Player` + Save 의 두 도우미.
-- 세계: 월드 서브시스템 + **놓인 액터**(`IsNetStartupActor` 또는 `RF_WasLoaded` — 이름이 레벨 안에서 고정)와 그 컴포넌트의 `World` 몫. 스폰된 액터는 **액터 스스로** 참여자일 때만: 프레임워크 액터(AInfo · 폰 · 컨트롤러 — 게임 모드가 만든다)는 그냥 레코드, 그 밖(침대 · 스킬북)은 「스폰 액터」로 저장해 불러올 때 같은 이름 · 클래스 · 위치로 다시 스폰하고 `FinishSpawning` 전에 몫을 읽힌다. 컴포넌트만 참여자인 스폰 액터(플레이어 폰의 속성 상태)는 저장하지 않는다.
+- 세계: 월드 서브시스템 + **놓인 액터**(`IsNetStartupActor` 또는 `RF_WasLoaded` — 이름이 레벨 안에서 고정)와 그 컴포넌트의 `World` 몫. 스폰된 액터는 **액터 스스로** 참여자일 때만: 프레임워크 액터(AInfo · 폰 · 컨트롤러 — 게임 모드가 만든다)는 그냥 레코드, 그 밖(침대 · 스킬북 · 떨어진 아이템 · 냄비 · 생물 상자)은 「스폰 액터」로 저장해 불러올 때 같은 이름 · 클래스 · 위치로 다시 스폰하고 `FinishSpawning` 전에 몫을 읽힌다. 컴포넌트만 참여자인 스폰 액터(플레이어 폰의 속성 상태)는 저장하지 않는다.
 - 놓인 참여자 액터가 게임 중 없어지면(`OnActorDestroyed` — 집은 스킬북) 이름을 「없앤 액터」에 적고 그 몫은 다시 쓰지 않는다. 불러오면 그 액터를 다시 없앤다.
 
 ### 레코드 · 버전
@@ -168,7 +191,7 @@
 
 - **불러오기**: 세계는 월드 `BeginPlay` 다음 틱(놓인 액터의 초기 상태 뒤 — 월드 서브시스템의 `OnWorldBeginPlay` 는 액터 BeginPlay 보다 먼저라서). 플레이어는 폰이 붙고 ASC 가 그 폰으로 초기화된 뒤 `PlayerLoadDelayTicks`(2) 틱 — 마법서의 시작 마법 · 생존 초기값이 먼저 들어간 위에 덮는다.
 - **저장**: 자동(`AutoSaveIntervalSeconds` 300초, 실제 시간) · 맵을 떠날 때와 종료(`FWorldDelegates::OnWorldBeginTearDown` — `quit` 도 이 길) · 플레이어 퇴장(`FGameModeEvents::GameModeLogoutEvent`, 그 플레이어만) · 콘솔 `Grim.Save.Now`. 불러오기 전에는 저장하지 않는다(기본 상태가 세이브를 덮지 않게).
-- **슬롯**: URL 옵션 `?SaveSlot=<이름>` → 없으면 `DefaultSlot`(Default). PIE 는 `PIESlot` 을 채워야 저장한다(기본 비움 — 에디터 시험이 세이브에 섞이지 않게). 무인 실행(`-unattended` — 헤드리스 확인 스크립트 · 자동화 테스트)은 `?SaveSlot=` 이 있을 때만 저장한다(다른 스크립트가 지난 실행을 이어받지 않게). `-NoGrimSave` 로 끈다.
+- **슬롯**: URL 옵션 `?SaveSlot=<이름>` → 없으면 `DefaultSlot`(Default). PIE 는 `PIESlot` 을 채워야 저장한다(기본 비움 — 에디터 시험이 세이브에 섞이지 않게). 무인 실행(`-unattended` — 헤드리스 확인 스크립트 · 자동화 테스트)은 `?SaveSlot=` 이 있을 때만 저장한다(다른 스크립트가 지난 실행을 이어받지 않게, 설정 `bSaveWhenUnattendedWithoutSlot`). `-NoGrimSave` · 설정 `bEnabled` 로 끈다.
 
 ### 복제
 
@@ -201,4 +224,6 @@
 
 ## M1 범위
 
-싱글 리슨 서버 구조(PIE 2 클라이언트로 복제 검증), World Partition 작은 지도 1개, 세이브는 플레이어 위치 · 마법만(M2 세이브 v1 이 위 표대로 넓혔다).
+싱글 리슨 서버 구조(PIE 2 클라이언트로 복제 검증), World Partition 작은 지도 1개, 세이브는 플레이어 위치 · 마법만.
+
+지금(M3 까지): 리슨 서버 · IP 참가 · LAN 찾기 · 메뉴(M3 갈래 J), World Partition 지형 `L_OpenBeta`(M3 갈래 W), 세이브 v1 이 위 표대로 넓혔다. 2인 복제 확인은 헤드리스 스크립트(`Scripts/Integration/net_check.ps1` 등 `Scripts/**/net_check*.ps1`). 남은 것: 던전 인스턴스 · 전용 서버 · 서버 옵션 묶음 · Steam.

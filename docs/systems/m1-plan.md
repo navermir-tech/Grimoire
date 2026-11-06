@@ -25,10 +25,10 @@
 
 | 갈래 | 소유 (만들고 고치는 곳) | 다른 갈래와 만나는 곳 |
 |---|---|---|
-| **A. 캐릭터 · 입력 · 맵** | `Source/Grimoire/Character/**`, `Core/GrimGameMode.cpp`(기본 폰 · 컨트롤러 지정만), `Content/Characters/`, `Content/Input/`(템플릿에서 가져온 것), `Content/Grimoire/Input/`, `Content/Grimoire/Maps/L_M1_Sandbox`, `Config/DefaultEngine.ini` 의 맵 항목, `Config/DefaultInput.ini` | 폰이 `PossessedBy` · `OnRep_PlayerState` 에서 `InitAbilityActorInfoForPawn` 호출. 시전 · 선택 입력은 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.*)` 로만 보냄. 손 소켓 이름 `hand_r` |
+| **A. 캐릭터 · 입력 · 맵** | `Source/Grimoire/Character/**`, `Core/GrimGameMode.cpp`(기본 폰 · 컨트롤러 지정만), `Content/Characters/`, `Content/Input/`(템플릿에서 가져온 것), `Content/Grimoire/Input/`, `Content/Grimoire/Maps/L_M1_Sandbox.umap`, `Config/DefaultEngine.ini` 의 맵 항목, `Config/DefaultInput.ini` | 폰이 `PossessedBy` · `OnRep_PlayerState` 에서 `InitAbilityActorInfoForPawn` 호출. 시전 · 선택 입력은 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.*)` 로만 보냄. 손 소켓 이름 `hand_r` |
 | **B. 마법 · 완드** | `Source/Grimoire/Magic/**`(어트리뷰트 · 마법서 껍데기 포함), `Content/Grimoire/Magic/` | `OnAbilityActorInfoReady` 에서 시작 마법 지급 · 완드 생성 후 폰 메시 `hand_r` 에 부착. 맞은 대상에 `UGrimElementalStatics::ApplyStimulusToActor`. 선택 마법만 `Input.Spell.Cast` 태그를 가진다 |
-| **C. 속성 상호작용** | `Source/Grimoire/Interaction/**`, `Content/Grimoire/Interaction/`, `Content/Grimoire/Data/ElementalReactions.csv` 류 | `UGrimElementalStateComponent` 가 `IGrimElementalReceiver` 구현. 양초 · 모닥불 · 마른 풀 액터 |
-| **D. 환경 · 생존** | `Source/Grimoire/Environment/**`, `Source/Grimoire/Survival/**`(껍데기 포함), `Content/Grimoire/Environment/`, `Content/Grimoire/Survival/` | `OnAbilityActorInfoReady` 에서 초기 어트리뷰트 · 주기 효과. 열원은 `GetStateIntensity(State.Burning)` 로 조회. 하늘은 스스로 조명 컴포넌트를 가진 액터 하나 |
+| **C. 속성 상호작용** | `Source/Grimoire/Interaction/**`, `Content/Grimoire/Interaction/`(안 생김), `Content/Grimoire/Data/ElementalReactions.csv` 류 | `UGrimElementalStateComponent` 가 `IGrimElementalReceiver` 구현. 양초 · 모닥불 · 마른 풀 액터 |
+| **D. 환경 · 생존** | `Source/Grimoire/Environment/**`, `Source/Grimoire/Survival/**`(껍데기 포함), `Content/Grimoire/Environment/`, `Content/Grimoire/Survival/`(안 생김) | `OnAbilityActorInfoReady` 에서 초기 어트리뷰트 · 주기 효과. 열원은 `GetStateIntensity(State.Burning)` 로 조회. 하늘은 스스로 조명 컴포넌트를 가진 액터 하나 |
 
 공용으로 손댈 수밖에 없는 것:
 
@@ -65,3 +65,20 @@
 | B | 불씨 · 물줄기 · 미풍 3개 마법(투사체 또는 광선), 마나 소모 · 쿨다운, 완드 1종, 다음/이전 선택, 상성 표, 상성 · 비용 테스트 |
 | C | 상태 컴포넌트(복제 · 휴면) + 반응 규칙표(10행 이상) + 전파, 양초 · 모닥불 · 마른 풀, 「양초 예시」 규칙이 테스트로 통과 |
 | D | 밤 · 낮(서버 시간 복제 + 클라이언트 외삽) · 하늘 액터, 전역 기온, HP · 마나 회복 · 배고픔 감소 · 체온 수렴(열원 반영), 체온 · 배고픔 테스트 |
+
+## 결과 (2026-11-05)
+
+A(`ff12906`) → D(`3944650`) → C(`4b51551`) → B(`7772cf9`) 순으로 합치고, 통합 커밋 `ba78ea6` 에서 오류 수정 · 배치를 했다. 이어 치트(`3a902fd`)와 2인 화면 버그 수정(`7d35f92`)을 합쳤다. 개발 기록: [M1](../dev/history#m1-·-완드와-양초-2026-11-05).
+
+| 갈래 | 만든 것 | 주요 코드 · 스크립트 |
+|---|---|---|
+| A | 3인칭 캐릭터 · 컨트롤러, 입력 액션 → `Input.*` 태그로 어빌리티 발동, 템플릿 마네킹 · 입력, 샌드박스 맵 | `Source/Grimoire/Character/GrimPlayerCharacter.h` 의 `AGrimPlayerCharacter`, `Source/Grimoire/Character/GrimPlayerController.h`, `Scripts/Character/make_sandbox_map.py` · `make_input.py` |
+| B | 불씨 · 물줄기 · 미풍(`DA_Spell_Ember` · `DA_Spell_WaterJet` · `DA_Spell_Breeze`), 비용 · 쿨다운 GE(SetByCaller), 상성 피해, 마법서 선택, 완드 부착 | `Source/Grimoire/Magic/GrimSpellAbility.h` 의 `UGrimSpellAbility`, `Source/Grimoire/Magic/GrimSpellDefinition.h`, `Source/Grimoire/Magic/GrimDamageExecution.h`, `Source/Grimoire/Magic/GrimWand.h`, `Scripts/Magic/make_spells.py` |
+| C | 상태 컴포넌트(FastArray 복제 · 휴면), 반응 규칙표 11행(**CSV 를 런타임에 읽음** — DataTable 아님), 전파 서브시스템, 양초 · 모닥불 · 마른 풀(C++ `AGrimCandle` · `AGrimCampfire` · `AGrimDryGrass`) | `Source/Grimoire/Interaction/GrimElementalStateComponent.h`, `Source/Grimoire/Interaction/GrimElementalObject.h`, `Content/Grimoire/Data/ElementalReactions.csv` |
+| D | 낮밤(서버 스냅숏 복제 + 클라이언트 외삽), 하늘 액터, 전역 기온, 생존 1초 주기 GE · 체온 수렴 · 상태 태그 | `Source/Grimoire/Environment/GrimTimeOfDaySubsystem.h`, `Source/Grimoire/Environment/GrimSkyController.h`, `Source/Grimoire/Survival/GrimSurvivalComponent.h`, `Source/Grimoire/Survival/GrimSurvivalModel.h` |
+| 통합 | 플레이어에도 속성 상태(물 맞으면 젖고 체온 하락), 배고프면 마나 회복 멈춤, 패키징에 CSV 포함, 샌드박스 배치 | `Scripts/Integration/place_m1_props.py` |
+| 치트 · 버그 | `GrimSuperCheat`, 휴면 깨우기를 바꾸기 **전**으로(원격 불빛), 완드 Snap 부착 | `Source/Grimoire/Core/Cheats/`, `Scripts/Integration/net_check.ps1` |
+
+- 확인: 빌드 성공, 자동화 테스트 16개 통과, `net_check.ps1` 헤드리스 2인.
+- 계획과 달라진 것: 반응 규칙표는 `DT_ElementalReactions` 대신 CSV(설정 `UGrimInteractionSettings::ReactionTableCSV`), 사물은 블루프린트 없이 C++ 클래스를 그대로 놓았다. 기반 파일 `Core/GrimGameplayTags` 는 그 뒤 갈래에서도 고치지 않았다(새 태그는 폴더별 `Grim<시스템>Tags`).
+- 지금 게임 맵은 `L_OpenBeta`(M3), `L_M1_Sandbox` 는 시험용으로 남았다.
