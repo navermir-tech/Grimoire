@@ -43,4 +43,4 @@ features:
 - **시스템 문서**는 "어떻게 만드는가" — Unreal Engine 5.8 위에서 각 시스템을 어떤 클래스 · 데이터 · 네트워크 구조로 짜는지 정한 설계서다.
 - **개발 가이드**는 저장소를 받아 빌드하고, 규칙을 지키고, 이 문서 사이트를 고치는 방법이다.
 
-문서 원본은 저장소의 `docs/` 폴더에 있는 Markdown 이고, `main` 에 push 하면 Netlify 가 자동으로 다시 배포한다. 로컬에서는 `npm run docs:dev` 로 저장 즉시 반영되는 미리보기를 띄울 수 있다 — [문서 사이트 · 배포](/dev/docs-site).
+문서 원본은 저장소의 `docs/` 폴더에 있는 Markdown 이고, `main` 에 push 하면 GitHub Pages 가 자동으로 다시 배포한다. 로컬에서는 `npm run docs:dev` 로 저장 즉시 반영되는 미리보기를 띄울 수 있다 — [문서 사이트 · 배포](/dev/docs-site).

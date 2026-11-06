@@ -2,6 +2,8 @@ import { defineConfig } from 'vitepress'
 
 // 그리모리 문서 사이트 설정. 문서를 추가하면 아래 sidebar 에 한 줄 더한다.
 export default defineConfig({
+  // GitHub Pages 프로젝트 사이트(https://navermir-tech.github.io/Grimoire/)라 경로 앞에 저장소 이름이 붙는다.
+  base: '/Grimoire/',
   lang: 'ko-KR',
   title: '그리모리 Grimoire',
   description: '마법세계 오픈월드 생존 게임 「그리모리」의 스펙 · 시스템 · 개발 문서',

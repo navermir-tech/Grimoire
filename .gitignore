@@ -49,11 +49,10 @@ desktop.ini
 .env.*
 !.env.example
 
-# ===== 문서 사이트 (VitePress · Netlify) =====
+# ===== 문서 사이트 (VitePress · GitHub Pages) =====
 node_modules/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
-.netlify/
 
 # 루트에 잘못 생기는 VitePress 캐시(docs/ 밖에서 vitepress 를 실행했을 때)
 /.vitepress/

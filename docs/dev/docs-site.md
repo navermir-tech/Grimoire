@@ -1,6 +1,6 @@
 # 문서 사이트 · 배포
 
-이 사이트는 저장소의 `docs/` 폴더에 있는 Markdown 을 [VitePress](https://vitepress.dev) 로 만든 것이다. 파일을 고치고 push 하면 Netlify 가 다시 빌드해 배포한다. 아티팩트 같은 외부 저장소에 의존하지 않고, **문서 원본은 늘 git 안에** 있다.
+이 사이트는 저장소의 `docs/` 폴더에 있는 Markdown 을 [VitePress](https://vitepress.dev) 로 만든 것이다. 파일을 고치고 push 하면 GitHub Actions 가 다시 빌드해 GitHub Pages(https://navermir-tech.github.io/Grimoire/)에 배포한다. 아티팩트 같은 외부 저장소에 의존하지 않고, **문서 원본은 늘 git 안에** 있다.
 
 ## 로컬에서 실시간으로 보기
 
@@ -11,7 +11,7 @@ npm install
 npm run docs:dev
 ```
 
-`http://localhost:5173` 이 열리고, `docs/**/*.md` 를 저장하면 **즉시** 화면이 바뀐다(핫 리로드).
+`http://localhost:5173/Grimoire/` 가 열리고, `docs/**/*.md` 를 저장하면 **즉시** 화면이 바뀐다(핫 리로드).
 
 | 명령 | 뜻 |
 |---|---|
@@ -24,20 +24,18 @@ npm run docs:dev
 1. `docs/spec/` 또는 `docs/systems/` 에 `.md` 파일을 만든다. 첫 줄은 `# 제목`.
 2. `docs/.vitepress/config.mts` 의 `sidebar` 에 한 줄 더한다.
 3. 다른 문서로의 링크는 상대 경로 + 확장자 없이: `[마법](../spec/magic)`.
-4. 그림은 `docs/public/` 에 두고 `/그림.png` 로 참조한다. `docs/` 아래 그림은 LFS 가 아니라 일반 git 으로 올라간다(Netlify 빌드가 LFS 파일을 받지 않기 때문 — `.gitattributes` 참고). 큰 그림은 줄여서 넣는다.
+4. 그림은 `docs/public/` 에 두고 `/그림.png` 로 참조한다(마크다운 `![](/art/...)` · 링크에는 VitePress 가 사이트 base `/Grimoire/` 를 붙여 준다. 마크다운 안에 raw HTML `<img src="/...">` 를 직접 쓰면 base 가 안 붙으니 마크다운 문법이나 상대 경로를 쓴다). `docs/` 아래 그림은 LFS 가 아니라 일반 git 으로 올라간다(배포 워크플로가 LFS 파일을 받지 않기 때문 — `.gitattributes` 참고). 큰 그림은 줄여서 넣는다.
 
-## Netlify 배포
+## GitHub Pages 배포
 
-설정은 저장소 루트의 `netlify.toml` 에 있다(빌드 명령 · 배포 폴더 · Node 버전). 사이트를 처음 연결할 때만 아래를 한 번 한다:
+설정은 `.github/workflows/docs.yml` 에 있다. `main` 에 push 하면 `docs/**` · `package.json` · `package-lock.json` · 워크플로 파일이 바뀐 커밋만 빌드한다(언리얼 에셋만 바뀐 커밋은 건너뜀). Node 22 · `npm ci` · `npm run docs:build` → `docs/.vitepress/dist` 를 Pages 에 올린다. 체크아웃은 LFS 를 받지 않는다.
 
-1. [app.netlify.com](https://app.netlify.com) 에 GitHub 계정으로 로그인한다.
-2. **Add new project → Import an existing project → GitHub** → `navermir-tech/Grimoire` 를 고른다.
-3. 빌드 설정은 `netlify.toml` 에서 자동으로 읽힌다(Build command `npm run docs:build`, Publish directory `docs/.vitepress/dist`). 그대로 **Deploy** 를 누른다.
-4. 1~2분 뒤 `https://<사이트이름>.netlify.app` 이 생긴다. Project configuration → Change project name 에서 `grimoire-docs` 같은 이름으로 바꿀 수 있다.
-
-이후로는 `main` 에 push 할 때마다 자동 배포된다. `docs/` · `package.json` · `netlify.toml` 이 바뀌지 않은 커밋(언리얼 에셋만 바뀐 커밋)은 빌드를 건너뛴다(`netlify.toml` 의 `ignore`).
+- 주소: https://navermir-tech.github.io/Grimoire/ — 프로젝트 사이트라 `config.mts` 에 `base: '/Grimoire/'` 가 있다. 로컬 `docs:dev` 도 `http://localhost:5173/Grimoire/` 로 열린다.
+- 저장소 설정 Settings → Pages → Build and deployment → Source 가 **GitHub Actions** 여야 한다(처음 한 번).
+- 손으로 다시 돌리기: Actions → docs → Run workflow, 또는 `gh workflow run docs.yml`.
 
 ### 확인 · 문제
 
-- Netlify 대시보드 → Deploys 에서 로그를 본다. 로컬에서 `npm run docs:build` 가 되면 Netlify 에서도 된다.
-- 비공개로 보고 싶으면 Netlify 의 Site protection(비밀번호, 유료)을 켠다. 저장소를 비공개로 바꿔도 Netlify 는 계속 빌드한다.
+- Actions 탭의 docs 실행 로그를 본다. 로컬에서 `npm run docs:build` 가 되면 워크플로에서도 된다.
+- 저장소가 공개라 무료 · 횟수 제한 없음. 저장소를 비공개로 바꾸면 무료 플랜에서는 Pages 가 꺼진다.
+- 예전 Netlify(grimoire2026.netlify.app)는 무료 크레딧 소진으로 2026-11-05 18:10 이후 배포가 멈춰 그만 썼다([결정 기록](../spec/decisions#결정-기록)).
