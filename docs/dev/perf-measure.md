@@ -13,6 +13,8 @@ powershell -File Scripts\Perf\measure.ps1 -Label after -Only Render     # 렌더
 powershell -File Scripts\Perf\summarize.ps1 -Dir Saved\Perf\after -Compare Saved\Perf\before   # 전 → 후 표
 ```
 
+다른 인자(기본값): `-Only All|Render|Net`, `-ResX 1920 -ResY 1080`, `-Settle 12`(옮긴 뒤 기다림 초) · `-SampleSeconds 10` · `-StartDelay 30`(맵이 뜬 뒤 첫 자리까지), `-Port 17790`(네트워크 실행), `-ExtraCmds`(아래). 스크립트는 `Scripts/Perf/measure.ps1`, 표 만들기는 `Scripts/Perf/summarize.ps1`, 콘솔 명령은 `Source/Grimoire/Core/Perf/GrimPerfCapture.cpp`.
+
 결과는 `Saved\Perf\<Label>\` 에 남는다(커밋하지 않는다 — 숫자는 [성능 문서](../systems/performance#측정-기록)에 옮긴다).
 
 | 파일 | 내용 |

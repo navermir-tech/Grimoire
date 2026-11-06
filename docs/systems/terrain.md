@@ -3,7 +3,7 @@
 > 계획: [로드맵 — 지형은 언제 찍나](./roadmap#지형은-언제-찍나-2026-11-05) 의 지형 1차, 작업 분할 [M3](./m3-plan) 갈래 W. 지역: [세계 — 지역과 크기](../spec/world#지역과-크기-r34-—-q36-확정) 1번(마법탑 · 온난 지대).
 > **2차(다시 만들기, 2026-11-05)**: 1차가 「그냥 평지」였던 것을 [레벨 디자인 노트](../dev/level-design) 「6. 지역 1 다시 만들기 계획」대로 고쳤다 — 구역 높이 · 크기가 섞인 언덕 군 · 한쪽 절벽 계곡 · 폭포 · 고개 · 랜드마크 7 · POI 40 · 자동 설계 검사. 결과 숫자와 계획과 달라진 점은 노트의 「결과」.
 > **마탑 구간(2026-11-05, 2차 플레이 테스트 뒤)**: 2 × 4 km 를 한 번에 다듬지 않고 탑 둘레(약 1 km²)를 먼저 완성 수준으로 — 작은 언덕이 촘촘한 구릉 · 개울 · 연못 · POI 21 · 떠 있는 한글 글씨 · 「공사 중」 경계. 아래 「[마탑 구간](#마탑-구간-먼저-완성하는-구간)」, 결과 숫자는 노트의 「7」.
-> 코드: `Source/Grimoire/World/`. 스크립트: `Scripts/Terrain/`. 에셋: `Content/Grimoire/Terrain/`. 맵: `Content/Grimoire/Maps/L_OpenBeta`(World Partition, 게임 맵 · 에디터 시작 맵).
+> 상태: 지형 2차 + 마탑 구간 구현됨(2026-11-06 코드 대조). 코드: `Source/Grimoire/World/`. 스크립트: `Scripts/Terrain/`. 에셋: `Content/Grimoire/Terrain/`. 맵: `Content/Grimoire/Maps/L_OpenBeta.umap`(World Partition, 게임 맵 · 에디터 시작 맵).
 
 ![L_OpenBeta 를 하늘 2.9 km 에서 — 북쪽이 위. 남쪽 탑 곶 · 목초지 · 서쪽 연못 저지대 · 가운데 구릉과 고목 · 계곡(한쪽 절벽) · 북부 고지 · 동쪽 큰 강](/art/terrain/openbeta-aerial.jpg)
 
@@ -11,17 +11,18 @@
 
 | 조각 | 파일 | 하는 일 |
 |---|---|---|
-| 레이아웃(수치) | `Scripts/Terrain/openbeta_layout.json` | 구조체 `FGrimTerrainLayout` 의 JSON — 시드 · 크기 · 구역 · 언덕 · 바위 능선 · 고개 · 계곡 · 강 · 개울 · 연못 · 길 · 거점 평지 · 표식 · **랜드마크** · **POI** · **설계 검사 기준** · 식생. **지형을 바꾸려면 여기를 고치고 다시 만든다** |
-| 높이 지도 생성기 | `FGrimTerrainGenerator`(`World/GrimTerrainGenerator.*`) | 순수 계산(월드 · 에셋 모름). 높이(m) · 물가 · 길 · 계곡 숲 무게 · 물과 길까지 거리 · 물 목록(폭포 포함) · 놓인 언덕 · 길 선 · 식생 자리. 830만 정점을 몇 초 |
-| 설계 검사 | `FGrimTerrainAnalysis`(`World/GrimTerrainAnalysis.*`) | 순수 계산. 경사 분포 · 구역 평균 높이 차 · 길 위 시선(높이 지도 시야) · POI 밀도 · 길 경사 — 아래 「설계 검사」 |
-| 에디터 도구 | `UGrimTerrainEditorLibrary`(`World/GrimTerrainEditorLibrary.*`) | 파이썬이 부르는 C++: 레이아웃 읽기 · 생성 캐시 · 땅 높이 · **검사 보고** · **시선 조회** · 랜드스케이프 가져오기 · 레이어 정보 · 폴리지 타입 · 식생 변환 · 브러시 볼륨 · World Partition 격자 · 미리보기 그림 · r16 내보내기 |
-| 표식 | `AGrimTerrainMarker`(`World/GrimTerrainMarker.*`) · 태그 `GrimTerrainTags` | 자리만 표시하는 액터 — GameplayTag `MarkerTag` + 반지름. `FindMarkers(월드, 태그)` 로 찾는다 |
-| 개발 표시 글씨 | `AGrimDevLabel`(`World/GrimDevLabel.*`) | 떠 있는 한글 글씨(제목 + 설명) — 월드 공간 위젯 컴포넌트 + Slate 글씨, 카메라 쪽으로 돈다. 출시 빌드 · `Grim.DevLabels 0` 이면 숨김. 아래 「마탑 구간」 |
+| 레이아웃(수치) | `Scripts/Terrain/openbeta_layout.json` | 구조체 `FGrimTerrainLayout`(`Source/Grimoire/World/GrimTerrainTypes.h`)의 JSON — 시드 · 크기 · 구역 · 언덕 · 바위 능선 · 고개 · 계곡 · 강 · 개울 · 연못 · 길 · 거점 평지 · 표식 · **랜드마크** · **POI** · **설계 검사 기준** · 식생. **지형을 바꾸려면 여기를 고치고 다시 만든다** |
+| 높이 지도 생성기 | `FGrimTerrainGenerator`(`Source/Grimoire/World/GrimTerrainGenerator.h`) | 순수 계산(월드 · 에셋 모름). 높이(m) · 물가 · 길 · 계곡 숲 무게 · 물과 길까지 거리 · 물 목록(폭포 포함) · 놓인 언덕 · 길 선 · 식생 자리. 830만 정점을 몇 초 |
+| 설계 검사 | `FGrimTerrainAnalysis`(`Source/Grimoire/World/GrimTerrainAnalysis.h`) | 순수 계산. 경사 분포 · 구역 평균 높이 차 · 길 위 시선(높이 지도 시야) · POI 밀도 · 길 경사 — 아래 「설계 검사」 |
+| 에디터 도구 | `UGrimTerrainEditorLibrary`(`Source/Grimoire/World/GrimTerrainEditorLibrary.h`) | 파이썬이 부르는 C++: 레이아웃 읽기 · 생성 캐시 · 땅 높이 · **검사 보고** · **시선 조회** · 랜드스케이프 가져오기 · 레이어 정보 · 폴리지 타입 · 식생 변환 · 브러시 볼륨 · World Partition 격자 · 미리보기 그림 · r16 내보내기 |
+| 표식 | `AGrimTerrainMarker`(`Source/Grimoire/World/GrimTerrainMarker.h`) · 태그 `GrimTerrainTags`(`Source/Grimoire/World/GrimTerrainTags.h`) | 자리만 표시하는 액터 — GameplayTag `MarkerTag` + 반지름. `FindMarkers(월드, 태그)` 로 찾는다 |
+| 개발 표시 글씨 | `AGrimDevLabel`(`Source/Grimoire/World/GrimDevLabel.h`) | 떠 있는 한글 글씨(제목 + 설명) — 월드 공간 위젯 컴포넌트 + Slate 글씨, 카메라 쪽으로 돈다. 출시 빌드 · `Grim.DevLabels 0` 이면 숨김. 아래 「마탑 구간」 |
 | 맵 만들기 | `Scripts/Terrain/build_openbeta.py`(+ `terrain_assets.py`) | 맵을 지우고 처음부터: 설계 검사 숫자 로그 → 랜드스케이프 → 물 → 식생 → 표식 → **랜드마크 · POI 그레이박스 · 다리** → 마법탑 → 하늘 · 기후 · 지도 끝 → World Partition → 저장 |
 | 랜드마크 · POI 모양 | `Scripts/Terrain/landmark_greybox.py` | 엔진 기본 도형으로 종류마다 실루엣이 다른 그레이박스(아래 「랜드마크」「POI」) + 개발 표시 글씨 · 종류 색 블록 · 「공사 중」 경계 |
 | 마법탑 | `Scripts/Tutorial/tower_greybox.py` | L_Tower 와 **같은 함수**로 탑 그레이박스를 짓는다 |
 | 게임플레이 배치 | `Scripts/Integration/place_openbeta_gameplay.py` | 서식 구역 볼륨 3(`Habitat.*` 표식 자리). 지형을 다시 만들면 **이것도 다시 돌린다**. 냄비는 탑 그레이박스가 이미 놓으므로 있으면 건너뛴다 |
-| 확인 | `Scripts/Terrain/check_openbeta.ps1` · `shoot_openbeta.ps1` · 콘솔 `Grim.Terrain.*` · 테스트 `Grimoire.Terrain.*` | 아래 「확인」 |
+| 확인 | `Scripts/Terrain/check_openbeta.ps1` · `Scripts/Terrain/shoot_openbeta.ps1` · 콘솔 `Grim.Terrain.*`(`Source/Grimoire/World/GrimTerrainDebug.cpp`) · 테스트 `Grimoire.Terrain.*`(`Source/Grimoire/World/Tests/GrimTerrainTests.cpp`) | 아래 「확인」 |
+| 이동 치트 | `Source/Grimoire/World/GrimTeleportDebug.cpp` | 콘솔 `Grim.Go <이름>` · `Grim.Go.List [거르기]` — 표식 · 서식 구역 · 생물 · 태그 액터 곁으로([치트](../dev/cheats)) |
 
 ## 만드는 법 · 다시 만드는 법
 
@@ -330,10 +331,10 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 
 ## 확인
 
-- **테스트** `Grimoire.Terrain.*`: `Layout.Size` · `Generator.Deterministic`(작은 지형 — 구역 · 손 언덕 · 언덕 군 포함) · `Generator.OpenBeta`(2 × 4 km, 탑 평지 평평, 서 · 북 산등성이 > 목초지, 바닷속, 강바닥 < 해수면, 연못 4~6 둑 > 물 > 바닥, 개울은 아래로만, 거점 평지, 서식 구역 셋) · `Foliage.Rules` · `Design.Shape` · `Design.Paths` · `Design.Sightlines` · `Design.Pois`(위 「설계 검사」) · `Design.TowerSector`(위 「마탑 구간」) · `Map.OpenBeta`(외부 액터 수 · 표식 태그 — `Landmark.*` 7 · 레이아웃의 `Poi.*` 종류 포함).
+- **테스트** `Grimoire.Terrain.*`: `Layout.Size` · `Generator.Deterministic`(작은 지형 — 구역 · 손 언덕 · 언덕 군 포함) · `Generator.OpenBeta`(2 × 4 km, 탑 평지 평평, 서 · 북 산등성이 > 목초지, 바닷속, 강바닥 < 해수면, 연못 4~6 둑 > 물 > 바닥, 개울은 아래로만, 거점 평지, 서식 구역 셋) · `Foliage.Rules` · `Design.Shape` · `Design.Paths` · `Design.Sightlines` · `Design.Pois`(위 「설계 검사」) · `Design.TowerSector`(위 「마탑 구간」) · `Map.OpenBeta`(외부 액터 수 · 표식 태그 — 레이아웃의 `Landmark.*` 8 · `Poi.*` 종류 포함).
 - **헤드리스 게임** `check_openbeta.ps1`(-game -nullrhi): 시작 자리(탑 안, 땅 45 m) → 앞마당에서 북쪽 6초 걷기 → 목초지(재칼로프) · 계곡(검은 개) 걷기 → 시간 · 날씨 → 비 → 저지대 연못(`WaterVolume_Pond_Lowland`) 헤엄 → 표식 땅 높이 · 그림 높이(−25 ~ 187 m).
 - **스크린숏** `shoot_openbeta.ps1`(-game -RenderOffscreen): 기본은 마탑 구간 `-v3`(눈높이 1.8 m — 위 「마탑 구간」 표), `-Set v2` 는 아래 2차 그림(덮어쓰니 일부러만). `Grim.Terrain.ViewFrom` 의 Z 를 `+170` 처럼 주면 그 자리 **랜드스케이프** 위 cm(나무 · 고목 잎은 건너뛴다).
-- **콘솔**(개발 빌드): `Grim.Terrain.Probe [지연]` · `Grim.Terrain.Walk <지연> <초> [Yaw]` · `Grim.Terrain.Teleport <X> <Y> [지연]` · `Grim.Terrain.ViewFrom <X> <Y> <Z|+땅 위> <Yaw> <Pitch> [지연] [스크린숏 이름]`.
+- **콘솔**(개발 빌드): `Grim.Go <이름>` · `Grim.Go.List`(이동 치트), `Grim.Terrain.Probe [지연]` · `Grim.Terrain.Walk <지연> <초> [Yaw]` · `Grim.Terrain.Teleport <X> <Y> [지연]` · `Grim.Terrain.ViewFrom <X> <Y> <Z|+땅 위> <Yaw> <Pitch> [지연] [스크린숏 이름]`.
 
 ![탑 문 앞에서 북쪽 — 큰길 · 겹친 구릉 · 지평선의 고목](/art/terrain/openbeta-tower-north.jpg)
 

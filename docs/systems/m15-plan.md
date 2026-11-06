@@ -52,3 +52,13 @@
 - 아직 사람 눈으로 안 본 것: 이펙트 크기 · 색 · 셋의 구분(①②), 시전 동작 · 책 위치 · 책장 넘김(⑤), 고정 락온 카메라, 지연 보정(핑 0 이라 헤드리스에서 안 돎). → 사용자 2인 PIE 플레이 테스트.
 - 남은 일: 줌인 조준(R24 — 조사 뒤), 이펙트 색 파라미터(엔진 템플릿에 `User.Color` 가 없어 지금은 속성색 펄스가 색을 맡음 — Niagara Examples Pack 으로 바꿀 때), 정식 시전 몽타주(에디터 작업).
 
+### 갈래별로 만든 것
+
+| 갈래 | 만든 것 | 주요 코드 · 스크립트 |
+|---|---|---|
+| A | 전달 방식 Bolt · Stream · Cone, 조준을 TargetData 로 서버에 보내 시차 보정, 시전자 화면엔 가짜 볼트로 즉시 반응, `UGrimSpellDefinition::VisualSet` · `HomingStrength` | `Source/Grimoire/Magic/GrimSpellDelivery.h`, `Source/Grimoire/Magic/GrimSpellAbility.h`, `Source/Grimoire/Magic/GrimSpellProjectile.h`, `Scripts/Integration/net_check_delivery.ps1` |
+| B | 소프트 · 고정 락온(컨트롤러의 `UGrimTargetingComponent` 가 `IGrimAimProvider`), 대상 점수 · 가림 계산, 조준 더미, 입력 `IA_LockOn` · `IMC_Targeting` | `Source/Grimoire/Targeting/GrimTargetingComponent.h`, `Source/Grimoire/Targeting/GrimTargetingMath.h`, `Source/Grimoire/Targeting/GrimTargetDummy.h`, `Scripts/Targeting/make_targeting_input.py` |
+| C | GameplayCue 처리기(시전 · 줄기 · 명중), 연출 묶음 `VS_*`(`UGrimMagicFXVisualSet`), 왼손 그리모어 책(책장 넘김), 상체 시전 자세 애님, 카메라 흔들림, 속성색 펄스 | `Source/Grimoire/MagicFX/GrimSpellCueNotifies.h`, `Source/Grimoire/MagicFX/GrimSpellChannelCue.h`, `Source/Grimoire/MagicFX/GrimGrimoireBook.h`, `Source/Grimoire/MagicFX/GrimSpellPoseAnimInstance.h`, `Scripts/MagicFX/make_magicfx_assets.py` |
+
+- 이후(지금 상태): VisualSet 찾기는 여전히 리플렉션(`Source/Grimoire/MagicFX/GrimMagicFXStatics.h` 의 `UGrimMagicFXStatics`). 이펙트는 플레이 테스트 때 Niagara Examples Pack 으로 임시 교체(`21a414a`), 2026-11-06 에 자체 제작 볼트 `NS_Bolt_*`(색 `User.Color`)로 바꿨다(`a6da3f7` — [이펙트 자체 제작](./magic-fx-authoring)). 줌인 조준은 [M2 갈래 Z](./m2-plan).
+

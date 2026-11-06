@@ -2,7 +2,7 @@
 
 > 상태: **검토용 v1** · 2026-11-06 · GPT 이미지(Codex CLI). 아트 방향은 [Painterly High-Fidelity Stylized Realism](../spec/art-direction).
 >
-> 장소와 이름은 지형 레이아웃(`Scripts/Terrain/openbeta_layout.json` 의 랜드마크 · POI)과 탑 1층(`Scripts/Tutorial/tower_greybox.py`)과 같다. 마법 생물은 그리지 않고 들어갈 자리(굴 · 둥지 · 빈 물가)만 비웠다. 던전(계곡 동굴)은 아직 그리지 않았다.
+> 장소와 이름은 지형 레이아웃(`Scripts/Terrain/openbeta_layout.json` 의 랜드마크 · POI)과 탑 1층(`Scripts/Tutorial/tower_greybox.py`)과 같다(그레이박스는 수련실이 시험의 방과 한 방이다 — 그림은 둘로 나눴다). 마법 생물은 그리지 않고 들어갈 자리(굴 · 둥지 · 빈 물가)만 비웠다. 던전(계곡 동굴)은 아직 그리지 않았다.
 >
 > 각 그림을 레벨로 만들 때 필요한 3D 모델 목록은 [1번 지역 — 필요한 3D 모델](./region1-assets).
 

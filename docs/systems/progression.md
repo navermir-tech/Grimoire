@@ -2,16 +2,18 @@
 
 > 스펙: [성장](../spec/progression) (R27, Q30 · Q31). 서클 승급 · 숙련도 · 스킬북은 [마법](./magic#서클). M2 후반 갈래 L([작업 분할](./m2b-plan)).
 
-레벨과 서클은 **무관하다**(Q30). 레벨은 최대 HP · 최대 마나 · 성장 트리 포인트만, 서클은 마법탑 시험만 정한다. 둘 다 `Source/Grimoire/Progression/` 에 있고, `AGrimPlayerState` 의 하위 객체다.
+레벨과 서클은 **무관하다**(Q30). 레벨은 최대 HP · 최대 마나 · 성장 트리 포인트만, 서클은 마법탑 시험만 정한다. 둘 다 `Source/Grimoire/Progression/` 에 있고, `AGrimPlayerState` 의 하위 객체다(`GetCharacterLevel()` · `GetSkillTree()`).
 
-| 클래스 | 하는 일 |
+상태: 구현됨(M2 후반 갈래 L). 레벨 · 경험 막대는 아직 HUD 에 끼우지 않았다.
+
+| 클래스 · 파일 | 하는 일 |
 |---|---|
-| `UGrimLevelComponent` | 누적 경험 · 레벨 · 받은 포인트, 레벨 보너스 GE, 경험 출처(스킬북 · 승급 · 지역 · 규칙 발견), 세이브 |
-| `UGrimSkillTreeComponent` | 찍은 노드 · 남은 포인트, 효과 합 GE · 노드 태그, 찍기 RPC, 정화 의식(`ResetTree`), 세이브 |
-| `UGrimGE_ProgressionBonus` | 무한 GE — 어트리뷰트마다 SetByCaller 수정자 하나(아래) |
-| `FGrimLevelMath` · `FGrimSkillTreeMath` | 순수 계산(곡선 · 포인트 · 선행 · 효과 합 · 예산) — 테스트 대상 |
-| `UGrimLevelSettings` · `UGrimSkillTreeSettings` | ini 설정 · 표 읽기(에셋 → CSV, 한 번 읽어 둔다) |
-| `UGrimLevelWidget` · `UGrimSkillTreeWidget` | 레벨 · 경험 막대, 그리모어 「성장 트리」 탭 |
+| `UGrimLevelComponent` (`Source/Grimoire/Progression/GrimLevelComponent.h`) | 누적 경험 · 레벨 · 받은 포인트, 레벨 보너스 GE, 경험 출처(스킬북 · 승급 · 지역 · 규칙 발견), 세이브 |
+| `UGrimSkillTreeComponent` (`Source/Grimoire/Progression/GrimSkillTreeComponent.h`) | 찍은 노드 · 남은 포인트, 효과 합 GE · 노드 태그, 찍기 RPC, 정화 의식(`ResetTree`), 세이브 |
+| `UGrimGE_ProgressionBonus` (`Source/Grimoire/Progression/GrimProgressionEffects.h`) | 무한 GE — 어트리뷰트마다 SetByCaller 수정자 하나(아래) |
+| `FGrimLevelMath` · `FGrimSkillTreeMath` (`Source/Grimoire/Progression/GrimProgressionTypes.h`) | 순수 계산(곡선 · 포인트 · 선행 · 효과 합 · 예산) — 테스트 대상. 경험 출처 태그는 `GrimProgressionTags.h` |
+| `UGrimLevelSettings` · `UGrimSkillTreeSettings` (`Source/Grimoire/Progression/GrimProgressionSettings.h`) | ini 설정 · 표 읽기(에셋 → CSV, 한 번 읽어 둔다) |
+| `UGrimLevelWidget` · `UGrimSkillTreeWidget` (`Source/Grimoire/UI/GrimLevelWidget.h` · `Source/Grimoire/UI/GrimSkillTreeWidget.h`) | 레벨 · 경험 막대, 그리모어 「성장 트리」 탭 |
 
 ## 레벨
 
@@ -39,8 +41,8 @@
 | `CircleUp` | 서클 승급 성공(`UGrimProgressionComponent::OnCircleUpResult` 구독) — 서클마다 한 번 | 400 | (첫 발견) |
 | `RegionDiscovery` | 새 기후 지역 첫 방문 — 서버가 `RegionCheckInterval`(2초)마다 폰 위치의 `UGrimWeatherSubsystem::GetRegionAt` | 250 | (첫 발견) |
 | `RuleDiscovery` | 상호작용 규칙 첫 발견(도감) — `NotifyRuleDiscovered(RuleId)` | 60 | (첫 발견) |
-| `Quest` | 퀘스트 보상(갈래 T 가 부른다) | 100 | 없음 |
-| `Hunt` · `Craft` | 사냥 · 제작(M3 · M4 에서 잇는다) | 30 · 5 | 0.8 / 120초 · 0.7 / 60초 |
+| `Quest` | 퀘스트 보상 — `UGrimQuestComponent` 가 퀘스트를 끝낼 때 표의 `RewardXP` 로 부른다 | 100 | 없음 |
+| `Hunt` · `Craft` | 사냥 · 제작 — 규칙만 있고 아직 부르는 곳이 없다(미구현, 생물 · 생산 쪽이 잇는다) | 30 · 5 | 0.8 / 120초 · 0.7 / 60초 |
 | `Debug` | 콘솔 | 100 | 없음 |
 
 - **같은 출처 반복 감쇠**: `RepeatWindowSeconds` 안에 같은 출처가 또 오면 `RepeatDecay^반복 횟수` 를 곱한다(`MinMultiplier` 아래로는 안 감). 규칙이 없는 출처는 `Default*`(0.7 · 60초 · 0.1). 전체에 `GlobalXPRate` 를 곱한다.
@@ -74,6 +76,7 @@
 | `MoveSpeedScale` · `CastSpeedScale` · `ManaCostScale` | 곱하기(MultiplyCompound, 생존 패널티와 같은 방식) — 값 = Mul × (1 + Add) | 가벼운 걸음 · 바람 걸음 · 그림자 걸음 / 완드 다루기 · 빠른 손 / 마나 절약 |
 | 그 밖(`Fire.Power` · `Fire.IgniteStrength` · `Water.Trait.ForkedJet` …) | 없음 — 태그 `Progression.Node.<키>` 를 `DynamicGrantedTags` 로 붙이고, 합계는 `UGrimSkillTreeComponent::GetEffectValue(키)` | 속성별 위력 · 마나 효율 · 상태 · 상호작용 세기 · 특성 |
 
+- 반대 방향: 생물 보관함 설정(`[/Script/Grimoire.GrimCreatureStorageSettings]` 의 `PartyLimitTagBonuses` · `StorageCapacityTagBonuses`)이 태그 `Progression.Node.CreatureParty` · `Progression.Node.CreatureStorage` 를 읽지만(태그 정의 `Source/Grimoire/Creatures/GrimTamingTags.cpp`), 트리 표에 그 키를 주는 노드는 아직 없다(계획).
 - 마법 쪽에 속성별 위력 · 마나 효율 어트리뷰트가 없어서 그 노드들은 아직 **태그 · 합계만** 있다. TODO(각 시스템): 피해 계산이 `<속성>.Power`, 비용 계산이 `<속성>.ManaCost`, 상호작용 자극이 `Fire.IgniteStrength` 같은 세기, 특성 노드는 태그를 읽는다.
 - 새 효과 키를 표에 더하면 `GrimProgressionTags.cpp` 에도 태그를 더한다 — 효과를 쓰는 코드가 어차피 필요하므로 태그도 코드에 둔다. 빠지면 테스트 `Grimoire.Progression.TreeTable` 이 잡는다.
 
@@ -115,12 +118,13 @@
 
 - 남은 포인트 = `UGrimLevelComponent::GetTotalSkillPoints()`(표 합 + 보너스) − 찍은 노드 비용 합. 포인트는 따로 저장하지 않는다.
 - `UGrimSkillTreeComponent::TryUnlock(NodeId)`(서버) — 순서대로 판정: 없는 노드 · 이미 찍음 · 선행 · 서클 · 포인트. 클라이언트는 `Server_TryUnlock` / `RequestUnlock`. 결과는 `OnUnlockResult`(서버 · 소유 클라이언트), 바뀐 트리는 `OnTreeChanged`(복제 콜백 포함).
-- **정화 의식**(Q31): `ResetTree(FName TreeId, const FGrimTreeResetCostCheck& CostCheck)`(서버) — 트리 하나의 노드를 모두 지우고 포인트를 돌려준다. `CostCheck` 가 묶여 있으면 (트리, 돌려받을 포인트)로 먼저 묻고 `false` 면 그만둔다. 재화가 아직 없어 비워 두면 공짜 — TODO: 인벤토리 · 재화가 생기면 정화 의식(갈래 T 의 탑 NPC)이 채운다. 비울 노드가 없으면 `false`.
+- **정화 의식**(Q31): `ResetTree(FName TreeId, const FGrimTreeResetCostCheck& CostCheck)`(서버) — 트리 하나의 노드를 모두 지우고 포인트를 돌려준다. `CostCheck` 가 묶여 있으면 (트리, 돌려받을 포인트)로 먼저 묻고 `false` 면 그만둔다. 비워 두면 공짜. 비울 노드가 없으면 `false`.
+- 부르는 곳: 탑 스승의 서비스 `Purify:<트리>`(`Source/Grimoire/Quest/GrimQuestComponent.cpp`) — 지금은 `CostCheck` 없이 부른다(무료). 솔 비용은 계획(의식 비용 미정).
 - 레벨을 내려(콘솔) 포인트가 모자라도 찍은 노드는 그대로 두고 남은 포인트만 0 이 된다.
 
 ## UI
 
-- **그리모어 「성장 트리」 탭** `UGrimSkillTreeWidget`: 위에 트리 탭 4 개(ini `Trees` 순서) · 「Lv · 남은 포인트 · 이 트리에 쓴 포인트」, 가운데 노드 격자(칸 `GridCellWidth` × `GridCellHeight` = 60 × 70, 노드 56 × 44, 큰 노드는 1.15 배)와 선행을 잇는 선(찍은 쪽에서 나오면 갈래색), 갈래 이름. 노드 색: 찍음 = 갈래색 + 금테, 찍을 수 있음 = 어두운 갈래색 + 갈래색 테, 포인트 모자람 = 흐린 테, 잠김(선행 · 서클) = 회색. 고른 노드는 흰 테 — 아래에 이름 · 갈래 · 종류 · 비용 · 서클 · 선행 · 설명 · 상태와 **찍기** 버튼(찍을 수 있을 때만).
+- **그리모어 「성장 트리」 탭** `UGrimSkillTreeWidget`(`UGrimGrimoireWidget` 의 「성장 트리」 쪽): 위에 트리 탭 4 개(ini `Trees` 순서) · 「Lv · 남은 포인트 · 이 트리에 쓴 포인트」, 가운데 노드 격자(칸 `GridCellWidth` × `GridCellHeight` = 60 × 70, 노드 56 × 44, 큰 노드는 1.15 배)와 선행을 잇는 선(찍은 쪽에서 나오면 갈래색), 갈래 이름. 노드 색: 찍음 = 갈래색 + 금테, 찍을 수 있음 = 어두운 갈래색 + 갈래색 테, 포인트 모자람 = 흐린 테, 잠김(선행 · 서클) = 회색. 고른 노드는 흰 테 — 아래에 이름 · 갈래 · 종류 · 비용 · 서클 · 선행 · 설명 · 상태와 **찍기** 버튼(찍을 수 있을 때만).
 - **레벨 · 경험 막대** `UGrimLevelWidget`: 「Lv 5」 · 경험 막대 · 「경험 1,230 / 2,820」 · 남은 포인트, 레벨이 오르면 「레벨 업! — Lv N」(UI 설정 `ToastSeconds`). HUD 에는 통합 때 끼운다 — 그전에는 콘솔 `Grim.UI.Level [0|1]` 로 화면 아래 가운데에 단독으로 띄운다.
 
 ## 세이브

@@ -90,6 +90,8 @@ export default defineConfig({
             { text: '성능 측정 방법', link: '/dev/perf-measure' },
             { text: '테스트 치트', link: '/dev/cheats' },
             { text: '레벨 디자인 노트', link: '/dev/level-design' },
+            { text: '개발 기록 — 무엇을 · 어떻게', link: '/dev/history' },
+            { text: '문서 갱신 체크리스트', link: '/dev/docs-checklist' },
           ],
         },
       ],

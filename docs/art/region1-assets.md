@@ -3,6 +3,8 @@
 > 상태: **검토용 v1** · 2026-11-06 · [1번 지역 콘셉트 아트](./region1-concepts) 40장을 하나씩 보고, 그 장면을 레벨로 만들 때 필요한 3D 모델을 뽑았다.
 >
 > 만드는 길은 [아트 방향](../spec/art-direction) 「리소스 만드는 길」과 `art/README.md`「환경 에셋 만들기」를 따른다. 첫 결과물은 초원 바위 A(`art/env/rock-meadow-a/`)다.
+>
+> 언리얼에 들어간 것(2026-11-06): C01 초원 바위 A 하나 — `Content/Grimoire/Environment/Rocks/SM_Rock_MeadowA/`(가져오기 `Scripts/Environment/import_env_asset.py`, Nanite). 아직 맵에 놓지 않았고, 나머지는 모두 계획이다. 지금 맵의 랜드마크 · POI 는 엔진 기본 도형 그레이박스(`Scripts/Terrain/landmark_greybox.py`)다.
 
 ## 읽는 법
 
@@ -32,7 +34,7 @@
 
 | 번호 | 모델 | 크기 | 길 | 변형 | 쓰는 곳 |
 |---|---|---|---|---|---|
-| C01 | 초원 바위(이끼 낀 둥근 바위) | S · M · L | Tripo | 크기별 3 × 2 = 6 | 야외 전부. 첫 결과물 초원 바위 A 가 여기 |
+| C01 | 초원 바위(이끼 낀 둥근 바위) | S · M · L | Tripo | 크기별 3 × 2 = 6 | 야외 전부. 첫 결과물 초원 바위 A 가 여기(`SM_Rock_MeadowA`, 가져옴) |
 | C02 | 절벽 · 바위벽 조각(층진 회색 암벽) | XL | Tripo | 4 | r1-key-aerial · tower-exterior · tower-dusk · lm-waterfall · lm-watchtower · lm-rock-gate · poi-c8-valley · poi-c9-highland · poi-c10-pass |
 | C03 | 물가 돌 · 징검돌(납작 둥근 돌, 젖은 재질) | S · M | Tripo | 4 | poi-s3-pond · poi-s8-brook · poi-c6-east-meadow · poi-c7-sluice · poi-c9-highland · lm-waterfall · lm-giant-tree · poi-c4-lowland |
 | C04 | 잔돌 · 자갈 흩뿌림 | S | Tripo | 6 | 야외 전부(PCG) |
@@ -170,6 +172,8 @@
 ### 탑 실내 (1층)
 
 모든 방이 탑 실내 키트 T01~T13 을 쓴다. 아래는 방마다 더 필요한 것.
+
+지금 그레이박스(`Scripts/Tutorial/tower_greybox.py`)의 방은 여섯 — 시작 방 · 숙소 · 서고 · 주방 · 홀 · 시험의 방. 수련실은 시험의 방과 같은 남쪽 방(과녁 `Tut_TrainingTarget`)이라, 그림처럼 일곱 방으로 나누려면 탑 배치를 고쳐야 한다.
 
 #### 시작 방 `tower-in-startroom`
 

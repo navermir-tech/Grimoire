@@ -2,7 +2,7 @@
 
 > 스펙: [캐릭터 커스터마이징](../spec/customization) (R39). 코드: `Source/Grimoire/Appearance/`. 데이터: `Content/Grimoire/Data/Appearance/*.csv`.
 >
-> 상태: v1 · 2026-11-06 — 데이터 모델 · 조립 · NPC 생성 · 저장 · 복제 · 최소 생성 화면 · 치트 구현. 아트는 자리 표시(엔진 기본 도형 + UE 마네킹).
+> 상태: v1 · 2026-11-06 — 데이터 모델 · 조립 · NPC 생성 · 저장 · 복제 · 최소 생성 화면 · 치트 구현(아래 산정 표 C1~C7). 아트는 자리 표시(엔진 기본 도형 + UE 마네킹) — `AppearanceParts.csv` 의 `MeshA` · `MeshB` 는 모두 비어 있고 소품은 `/Engine/BasicShapes/*` 다.
 
 ## 기술 선택
 
@@ -25,7 +25,7 @@
 2. **옷 · 몸 · 머리 · 얼굴 = 같은 스켈레톤의 스켈레탈 조각, 리더 = 캐릭터 메시.** 조각 컴포넌트는 `SetLeaderPoseComponent` + `bUseBoundsFromLeaderPoseComponent`.
 3. **단단한 소품(모자 · 고리 · 주머니 · 책 · 버클) = 뼈에 붙는 스태틱 메시.** 스키닝이 없어 싸고, Tripo 결과를 그대로 쓴다(Nanite 는 끔 — 작은 소품).
 4. **얼굴 = 체형별 머리 메시 하나 + 모프 타깃.** 얼굴 프리셋은 메시가 아니라 슬라이더 값 묶음이다. 머리 메시는 블렌더에서 한 번 다듬고(Tripo 머리 → 리토폴로지), 슬라이더마다 셰이프 키를 스크립트로 만든다.
-5. **색 = 재질 파라미터.** 모든 조각 재질이 같은 이름의 벡터 파라미터(`Primary` · `Secondary` · `Leather` · `Metal` · `Lining` · `Skin` · `Hair` · `Eye`)를 읽는다. 마스터 재질 `M_GrimCharacter_Master` 하나에서 인스턴스를 만든다(아트 작업 항목). 서클 고리는 스톨의 고리 소켓에 스태틱 고리를 서클 수만큼 붙인다(재질 `RingCount` 파라미터도 함께 준다 — 수놓은 고리로 바꿀 때를 위해).
+5. **색 = 재질 파라미터.** 모든 조각 재질이 같은 이름의 벡터 파라미터(`Primary` · `Secondary` · `Leather` · `Metal` · `Lining` · `Skin` · `Hair` · `Eye` · `Under`(바지 · 속옷 층, 고정 색) — 코드 `EGrimAppearanceChannel`)를 읽는다. 마스터 재질 `M_GrimCharacter_Master` 하나에서 인스턴스를 만든다(아트 작업 항목 A1 — 아직 없음). 지금 몸은 마네킹 재질의 `Paint Tint`(설정 `BodyTintParameter`), 자리 표시 소품은 `Color`(설정 `PlaceholderColorParameter`)로 칠한다. 서클 고리는 스톨의 고리 소켓에 스태틱 고리를 서클 수만큼 붙인다(재질 `RingCount` 파라미터도 함께 준다 — 수놓은 고리로 바꿀 때를 위해).
 6. **군중 NPC(10명 넘게 한 화면)** 는 같은 조각을 Skeletal Mesh Merge 로 굽는 길을 나중에 붙인다 — 조립 컴포넌트의 출력만 바뀐다.
 
 ### 성능 예산 (제안 — 측정 뒤 고친다)
@@ -64,27 +64,29 @@
 | 파일 | 행 = | 주요 칸 |
 |---|---|---|
 | `AppearanceParts.csv` | 조각 하나 | `Slot` · `DisplayName` · `BodyTypes`(A\|B) · `MeshA` · `MeshB`(스켈레탈, 비우면 소품만) · `Creator`(플레이어가 고를 수 있나) · `HidesHair` · `Morphs`(얼굴 조각의 기본 슬라이더 값 `Id=값\|…`) |
-| `AppearancePieces.csv` | 조각에 붙는 스태틱 소품 하나 | `Part` · `Mesh` · `Bone` · `Offset`(마네킹 기준 자세의 그 뼈 위치에서, 메시 공간 cm) · `Rotation` · `Scale` · `Channel`(색 칸) · `Repeat`(`Circle` = 서클 수만큼) · `Step`(반복 간격) · `Face`(얼굴 슬라이더 자리 표시를 받나) |
+| `AppearancePieces.csv` | 조각에 붙는 스태틱 소품 하나 | `Part` · `Mesh` · `Bone` · `Offset`(마네킹 기준 자세의 그 뼈 위치에서, 메시 공간 cm) · `Rotation` · `Scale` · `Channel`(색 칸) · `Repeat`(`Circle` = 서클 수만큼) · `Step`(반복 간격) · `Face`(얼굴 슬라이더 자리 표시를 받나) · `Small`(멀리서 숨기는 작은 소품) · `BodyTypes`(비우면 두 체형) |
 | `AppearancePalettes.csv` | 색 하나 | `Palette`(Skin · Eye · Hair · Cloth · Element · Fixed) · `Hex` · `Creator` |
 | `AppearanceMorphs.csv` | 얼굴 슬라이더 하나 | `DisplayName` · `MorphTarget`(머리 메시의 모프 이름) · `PlaceholderScale`(자리 표시 머리에 주는 크기 변화) |
-| `NpcAppearanceRules.csv` | 역할 규칙 하나 | 칸마다 후보 `조각:가중치\|…`, `BodyA` · `BodyB` 가중치, 팔레트 후보, `CircleMin/Max`, `Elements`, `GreyHair`(새치 확률), `MorphJitter` |
-| `NpcAppearance.csv` | 이름 있는 NPC 하나 | `Rule` · `Seed`(0 = NPC 이름 해시) · `Circle` · `Element`(0 = 규칙대로) |
+| `NpcAppearanceRules.csv` | 역할 규칙 하나 | `Player`(플레이어 규칙인가), 칸마다 후보 `조각:가중치\|…`, `BodyA` · `BodyB` 가중치, 팔레트 후보, `CircleMin/Max`, `Elements`, `GreyHair`(새치 확률) · `GreyHairColor`, `MorphJitter` · `HeightJitter`. 지금 규칙: `Player_Start` · `Tower_Apprentice` · `Tower_Instructor` · `Tower_Librarian` · `Tower_Examiner` |
+| `NpcAppearance.csv` | 이름 있는 NPC 하나 | `Rule` · `Seed`(0 = NPC 이름 해시) · `Circle` · `Element`(0 = 규칙대로). 지금은 `Master`(마렌) = `Tower_Instructor` 하나. 표에 없는 탑 NPC 는 설정 `DefaultTowerNpcRule`(`Tower_Apprentice`) |
 
-- 표는 런타임에 읽는다(다른 시스템 CSV 와 같은 방식). 콘솔 `Grim.Appearance.Reload` 로 다시 읽고 월드의 외형을 다시 조립한다.
-- 에디터에서 만든 DataAsset 이 필요해지면 `UGrimAppearanceCatalogAsset`(같은 행 구조체 배열)을 만들어 설정 `CatalogAsset` 에 넣는다 — 있으면 CSV 대신 그것을 쓴다.
-- 플레이어 시작 · 무작위는 규칙 `Player_Start` 을 쓴다(플레이어용 조각만 후보).
+- 표는 런타임에 읽는다(다른 시스템 CSV 와 같은 방식). 콘솔 `Grim.Appearance.Reload` 로 다시 읽고 월드의 외형을 다시 조립한다. 경로는 `[/Script/Grimoire.GrimAppearanceSettings]` 의 `PartsCSV` · `PiecesCSV` · `PalettesCSV` · `MorphsCSV` · `RulesCSV` · `NpcsCSV`.
+- 에디터 DataAsset 길: 클래스 `UGrimAppearanceCatalogAsset`(DataTable 여섯 개를 가리킨다, `Source/Grimoire/Appearance/GrimAppearanceTypes.h`)은 있다 — 에셋을 만들어 설정 `CatalogAsset` 에 넣으면 CSV 대신 그것을 쓴다. 지금은 비어 있어 CSV 를 쓴다.
+- 플레이어 시작 · 무작위는 규칙 `Player_Start`(설정 `PlayerRule`)을 쓴다(플레이어용 조각만 후보).
 
 ### 클래스
 
+모두 `Source/Grimoire/Appearance/` 에 있다.
+
 | 클래스 | 붙는 곳 | 하는 일 |
 |---|---|---|
-| `UGrimAppearanceSettings` | `DefaultGame.ini` `[/Script/Grimoire.GrimAppearanceSettings]` | 표 경로, 체형별 몸 메시, 몸 재질 칸 → 색 칸, 키 범위, 자리 표시 재질, NPC 기본 애님, 소품 숨김 거리, 새 캐릭터에 생성 화면 열기 |
-| `FGrimAppearanceCatalog` | 전역(한 번 읽음) | 표 → 정렬된 조각 · 팔레트 · 슬라이더 · 규칙, ID ↔ 번호 |
+| `UGrimAppearanceSettings` (`GrimAppearanceSettings.h`) | `DefaultGame.ini` `[/Script/Grimoire.GrimAppearanceSettings]` | 표 경로, 체형별 몸 메시, 몸 재질 칸 → 색 칸, 키 범위, 자리 표시 재질, NPC 기본 애님, 소품 숨김 거리, 새 캐릭터에 생성 화면 열기 |
+| `FGrimAppearanceCatalog` · `FGrimAppearance` (`GrimAppearanceTypes.h`) | 전역(한 번 읽음) | 표 → 정렬된 조각 · 팔레트 · 슬라이더 · 규칙, ID ↔ 번호 |
 | `FGrimAppearanceMath` | 순수 함수 | `Sanitize` · `GenerateFromRule`(씨앗 → 외형, 결정적) · 팔레트 색 찾기 |
-| `UGrimAppearanceComponent` | 플레이어 폰 · NPC | 복제되는 외형 하나 → 몸 메시 · 조각 컴포넌트 · 소품 · 색 · 모프 · 고리 조립. 생성 화면 미리보기(로컬만) |
-| `UGrimPlayerAppearanceComponent` | `AGrimPlayerState` | 플레이어 외형의 정본. 세이브 「Player.Appearance」, 서버 RPC(생성 화면 결과 · 무작위), 서클이 바뀌면 고리 수 갱신, 폰이 바뀌면 새 폰에 넣기 |
-| `AGrimAppearanceDummy` | 치트 줄 세우기 · 나중의 군중 NPC 바탕 | 마네킹 메시 + 기본 애님 + 외형 컴포넌트 |
-| `UGrimCharacterCreatorWidget` | 화면 | C++ 로 짠 최소 생성 화면(칸마다 ◀ ▶ · 슬라이더 · 무작위 · 확인 · 취소) |
+| `UGrimAppearanceComponent` (`GrimAppearanceComponent.h`) | 플레이어 폰(`AGrimPlayerCharacter`) · 마법탑 NPC(`AGrimTowerNPC`) · 더미 | 복제되는 외형 하나 → 몸 메시 · 조각 컴포넌트 · 소품 · 색 · 모프 · 고리 조립. 생성 화면 미리보기(로컬만) |
+| `UGrimPlayerAppearanceComponent` (`GrimPlayerAppearanceComponent.h`) | `AGrimPlayerState`(하위 객체 `Appearance`) | 플레이어 외형의 정본. 세이브 「Player.Appearance」, 서버 RPC(생성 화면 결과 · 무작위), 서클이 바뀌면 고리 수 갱신, 폰이 바뀌면 새 폰에 넣기 |
+| `AGrimAppearanceDummy` (`GrimAppearanceDummy.h`) | 치트 줄 세우기 · 나중의 군중 NPC 바탕 | 마네킹 메시 + 기본 애님 + 외형 컴포넌트 |
+| `UGrimCharacterCreatorWidget` (`GrimCharacterCreatorWidget.h`) | 화면 | C++ 로 짠 최소 생성 화면(칸마다 ◀ ▶ · 슬라이더 · 무작위 · 확인 · 취소) |
 
 ### 흐름
 
@@ -112,11 +114,11 @@ NPC(맵에 놓인 마법탑 NPC) 시작(서버)
 1. GPT: 설정화(앞 · 뒤 A 포즈) + 조각 분해도 → `art/characters/` (첫 결과: 견습생 A, 아래 그림)
 2. GPT: 조각마다 Tripo 입력 4면 시트(조각만, 마네킹 없이)
 3. Tripo Studio 멀티뷰 → GLB
-4. 블렌더(새 스크립트 `art/tools/blender_fit_to_mannequin.py` — 산정 표 A3):
+4. 블렌더(새 스크립트 `art/tools/blender_fit_to_mannequin.py` — 산정 표 A3, 미구현):
    - 마네킹 FBX(체형 A/B)를 불러 조각을 몸에 맞춰 크기 · 위치를 맞춘다
    - 몸에서 가중치를 옮긴다(Data Transfer, 가까운 면 보간) → 겹침 뚫림 확인용 포즈 3개 렌더
    - 몸에 가려지는 면 지우기 · LOD 2단계 · 재질 슬롯 이름을 색 칸 이름으로
-5. 언리얼 가져오기 스크립트(`Scripts/Character/import_outfit_part.py` — 산정 표 A4): 스켈레톤 = `SK_Mannequin`, 재질 = `M_GrimCharacter_Master` 인스턴스 → `Content/Grimoire/Characters/Parts/<칸>/SKM_<조각>`
+5. 언리얼 가져오기 스크립트(`Scripts/Character/import_outfit_part.py` — 산정 표 A4, 미구현): 스켈레톤 = `SK_Mannequin`, 재질 = `M_GrimCharacter_Master` 인스턴스 → `Content/Grimoire/Characters/Parts/<칸>/SKM_<조각>`
 6. `AppearanceParts.csv` 의 `MeshA` · `MeshB` 칸에 경로를 적으면 끝(코드 그대로)
 
 ![견습생 A — 앞 · 뒤](/art/characters/outfit-a-apprentice-turnaround.png)
@@ -141,7 +143,7 @@ NPC(맵에 놓인 마법탑 NPC) 시작(서버)
 | C6 | 최소 생성 화면(◀ ▶ · 슬라이더 · 무작위 · 확인 · 취소) | M | ✅ |
 | C7 | 치트 · 콘솔 · 2인 넷 확인 스크립트 · 자동화 테스트 | S | ✅ |
 | C8 | 생성 화면 다듬기: 카메라 클로즈업 · 회전 · 탭 · 패드 조작 · 팔레트 칸 그림 | L | |
-| C9 | 새 캐릭터면 첫 접속에 생성 화면(현재 설정으로 꺼 둠) · 마법탑 「거울」 상호작용 | S | |
+| C9 | 새 캐릭터면 첫 접속에 생성 화면(코드는 있고 설정 `bOpenCreatorForNewCharacter=False` 로 꺼 둠) · 마법탑 「거울」 상호작용(미구현) | S | |
 | C10 | 장비 외형 연결(장착 장비 → 외형 칸, 외형 칸 · 도감) — M4 장비와 함께 | M | |
 | C11 | 군중 NPC 용 Skeletal Mesh Merge 길 · 거리별 조각 줄이기 | M | |
 | C12 | 무리 NPC 얼굴 겹침 피하기 · 지역 규칙(E~H) · 사냥꾼 규칙 | S | |
@@ -153,7 +155,7 @@ NPC(맵에 놓인 마법탑 NPC) 시작(서버)
 | A1 | 마스터 재질 `M_GrimCharacter_Master`(색 칸 파라미터 · 고리 수) | 1 | M | 사용자가 에디터에서 · 스펙은 이 문서 |
 | A2 | 기본 몸 체형 A · B (마네킹 비율, 손 · 발 · 목 이음매) | 2 | L | Tripo 사람 몸은 비율 · 위상이 들쭉날쭉 → 블렌더에서 마네킹에 맞춰 다듬는 쪽 |
 | A3 | 블렌더 「마네킹에 맞추기 · 가중치 옮기기」 스크립트 | 1 | M | 모든 옷 조각이 지나간다 |
-| A4 | 언리얼 가져오기 스크립트(옷 조각) | 1 | S | `import_env_asset.py` 를 바탕으로 |
+| A4 | 언리얼 가져오기 스크립트(옷 조각) | 1 | S | `Scripts/Environment/import_env_asset.py` 를 바탕으로 |
 | A5 | 머리 메시(체형별) + 얼굴 셰이프 키 6 | 2 | L | 얼굴 프리셋 8 = 값 묶음(메시 아님) |
 | A6 | 머리 모양 | 8 | M×8 | 카드식 머리카락(알파 텍스처는 GPT) |
 | A7 | 수염 | 3 | S×3 | |
@@ -173,7 +175,7 @@ NPC(맵에 놓인 마법탑 NPC) 시작(서버)
 
 ## 콘솔 · 치트 · 테스트
 
-- 치트(개발 빌드): `GrimCreator` · `GrimAppearanceRandom [씨앗]` — [테스트 치트](../dev/cheats#캐릭터-외형).
-- 콘솔: `Grim.Appearance.Dump` · `Grim.Appearance.Randomize [씨앗]`(서버, 모든 플레이어) · `Grim.Appearance.Lineup <규칙> [수] [씨앗]`(서버) · `Grim.Appearance.Reload`.
-- 자동화: `Grimoire.Appearance.Catalog` · `.Serialization` · `.NetSerialize` · `.NpcDeterminism` · `.Sanitize` · `.Assemble`.
+- 치트(개발 빌드, `UGrimCheatManager` — `Source/Grimoire/Core/Cheats/GrimCheatManager.h`): `GrimCreator` · `GrimAppearanceRandom [씨앗]` — [테스트 치트](../dev/cheats#캐릭터-외형).
+- 콘솔(`Source/Grimoire/Appearance/GrimAppearanceDebug.cpp`): `Grim.Appearance.Dump` · `Grim.Appearance.Randomize [씨앗]`(서버, 모든 플레이어) · `Grim.Appearance.Lineup <규칙> [수] [씨앗]`(서버) · `Grim.Appearance.Reload`.
+- 자동화(`Source/Grimoire/Appearance/Tests/`): `Grimoire.Appearance.Catalog` · `.Serialization` · `.NetSerialize` · `.NpcDeterminism` · `.Sanitize` · `.Assemble`.
 - 2인 헤드리스: `powershell -File Scripts\Character\net_check_appearance.ps1` — 서버가 외형을 바꾸고 더미를 세운 뒤 양쪽 `Grim.Appearance.Dump` 의 해시를 비교해 `PASS` / `FAIL`.
