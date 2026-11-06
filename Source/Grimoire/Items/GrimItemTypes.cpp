@@ -50,21 +50,27 @@ namespace GrimItemTypesLocal // 유니티 빌드에서 이름이 부딪히지 �
 bool FGrimItemInstance::CanStackWith(const FGrimItemInstance& Other) const
 {
 	return !IsEmpty() && !Other.IsEmpty() && ItemId == Other.ItemId
-		&& Durability < 0.f && Other.Durability < 0.f && Enchantments.Num() == 0 && Other.Enchantments.Num() == 0;
+		&& Durability < 0.f && Other.Durability < 0.f && Enchantments.Num() == 0 && Other.Enchantments.Num() == 0
+		&& RepairCount == 0 && Other.RepairCount == 0;
 }
 
 void FGrimItemInstance::Serialize(FArchive& Ar)
 {
+	// 인챈트 수의 높은 비트 = 끝에 수리 횟수가 붙음(M4). 옛 형식에는 이 비트가 없다.
+	constexpr int32 RepairCountFlag = 0x40000000;
 	FString IdText = ItemId.ToString();
 	Ar << IdText;
 	Ar << Count;
 	Ar << Durability;
-	int32 NumEnchantments = Enchantments.Num();
+	int32 NumEnchantments = Enchantments.Num() | (RepairCount > 0 ? RepairCountFlag : 0);
 	Ar << NumEnchantments;
+	const bool bHasRepairCount = (NumEnchantments & RepairCountFlag) != 0;
+	NumEnchantments &= ~RepairCountFlag;
 	if (Ar.IsLoading())
 	{
 		ItemId = IdText.IsEmpty() || IdText == TEXT("None") ? NAME_None : FName(*IdText);
 		Enchantments.Reset();
+		RepairCount = 0;
 		NumEnchantments = FMath::Clamp(NumEnchantments, 0, 64);
 		for (int32 Index = 0; Index < NumEnchantments && !Ar.IsError(); ++Index)
 		{
@@ -80,6 +86,11 @@ void FGrimItemInstance::Serialize(FArchive& Ar)
 			FString EnchantmentText = Enchantment.ToString();
 			Ar << EnchantmentText;
 		}
+	}
+	if (bHasRepairCount)
+	{
+		Ar << RepairCount;
+		RepairCount = FMath::Max(0, RepairCount);
 	}
 }
 

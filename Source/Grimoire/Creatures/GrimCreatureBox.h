@@ -19,7 +19,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FGrimCreatureBoxChangedNative, class AGrimCr
  *  - 풀어놓기: 상자 둘레 BoxRoamRadius 안에 생물 액터를 내놓아 돌아다니게 한다(명령 Roam, 집 = 상자). 데리고 다니는 수에 들지 않는다.
  *  - 세이브: World 「CreatureBox.<이름>」 v1 — 칸 목록(풀어놓은 생물은 액터에서 기록을 고쳐 쓴다). 불러오면 풀어놓은 생물을 다시 내놓는다.
  *  - 옮기기는 플레이어의 UGrimCreatureStorageComponent::Transfer 가 이 상자의 서버 함수를 부른다(거리 검사도 거기서).
- * M4 거점 핵이 생기면 건축 조각(거점 핵 반경 안에만)이 되고, 풀어놓기 반경은 거점 반경으로 바뀐다 — 지금은 상자 자신의 반경.
+ * 건축(M4)으로 놓는 판은 AGrimBaseCreatureBox(Base/GrimBaseStations — 조각 표 CreatureBox, 내구도 · 부서지면 생물을 옮김). 풀어놓기 반경은 아직 상자 자신의 반경(거점 반경으로 바꾸는 것은 다음).
  */
 UCLASS()
 class GRIMOIRE_API AGrimCreatureBox : public AActor, public IGrimSaveParticipant

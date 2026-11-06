@@ -1,8 +1,9 @@
 #include "Items/GrimInventoryWidget.h"
+#include "Items/GrimInventoryTab.h"
+#include "Base/GrimEquipmentComponent.h"
 #include "Items/GrimCookingPot.h"
 #include "Items/GrimItemPickup.h"
 #include "Items/GrimItemSettings.h"
-#include "Creatures/GrimCreatureStorageWidget.h"
 #include "UI/GrimUIData.h"
 #include "UI/GrimUISubsystem.h"
 #include "Blueprint/WidgetTree.h"
@@ -23,6 +24,9 @@
 
 #define LOCTEXT_NAMESPACE "GrimInventory"
 
+const FName UGrimInventoryWidget::BagTabId(TEXT("Bag"));
+const FName UGrimInventoryWidget::EquipmentTabId(TEXT("Equipment"));
+
 namespace GrimInventoryWidgetLocal // 유니티 빌드에서 이름이 부딪히지 않게
 {
 	const FLinearColor TitleColor(1.f, 0.85f, 0.45f);
@@ -38,6 +42,16 @@ namespace GrimInventoryWidgetLocal // 유니티 빌드에서 이름이 부딪히
 	constexpr float SlotHeight = 52.f;
 
 	enum EAction : int32 { ActionUse = 0, ActionDropOne = 1, ActionDropAll = 2, ActionMove = 3 };
+
+	const FLinearColor TabColor(0.2f, 0.18f, 0.15f, 1.f);
+	const FLinearColor TabActiveColor(0.65f, 0.5f, 0.2f, 1.f);
+
+	/** 코드로 등록한 탭 클래스(RegisterTabClass) */
+	TArray<TSubclassOf<UGrimInventoryTab>>& RegisteredTabClasses()
+	{
+		static TArray<TSubclassOf<UGrimInventoryTab>> Classes;
+		return Classes;
+	}
 
 	FString InputName(const FGrimItemDatabase& Database, const FGrimRecipeInput& Input)
 	{
@@ -56,6 +70,8 @@ namespace GrimInventoryWidgetLocal // 유니티 빌드에서 이름이 부딪히
 		case EGrimItemKind::Food: return LOCTEXT("KindFood", "음식");
 		case EGrimItemKind::Skillbook: return LOCTEXT("KindSkillbook", "스킬북");
 		case EGrimItemKind::Tool: return LOCTEXT("KindTool", "도구");
+		case EGrimItemKind::Equipment: return LOCTEXT("KindEquipment", "장비");
+		case EGrimItemKind::Seed: return LOCTEXT("KindSeed", "씨앗");
 		default: return LOCTEXT("KindMaterial", "재료");
 		}
 	}
@@ -143,24 +159,31 @@ void UGrimInventoryWidget::BuildTree()
 
 	const FKey& BagKey = UGrimItemSettings::Get()->BagKey;
 	BagBox->AddChildToVerticalBox(GrimUIData::MakeText(WidgetTree,
-		FText::Format(LOCTEXT("BagTitle", "가방  ({0} 닫기)"), BagKey.GetDisplayName()), 18, TitleColor, true))->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f));
+		FText::Format(LOCTEXT("BagTitle", "소지품  ({0} 닫기)"), BagKey.GetDisplayName()), 18, TitleColor, true))->SetPadding(FMargin(0.f, 0.f, 0.f, 6.f));
 
-	// 탭(가방 · 생물 — R38). 가방 칸 · 설명 · 행동은 「가방」 쪽 판에 들어간다.
-	UVerticalBox* BagPageBox = BuildTabs(BagBox);
+	// 탭 단추 줄(M4) — 0 = 가방, 나머지는 등록된 탭.
+	TabBar = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	BagBox->AddChildToVerticalBox(TabBar)->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f));
+
+	UVerticalBox* BagPage = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	BagContent = BagPage;
+	BagBox->AddChildToVerticalBox(BagPage);
+	UVerticalBox* TabHost = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	BagBox->AddChildToVerticalBox(TabHost);
 
 	SlotGrid = WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass());
 	SlotGrid->SetSlotPadding(FMargin(3.f));
-	BagPageBox->AddChildToVerticalBox(SlotGrid);
+	BagPage->AddChildToVerticalBox(SlotGrid);
 
 	DetailText = GrimUIData::MakeText(WidgetTree, FText::GetEmpty(), 13, BodyColor);
 	DetailText->SetAutoWrapText(true);
 	USizeBox* DetailBox = GrimUIData::MakeSizeBox(WidgetTree, DetailText, Columns * (SlotWidth + 6.f), 96.f);
-	BagPageBox->AddChildToVerticalBox(DetailBox)->SetPadding(FMargin(0.f, 10.f, 0.f, 6.f));
+	BagPage->AddChildToVerticalBox(DetailBox)->SetPadding(FMargin(0.f, 10.f, 0.f, 6.f));
 
 	UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	BagPageBox->AddChildToVerticalBox(Actions);
+	BagPage->AddChildToVerticalBox(Actions);
 	const FText ActionLabels[] = {
-		LOCTEXT("ActionUse", "사용 (먹기 · 읽기)"),
+		LOCTEXT("ActionUse", "사용 (먹기 · 읽기 · 입기)"),
 		LOCTEXT("ActionDropOne", "하나 버리기"),
 		LOCTEXT("ActionDropAll", "모두 버리기"),
 		LOCTEXT("ActionMove", "옮기기"),
@@ -180,6 +203,169 @@ void UGrimInventoryWidget::BuildTree()
 			MoveButtonText = Label;
 		}
 		Actions->AddChildToHorizontalBox(GrimUIData::MakeSizeBox(WidgetTree, Button, 160.f, 38.f))->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
+	}
+
+	CreateTabs(TabHost);
+}
+
+// ───── 탭 (M4) ─────
+
+void UGrimInventoryWidget::RegisterTabClass(TSubclassOf<UGrimInventoryTab> TabClass)
+{
+	if (TabClass && !TabClass->HasAnyClassFlags(CLASS_Abstract))
+	{
+		GrimInventoryWidgetLocal::RegisteredTabClasses().AddUnique(TabClass);
+	}
+}
+
+void UGrimInventoryWidget::CreateTabs(UVerticalBox* Host)
+{
+	using namespace GrimInventoryWidgetLocal;
+	// 탭 클래스: ini(데이터) + 코드 등록. 같은 클래스는 한 번만.
+	TArray<UClass*> Classes;
+	for (const FSoftClassPath& Path : UGrimItemSettings::Get()->InventoryTabClasses)
+	{
+		UClass* Class = Path.TryLoadClass<UGrimInventoryTab>();
+		if (Class && !Class->HasAnyClassFlags(CLASS_Abstract))
+		{
+			Classes.AddUnique(Class);
+		}
+		else if (!Path.IsNull())
+		{
+			UE_LOG(LogGrimItems, Warning, TEXT("인벤토리 탭 클래스를 찾지 못함: %s"), *Path.ToString());
+		}
+	}
+	for (const TSubclassOf<UGrimInventoryTab>& Class : RegisteredTabClasses())
+	{
+		Classes.AddUnique(Class.Get());
+	}
+	for (UClass* Class : Classes)
+	{
+		UGrimInventoryTab* Tab = NewObject<UGrimInventoryTab>(this, Class);
+		Tab->InitializeTab(this);
+		Tabs.Add(Tab);
+	}
+	Tabs.StableSort([](const UGrimInventoryTab& A, const UGrimInventoryTab& B) { return A.GetOrder() < B.GetOrder(); });
+
+	auto AddTabButton = [this](int32 Index, const FText& Label)
+	{
+		UGrimIdButton* Button = WidgetTree->ConstructWidget<UGrimItemButton>(UGrimItemButton::StaticClass());
+		Button->Id = Index;
+		Button->Bind();
+		Button->OnIdClicked.BindUObject(this, &UGrimInventoryWidget::HandleTabClicked);
+		Button->SetBackgroundColor(Index == 0 ? TabActiveColor : TabColor);
+		UTextBlock* Text = GrimUIData::MakeText(WidgetTree, Label, 14, BodyColor, true);
+		Text->SetJustification(ETextJustify::Center);
+		Button->SetContent(Text);
+		TabBar->AddChildToHorizontalBox(GrimUIData::MakeSizeBox(WidgetTree, Button, 110.f, 34.f))->SetPadding(FMargin(0.f, 0.f, 6.f, 0.f));
+		TabButtons.Add(Button);
+	};
+	AddTabButton(0, LOCTEXT("TabBag", "가방"));
+	for (int32 Index = 0; Index < Tabs.Num(); ++Index)
+	{
+		AddTabButton(Index + 1, Tabs[Index]->GetLabel());
+		UWidget* Content = Tabs[Index]->BuildContent(WidgetTree);
+		if (Content)
+		{
+			Host->AddChildToVerticalBox(Content);
+			Content->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		TabContents.Add(Content);
+	}
+	RefreshTabs(false);
+}
+
+UGrimInventoryTab* UGrimInventoryWidget::FindTab(FName TabId) const
+{
+	for (UGrimInventoryTab* Tab : Tabs)
+	{
+		if (Tab && Tab->GetTabId() == TabId)
+		{
+			return Tab;
+		}
+	}
+	return nullptr;
+}
+
+void UGrimInventoryWidget::OpenTab(FName TabId)
+{
+	SetBagOpen(true);
+	SelectTab(TabId);
+}
+
+void UGrimInventoryWidget::SelectTab(FName TabId)
+{
+	if (TabId == BagTabId)
+	{
+		TabId = NAME_None;
+	}
+	UGrimInventoryTab* NewTab = TabId.IsNone() ? nullptr : FindTab(TabId);
+	if (!TabId.IsNone() && (!NewTab || !NewTab->IsAvailable()))
+	{
+		TabId = NAME_None;
+		NewTab = nullptr;
+	}
+	if (UGrimInventoryTab* OldTab = ActiveTab.IsNone() ? nullptr : FindTab(ActiveTab); OldTab && OldTab != NewTab)
+	{
+		OldTab->OnHidden();
+	}
+	ActiveTab = TabId;
+	if (BagContent)
+	{
+		BagContent->SetVisibility(ActiveTab.IsNone() ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	for (int32 Index = 0; Index < Tabs.Num(); ++Index)
+	{
+		if (TabContents.IsValidIndex(Index) && TabContents[Index])
+		{
+			TabContents[Index]->SetVisibility(Tabs[Index] == NewTab ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+		}
+	}
+	if (NewTab)
+	{
+		NewTab->OnShown();
+		NewTab->MarkDirty();
+	}
+	bBagDirty = true;
+	RefreshTabs(true);
+}
+
+void UGrimInventoryWidget::HandleTabClicked(int32 Index)
+{
+	SelectTab(Index <= 0 || !Tabs.IsValidIndex(Index - 1) ? NAME_None : Tabs[Index - 1]->GetTabId());
+}
+
+void UGrimInventoryWidget::RefreshTabs(bool bForceContent)
+{
+	using namespace GrimInventoryWidgetLocal;
+	if (TabButtons.IsValidIndex(0))
+	{
+		TabButtons[0]->SetBackgroundColor(ActiveTab.IsNone() ? TabActiveColor : TabColor);
+	}
+	for (int32 Index = 0; Index < Tabs.Num(); ++Index)
+	{
+		UGrimInventoryTab* Tab = Tabs[Index];
+		const bool bAvailable = Tab->IsAvailable();
+		if (TabButtons.IsValidIndex(Index + 1))
+		{
+			if (UWidget* Parent = TabButtons[Index + 1]->GetParent())
+			{
+				Parent->SetVisibility(bAvailable ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			}
+			TabButtons[Index + 1]->SetBackgroundColor(Tab->GetTabId() == ActiveTab ? TabActiveColor : TabColor);
+		}
+		if (!bAvailable && Tab->GetTabId() == ActiveTab)
+		{
+			SelectTab(NAME_None);
+			return;
+		}
+	}
+	if (UGrimInventoryTab* Active = ActiveTab.IsNone() ? nullptr : FindTab(ActiveTab))
+	{
+		if (bForceContent || Active->ConsumeDirty())
+		{
+			Active->Refresh();
+		}
 	}
 }
 
@@ -207,6 +393,15 @@ void UGrimInventoryWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 	if (bBagOpen && bBagDirty)
 	{
 		RefreshBag();
+	}
+	if (bBagOpen)
+	{
+		TabAccumulator += InDeltaTime;
+		if (TabAccumulator >= 0.2f)
+		{
+			TabAccumulator = 0.f;
+			RefreshTabs(true);
+		}
 	}
 }
 
@@ -359,7 +554,6 @@ void UGrimInventoryWidget::SetBagOpen(bool bOpen)
 	{
 		BagRoot->SetVisibility(bOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
-	SelectTab(ActiveTab);
 
 	if (bOpen)
 	{
@@ -384,6 +578,8 @@ void UGrimInventoryWidget::SetBagOpen(bool bOpen)
 		PC->SetInputMode(FInputModeGameOnly());
 		PC->SetShowMouseCursor(false);
 		PC->SetIgnoreLookInput(false);
+		// 다음에 열면 가방부터.
+		SelectTab(NAME_None);
 	}
 }
 
@@ -447,6 +643,14 @@ void UGrimInventoryWidget::RefreshBag()
 			{
 				Detail += TEXT("\n불 곁에 두거나 불 마법으로 익힌다");
 			}
+			if (Def->Row.Kind == EGrimItemKind::Equipment)
+			{
+				const float Max = UGrimEquipmentComponent::GetMaxDurability(Item);
+				if (Max > 0.f)
+				{
+					Detail += FString::Printf(TEXT("\n내구도 %.0f/%.0f — 사용하면 입는다"), UGrimEquipmentComponent::GetDurability(Item), Max);
+				}
+			}
 		}
 	}
 	else
@@ -498,6 +702,10 @@ void UGrimInventoryWidget::HandleActionClicked(int32 Action)
 void UGrimInventoryWidget::HandleInventoryChanged(UGrimInventoryComponent* InInventory)
 {
 	bBagDirty = true;
+	if (UGrimInventoryTab* Active = ActiveTab.IsNone() ? nullptr : FindTab(ActiveTab))
+	{
+		Active->MarkDirty();
+	}
 }
 
 // ───── 알림 ─────
@@ -517,64 +725,9 @@ FText UGrimInventoryWidget::DescribeNotice(EGrimItemNotice Notice, FName ItemId,
 	case EGrimItemNotice::IngredientsAdded: return FText::Format(LOCTEXT("IngredientsAdded", "냄비에 재료 {0}개를 넣었다"), Count);
 	case EGrimItemNotice::NothingToAdd: return LOCTEXT("NothingToAdd", "넣을 재료가 없다");
 	case EGrimItemNotice::TookBack: return FText::Format(LOCTEXT("TookBack", "냄비에서 {0}개를 꺼냈다"), Count);
+	case EGrimItemNotice::Equipped: return FText::Format(LOCTEXT("Equipped", "{0} 을(를) 입었다"), Name);
 	default: return FText::GetEmpty();
 	}
-}
-
-// ───── 생물 탭(R38) — 생물 목록은 UGrimCreatureStorageWidget 이 맡는다 ─────
-
-UVerticalBox* UGrimInventoryWidget::BuildTabs(UVerticalBox* BagBox)
-{
-	using namespace GrimInventoryWidgetLocal;
-	UHorizontalBox* Tabs = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	BagBox->AddChildToVerticalBox(Tabs)->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f));
-	const FText Labels[] = { LOCTEXT("TabBag", "가방"), LOCTEXT("TabCreatures", "생물") };
-	for (int32 Index = 0; Index < UE_ARRAY_COUNT(Labels); ++Index)
-	{
-		UGrimIdButton* Button = WidgetTree->ConstructWidget<UGrimItemButton>(UGrimItemButton::StaticClass());
-		Button->Id = Index;
-		Button->Bind();
-		Button->OnIdClicked.BindUObject(this, &UGrimInventoryWidget::SelectTab);
-		UTextBlock* Label = GrimUIData::MakeText(WidgetTree, Labels[Index], 14, BodyColor, true);
-		Label->SetJustification(ETextJustify::Center);
-		Button->SetContent(Label);
-		Tabs->AddChildToHorizontalBox(GrimUIData::MakeSizeBox(WidgetTree, Button, 120.f, 32.f))->SetPadding(FMargin(0.f, 0.f, 6.f, 0.f));
-		TabButtons.Add(Button);
-	}
-	UVerticalBox* BagPageBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	BagBox->AddChildToVerticalBox(BagPageBox);
-	BagPage = BagPageBox;
-	if (APlayerController* PC = GetOwningPlayer())
-	{
-		CreaturePage = CreateWidget<UGrimCreatureStorageWidget>(PC, UGrimCreatureStorageWidget::StaticClass());
-		if (CreaturePage)
-		{
-			BagBox->AddChildToVerticalBox(CreaturePage);
-			CreaturePage->SetVisibility(ESlateVisibility::Collapsed);
-		}
-	}
-	return BagPageBox;
-}
-
-void UGrimInventoryWidget::SelectTab(int32 Tab)
-{
-	using namespace GrimInventoryWidgetLocal;
-	ActiveTab = CreaturePage ? FMath::Clamp(Tab, 0, 1) : 0;
-	if (BagPage)
-	{
-		BagPage->SetVisibility(ActiveTab == 0 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-	}
-	if (CreaturePage)
-	{
-		CreaturePage->SetVisibility(ActiveTab == 1 ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-		CreaturePage->SetTabActive(bBagOpen && ActiveTab == 1);
-	}
-	for (int32 Index = 0; Index < TabButtons.Num(); ++Index)
-	{
-		TabButtons[Index]->SetBackgroundColor(Index == ActiveTab ? SelectedColor : ActionColor);
-	}
-	bMoveArmed = false;
-	bBagDirty = true;
 }
 
 void UGrimInventoryWidget::HandleNotice(UGrimInventoryComponent* InInventory, EGrimItemNotice Notice, FName ItemId, int32 Count)

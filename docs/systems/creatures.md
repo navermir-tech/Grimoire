@@ -33,7 +33,8 @@
 | 파크툼 | `Content/Grimoire/Magic/Spells/DA_Spell_Pactum{, _Ignis, _Aqua, _Ventus, _Terra, _Umbra}` — `Scripts/Magic/make_pactum_spells.py`, 목록 표 `Content/Grimoire/Data/PactumSpells.csv` |
 | `UGrimCreatureStorageComponent` (PlayerState, 런타임 "GrimCreatureStorage") | 데리고 다니는 수 · 생물 보관함(노말 스킬) · 옮기기 RPC · 세이브 `Creatures.Storage` · 거점 상자 화면(R38, 아래 「데리고 다니기 · 보관함 · 거점 상자」) |
 | `AGrimCreatureBox` | 거점 생물 상자(팰 상자 자리) — 칸 복제 · 풀어놓기 · 세계 세이브 `CreatureBox.<이름>` |
-| `UGrimCreatureStorageWidget` | 생물 목록 화면 — 가방 「생물」 탭 · 상자 관리 화면 둘 다 |
+| `UGrimCreatureStorageWidget` | 생물 목록 화면 — 소지품 「생물」 탭 · 상자 관리 화면 둘 다 |
+| `UGrimCreatureStorageTab` | 소지품 화면의 「생물」 탭(M4 탭 틀 `UGrimInventoryTab`, ini `+InventoryTabClasses=`, 순서 15) — 위 위젯을 끼우고 보일 때 · 숨을 때 알린다 |
 | `GrimCreatureStorageMath` · `UGrimCreatureStorageSettings` | 순수 계산(상한 · 옮기기 판정 · 갈 곳 · 보관 중 회복 · 상자 세이브) · 수치 `[/Script/Grimoire.GrimCreatureStorageSettings]` |
 
 ## 종 정의 `UGrimCreatureSpecies`
@@ -243,12 +244,13 @@
 - **풀어놓기**: 상자 둘레 `BoxRoamRadius`(20m)의 25~60% 원 위에 스폰, 집 = 그 자리, 명령 `Roam` → 길들인 AI 판단 `Wander`(집 둘레 `RoamWanderRadius` 6m 를 3~8초마다 걷거나 멈춤), 상자에서 반경 × `RoamLeashScale`(1.5) 밖이면 집으로 옮긴다. 상자마다 `BoxMaxReleased`(10).
 - 풀어놓은 생물: 굶김 · 주인 부재를 세지 않는다(M5 먹이 상자 때 다시), 생물 메뉴는 먹이 · 이름 · 놓아주기만(따라오기 · 기다리기 · 타기는 「상자에서 데리고 다니기」 안내). 주인이 나가도 남고(`DespawnOwned` 가 건너뜀), 주인이 접속하면 상자 · 보관함 컴포넌트가 주인 PlayerState 를 다시 잇는다(2초 · 1초 주기). 놓아줌 · 떠남 · 죽음이면 상자 칸에서도 지운다(`ForgetCreature`).
 - 세이브 `CreatureBox.<액터 이름>` v1 = `GrimCreatureStorageMath::SerializeBoxEntries`(수 + 항목마다 풀어놓음 + 가진 개체 기록). 쓸 때 풀어놓은 생물 액터로 기록을 고치고, 읽으면 `SyncReleased`(없는 액터를 다시 내놓고 칸에 없는 액터는 거둔다). 게임 중 놓은 상자는 세이브 시스템의 「스폰 액터」로 다시 만들어진다.
-- 상자가 게임 중 지워지면(M4 철거 자리) 풀어놓은 생물도 함께 거두고 기록은 상자와 함께 사라진다 — 철거가 생기면 그때 「칸이 비어야 철거」 같은 규칙을 정한다.
-- **M4 거점 핵과 합칠 때**: 상자를 건축 조각(거점 핵 반경 안에만)으로 등록하고, `GetRoamRadius()` 를 거점 반경으로, `FindNearestWithRoom` 을 「내 거점의 상자」로 바꾼다. 상자 액터 · 칸 · 세이브 형식은 그대로 둔다. M5 일꾼은 `Released` 생물에서 고른다(작업 보드).
+- **건축으로 놓기(M4)**: 조각 표 `BuildPieces.csv` 의 시설 `CreatureBox`(「생물 상자」, 나무 10 · 돌 4, 체력 200) → `AGrimBaseCreatureBox`(`Base/GrimBaseStations`) = 이 상자 + `UGrimStructureComponent`(노후 · 불 · 「수리」 · 철거). 시설이라 거점 밖에도 놓이지만 밖은 빨리 닳는다(Q66 · Q74).
+- 지은 상자가 부서지거나 헐리면 칸마다 꺼내 **가까운 다른 상자(자리 있는) → 주인의 보관함**(접속 중 · 배움 · 자리) 순으로 옮긴다. 둘 다 안 되면 그 생물은 사라진다(경고 로그). 레벨에 놓은 상자 · 콘솔 상자(`AGrimCreatureBox`)는 부서지지 않는다 — 게임 중 지워지면 예전처럼 기록이 함께 사라진다.
+- **남은 것**: `GetRoamRadius()` 를 거점 반경으로, `FindNearestWithRoom` 을 「내 거점의 상자」로, 생물을 잃는 경우(상자 · 보관함 모두 꽉 참 · 주인 접속 안 함)의 규칙(「칸이 비어야 철거」 · 그 자리에 풀어놓기 등). 상자 액터 · 칸 · 세이브 형식은 그대로 둔다. M5 일꾼은 `Released` 생물에서 고른다(작업 보드).
 
 ### 화면 `UGrimCreatureStorageWidget`
 
-- 한 클래스, 두 쓰임: 가방(L)의 탭 「생물」(가방 위젯은 탭 줄 · 판 바꾸기만 — `UGrimInventoryWidget::BuildTabs` · `SelectTab`), 상자 관리 화면(`SetStandaloneScreen`, F · Esc 로 닫음, 멀어지면 닫음).
+- 한 클래스, 두 쓰임: 소지품(L)의 탭 「생물」(`UGrimCreatureStorageTab` 이 `BuildContent` 에서 만들어 끼우고 `OnShown` · `OnHidden` 에 `SetTabActive`), 상자 관리 화면(`SetStandaloneScreen`, F · Esc 로 닫음, 멀어지면 닫음).
 - 칸: 데리고 다님 · 생물 보관함 · (상자 화면이면) 거점 생물 상자. 줄 = 색 칸(영역마다) + 「이름 (종) · 암/수 · 돌연변이 / 크기 ×1.05 거대 · 충성도 72 충직 · 체력 80%」 + 단추(보관함에 넣기 · 데리고 다니기 · 상자로 · 풀어놓기 · 거두기). 보관함을 안 배웠으면 안내 한 줄(마렌에게서 산다).
 - 0.5초마다 다시 읽고, 줄(자리 · 종 · 씨앗)이 바뀌었을 때만 줄을 다시 만든다(누르는 도중에 단추가 사라지지 않게). 단추는 포커스를 받지 않는다(가방 키 · F 가 계속 게임으로).
 

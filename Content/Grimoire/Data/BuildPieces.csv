@@ -1,0 +1,20 @@
+Name,DisplayName,Description,Category,Material,Cost,MaxHealth,RepairItem,Extent,Color,SpawnClass,SortOrder
+BaseCore,"거점 핵","거점의 마법진. 놓으면 둘레 25 m 가 거점이 되고, 건축 격자의 기준이 된다. 플레이어당 하나.",Core,Stone,"Stone:5|Wood:5",500,Stone,"(X=60,Y=60,Z=80)","(R=0.35,G=0.33,B=0.38,A=1.0)",/Script/Grimoire.GrimBaseCore,0
+WoodFoundation,"나무 바닥","3 m × 3 m 바닥. 땅 위 첫 조각 — 벽 · 계단 · 기둥이 이 위에 선다.",Foundation,Wood,"Wood:4",200,Wood,"(X=150,Y=150,Z=50)","(R=0.55,G=0.38,B=0.2,A=1.0)",,10
+WoodWall,"나무 벽","3 m 벽. 바닥 가장자리에 붙는다. 불에 탄다.",Wall,Wood,"Wood:3",150,Wood,"(X=10,Y=150,Z=150)","(R=0.5,G=0.34,B=0.18,A=1.0)",,11
+WoodDoor,"나무 문","문틀 + 문짝(F 로 열고 닫기). 사람용 한 칸.",Door,Wood,"Wood:4",150,Wood,"(X=10,Y=150,Z=150)","(R=0.47,G=0.31,B=0.16,A=1.0)",,12
+WoodRoof,"나무 지붕","3 m × 3 m 지붕 판. 비를 막는다 — 지붕 아래는 날씨 몫의 추위가 없고 불이 꺼지지 않는다. 위층 바닥도 된다.",Roof,Wood,"Wood:3",150,Wood,"(X=150,Y=150,Z=10)","(R=0.42,G=0.27,B=0.14,A=1.0)",,13
+WoodStair,"나무 계단","한 층(3.2 m)을 오르는 계단 열 칸.",Stair,Wood,"Wood:5",150,Wood,"(X=150,Y=130,Z=160)","(R=0.55,G=0.38,B=0.2,A=1.0)",,14
+WoodPillar,"나무 기둥","모퉁이 기둥. 지붕을 받친다.",Pillar,Wood,"Wood:1",100,Wood,"(X=15,Y=15,Z=150)","(R=0.45,G=0.3,B=0.15,A=1.0)",,15
+StoneFoundation,"돌 바닥","타지 않는 3 m × 3 m 바닥.",Foundation,Stone,"Stone:4",400,Stone,"(X=150,Y=150,Z=50)","(R=0.55,G=0.55,B=0.55,A=1.0)",,20
+StoneWall,"돌 벽","타지 않는 3 m 벽 — 습격 · 불에 강하다.",Wall,Stone,"Stone:3",350,Stone,"(X=10,Y=150,Z=150)","(R=0.5,G=0.5,B=0.52,A=1.0)",,21
+StoneDoor,"돌 문","돌 문틀 + 나무 문짝(F 로 열고 닫기).",Door,Stone,"Stone:3|Wood:1",350,Stone,"(X=10,Y=150,Z=150)","(R=0.48,G=0.48,B=0.5,A=1.0)",,22
+StoneRoof,"돌 지붕","타지 않는 지붕 판.",Roof,Stone,"Stone:3",300,Stone,"(X=150,Y=150,Z=10)","(R=0.42,G=0.42,B=0.45,A=1.0)",,23
+StoneStair,"돌 계단","한 층을 오르는 돌 계단.",Stair,Stone,"Stone:5",300,Stone,"(X=150,Y=130,Z=160)","(R=0.55,G=0.55,B=0.55,A=1.0)",,24
+StonePillar,"돌 기둥","모퉁이 돌 기둥.",Pillar,Stone,"Stone:1",250,Stone,"(X=15,Y=15,Z=150)","(R=0.5,G=0.5,B=0.5,A=1.0)",,25
+Bed,"침대","눕기 F. 밤에 모두가 자면 아침으로 건너뛴다. 마지막으로 잔 침대가 부활 지점.",Station,Wood,"Wood:6|JackalopeFur:2",100,Wood,"(X=100,Y=50,Z=25)","(R=0.6,G=0.45,B=0.3,A=1.0)",/Script/Grimoire.GrimBaseBed,30
+Campfire,"모닥불","불 마법으로 켜는 열원. 지붕 아래면 비에도 꺼지지 않는다.",Station,Stone,"Wood:3|Stone:3",120,Stone,"(X=40,Y=40,Z=20)","(R=0.3,G=0.18,B=0.08,A=1.0)",/Script/Grimoire.GrimBaseCampfire,31
+StorageChest,"저장고","24칸 상자. F 로 열어 가방과 옮긴다. 거점 수리는 이 안의 재료를 쓴다.",Station,Wood,"Wood:8",150,Wood,"(X=62,Y=37,Z=34)","(R=0.42,G=0.27,B=0.12,A=1.0)",/Script/Grimoire.GrimStorageChest,32
+Workbench,"작업대","장비 · 도구를 만든다. 「수리」 마법을 걸면 닳은 장비를 고친다.",Station,Wood,"Wood:10|Stone:2",150,Wood,"(X=80,Y=40,Z=45)","(R=0.55,G=0.38,B=0.2,A=1.0)",/Script/Grimoire.GrimWorkbench,33
+CropPlot,"밭","2 m × 2 m 두둑. 씨앗을 심고 비 · 물 마법으로 적신다.",Station,None,"Wood:2|Stone:2",80,Wood,"(X=100,Y=100,Z=10)","(R=0.25,G=0.16,B=0.08,A=1.0)",/Script/Grimoire.GrimFarmPlot,34
+CreatureBox,"생물 상자","길들인 생물을 맡기는 상자(60칸 · 모두 함께). F 로 관리 — 옮기기 · 풀어놓기 · 거두기. 부서지면 생물은 다른 상자나 주인의 보관함으로 간다.",Station,Wood,"Wood:10|Stone:4",200,Wood,"(X=60,Y=45,Z=35)","(R=0.36,G=0.22,B=0.12,A=1.0)",/Script/Grimoire.GrimBaseCreatureBox,35

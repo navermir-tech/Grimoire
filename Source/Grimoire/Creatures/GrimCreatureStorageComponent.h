@@ -25,7 +25,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FGrimCreatureStorageChangedNative, class UGr
  *  - 옮기기 Transfer(From → To): 데리고 다님 · 보관함 · 거점 상자 · 풀어놓음 네 곳 사이. 상자가 끼면 그 상자 곁이어야 한다.
  *  - 새로 길들일 때 갈 곳(DecideNewTame): 파티 → 보관함 → 세계의 거점 상자 → 거절(굴림 전).
  *  - 세이브: Player 「Creatures.Storage」 v1 — 배웠나 + 보관함 기록. 데리고 다니는 생물은 UGrimTamerComponent(Creatures.Owned)가 그대로 맡는다.
- *  - 로컬: 거점 상자 관리 화면(UGrimCreatureStorageWidget)을 띄운다. 가방 「생물」 탭은 가방 화면이 같은 위젯을 따로 둔다.
+ *  - 로컬: 거점 상자 관리 화면(UGrimCreatureStorageWidget)을 띄운다. 소지품 「생물」 탭(UGrimCreatureStorageTab)은 같은 위젯을 따로 둔다.
  */
 UCLASS(ClassGroup = (Grimoire))
 class GRIMOIRE_API UGrimCreatureStorageComponent : public UActorComponent, public IGrimSaveParticipant

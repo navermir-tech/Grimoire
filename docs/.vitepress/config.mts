@@ -62,6 +62,7 @@ export default defineConfig({
             { text: 'M2 작업 분할', link: '/systems/m2-plan' },
             { text: 'M2 후반 작업 분할', link: '/systems/m2b-plan' },
             { text: 'M3 작업 분할', link: '/systems/m3-plan' },
+            { text: 'M4 작업 계획 — 거점', link: '/systems/m4-plan' },
             { text: '레벨 · 성장 트리', link: '/systems/progression' },
             { text: '커스터마이징 — 외형 조립', link: '/systems/customization' },
             { text: '마법탑 튜토리얼 · 퀘스트', link: '/systems/tutorial' },

@@ -6,7 +6,7 @@
 
 GRIMOIRE_API DECLARE_LOG_CATEGORY_EXTERN(LogGrimItems, Log, All);
 
-/** 아이템 종류(docs/systems/building 「인벤토리 · 아이템」). 씨앗 · 완드 · 놓는 것은 M4. */
+/** 아이템 종류(docs/systems/building 「인벤토리 · 아이템」). 뒤에만 더한다(CSV 는 이름으로 읽는다). */
 UENUM(BlueprintType)
 enum class EGrimItemKind : uint8
 {
@@ -18,6 +18,10 @@ enum class EGrimItemKind : uint8
 	Skillbook,
 	/** 도구 — M4(내구도 · 인챈트) */
 	Tool,
+	/** 장비(M4) — 쓰면 입는다(UGrimEquipmentComponent). 칸 · 내구도는 Equipment.csv */
+	Equipment,
+	/** 씨앗(M4) — 밭에 F 로 심는다(Crops.csv 의 SeedItem) */
+	Seed,
 };
 
 /** 땅에 떨어진 모양(엔진 기본 도형 — 아트 전 임시) */
@@ -164,6 +168,10 @@ struct GRIMOIRE_API FGrimItemInstance
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
 	TArray<FName> Enchantments;
 
+	/** 수리한 횟수(M4 — 수리마다 최대 내구도가 준다, 같은 장비 합치기의 작업 횟수) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+	int32 RepairCount = 0;
+
 	FGrimItemInstance() = default;
 	FGrimItemInstance(FName InItemId, int32 InCount) : ItemId(InItemId), Count(InCount) {}
 
@@ -176,11 +184,14 @@ struct GRIMOIRE_API FGrimItemInstance
 
 	bool operator==(const FGrimItemInstance& Other) const
 	{
-		return ItemId == Other.ItemId && Count == Other.Count && Durability == Other.Durability && Enchantments == Other.Enchantments;
+		return ItemId == Other.ItemId && Count == Other.Count && Durability == Other.Durability && Enchantments == Other.Enchantments && RepairCount == Other.RepairCount;
 	}
 	bool operator!=(const FGrimItemInstance& Other) const { return !(*this == Other); }
 
-	/** 세이브 형식(Items.Inventory v1 · 픽업 · 냄비 공통): FString ID, int32 개수, float 내구도, int32 인챈트 수, FString × 수 */
+	/**
+	 * 세이브 형식(Items.Inventory v1 · 픽업 · 냄비 · 저장고 · 장비 공통): FString ID, int32 개수, float 내구도, int32 인챈트 수, FString × 수.
+	 * 수리한 적이 있으면(M4) 인챈트 수의 RepairCountFlag 비트를 켜고 끝에 int32 수리 횟수를 붙인다 — 옛 세이브는 그대로 읽힌다.
+	 */
 	void Serialize(FArchive& Ar);
 };
 

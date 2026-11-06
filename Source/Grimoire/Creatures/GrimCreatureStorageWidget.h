@@ -24,7 +24,7 @@ struct GRIMOIRE_API FGrimCreatureRowView
 
 /**
  * 생물 목록 화면(C++ 위젯 트리, R38) — 두 가지로 쓴다.
- *  - 가방 「생물」 탭(UGrimInventoryWidget 이 안에 넣는다): 데리고 다님 · 보관함 두 칸. 줄마다 이름 · 종 · 성별 · 색 칸 · 크기 · 충성도 · 체력 + 넣기 · 꺼내기 단추.
+ *  - 소지품 「생물」 탭(UGrimCreatureStorageTab 이 소지품 화면에 끼운다): 데리고 다님 · 보관함 두 칸. 줄마다 이름 · 종 · 성별 · 색 칸 · 크기 · 충성도 · 체력 + 넣기 · 꺼내기 단추.
  *  - 거점 생물 상자 관리 화면(SetStandaloneScreen — UGrimCreatureStorageComponent::OpenBoxScreen): 세 칸(+ 상자) · 옮기기 · 풀어놓기 · 거두기. F · Esc 로 닫는다.
  * 값은 복제된 것(내 생물 액터 · 보관함 기록 · 상자 칸)을 읽기만 하고, 바꾸는 것은 서버 RPC(RequestTransfer).
  */

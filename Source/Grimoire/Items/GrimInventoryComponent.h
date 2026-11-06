@@ -28,6 +28,8 @@ enum class EGrimItemNotice : uint8
 	IngredientsAdded,
 	NothingToAdd,
 	TookBack,
+	/** 장비를 입었다(M4) */
+	Equipped,
 };
 
 UENUM(BlueprintType)
@@ -36,6 +38,8 @@ enum class EGrimItemUseResult : uint8
 	Eaten,
 	Learned,
 	ProficiencyGained,
+	/** 장비를 입었다(M4 — UGrimEquipmentComponent) */
+	Equipped,
 	CannotUse,
 	Invalid,
 };
@@ -199,6 +203,9 @@ public:
 
 	/** 로컬 소유 컨트롤러(리슨 호스트 · 소유 클라이언트). 없으면 nullptr */
 	APlayerController* GetLocalOwningController() const;
+
+	/** 로컬 쪽 가방 화면(없으면 nullptr) — 거점 시설이 탭을 연다 */
+	UGrimInventoryWidget* GetWidget() const { return Widget; }
 
 protected:
 	virtual void InitializeComponent() override;

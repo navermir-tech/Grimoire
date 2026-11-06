@@ -1,2 +1,6 @@
 Name,DisplayName,Station,Inputs,Output,OutputCount,CookSeconds
 MeatStew,"고기 스튜",CookingPot,"#Meat:1|Herb:1|Salt:1|Grain:1",Stew,1,10
+FurHood,"털 두건",Workbench,"JackalopeFur:3",FurHood,1,1
+HideRobe,"가죽 로브",Workbench,"BlackDogHide:2|JackalopeFur:2",HideRobe,1,1
+Wand_Oak,"참나무 완드",Workbench,"Wood:2|BlackDogFang:1",Wand_Oak,1,1
+GrainSeed,"곡물 씨앗 고르기",Workbench,"Grain:2",GrainSeed,2,1

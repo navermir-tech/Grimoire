@@ -43,6 +43,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Inventory", meta = (ClampMin = "1", ClampMax = "200"))
 	int32 PlayerSlotCount = 24;
 
+	/**
+	 * 소지품 화면의 탭 클래스(UGrimInventoryTab 하위, 「가방」 탭 다음에 GetOrder 순으로). 데이터로 등록 — 갈래마다 한 줄씩 더한다.
+	 * 코드로는 UGrimInventoryWidget::RegisterTabClass.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Inventory", meta = (MetaClass = "/Script/Grimoire.GrimInventoryTab"))
+	TArray<FSoftClassPath> InventoryTabClasses;
+
 	/** 가방 화면 키. 호그와트 레거시 PC 배치: 소지품(Inventory) = L, 장비(Gear) = I — 장비 화면(M4)에 I 를 남긴다 */
 	UPROPERTY(Config, EditAnywhere, Category = "Input")
 	FKey BagKey = EKeys::L;

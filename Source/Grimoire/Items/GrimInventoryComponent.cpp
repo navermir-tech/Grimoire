@@ -1,4 +1,5 @@
 #include "Items/GrimInventoryComponent.h"
+#include "Base/GrimEquipmentComponent.h"
 #include "Items/GrimCookingPot.h"
 #include "Items/GrimInventoryWidget.h"
 #include "Items/GrimItemPickup.h"
@@ -365,6 +366,15 @@ EGrimItemUseResult UGrimInventoryComponent::UseItem(int32 SlotIndex)
 	{
 	case EGrimItemKind::Food: return EatFood(SlotIndex, *Def);
 	case EGrimItemKind::Skillbook: return ReadSkillbook(SlotIndex, *Def);
+	case EGrimItemKind::Equipment:
+		// 입기(M4) — 칸에 있던 것은 가방으로.
+		if (UGrimEquipmentComponent* Equipment = UGrimEquipmentComponent::FindForActor(GetOwner()); Equipment && Equipment->EquipFromBag(SlotIndex))
+		{
+			SendNotice(EGrimItemNotice::Equipped, Def->Id, 1);
+			return EGrimItemUseResult::Equipped;
+		}
+		SendNotice(EGrimItemNotice::CannotUse, Def->Id, 1);
+		return EGrimItemUseResult::CannotUse;
 	default:
 		SendNotice(EGrimItemNotice::CannotUse, Def->Id, 1);
 		return EGrimItemUseResult::CannotUse;
