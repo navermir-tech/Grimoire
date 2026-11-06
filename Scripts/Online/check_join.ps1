@@ -132,10 +132,12 @@ function Check([string]$What, [bool]$Ok, [switch]$Optional) {
 
 # 메뉴
 Check "S: 메뉴 월드는 세이브를 쓰지 않음" ($T["S"] -match "메인 메뉴 맵 — 이 월드에서는 세이브를 쓰지 않는다" -and $T["S"] -match "세이브 꺼짐: 설정 bEnabled=False")
-Check "S: 실패 때 돌아갈 기본 맵 = 메인 메뉴(이 프로세스만)" ($T["S"] -match "돌아갈 기본 맵을 이 프로세스에서만 /Game/Grimoire/Maps/L_MainMenu")
+# M3 통합(2026-11-06) 뒤에는 ini 의 GameDefaultMap 이 이미 L_MainMenu 라 이 프로세스에서 바꿀 일이 없다 — 둘 중 하나면 된다
+$IniDefaultMenu = [bool](Select-String -Path (Join-Path $Root "Config\DefaultEngine.ini") -Pattern "^GameDefaultMap=/Game/Grimoire/Maps/L_MainMenu" -Quiet)
+Check "S: 실패 때 돌아갈 기본 맵 = 메인 메뉴" ($IniDefaultMenu -or $T["S"] -match "돌아갈 기본 맵을 이 프로세스에서만 /Game/Grimoire/Maps/L_MainMenu")
 
-# 서버 열기
-Check "S: 서버 열림(포트 $Port · 최대 2 · 슬롯 $Slot)" ($T["S"] -match "서버 열림: 맵 /Game/Grimoire/Maps/L_Tower · 주소 \S*:$Port · 최대 2명 · 슬롯 $Slot")
+# 서버 열기 — 게임 맵은 설정 GrimOnlineSettings.GameMap(M3 통합 뒤 L_OpenBeta)
+Check "S: 서버 열림(포트 $Port · 최대 2 · 슬롯 $Slot)" ($T["S"] -match "서버 열림: 맵 /Game/Grimoire/Maps/(L_OpenBeta|L_Tower) · 주소 \S*:$Port · 최대 2명 · 슬롯 $Slot")
 Check "S: 호스트 이름 = 호스트" ($T["S"] -match "로컬 플레이어 이름: 호스트")
 Check "S: 온라인 세션 만듦(LAN)" ($T["S"] -match "온라인 세션\(\S+\) 만듦") -Optional
 
