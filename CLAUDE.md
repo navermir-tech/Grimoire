@@ -45,6 +45,8 @@ $UE = "C:\Program Files\Epic Games\UE_5.8"
 - 스펙 · 설계가 바뀌면 문서를 먼저 고치고 `docs/spec/decisions.md` 에 한 줄 남긴다. 코드가 문서와 다르면 문서를 코드에 맞춘다.
 - 이 머신의 Bash 도구는 히어독 여러 개가 든 250줄 넘는 명령에서 따옴표 파싱 오류를 낸다 → 큰 파일은 Write 도구나 여러 호출로 만든다.
 - 커밋은 사용자가 시키면 한다. 메시지는 한국어 한 줄 + 필요하면 설명.
+- **문서는 늘 최신**(사람과 AI 가 어떻게 만들었는지 읽는다): 코드를 바꾼 세션은 같은 브랜치에서 `docs/systems/` · `docs/spec/` · `docs/dev/history.md` 를 고친다(`docs/dev/docs-checklist.md`, `npm run docs:check`). 문서가 안 맞는 브랜치는 `main` 에 합치지 않는다.
+- **QA 는 Claude 가 먼저**: 완료 보고 전에 그 세션이 QA 항목(무엇을 · 어떻게 · 기대 결과)을 `docs/qa/<영역>.md` 에 쓰고 직접 검증한다 — 절차 `docs/dev/qa.md`.
 
 ## 세션 · 워크트리
 
