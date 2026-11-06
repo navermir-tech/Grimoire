@@ -5,6 +5,8 @@
 //   2. 콘솔   — `Grim.X.Y` 와 `GrimSuperCheat 1` 같은 명령이 Source 에 등록돼 있는가(오류)
 //   3. 식별자 — `UGrimFoo` · `GrimFoo` 가 Source 어딘가에 있는가(경고, --strict 면 오류)
 // 줄에 「계획」「미구현」「설계안」「예정」「나중」「옛 이름」이 있으면 그 줄은 건너뛴다(아직 없는 것을 적는 줄).
+// 절 머리에 그 낱말이 있거나 머리 바로 아래 `> 상태: … 계획 …` 이면 다음 같은 수준 머리까지 절 전체를 건너뛴다.
+// 레벨 액터 이름(`GrimCandle_2` 처럼 _숫자)은 보지 않는다.
 // 조각 하나만 빼려면 바로 뒤에 `(안 생김)` · `(아직 없음)` 을 붙인다: `Content/Grimoire/Survival/`(안 생김)
 // docs/spec/decisions.md 는 결정 기록(옛 이름이 남는다)이라 보지 않는다.
 //
@@ -77,6 +79,17 @@ function consoleExists(token) {
   return consoleNames.has(lower)
 }
 
+// 머리 자체에 계획 낱말이 있거나, 머리 바로 아래 `> 상태:` 줄이 계획이면 그 절 전체가 계획이다
+function isPlanSection(lines, headingIndex) {
+  if (PlanWords.test(lines[headingIndex])) return true
+  for (let j = headingIndex + 1; j < lines.length && j <= headingIndex + 3; j++) {
+    const next = lines[j].trim()
+    if (!next) continue
+    return /^>\s*상태/.test(next) && PlanWords.test(next)
+  }
+  return false
+}
+
 const errors = []
 const warnings = []
 let spanCount = 0
@@ -86,9 +99,17 @@ for (const file of walk(path.join(Root, 'docs'), (n) => n.endsWith('.md'))) {
   if (SkipDocs.has(doc)) continue
   const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/)
   let fenced = false
+  let planLevel = 0   // 0 이 아니면 그 수준 머리의 절이 계획이다
   lines.forEach((line, i) => {
     if (/^\s*(```|~~~)/.test(line)) { fenced = !fenced; return }
-    if (fenced || PlanWords.test(line)) return
+    if (fenced) return
+    const heading = line.match(/^(#{1,6})\s/)
+    if (heading) {
+      const level = heading[1].length
+      if (planLevel && level <= planLevel) planLevel = 0
+      if (!planLevel && isPlanSection(lines, i)) planLevel = level
+    }
+    if (planLevel || PlanWords.test(line)) return
     for (const m of line.matchAll(/`([^`\n]+)`/g)) {
       spanCount++
       const span = m[1].trim()
@@ -105,6 +126,8 @@ for (const file of walk(path.join(Root, 'docs'), (n) => n.endsWith('.md'))) {
         if (!consoleExists(first)) errors.push(`${where}  콘솔 명령 없음  ${first}`)
         continue
       }
+      // `GrimCandle_2 (500, 250, 0)` — 레벨에 놓인 액터 이름(_숫자)은 명령도 클래스도 아니다
+      if (/^\w+_\d+$/.test(first)) continue
       // `GrimSuperCheat 1` — 인자가 붙은 Grim 단어는 Exec 명령으로 본다
       if (/^Grim[A-Z]\w*$/.test(first) && span.includes(' ') && !/[(:<]/.test(first)) {
         if (!consoleExists(first) && !identifiers.has(first)) errors.push(`${where}  콘솔 명령 없음  ${first}`)

@@ -78,7 +78,7 @@
 - 능력치 배율 `StatScale` = 1 + (크기 − 1) × `StatPerSize`(0.5 → ±5%), 거대면 × `GiantStatMultiplier`(1.5). 체력 = 종 `MaxHealth` × `StatScale`, 공격 피해 = `Damage × Power × StatScale`. 거대 개체는 `Creature.Ability.GiantRoar` 태그(기술 하나 더 — 효과는 자리만).
 - 성별 팔레트: 그 성별 팔레트가 비어 있지 않으면 그것, 아니면 기본. 성별 부위는 그 성별일 때만 만든다.
 - 클라이언트는 복제된 기록으로 칠한다(굴리지 않는다). 최종 색까지 복제 — 서버 · 클라이언트 색이 비트까지 같다.
-- 유전 IV · 번식(`FGrimGenome`)은 M4~M5.
+- 유전 IV · 번식(`FGrimGenome`)은 M5 계획.
 
 ## 생물 폰 `AGrimCreature`
 
