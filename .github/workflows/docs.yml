@@ -1,0 +1,53 @@
+# 문서 사이트(VitePress, docs/)를 GitHub Pages 에 배포한다. 언리얼 프로젝트 빌드와는 무관하다.
+# 주소: https://navermir-tech.github.io/Grimoire/
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # lastUpdated(마지막 수정 시각)가 git 기록을 읽으므로 전체 기록을 받는다.
+          fetch-depth: 0
+          # 언리얼 LFS 파일은 받지 않는다. docs/ 그림은 LFS 가 아니다(.gitattributes).
+          lfs: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run docs:build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
