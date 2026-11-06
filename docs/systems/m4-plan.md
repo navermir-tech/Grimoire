@@ -135,4 +135,5 @@
 - 자동화 테스트 168개 통과(새 `Grimoire.Base.CreatureBox.Data` · `.Rescue`). `net_check_storage.ps1` `NETCHECK_RESULT fail=0`, `net_check_base.ps1` 결과는 위 「확인 결과」와 같다(조각 10 · 지은 것 17, 밤 0.921 → 0.194, 저장고 남은 나무 2, 털 두건 101/108, 벽 150/150, 곡물 3, 문 철거 뒤 9 · 16).
 - 창 모드 화면 찍기 `Scripts/Base/capture_base.ps1`(`Grim.Base.Bag <탭>` · `shot showui` · `HighResShot`, 거점 핵은 `BugItGo` 로 늘 (1200, 0)) → `Saved/BaseCapture/`. 탭 6개 · 생물 상자 화면 · 집 바깥(문 닫힘 · 열림)이 다 그려졌다.
 - 화면에서 본 것(고칠 것): 가방 「사용 (먹기 · 읽기 · 입기)」 글이 단추(160 px)를 넘친다, 작업대 레시피 줄이 두 줄로 접혀 아랫줄이 잘린다, 저장고 칸에서 「재칼로프 고기(날) ×3」이 칸 높이를 넘친다, 집 안 두 칸 벽 이음새로 세로 빛줄기가 샌다, 생물 상자(기본 도형)가 반쯤 땅에 묻혀 보인다(상자 몸 원점이 가운데).
+- QA 항목 · 결과: [QA — M4 거점 + 생물 보관 통합](../qa/m4-base)(지은 생물 상자의 넣기 · 풀어놓기 · 철거 · 저장 뒤 다시 켜기는 `Scripts/Base/qa_creature_box.ps1`, `QA_RESULT fail=0`).
 - 워크트리 함정: 새 워크트리는 LFS 에셋이 포인터 그대로일 수 있다 — `git lfs checkout`(로컬 캐시)을 하지 않으면 에셋을 읽는 테스트가 실패하거나 죽는다.

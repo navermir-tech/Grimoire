@@ -3,7 +3,7 @@
 > 스펙: [마법 생물](../spec/creatures) (R02 · R14 · R15 · R23 · R35) · 코드: `Source/Grimoire/Creatures/` · 테스트: `Grimoire.Creatures.*`
 >
 > M3 묶음 1(갈래 C)에서 **종 정의 · 생물 폰 · AI · 생태계 스폰 · 두 속성 상성 · 튜토리얼 이벤트**까지 만들었다. 묶음 2(갈래 T)에서 **길들이기(파크툼) · 충성도 · 성격 · 명령 · 탑승 · 세이브**를 더했다 — 아래 「길들이기」 · 「충성도」 · 「탑승」. 테스트: `Grimoire.Taming.*`.
-> R38(2026-11-06)에서 **데리고 다니는 수 · 생물 보관함(노말 스킬) · 거점 생물 상자 · 가방 「생물」 탭**을 더했다 — 아래 「데리고 다니기 · 보관함 · 거점 상자」. 테스트: `Grimoire.Creatures.Storage.*`.
+> R38(2026-11-06)에서 **데리고 다니는 수 · 생물 보관함(노말 스킬) · 거점 생물 상자 · 소지품 「생물」 탭**을 더했다 — 아래 「데리고 다니기 · 보관함 · 거점 상자」. 테스트: `Grimoire.Creatures.Storage.*`.
 
 ## 한눈에
 
@@ -225,7 +225,7 @@
 4. 상자 안 ↔ 풀어놓음은 상자 안에서(`ReleaseEntry` · `RecallEntry`). 그 밖은 빼기(데리고 다님이면 내리기 → 기록 → 주인 기록에서 빼기 → 액터 지우기) → 넣기(데리고 다님이면 주인 뒤 3m 에 스폰 · `RestoreOwned` · 따라오기 · 주인 기록에 넣기, 풀어놓기면 상자 둘레에 스폰). 넣기가 실패하면 잃지 않게 보관함에 둔다.
 5. 알림(「이름 → 보관함」 · 거절 까닭 — `UGrimTamerComponent::SendNotice`) · 로그 `[Server] 생물 옮김 <종> seed=<씨앗> <From> → <To> (데리고 다님 n/m · 보관함 n/m · 상자 n/m)`.
 
-- 클라이언트는 `RequestTransfer` → `Server_Transfer`(Reliable). 생물 메뉴(F) 「보관함에 넣기」(배웠을 때) · 가방 「생물」 탭 · 상자 화면 · 콘솔이 같은 RPC 를 부른다.
+- 클라이언트는 `RequestTransfer` → `Server_Transfer`(Reliable). 생물 메뉴(F) 「보관함에 넣기」(배웠을 때) · 소지품 「생물」 탭 · 상자 화면 · 콘솔이 같은 RPC 를 부른다.
 
 ### 새로 길들일 때 (`UGrimTamingSubsystem::TryTame`)
 

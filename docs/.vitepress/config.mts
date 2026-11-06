@@ -18,6 +18,7 @@ export default defineConfig({
       { text: '시스템', link: '/systems/', activeMatch: '/systems/' },
       { text: '아트', link: '/art/costumes-tutorial', activeMatch: '/art/' },
       { text: '개발', link: '/dev/setup', activeMatch: '/dev/' },
+      { text: 'QA', link: '/qa/m4-base', activeMatch: '/qa/' },
     ],
 
     sidebar: {
@@ -80,6 +81,14 @@ export default defineConfig({
             { text: '마법사 의상 — 튜토리얼 NPC 시안', link: '/art/costumes-tutorial' },
             { text: '1번 지역 콘셉트 아트', link: '/art/region1-concepts' },
             { text: '1번 지역 — 필요한 3D 모델', link: '/art/region1-assets' },
+          ],
+        },
+      ],
+      '/qa/': [
+        {
+          text: 'QA 기록 (항목 · 방법 · 기대 · 결과)',
+          items: [
+            { text: 'M4 거점 + 생물 보관 통합', link: '/qa/m4-base' },
           ],
         },
       ],
