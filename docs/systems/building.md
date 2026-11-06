@@ -1,8 +1,12 @@
 # 건축 · 농사 · 생산 시스템
 
 > 스펙: [하우징 · 거점](../spec/housing) (R11), [마법 생물](../spec/creatures) (R02 노동)
+>
+> 상태: M4 에서 거점 · 건축 · 시설 4종 · 밭 · 장비 · 내구도 · 수리가 `Source/Grimoire/Base/` 에 들어갔다. 실제 클래스 · 표 · 조작 · 콘솔은 [M4 작업 계획 — 거점](./m4-plan) 이 정본이고, 이 문서의 절마다 「구현:」 으로 잇는다. 「설계안」 이라 적힌 줄은 아직 코드가 없다.
 
 ## 거점 `AGrimBaseCore`
+
+구현: `Source/Grimoire/Base/GrimBaseCore.h` 의 `AGrimBaseCore`(격자 원점 · 반경 · 주인 PlayerId · 거점 수리), 목록은 `Source/Grimoire/Base/GrimBaseSubsystem.h` 의 `UGrimBaseSubsystem`. 멤버 권한 · 작업 보드 · 부활 지점은 설계안(M5~).
 
 - 배치하면 반경(`BaseRadius`, 서클에 따라 확장) 안이 거점. 복제 액터, 소유 `FGuid OwnerId` + 멤버 권한 `TMap<FGuid, EBasePermission>`.
 - 보유: 건축 조각 목록(세이브 단위), 작업 보드(노동), 부활 지점, 시설 레지스트리.
@@ -10,11 +14,15 @@
 
 ## 건축
 
-### 데이터 `UGrimBuildPieceDefinition`
+### 데이터 — `Content/Grimoire/Data/BuildPieces.csv`
+
+구현: 행 `FGrimBuildPieceRow` → `FGrimBuildPieceDefinition`(`Source/Grimoire/Base/GrimBaseTypes.h`, 읽기 `FGrimBaseDatabase`). 열은 [M4 — 데이터](./m4-plan#데이터-표-정본-런타임에-읽는다). 아래 필드 목록은 처음 설계안(DataAsset `UGrimBuildPieceDefinition`)이다.
 
 `Mesh, Category(Foundation · Wall · Roof · Door · Stair · Pillar · Furniture · Light · Station), Cost(TMap<ItemId, int>), SnapSockets, bProvidesRoof, Insulation, Health`
 
-### 배치 `UGrimBuildModeComponent` (플레이어 캐릭터, 로컬 + 서버 검증)
+### 배치 `UGrimBuilderComponent` (PlayerState, 로컬 고스트 + 서버 RPC)
+
+구현: `Source/Grimoire/Base/GrimBuilderComponent.h` 의 `UGrimBuilderComponent`(건축 모드 · 상호작용 F · 모든 서버 RPC), 고스트 `Source/Grimoire/Base/GrimBuildGhost.h` 의 `AGrimBuildGhost`, 격자 · 지지 계산 `FGrimBuildGrid`(`Source/Grimoire/Base/GrimBaseTypes.h`), 조각 `Source/Grimoire/Base/GrimBuildPiece.h` 의 `AGrimBuildPiece`. 설계안 이름은 캐릭터에 붙는 「BuildMode」 컴포넌트였다. `SnapSockets` · HISM 묶기는 설계안 그대로(미구현) — 지금은 [M4 — 격자 · 지지](./m4-plan#격자-·-지지-q33) 규칙.
 
 1. 건축 모드 진입 → 조각 선택 → **고스트 미리보기**(로컬, 반투명 머티리얼, 유효 초록 / 무효 빨강).
 2. 스냅: **격자 스냅**(R30 — 팰월드 크기의 큰 블록, 칸 크기는 설정 `BuildGridSize` 300cm · 벽 높이 300cm — 아크와 같음, Q33 확정). 구조 조각은 거점 격자 · 이웃 조각의 `SnapSockets` 에 붙고, 첫 바닥은 지형에 직접. 가구 · 장식(`Category.Furniture` · `Light`)은 격자 없이 표면에 자유 배치.
@@ -26,7 +34,8 @@
 
 ### 지붕 판정
 
-- `bProvidesRoof` 조각은 `ECC_Roof` 채널 충돌. 생존(비 · 바람) · 상호작용(비에 불 꺼짐)은 위로 트레이스해 이 채널을 본다.
+- 구현: 전용 채널 없이 날씨의 기존 위로 트레이스(WorldStatic · WorldDynamic)가 지붕 조각에 막히면 실내다 — `UGrimWeatherSubsystem::IsActorSheltered`(`Source/Grimoire/Environment/GrimWeatherSubsystem.h`).
+- (처음 설계안) `bProvidesRoof` 조각은 `ECC_Roof` 채널 충돌. 생존(비 · 바람) · 상호작용(비에 불 꺼짐)은 위로 트레이스해 이 채널을 본다.
 
 ### 마법 건축 (제안 · M5+)
 
@@ -39,11 +48,15 @@
 
 ## 농사
 
-### 데이터 `UGrimCropDefinition`
+### 데이터 — `Content/Grimoire/Data/Crops.csv`
+
+구현: 행 `FGrimCropRow` → `FGrimCropDefinition`, 생장 계산 `FGrimCropMath`(`Source/Grimoire/Base/GrimBaseTypes.h`). 아래는 처음 설계안(DataAsset `UGrimCropDefinition`)이다.
 
 `Stages[](Mesh, Duration), Needs { Water: 0~1/일, Light: 0~1, TempRange }, Yield(DropTable), SeedItem, bPerennial`
 
-### 액터 `AGrimCropPlot` (밭) + `UGrimCropComponent`
+### 액터 `AGrimFarmPlot` (밭)
+
+구현: `Source/Grimoire/Base/GrimBaseStations.h` 의 `AGrimFarmPlot` — 작물 컴포넌트 없이 액터 하나(씨앗 · 생장 · 수분 · 재 · 거두기, F 로 심기 · 거두기). 튜토리얼의 `AGrimCropPlot` 은 L_Tower 에 놓인 작물 자리로 따로 남았다. 땅 마법 밭 만들기 · 바람 · 땅 마법 수확은 설계안(M5).
 
 - 밭은 땅 마법으로 생성(`GA_Spell_Till` → 땅 자극 → `State.Tilled` → 밭 액터 스폰) 또는 건축 조각(Furniture.Planter).
 - 성장: 서버 타이머(1분 간격) — `Growth += dt × f(Water, Light, Temp)`. `Water` 는 `State.Wet` 세기에서, `Light` 는 낮 또는 `State.Illuminated`(빛 마법), `Temp` 는 기온.
@@ -52,14 +65,18 @@
 
 ## 생산
 
-### 시설 `AGrimCraftStation` + `UGrimCraftingComponent`
+### 시설 `AGrimWorkbench` · `AGrimStorageChest`
+
+구현: `Source/Grimoire/Base/GrimBaseStations.h` — 공통 `AGrimStationBase`, 작업대 `AGrimWorkbench`(대기열 없이 **즉시** 제작), 저장고 `AGrimStorageChest` + `Source/Grimoire/Base/GrimItemContainerComponent.h` 의 `UGrimItemContainerComponent`(24칸), 지은 침대 · 모닥불 `AGrimBaseBed` · `AGrimBaseCampfire`. 아래 대기열 · 가열 시설 · 일꾼 배정은 설계안(가마 · 요리대 · 완드 공방은 M5).
 
 - `StationTag`(Workbench · Kiln · Cookpot · WandWorkshop · Storage).
 - 대기열: `TArray<FGrimCraftJob { RecipeRow, Remaining, Assignee }>`(복제). 서버 타이머가 진행.
 - **가열 시설**은 `GrimElementalState` 를 가지며 `State.Burning` 세기가 속도 배율(불 마법으로 점화, 바람으로 ↑, 비에 꺼짐 — 지붕 필요).
 - 일꾼: 작업 보드에 `Work.Craft`(적성 생물 배정 시 속도 ×1.5), `Work.Fuel`(불 생물이 가열 유지).
 
-### 레시피 `DT_Recipes`
+### 레시피 `Content/Grimoire/Data/Recipes.csv`
+
+구현: 행 `FGrimRecipeRow`(`Source/Grimoire/Items/GrimItemTypes.h`) — 작업대는 `Station=Workbench` 행을 쓴다. 아래 열 목록은 처음 설계안이다.
 
 `RecipeId, StationTag, Inputs[], Output, Seconds, RequiredCircle, RequiredSpell(각인용)`
 
@@ -69,10 +86,12 @@
 
 ## 내구도 · 수리 · 인챈트 (R18 · R19)
 
-- **장비 내구도**: 장비는 아이템 인스턴스 데이터 `FGrimItemInstance { Durability, MaxDurability, RepairCount, Enchants[] }` 를 가진다(인벤토리 슬롯에 같이 복제 · 저장). 서버만 깎는다 — 완드는 `UGrimSpellAbility` 의 시전 확정 때 `DurabilityCostPerCast`, 방어구는 피해 실행(`UGrimDamageExecution`) 뒤 피해량 비례. 0 → 장비 해제 + 잔해 아이템으로 교체(완드는 `bBroken` 표시만 — Q22).
+- 구현(M4): 장비 8칸 · 닳기 · 부러진 완드 · 저항은 `Source/Grimoire/Base/GrimEquipmentComponent.h` 의 `UGrimEquipmentComponent`(표 `Content/Grimoire/Data/Equipment.csv`), 건축 · 시설 내구도 · 노후 · 불 피해 · 잔해는 `Source/Grimoire/Base/GrimStructureComponent.h` 의 `UGrimStructureComponent`, 계산 `FGrimDurabilityMath`, 수치 `UGrimBaseSettings`([M4 — 내구도 · 수리 수치](./m4-plan#내구도-·-수리-수치-ugrimbasesettings-ini)), 「수리」 볼트 `Source/Grimoire/Base/GrimRepairProjectile.h` 의 `AGrimRepairProjectile`(`DA_Spell_Repair`). 아이템 인스턴스는 `FGrimItemInstance { ItemId, Count, Durability, Enchantments, RepairCount }` — 최대 내구도는 표의 `MaxDurability` × 수리 감소.
+- **장비 내구도**: 장비는 아이템 인스턴스 데이터(내구도 · 수리 횟수 · 인챈트)를 가진다(인벤토리 슬롯에 같이 복제 · 저장). 서버만 깎는다 — 완드는 `UGrimSpellAbility` 의 시전 확정 때 `DurabilityCostPerCast`, 방어구는 피해 실행(`UGrimDamageExecution`) 뒤 피해량 비례. 0 → 장비 해제 + 잔해 아이템으로 교체(완드는 `bBroken` 표시만 — Q22).
 - **건축 내구도**: 조각의 `Health`(세이브에 이미 있음)를 쓰고, 피해는 GAS 가 아닌 조각 전용 `ApplyStructureDamage` 하나로 받는다(습격 · 불 · 노후 모두). 불은 속성 상태 컴포넌트가 `State.Burning` 세기 × 초당 피해로 넘긴다 — 조각도 `UGrimElementalStateComponent` 를 가진다(재료 태그 `Material.Flammable` 은 나무만).
-- **수리**: 대상(장비 · 조각) + 재료 아이템 + 무속성 수리 마법 「수리」(스킬북으로 배움 — R28). 수리 마법은 일반 마법과 같은 `IGrimElementalReceiver` 경로로 "수리 자극"(`Element.None` + 수리 태그)을 보내고, 받는 쪽이 재료가 맞으면 회복한다 — 상호작용이 마법이라는 R16 을 그대로 쓴다. 마법탑 NPC 대리 수리 · 지우기는 같은 함수를 NPC 가 부르고 수수료를 받는다. 같은 장비 합치기는 순수 계산 `FGrimEnchantMergeMath`(마인크래프트 모루 규칙 — 작업 횟수 `RepairCount` 를 `PriorWork` 로 같이 씀). 수치는 `UGrimDurabilitySettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%.
-- **인챈트**: `UGrimEnchantDefinition`(DataAsset — 대상 슬롯 · 단계별 효과 GE · 비용 · 요구 서클 · 함께 못 하는 인챈트 목록). 장착 시 효과 GE 를 플레이어 ASC 에 Infinite 로 걸고 해제 시 지운다. 「자가 회복」 · 「견고」는 내구도 코드가 읽는 태그.
+- **수리**: 대상(장비 · 조각) + 재료 아이템 + 무속성 수리 마법 「수리」(스킬북으로 배움 — R28). 수리 마법은 일반 마법과 같은 `IGrimElementalReceiver` 경로로 "수리 자극"(`Element.None` + 수리 태그)을 보내고, 받는 쪽이 재료가 맞으면 회복한다 — 상호작용이 마법이라는 R16 을 그대로 쓴다. 마법탑 NPC 대리 수리 · 지우기는 같은 함수를 NPC 가 부르고 수수료를 받는다. 수치는 `UGrimBaseSettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%. 구현은 수리 자극 대신 「수리」 볼트가 맞은 대상(조각 · 시설 · 작업대에 건 장비 · 거점 핵)을 직접 고친다.
+- **같은 장비 합치기**(R28, M5 설계안): 순수 계산 `FGrimEnchantMergeMath`(마인크래프트 모루 규칙 — 작업 횟수 `RepairCount` 를 `PriorWork` 로 같이 씀).
+- **인챈트**(M5 설계안 — 표 `Content/Grimoire/Data/Enchants.csv` 만 있고 읽는 코드 없음): `UGrimEnchantDefinition`(DataAsset — 대상 슬롯 · 단계별 효과 GE · 비용 · 요구 서클 · 함께 못 하는 인챈트 목록). 장착 시 효과 GE 를 플레이어 ASC 에 Infinite 로 걸고 해제 시 지운다. 「자가 회복」 · 「견고」는 내구도 코드가 읽는 태그.
 - 마일스톤: 내구도 · 수리 = **M4**(인벤토리 완성과 함께), 인챈트 · 각인대 = **M5**(완드 공방과 함께).
 
 ## 인벤토리 · 아이템
@@ -143,11 +162,12 @@ M3 기초(갈래 I)가 들어갔다 — 플레이어 가방(칸 수 고정) · �
 - ~~저장고 · 시설 인벤토리~~(M4 — 저장고 탭, 관련성 거리 안 모두 복제 · 열람자 복제는 측정 뒤), 무게 제한(→ 운반 일꾼의 쓸모), 아이콘 · 끌어 놓기 UI, 단축 아이템(물약 휠).
 - 소지품 화면은 탭 구조다(M4): 가방 · 장비(I) · 생물(R38) · 저장고 · 작업대 · 거점(뒤 셋은 그 시설을 F 로 열었을 때만). 탭은 `UGrimInventoryTab` 하위 클래스를 ini `[/Script/Grimoire.GrimItemSettings] +InventoryTabClasses=` 또는 `UGrimInventoryWidget::RegisterTabClass` 로 더한다.
 - 죽으면 가방 일부(자원)를 그 자리에 떨군다(생존 스펙 「죽음」) — `UGrimSurvivalComponent::OnDied` 에 묶을 자리.
-- 불에 오래 두면 타는 것(숯), 생산 시설(`AGrimCraftStation`)의 레시피 표 통합.
+- 불에 오래 두면 타는 것(숯). ~~생산 시설의 레시피 표 통합~~(M4 — `AGrimWorkbench` 가 `Recipes.csv` 의 `Station=Workbench` 행을 쓴다).
 
 ## 세이브
 
-- 거점 핵: 조각 목록(PieceId, Transform, Health), 시설 대기열, 저장고 인벤토리, 밭 상태(Growth, Wet) — 거점 단위로 직렬화.
+- 구현: 거점 핵 · 조각 · 시설이 저마다 세이브 참여 **스폰 액터**라 클래스 · 위치와 함께 저장되고 다시 스폰된다(World `BaseCore.<이름>` · `BuildPiece.<이름>` · `Structure` · `Container` · `CropPlot.<이름>` v1), 장비는 Player `Base.Equipment` v1 — [M4 — 세이브](./m4-plan#세이브).
+- (처음 설계안) 거점 핵: 조각 목록(PieceId, Transform, Health), 시설 대기열, 저장고 인벤토리, 밭 상태(Growth, Wet) — 거점 단위로 직렬화.
 
 ## M4 범위
 
