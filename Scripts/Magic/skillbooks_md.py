@@ -62,8 +62,10 @@ def table(rows):
         price = int(r["PriceSol"])
         if price:
             sources += f" ({price} 솔)"
+        # 주문 이름이 없는 무언 마법(기본 공격)은 칸을 비워 둔다
+        incantation = f"`{r['Incantation']}`" if r["Incantation"] else "(무언)"
         lines.append(
-            f"| `{r['Incantation']}` | **{r['DisplayName']}** · {r['Epithet']} | {r['Circle']} | "
+            f"| {incantation} | **{r['DisplayName']}** · {r['Epithet']} | {r['Circle']} | "
             f"{DELIVERY[r['Delivery']]} | {r['Effect']} | {MANA[r['ManaClass']]} · {COOLDOWN[r['CooldownClass']]} | "
             f"{sources} | {state(r)} |"
         )

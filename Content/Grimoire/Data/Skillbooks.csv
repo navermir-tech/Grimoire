@@ -1,13 +1,15 @@
 Name,SpellId,Kind,Incantation,DisplayName,Epithet,Element,Circle,Delivery,Role,ManaClass,CooldownClass,Effect,Sources,PriceSol,Milestone,bImplemented
-Skillbook_BasicAttack,BasicAttack,Normal,VIS,"비스","기본 공격",Element.None,1,Bolt,Attack,None,None,"순수 마력을 연타로 쏜다. 4연타째는 강타 · 밀어냄. 사물엔 충격만 준다(속성 상태는 그대로). 숙련도 없음.",Tutorial,0,M2,True
+Skillbook_BasicAttack,BasicAttack,Normal,,"기본 공격","무언 마법",Element.None,1,Bolt,Attack,None,None,"주문 이름 없이(무언 마법) 순수 마력을 연타로 쏜다. 4연타째는 강타 · 밀어냄(연타 창은 Q120). 사물엔 충격만 준다(속성 상태는 그대로). 숙련도 없음.",Tutorial,0,M2,True
 Skillbook_Scutum,Scutum,Normal,SCUTUM,"스쿠툼","마력 방패",Element.None,1,Self,Defense,Low,Short,"누르는 동안 앞에 마력 방패를 편다(Q 자리). 투사체 · 근접 피해와 속성 자극을 막는다. 맞기 직전에 펴면(되받기) 공격자가 잠깐 휘청인다.",TowerShop|Trial_2,60,M7,False
+Skillbook_Retorta,Retorta,Normal,RETORTA,"레토르타","반격",Element.None,2,Bolt,Defense,Low,Mid,"스쿠툼으로 막는 동안 기본 공격을 누르면 막아 낸 기운을 앞의 적에게 되던져 잠깐 기절시킨다(방패는 걷힌다). 맞기 직전 되받기 순간에 맞추면 더 오래 기절시킨다. 스쿠툼을 알아야 쓴다 — 호그와트 레거시의 막기 → 기절 연계 참고(Q41).",TowerShop,150,M7,False
 Skillbook_Moveo,Moveo,Normal,MOVEO,"모베오","염동",Element.None,2,Beam,Utility,Low,Short,"누르는 동안 가벼운 사물 · 소형 생물을 끌어오거나 들어 옮긴다. 속성 자극이 없어 퍼즐 · 높은 곳의 물건 · 상자 옮기기에 쓴다.",TowerShop,150,Later,False
 Skillbook_Sentio,Sentio,Normal,SENTIO,"센티오","마력 감지",Element.None,2,Self,Utility,Low,Long,"둘레 30m 안의 속성 상태(젖음 · 불붙음 …) · 숨은 상자 · 봉인 · 생물의 주/부속성을 몇 초 동안 외곽선으로 보여 준다. 도감 단서가 된다.",TowerShop,150,Later,False
 Skillbook_Scutum_Maxima,Scutum_Maxima,Normal,SCUTUM MAXIMA,"스쿠툼 막시마","마력 돔",Element.None,5,Ground,Defense,High,Long,"내 둘레 4m 에 6초 동안 마력 돔을 세워 안의 아군을 모두 지킨다. 비 · 눈 자극도 막는다.",Dungeon|Trial_5,0,Later,False
 Skillbook_Moveo_Maxima,Moveo_Maxima,Normal,MOVEO MAXIMA,"모베오 막시마","큰 염동",Element.None,6,Beam,Control,Mid,Mid,"큰 바위 · 중형 생물까지 들어 올려 던진다. 던진 것이 맞으면 충격 피해.",Ruin,0,Later,False
-Skillbook_Restituo,Restituo,Normal,RESTITUO,"레스티투오","수리",Element.None,2,Self,Life,Mid,Short,"장비 · 건축 조각 · 부러진 완드를 재료로 고친다(재료 1개 = 최대 내구도 25%). 배우기 전엔 마법탑 NPC 대리 수리(R28 · R30).",TowerShop,400,M4,False
+Skillbook_Restituo,Restituo,Normal,RESTITUO,"레스티투오","수리",Element.None,2,Bolt,Life,Mid,Short,"겨눈 건축 조각 · 시설을 멀리서 바로 고친다(가방 재료, 재료 1개 = 최대 내구도 25%). 자신에게 걸면 착용 장비를 고치고 최대 내구도가 줄지 않는다. 마법 없이도 작업대 「수리」 탭 · 조각에 다가가 F 길게로 고칠 수 있다 — 이 마법은 편하게 하는 길(Q121 제안).",TowerShop,400,M4,False
+Skillbook_Restituo_Maxima,Restituo_Maxima,Normal,RESTITUO MAXIMA,"레스티투오 막시마","거점 수리",Element.None,4,Ground,Life,High,Long,"거점 핵에 걸면 거점 반경 안의 닳은 조각 · 시설을 모두 고친다. 재료는 거점 저장고에서 쓴다(Q121 제안).",Branch_F|Branch_E|Branch_G|Branch_H,500,Later,False
 Skillbook_Erado,Erado,Normal,ERADO,"에라도","지우기",Element.None,3,Self,Life,Mid,Short,"장비의 인챈트 하나를 지우고 칸을 비운다. 소재는 돌려받지 못한다. 배우기 전엔 마법탑 NPC 대리(R28).",TowerShop,600,M5,False
-Skillbook_Custodia,Custodia,Normal,CUSTODIA,"쿠스토디아","생물 보관",Element.None,1,Self,Life,Low,Mid,"계약한 생물을 그리모어의 계약 면에 넣어 들고 다니고, 겨눈 곳에 다시 불러낸다. 소형 · 중형만. 보관 칸 수는 데이터.",TowerShop|Branch_F|Branch_E|Branch_G|Branch_H,120,M4,False
+Skillbook_Custodia,Custodia,Normal,CUSTODIA,"쿠스토디아","생물 보관",Element.None,1,Self,Life,Low,Mid,"배우지 않아도 생물 10마리까지 보관한다(Q42). 배우면 보관 칸이 늘어난다 — 1~2서클 16 · 3~4서클 20 · 5서클 이상 24(제안, Q61). 넣은 생물은 세계에서 사라지고 그리모어의 계약 면에 든다.",TowerShop|Branch_F|Branch_E|Branch_G|Branch_H,120,M4,True
 Skillbook_Custodia_Maxima,Custodia_Maxima,Normal,CUSTODIA MAXIMA,"쿠스토디아 막시마","큰 생물 보관",Element.None,5,Self,Life,Mid,Mid,"대형 · 거대 생물도 계약 면에 넣는다. 보관 칸이 늘어난다.",Branch_F|Branch_E|Branch_G|Branch_H,800,Later,False
 Skillbook_Pactum,Pactum,Pact,PACTUM,"파크툼","계약",Element.None,1,Bolt,Taming,Low,Mid,"약하게 만든 생물(체력 30% 이하 · 잠 · 지침)에 맞혀 길들인다. 피해 없음. 숙련도가 오르면 포획 확률도 조금 오른다.",Tutorial,0,M3,True
 Skillbook_Pactum_Ignis,Pactum_Ignis,Pact,PACTUM IGNIS,"파크툼 이그니스","불 계약",Element.Fire,2,Bolt,Taming,Low,Mid,"불 생물을 길들일 확률이 크게 오른다. 다른 생물에겐 파크툼과 같다.",Branch_G,150,M3,True
