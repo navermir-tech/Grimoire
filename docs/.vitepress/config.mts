@@ -117,6 +117,7 @@ export default defineConfig({
             { text: '치트 · 개발 명령', link: '/qa/cheats' },
             { text: '이펙트', link: '/qa/fx' },
             { text: '성능 예산', link: '/qa/perf' },
+            { text: '레벨 아트', link: '/qa/level-art' },
             { text: 'M4 거점 + 생물 보관 통합', link: '/qa/m4-base' },
             { text: 'QA 절차', link: '/dev/qa' },
           ],

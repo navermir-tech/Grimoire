@@ -1,0 +1,61 @@
+# QA — 레벨 아트
+
+[QA 절차](../dev/qa) · 무엇을 어디에 [레벨 디자인 노트 「8. 레벨 아트 1차」](../dev/level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) · 팩 규칙 [마켓 · Fab 에셋 팩](../dev/market-assets). 마지막 실행 **2026-11-08**(`claude/level-dress-fccf15`).
+
+다시 돌리기(순서 — [레벨 디자인 「8」 풀 지도](../dev/level-design#풀-지도-—-랜드스케이프는-처음부터-새-재질로-2026-11-08)):
+
+```powershell
+$Cmd = "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+# 1) 레벨 아트 에셋(처음 한 번 · 지형 재질을 고칠 때는 $env:GRIM_DRESS_LANDSCAPE = "1")
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\dress_openbeta.py" -unattended -nop4 -nosplash -AllowCommandletRendering
+# 2) 맵을 새 재질로 처음부터 → 3) 서식 구역 → 4) 입히기(랜드스케이프는 그대로). 4) 만 두 번 돌려도 같은 결과
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\build_openbeta.py" -unattended -nop4 -nosplash -AllowCommandletRendering
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Integration\place_openbeta_gameplay.py" -unattended -nop4 -nosplash -nullrhi
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\dress_openbeta.py" -unattended -nop4 -nosplash -AllowCommandletRendering
+# 전 · 후 스크린숏 → docs/public/qa/level-dress-<자리>-<Tag>.jpg
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag after
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-001 | R16 | 시작 구역(마탑 구간) 식생이 팩 메시로 바뀌고 구역 밖은 그레이박스 그대로 | ② `dress_openbeta.py` 로그 `식생 Tree/Bush/Rock` · `개수` | 구역 안 나무 · 덤불 · 바위가 FT_Dress_* 로, 밖은 FT_Terrain_* 로(합이 생성기 자리 수와 같다) | ✅ 11-08 — 구역 안 나무 933 · 덤불 995 · 바위 194(`FT_Dress_*`), 밖 원뿔 나무 6,724 · 덤불 6,747 · 바위 3,415(`FT_Terrain_*`), 길가 123 | `dress_openbeta.py` 로그 「개수 Dress.* · Greybox.* · PathEdge.*」 |
+| QA-LVL-002 | — | 다시 돌려도 같은 결과(손 소품이 쌓이지 않는다) | ② `dress_openbeta.py` 를 두 번 → 외부 액터 파일 수 | 두 번째 로그 「지난 LevelDress 액터 25개 지움」 · 「외부 액터 파일 25개 지움」, 외부 액터 파일 수가 그대로 | ✅ 11-08 — 그루터기를 뺀 뒤 1,543 → 1,543(35 → 25 개 지움 · 25 개 놓음), 그 전 실행도 1,553 → 1,553 | `dress_openbeta.py` 로그 · `Content/__ExternalActors__/Grimoire/Maps/L_OpenBeta/` 파일 수 |
+| QA-LVL-003 | — | 랜드스케이프 재질이 맵 전체에서 `M_Terrain_Dress` | ② `build_openbeta.py` 로그 「랜드스케이프 재질: M_Terrain_Dress」 · `dress_openbeta.py` 로그 「랜드스케이프 재질 그대로: M_Terrain_Dress (프록시 32개)」 · ③ 스크린숏 | 두 줄 모두, 화면에 StyleHex 흙 · 풀 텍스처 · 길 | ✅ 11-08 — 두 줄 모두, 스크린숏에 StyleHex 흙 · 풀 · 길 | 로그 · `level-dress-*-after.jpg` |
+| QA-LVL-004 | — | 랜드스케이프 풀(StyleHex 풀 · 꽃 · 풀포기)이 풀밭에만 나고 길 · 모래 · 바위 비탈에는 안 난다 | ③ 스크린숏 `level-dress-path100/path200/pond-after` | 길 · 연못 모래 위 풀 없음, 풀밭은 빽빽, 45 m 밖에서 사라짐 | ✅ 11-08 — 길 · 연못 모래 위 풀 없음, 풀밭 빽빽, 멀리는 맨 땅 색 | `level-dress-path100/path200/pond-after.jpg` |
+| QA-LVL-005 | — | 풀이 땅 높이에 난다 — 탑 평지 · 언덕 꼭대기에도 나고 하늘에 뜬 풀이 없다 | ③ `level-dress-door-after` · `hilltop-after` · `scan-trunk-after` | 탑 문 앞 · 봉화 언덕 꼭대기 풀밭에 풀, 화면 어디에도 뜬 풀 없음 | ✅ 11-08 — 탑 문 앞 · 봉화 언덕 꼭대기에 풀, 뜬 풀 없음(맵을 새 재질로 다시 만든 뒤. 그 전에는 ❌ — [레벨 디자인 「8」 풀 지도](../dev/level-design#풀-지도-—-랜드스케이프는-처음부터-새-재질로-2026-11-08)) | `level-dress-door/hilltop/scan-trunk-after.jpg` |
+| QA-LVL-006 | — | 랜드마크 · POI · 길 · 측정 자리가 그대로이고 손 소품이 막지 않는다 | ② `check_openbeta.ps1` · `check_tutorial.ps1`(맵 · 걷기 · 표식) · ③ 스크린숏 | PASS, 소품이 길 · POI 블록 위에 없다 | ✅ 11-08 — `openbeta` PASS · `tutorial` PASS(맵 · 시작 자리 · 걷기 · 헤엄 · 표식), 자동화 179/179. 전체 `run_all.ps1` 에서 맵과 무관한 2인 스크립트 `taming` 만 ❌ — 이미 열린 [BUG-007](./bugs)(고정 시계, 「탄 채 시전」 한 줄, `L_M1_Sandbox`), `storage` 는 1회 실패 뒤 다시 돌려 PASS | `Saved\QA\summary.txt` · `openbeta.txt` · `tutorial.txt` |
+| QA-LVL-007 | — | 구름 카드가 하늘 컨트롤러 밤낮과 따로 놀지 않는다(밤에 어두움) | ③ `grim.Time.Set 23` 뒤 스크린숏(`level-dress-night`) | 밤 하늘에서 구름이 빛나지 않는다 | ⏸ 11-08 — `grim.Time.Set 23` 에도 장면 전체가 낮처럼 밝다([BUG-008](./bugs) 밤이 낮처럼 밝음). 구름은 장면과 같은 밝기로 빛나 보이지 않지만 어두운 밤 판단은 BUG-008 뒤 | `level-dress-night-after.jpg` |
+| QA-LVL-008 | R16 | 성능 예산 안 | ① `measure.ps1 -Label level-dress -Settle 25`(전체) | QA-PRF-001~008 모두 예산 안 | ✅ 11-08 — GPU 3.80 ~ 5.14 ms · 게임 2.44 ~ 2.94 · 렌더 4.73 ~ 6.13 · p95 ≤ 7.2 · 끊김 0 · 드로 콜 ≤ 1,068 · 2.93 GB · 대역폭 ≤ 5.4 kB/s | `Saved\Perf\level-dress\summary.md`, [QA — 성능 측정 기록](./perf#측정-기록) |
+| QA-LVL-009 | — | 쓰는 팩 파일만 저장소에 | `add_pack_assets.ps1 -DryRun` | 팩별 개수 · 크기, 맵 · 우리 에셋이 참조하는 것만 | ✅ 11-08 — 116 개 202.2 MB: StyleHex 107 개 127.5 MB · BlackCherry 6 개 71.6 MB · HandPaintedClouds 3 개 3.2 MB(그루터기는 134 MB 라 맵에서 뺌) | `Saved\PackDeps\summary.txt` · `used_pack_files.txt` |
+
+**결과(11-08)**: 통과 8 · 실패 0 · 보류 1(QA-LVL-007 — BUG-008).
+
+![밤 23시 — 장면이 낮처럼 밝다(BUG-008), 구름 카드는 장면과 같은 밝기](/qa/level-dress-night-after.jpg)
+
+## 전 · 후 (측정 자리 가운데 시작 구역, 눈높이 1.8 m)
+
+| 자리 | 전(그레이박스) | 후(레벨 아트 1차) |
+|---|---|---|
+| 탑 문 앞(`door`) | ![](/qa/level-dress-door-before.jpg) | ![](/qa/level-dress-door-after.jpg) |
+| 큰길 100 m | ![](/qa/level-dress-path100-before.jpg) | ![](/qa/level-dress-path100-after.jpg) |
+| 큰길 200 m(`path200`) | ![](/qa/level-dress-path200-before.jpg) | ![](/qa/level-dress-path200-after.jpg) |
+| 연못가(`pond`) | ![](/qa/level-dress-pond-before.jpg) | ![](/qa/level-dress-pond-after.jpg) |
+| 봉화 언덕 꼭대기(`hilltop`) | ![](/qa/level-dress-hilltop-before.jpg) | ![](/qa/level-dress-hilltop-after.jpg) |
+
+### Q124 · Q125 판단 자료
+
+측정 자리 아님 — 사실적 스캔(쓰러진 나무 · 그루터기)이 StyleHex 옆에 보이는 자리.
+
+| 동쪽 목초지(풍차 쪽, 그루터기 · 쓰러진 나무) | 연못 북동(쓰러진 나무 · 큰 바위) |
+|---|---|
+| ![](/qa/level-dress-compare-east-after.jpg) | ![](/qa/level-dress-compare-pond-after.jpg) |
+| **쓰러진 나무 스캔 12 m 앞**(가운데 오른쪽, 풀에 묻힘) | **그루터기 스캔 9 m 앞**(가운데 어두운 덩이 — 그 뒤 용량 때문에 맵에서 뺐다) |
+| ![](/qa/level-dress-scan-trunk-after.jpg) | ![](/qa/level-dress-scan-stump-after.jpg) |
+
+Megaplants 참나무(`Tree_English_Oak_Forest_01_B`, 탑 서쪽 130 m) — 시험으로 놓았다가 지금 맵에서는 뺐다. 왼쪽은 프로젝트 설정 그대로(`r.Nanite.Foliage` 꺼짐 — 줄기 · 가지만), 오른쪽은 명령줄로만 켜서(`-ini:Engine:[/Script/Engine.RendererSettings]:r.Nanite.Foliage=True`, 처음 한 번 셰이더 다시 컴파일 수 분) 찍었다. 두 그림 오른쪽 위 하늘에 뜬 풀은 그때 남아 있던 구운 풀 지도 탓이다(뒤에 고침 — [레벨 디자인 「8」 풀 지도](../dev/level-design#풀-지도-—-랜드스케이프는-처음부터-새-재질로-2026-11-08)).
+
+| `r.Nanite.Foliage` 꺼짐(지금) | 켬(시험) |
+|---|---|
+| ![](/qa/level-dress-q125-oak-bare.jpg) | ![](/qa/level-dress-q125-oak-nanitefoliage.jpg) |
+
+- 켜면 잎이 나오지만 **어두운 사진 초록**이라 밝은 연두의 StyleHex 나무 옆에서 다른 그림처럼 보인다 — 쓰려면 Q124 의 회화풍 마스터 머티리얼(채도 · 색)이 함께 필요하다. 형태(가지 구조 · 실루엣)는 가장 좋다.

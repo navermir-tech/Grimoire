@@ -5,9 +5,12 @@
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set v2      # 2차 자리(전체 땅) — 이전 그림을 덮어쓰니 일부러만
 #
 # 자리(월드 cm, X = 북 = (지도 Y − 380) × 100, Y = 동 = (지도 X − 1000) × 100). Z 가 + 면 땅 위 cm(Grim.Terrain.ViewFrom).
+#   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag before   # 레벨 아트 비교 — 측정 자리(Scripts/Perf/measure.ps1) 중 시작 구역
+#                                                                               → docs/public/qa/level-dress-<자리>-<Tag>.jpg
 param(
-	[ValidateSet("v3", "v2")]
+	[ValidateSet("v3", "v2", "dress")]
 	[string]$Set = "v3",
+	[string]$Tag = "after",
 	[int]$RunSeconds = 200,
 	[int]$ResX = 1600,
 	[int]$ResY = 900
@@ -45,13 +48,32 @@ $ShotsV2 = @(
 	@("openbeta-highland", 319000, -20000, "+200", 32, -2, $false),     # 북부 고지(지도 800, 3570)에서 고개 바위 문 쪽
 	@("openbeta-aerial", 165200, 1600, "290000", -90, -89.9, $true)      # 하늘 2.9 km 에서 내려다본 전체(화면 위 = 서쪽 → 돌려서 북쪽이 위)
 )
-$Shots = if ($Set -eq "v2") { $ShotsV2 } else { $ShotsV3 }
+# dress — 레벨 아트 전 · 후 비교(docs/dev/level-design.md 「8」). 측정 자리와 같은 X · Y · Yaw(Scripts/Perf/measure.ps1), 눈높이 1.8 m
+$ShotsDress = @(
+	@("level-dress-door-$Tag", 4000, 0, "+180", 0, -2, $false),
+	@("level-dress-path200-$Tag", 23246, 2090, "+180", -26, -2, $false),
+	@("level-dress-pond-$Tag", 12500, -30000, "+180", -5, -3, $false),
+	@("level-dress-hilltop-$Tag", 56800, -11000, "+180", 140, -4, $false),
+	@("level-dress-path100-$Tag", 13776, 3029, "+180", 25, -2, $false),
+	# Q124 비교(측정 자리 아님) — 사실적 스캔(쓰러진 나무)이 StyleHex 옆에 보이는 자리(dress_openbeta.py 로그의 소품 자리).
+	# 그루터기 · Megaplants 참나무는 시험 뒤 맵에서 뺐다 — 그때 그림(level-dress-scan-stump-after · q125-oak-*)은 docs/public/qa 에 남긴다
+	@("level-dress-compare-east-$Tag", 29000, 33500, "+170", 50, -4, $false),
+	@("level-dress-compare-pond-$Tag", 14000, -27000, "+170", 50, -3, $false),
+	@("level-dress-scan-trunk-$Tag", 1700, -12500, "+170", -40, -12, $false)    # 쓰러진 나무 스캔(Dress_FallenTrunk_01) 12 m 앞
+)
+$Shots = if ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } else { $ShotsV3 }
+if ($Set -eq "dress") { $ArtDir = Join-Path $Root "docs\public\qa" }
 
 $Cmds = @()
 $Delay = 25
 foreach ($Shot in $Shots) {
+	if ($Set -eq "dress") {
+		# 랜드스케이프 풀은 카메라 둘레에서 비동기로 자란다 — 먼저 옮겨 두고 25 초 뒤에 찍는다
+		$Cmds += "Grim.Terrain.ViewFrom $($Shot[1]) $($Shot[2]) $($Shot[3]) $($Shot[4]) $($Shot[5]) $Delay"
+		$Delay += 25
+	}
 	$Cmds += "Grim.Terrain.ViewFrom $($Shot[1]) $($Shot[2]) $($Shot[3]) $($Shot[4]) $($Shot[5]) $Delay $($Shot[0])"
-	$Delay += 12
+	$Delay += $(if ($Set -eq "dress") { 5 } else { 12 })
 }
 $Cmds = $Cmds -join ","
 foreach ($Shot in $Shots) { Remove-Item (Join-Path $ShotDir "$($Shot[0]).png") -ErrorAction SilentlyContinue }

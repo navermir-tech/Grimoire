@@ -171,7 +171,14 @@ def box_volume(cls, label, center, extent, yaw=0.0, folder=None, tags=()):
 
 
 # ───── 4. 랜드스케이프 ─────
-landscape = lib.create_landscape(world, assets["landscape"], assets["layers"], LANDSCAPE_GRID_COMPONENTS, False)
+# 레벨 아트 재질(dress_openbeta.py 가 만든 Dress/M_Terrain_Dress)이 있으면 처음부터 그것으로 만든다 — 연 맵의 랜드스케이프 재질을
+# 바꿔 저장하면 저장(PreSave)이 굽는 풀 지도의 높이가 틀어진다(docs/dev/level-design.md 「8」 풀 지도). GRIM_TERRAIN_GREYBOX=1 이면 그레이박스 재질.
+landscape_material = assets["landscape"]
+DRESS_MATERIAL = "/Game/Grimoire/Terrain/Dress/M_Terrain_Dress"
+if os.environ.get("GRIM_TERRAIN_GREYBOX") != "1" and eal.does_asset_exist(DRESS_MATERIAL):
+    landscape_material = unreal.load_asset(DRESS_MATERIAL)
+log(f"랜드스케이프 재질: {landscape_material.get_name()}")
+landscape = lib.create_landscape(world, landscape_material, assets["layers"], LANDSCAPE_GRID_COMPONENTS, False)
 if landscape is None:
     raise RuntimeError("랜드스케이프를 만들지 못했다")
 count("Landscape")

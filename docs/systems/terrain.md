@@ -3,6 +3,7 @@
 > 계획: [로드맵 — 지형은 언제 찍나](./roadmap#지형은-언제-찍나-2026-11-05) 의 지형 1차, 작업 분할 [M3](./m3-plan) 갈래 W. 지역: [세계 — 지역과 크기](../spec/world#지역과-크기-r34-—-q36-확정) 1번(마법탑 · 온난 지대).
 > **2차(다시 만들기, 2026-11-05)**: 1차가 「그냥 평지」였던 것을 [레벨 디자인 노트](../dev/level-design) 「6. 지역 1 다시 만들기 계획」대로 고쳤다 — 구역 높이 · 크기가 섞인 언덕 군 · 한쪽 절벽 계곡 · 폭포 · 고개 · 랜드마크 7 · POI 40 · 자동 설계 검사. 결과 숫자와 계획과 달라진 점은 노트의 「결과」.
 > **마탑 구간(2026-11-05, 2차 플레이 테스트 뒤)**: 2 × 4 km 를 한 번에 다듬지 않고 탑 둘레(약 1 km²)를 먼저 완성 수준으로 — 작은 언덕이 촘촘한 구릉 · 개울 · 연못 · POI 21 · 떠 있는 한글 글씨 · 「공사 중」 경계. 아래 「[마탑 구간](#마탑-구간-먼저-완성하는-구간)」, 결과 숫자는 노트의 「7」.
+> **레벨 아트 1차(2026-11-08)**: 시작 구역(마탑 구간)에 Fab 팩(StyleHex 풀 · 나무 · 바위, 지형 재질, 손그림 구름 등)을 입혔다 — `dress_openbeta.py`, 무엇을 어디에는 [레벨 디자인 노트 「8」](../dev/level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08).
 > 상태: 지형 2차 + 마탑 구간 구현됨(2026-11-06 코드 대조). 코드: `Source/Grimoire/World/`. 스크립트: `Scripts/Terrain/`. 에셋: `Content/Grimoire/Terrain/`. 맵: `Content/Grimoire/Maps/L_OpenBeta.umap`(World Partition, 게임 맵 · 에디터 시작 맵).
 
 ![L_OpenBeta 를 하늘 2.9 km 에서 — 북쪽이 위. 남쪽 탑 곶 · 목초지 · 서쪽 연못 저지대 · 가운데 구릉과 고목 · 계곡(한쪽 절벽) · 북부 고지 · 동쪽 큰 강](/art/terrain/openbeta-aerial.jpg)
@@ -20,6 +21,7 @@
 | 맵 만들기 | `Scripts/Terrain/build_openbeta.py`(+ `terrain_assets.py`) | 맵을 지우고 처음부터: 설계 검사 숫자 로그 → 랜드스케이프 → 물 → 식생 → 표식 → **랜드마크 · POI 그레이박스 · 다리** → 마법탑 → 하늘 · 기후 · 지도 끝 → World Partition → 저장 |
 | 랜드마크 · POI 모양 | `Scripts/Terrain/landmark_greybox.py` | 엔진 기본 도형으로 종류마다 실루엣이 다른 그레이박스(아래 「랜드마크」「POI」) + 개발 표시 글씨 · 종류 색 블록 · 「공사 중」 경계 |
 | 마법탑 | `Scripts/Tutorial/tower_greybox.py` | L_Tower 와 **같은 함수**로 탑 그레이박스를 짓는다 |
+| 레벨 아트 | `Scripts/Terrain/dress_openbeta.py`(+ `dress_assets.py`) | 만든 맵 위에 덧입힌다: 지형 재질 `M_Terrain_Dress`(맵 전체) · 랜드스케이프 풀 `GT_Dress_Meadow` · 시작 구역 식생을 StyleHex 메시로 · 길가 돌 · 손 소품 · 구름 카드. 지형을 다시 만들면 **이것도 다시 돌린다**. [레벨 디자인 「8」](../dev/level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) |
 | 게임플레이 배치 | `Scripts/Integration/place_openbeta_gameplay.py` | 서식 구역 볼륨 3(`Habitat.*` 표식 자리). 지형을 다시 만들면 **이것도 다시 돌린다**. 냄비는 탑 그레이박스가 이미 놓으므로 있으면 건너뛴다 |
 | 확인 | `Scripts/Terrain/check_openbeta.ps1` · `Scripts/Terrain/shoot_openbeta.ps1` · 콘솔 `Grim.Terrain.*`(`Source/Grimoire/World/GrimTerrainDebug.cpp`) · 테스트 `Grimoire.Terrain.*`(`Source/Grimoire/World/Tests/GrimTerrainTests.cpp`) | 아래 「확인」 |
 | 이동 치트 | `Source/Grimoire/World/GrimTeleportDebug.cpp` | 콘솔 `Grim.Go <이름>` · `Grim.Go.List [거르기]` — 표식 · 서식 구역 · 생물 · 태그 액터 곁으로([치트](../dev/cheats)) |
@@ -34,6 +36,9 @@
 # 3) 게임플레이 액터(서식 구역) 다시 놓기
 & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
   -run=pythonscript -script="$PWD\Scripts\Integration\place_openbeta_gameplay.py" -unattended -nop4 -nosplash -nullrhi
+# 3b) 레벨 아트(시작 구역) 다시 입히기 — RHI 필요, 팩 정션 필요(docs/dev/market-assets.md). 처음이면 이것 → 2) → 3) → 이것 한 번 더
+& "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
+  -run=pythonscript -script="$PWD\Scripts\Terrain\dress_openbeta.py" -unattended -nop4 -nosplash -AllowCommandletRendering
 # 4) 확인
 powershell -File Scripts\Terrain\check_openbeta.ps1          # 끝에 PASS
 & "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" `
@@ -288,6 +293,8 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 
 ## 머티리얼 (자동, 임시 색)
 
+지금 랜드스케이프 재질은 **`Dress/M_Terrain_Dress`**(레벨 아트 1차 — 같은 규칙에 StyleHex 지형 텍스처, [레벨 디자인 「8」](../dev/level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08)). `build_openbeta.py` 는 그 재질이 있으면 **처음부터 그것으로** 랜드스케이프를 만든다(연 맵의 재질을 바꿔 저장하면 풀 지도가 틀어진다 — 같은 절 「풀 지도」). `GRIM_TERRAIN_GREYBOX=1` 이면 아래 그레이박스 재질.
+
 `M_Terrain_Auto` — 경사(약 28° 부터 흙, 45° 부터 바위) · 높이(90 m 위로 흙 섞임) · 레이어(`Shore` 모래 · `Path` 길 · `Forest` 계곡 숲 바닥) · 풀 출력(`GT_Terrain_Meadow`). 단색 `M_Terrain_Color` + `MI_Terrain_*`(나무 · 덤불 · 바위 · 풀, 그리고 2차의 돌 · 어두운 돌 · 나무판 · 폭포 · 깃발 · 고목 잎 · 고목 껍질 · 돛 · 지붕 · 검정 · 흙 · 뼈 · 풀 덩이), 물 `M_Terrain_Water`. 북부 고지(88 m 위)는 높이 규칙 때문에 흙빛이 섞인다.
 
 ## 물 — 단순 평면 + 물리 볼륨
@@ -312,6 +319,7 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 
 - 규칙: 경사 상한 · 높이 범위(나무는 120 m 까지 — 고지 대부분은 나무 없는 바람받이) · 물가 · 길에서 떨어짐 · 탑 평지 + 40 m 비움 · 거점 평지 비움 · **랜드마크 25 m · POI 반지름 + 6 m 비움**. 개수는 레이아웃이 바뀌면 달라진다(위 숫자는 지금 레이아웃).
 - PCG 를 쓰지 않은 까닭은 1차와 같다(플러그인 꺼짐 · 생성기만 아는 마스크 · 커맨드렛에서 PCG 생성이 돌지 않음).
+- **시작 구역(마탑 구간 다각형) 안**의 Tree · Bush · Rock 자리는 `dress_openbeta.py` 가 StyleHex 메시(`FT_Dress_*`)로 바꿔 놓는다 — 자리 · 크기는 위 규칙 그대로. 랜드스케이프 풀은 `GT_Dress_Meadow`(StyleHex 풀 · 꽃). 쿡 빌드는 풀 지도를 런타임에 만든다(`grass.GrassMap.UseRuntimeGeneration=1`).
 
 ## 마법탑
 
@@ -322,7 +330,7 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 
 | 다시 만들면 **덮어쓰는** 것 | **안 덮어쓰는** 것 |
 |---|---|
-| `L_OpenBeta` 전부(맵 · 외부 액터 · HLOD 층) — 손으로 깎은 지형 · 칠한 레이어 · 옮긴 나무 · 더 놓은 액터 · 랜드마크 · POI 소품 위치 | `Content/Grimoire/Terrain` 의 머티리얼 · 인스턴스 · 레이어 정보 · 폴리지 타입 · 풀 타입 |
+| `L_OpenBeta` 전부(맵 · 외부 액터 · HLOD 층) — 손으로 깎은 지형 · 칠한 레이어 · 옮긴 나무 · 더 놓은 액터 · 랜드마크 · POI 소품 위치 · 레벨 아트(`dress_openbeta.py` 를 다시 돌려 되살린다) | `Content/Grimoire/Terrain` 의 머티리얼 · 인스턴스 · 레이어 정보 · 폴리지 타입 · 풀 타입 |
 | `openbeta-preview.png` · `Saved/Terrain/openbeta.r16` | `openbeta_layout.json` · `L_Tower` · 다른 맵 |
 
 - **모양 · 자리를 바꾸려면 JSON 을 고쳐 다시 만든다**(구역 높이 · 언덕 · 계곡 · 길 · 랜드마크 · POI). 고친 뒤 `Grimoire.Terrain.Design` 으로 숫자를 본다.
