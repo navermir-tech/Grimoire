@@ -24,8 +24,8 @@ UENUM(BlueprintType)
 enum class EGrimCreatureStorageResult : uint8
 {
 	Ok,
-	/** 생물 보관함을 아직 배우지 않았다 */
-	NotLearned,
+	/** 기본 보관함(쿠스토디아 없이 쓰는 칸)이 가득 — 배우면 늘어난다(Q42) */
+	StorageFullUnlearned,
 	/** 데리고 다니는 수가 가득 */
 	PartyFull,
 	/** 보관함 칸이 가득 */
@@ -50,7 +50,7 @@ enum class EGrimNewTameDestination : uint8
 	Party,
 	/** 파티가 가득 — 보관함으로 */
 	Storage,
-	/** 파티 · 보관함이 가득(또는 보관함 안 배움) — 세계의 거점 생물 상자로 */
+	/** 파티 · 보관함이 가득 — 세계의 거점 생물 상자로 */
 	Box,
 	/** 갈 곳이 없다 — 계약이 걸리지 않는다 */
 	Refused

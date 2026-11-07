@@ -35,10 +35,10 @@
 | C3 | 지은 상자의 관리 화면 | 곁에서 `Grim.Taming.Box Open` → `shot showui` | 세 칸(데리고 다님 · 보관함 · 상자), 「상자 0/60 (풀어놓음 0/10)」, 줄마다 단추 | ✅ | ![상자 화면](./img/m4-base/06_creature_box.jpg) |
 | C4 | 부서지면 → 다른 상자로 | 테스트 `Grimoire.Base.CreatureBox.Rescue`(지은 상자 2칸 → 철거 → 다른 상자) | 다른 상자에 2칸, 이름 · 씨앗 그대로, 상자 안 상태 | ✅ | A2 |
 | C5 | 지은 상자에 넣고 풀어놓기 | `Scripts/Base/qa_creature_box.ps1` 1회차 | `party=0/3 box=yes boxEntries=1 released=1` | ✅ | `Saved/QA/creature_box_1.log` |
-| C6 | 옮길 곳이 없으면 | 같은 스크립트 2회차: 보관함 안 배움(디버그) · 다른 상자 없음 → 철거 | 상자 · 보관함 모두 0, 경고 「옮길 곳이 없다 — 사라짐」 한 줄 | ✅ | `Saved/QA/creature_box_2.log` |
+| C6 | 쿠스토디아 없이 철거(Q42 뒤) | 같은 스크립트 2회차: 쿠스토디아 안 배움(디버그) · 다른 상자 없음 → 철거 | 안 배워도 기본 보관함 10칸으로 — `stored=1/10 box=no`, 경고 0줄(예전 기대 「사라짐」은 Q42 로 바뀜. 보관함까지 가득해 사라지는 경우는 이 스크립트로 만들지 않는다) | ✅ 11-07 | `Saved/QA/creature_box_2.log` |
 | C7 | 철거 환급 | 놓은 뒤 · 철거 뒤 `Grim.Items.Dump` | 비용(나무 10 · 돌 4)의 절반 = 나무 +5 · 돌 +2 | ✅ | 나무 15 · 돌 11 → 나무 20 · 돌 13 |
 | C8 | 저장 → 다시 켜기 | 1회차 `Grim.Save.Now` → 같은 슬롯(`?SaveSlot=QABox`)으로 2회차 | 지은 상자 `hp=200/200`, 칸 1 · 풀어놓음 1, 풀어놓은 재칼로프가 세계에 다시 나옴 | ✅ | `GrimBaseCreatureBox_0 … hp=200.0/200.0`, `storagerow place=Released`¹ |
-| C9 | 철거하면 → 주인 보관함으로 | 2회차: 다른 상자 없음 · 보관함 배움 → 풀어놓은 생물이 든 상자 철거 | `stored=1/8 box=no released=0`, 풀어놓은 액터는 거둠 | ✅ | `Saved/QA/creature_box_2.log` |
+| C9 | 철거하면 → 주인 보관함으로 | 2회차: 다른 상자 없음 · 보관함 배움 → 풀어놓은 생물이 든 상자 철거 | `stored=1/18 box=no released=0`(Q42 뒤 — 배웠으면 10 + 8), 풀어놓은 액터는 거둠 | ✅ | `Saved/QA/creature_box_2.log` |
 
 ¹ `Grim.Taming.Dump` 는 명령을 Wait/Follow 둘로만 찍어 풀어놓은 생물(Roam)도 `cmd=Follow` 로 보인다 — 자리는 `Grim.Taming.StorageDump` 의 `place=Released` 로 본다.
 

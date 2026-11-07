@@ -39,6 +39,7 @@ $Steps = @(
 	@("creatures", "Creatures\net_check_creatures.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
 	@("taming", "Creatures\net_check_taming.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
 	@("storage", "Creatures\net_check_storage.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
+	@("castfail", "Magic\net_check_castfail.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
 	@("appearance", "Character\net_check_appearance.ps1", "-Port {P}", "^PASS", "^FAIL"),
 	@("openbeta", "Terrain\check_openbeta.ps1", "", "^PASS", "^FAIL"),
 	@("cheats", "QA\check_cheats.ps1", "", "^PASS", "^FAIL"),

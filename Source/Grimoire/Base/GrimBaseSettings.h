@@ -194,6 +194,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Durability", meta = (ClampMin = "0"))
 	int32 BrokenEquipmentSalvage = 1;
 
+	/**
+	 * 처음 들어온 플레이어가 입고 시작하는 장비(장비 표 ID — 칸은 표가 정한다). 기본 완드(Q71 — 완드 칸이 비면 주먹질).
+	 * 세이브가 있으면 세이브가 이긴다. 옛 세이브(Base.Equipment v1 — 보이지 않는 기본 완드 시절)의 빈 칸에도 넣는다.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Durability")
+	TArray<FName> StartingEquipment;
+
 	// ───── 농사 ─────
 
 	UPROPERTY(Config, EditAnywhere, Category = "Crops", meta = (ClampMin = "0.1", Units = "s"))

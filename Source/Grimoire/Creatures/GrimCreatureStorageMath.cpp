@@ -36,13 +36,21 @@ int32 GrimCreatureStorageMath::ComputeLimit(const TArray<FGrimCircleLimitStep>& 
 	return FMath::Clamp(Limit, 0, FMath::Max(0, Max));
 }
 
+int32 GrimCreatureStorageMath::ComputeStorageCapacity(int32 BaseCapacity, bool bLearned, const TArray<FGrimCircleLimitStep>& Steps, int32 Circle,
+	const TArray<FGrimTagLimitBonus>& TagBonuses, const FGameplayTagContainer& OwnedTags, int32 Max)
+{
+	const int32 Base = FMath::Max(0, BaseCapacity);
+	const int32 Extra = bLearned ? ComputeLimit(Steps, Circle, TagBonuses, OwnedTags, TNumericLimits<int32>::Max(), 0) : 0;
+	return FMath::Clamp(Base + Extra, Base, FMath::Max(Base, Max));
+}
+
 EGrimNewTameDestination GrimCreatureStorageMath::DecideNewTame(const FGrimCreatureStorageCounts& Counts, bool bAllowBox)
 {
 	if (Counts.PartyCount < Counts.PartyLimit)
 	{
 		return EGrimNewTameDestination::Party;
 	}
-	if (Counts.bStorageLearned && Counts.StorageCount < Counts.StorageCapacity)
+	if (Counts.StorageCount < Counts.StorageCapacity)
 	{
 		return EGrimNewTameDestination::Storage;
 	}
@@ -69,11 +77,11 @@ EGrimCreatureStorageResult GrimCreatureStorageMath::CheckTransfer(EGrimCreatureP
 	case EGrimCreaturePlace::Party:
 		return Counts.PartyCount < Counts.PartyLimit ? EGrimCreatureStorageResult::Ok : EGrimCreatureStorageResult::PartyFull;
 	case EGrimCreaturePlace::Storage:
-		if (!Counts.bStorageLearned)
+		if (Counts.StorageCount < Counts.StorageCapacity)
 		{
-			return EGrimCreatureStorageResult::NotLearned;
+			return EGrimCreatureStorageResult::Ok;
 		}
-		return Counts.StorageCount < Counts.StorageCapacity ? EGrimCreatureStorageResult::Ok : EGrimCreatureStorageResult::StorageFull;
+		return Counts.bStorageLearned ? EGrimCreatureStorageResult::StorageFull : EGrimCreatureStorageResult::StorageFullUnlearned;
 	case EGrimCreaturePlace::Box:
 		// 풀어놓은 것을 거두면 칸 수는 그대로다.
 		if (From != EGrimCreaturePlace::Released && Counts.BoxCount >= Counts.BoxCapacity)
@@ -154,7 +162,7 @@ FString GrimCreatureStorageMath::ResultText(EGrimCreatureStorageResult Result)
 	switch (Result)
 	{
 	case EGrimCreatureStorageResult::Ok: return TEXT("옮겼다");
-	case EGrimCreatureStorageResult::NotLearned: return TEXT("생물 보관함을 아직 배우지 않았다 — 스킬북: 쿠스토디아");
+	case EGrimCreatureStorageResult::StorageFullUnlearned: return TEXT("보관함이 가득 찼다 — 쿠스토디아를 배우면 칸이 늘어난다(마법탑에서 스킬북)");
 	case EGrimCreatureStorageResult::PartyFull: return TEXT("더 데리고 다닐 수 없다");
 	case EGrimCreatureStorageResult::StorageFull: return TEXT("보관함이 가득 찼다 — 거점 생물 상자로 옮기자");
 	case EGrimCreatureStorageResult::BoxFull: return TEXT("거점 생물 상자가 가득 찼다");

@@ -44,13 +44,18 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Storage", meta = (ClampMin = "1"))
 	int32 StorageRequiredCircle = 1;
 
-	/** 서클 구간별 보관함 칸 수 */
+	/** 쿠스토디아를 배우지 않아도 처음부터 쓰는 보관함 칸 수(Q42 답 2026-11-07 — 인벤토리처럼). 배우면 아래 서클 표 + 노드만큼 늘어난다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Storage", meta = (ClampMin = "0"))
+	int32 StorageBaseCapacity = 10;
+
+	/** 쿠스토디아를 배웠을 때 기본 칸에 더하는 칸 수(서클 구간별) */
 	UPROPERTY(Config, EditAnywhere, Category = "Storage")
 	TArray<FGrimCircleLimitStep> StorageCapacityByCircle;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Storage")
 	TArray<FGrimTagLimitBonus> StorageCapacityTagBonuses;
 
+	/** 보관함 전체 칸 상한(기본 칸 포함) */
 	UPROPERTY(Config, EditAnywhere, Category = "Storage", meta = (ClampMin = "1"))
 	int32 StorageCapacityMax = 40;
 

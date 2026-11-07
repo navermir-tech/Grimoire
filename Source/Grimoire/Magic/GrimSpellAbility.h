@@ -35,8 +35,12 @@ public:
 	/** Spec 의 SourceObject 에서 정의를 꺼낸다. */
 	static const UGrimSpellDefinition* GetSpellDefinition(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo);
 
-	/** 이 시전자가 쥔 완드(PlayerState 의 마법서). 없으면 nullptr. */
+	/** 이 시전자가 쥔 완드(PlayerState 의 마법서). 없으면 nullptr — 완드 칸이 비었거나(Q71) 부러졌으면(Q22) 없음. */
 	static AGrimWand* GetWand(const FGameplayAbilityActorInfo* ActorInfo);
+
+	/** 장비가 「쥔 완드 없음」이라고 했나(Status.WandMissing · Status.WandBroken — 장비 컴포넌트가 붙이는 복제 태그) */
+	static bool IsWandMissing(const UAbilitySystemComponent* ASC);
+	static bool IsWandBroken(const UAbilitySystemComponent* ASC);
 
 	/**
 	 * 서버: 맞은 대상 하나에 마법을 적용한다.

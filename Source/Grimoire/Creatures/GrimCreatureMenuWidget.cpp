@@ -224,7 +224,7 @@ void UGrimCreatureMenuWidget::RebuildMenu()
 	}
 	Entries.Add(EEntry::Feed);
 	Entries.Add(EEntry::Rename);
-	if (!bAtBase && Storage && Storage->IsStorageLearned())
+	if (!bAtBase && Storage)
 	{
 		Entries.Add(EEntry::Store);
 	}

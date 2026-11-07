@@ -1,4 +1,7 @@
 #include "Core/GrimAbilitySystemComponent.h"
+#include "Magic/GrimCastFailure.h"
+#include "Magic/GrimSpellDelivery.h"
+#include "Engine/World.h"
 
 UGrimAbilitySystemComponent::UGrimAbilitySystemComponent()
 {
@@ -54,4 +57,57 @@ void UGrimAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& In
 			}
 		}
 	}
+}
+
+// ───── 마법 실패 알림(Q64) ─────
+
+void UGrimAbilitySystemComponent::NotifyAbilityFailed(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability, const FGameplayTagContainer& FailureReason)
+{
+	Super::NotifyAbilityFailed(Handle, Ability, FailureReason);
+	GrimCastFailure::HandleAbilityFailed(this, Handle, Ability);
+}
+
+void UGrimAbilitySystemComponent::Server_ReportCastFailed_Implementation(FGameplayAbilitySpecHandle Handle)
+{
+	// 클라이언트 말은 믿지 않는다 — 내 Spec 인지 보고 서버가 다시 판정한다.
+	if (!FindAbilitySpecFromHandle(Handle))
+	{
+		return;
+	}
+	int32 Param = 0;
+	const EGrimCastFailReason Reason = GrimCastFailure::Judge(this, Handle, Param);
+	GrimCastFailure::Report(this, Reason, Param);
+}
+
+void UGrimAbilitySystemComponent::Client_CastFailed_Implementation(uint8 Reason, int32 Param)
+{
+	const UWorld* World = GetWorld();
+	UE_LOG(LogGrimMagic, Display, TEXT("[%s] 마법 실패 알림 %s: %s"), World && World->GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server"),
+		GrimCastFailure::ReasonName(static_cast<EGrimCastFailReason>(Reason)), *GrimCastFailure::GetMessage(static_cast<EGrimCastFailReason>(Reason), Param).ToString());
+	OnCastFailedNotice.Broadcast(Reason, Param);
+}
+
+bool UGrimAbilitySystemComponent::ShouldThrottleCastFailure(uint8 Reason, float IntervalSeconds)
+{
+	const UWorld* World = GetWorld();
+	const double Now = World ? World->GetTimeSeconds() : 0.0;
+	if (Reason == LastCastFailureReason && LastCastFailureTime >= 0.0 && Now - LastCastFailureTime < IntervalSeconds)
+	{
+		return true;
+	}
+	LastCastFailureReason = Reason;
+	LastCastFailureTime = Now;
+	return false;
+}
+
+bool UGrimAbilitySystemComponent::ConsumeClientCastFailureReport(float IntervalSeconds)
+{
+	const UWorld* World = GetWorld();
+	const double Now = World ? World->GetTimeSeconds() : 0.0;
+	if (LastClientReportTime >= 0.0 && Now - LastClientReportTime < IntervalSeconds)
+	{
+		return false;
+	}
+	LastClientReportTime = Now;
+	return true;
 }

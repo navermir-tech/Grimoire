@@ -226,7 +226,8 @@ void UGrimCreatureStorageComponent::RefreshLimits()
 		ASC->GetOwnedGameplayTags(Tags);
 	}
 	const int32 NewParty = FMath::Max(1, GrimCreatureStorageMath::ComputeLimit(Settings->PartyLimitByCircle, Circle, Settings->PartyLimitTagBonuses, Tags, Settings->PartyLimitMax, 1));
-	const int32 NewCapacity = GrimCreatureStorageMath::ComputeLimit(Settings->StorageCapacityByCircle, Circle, Settings->StorageCapacityTagBonuses, Tags, Settings->StorageCapacityMax, 0);
+	const int32 NewCapacity = GrimCreatureStorageMath::ComputeStorageCapacity(Settings->StorageBaseCapacity, bStorageLearned, Settings->StorageCapacityByCircle, Circle,
+		Settings->StorageCapacityTagBonuses, Tags, Settings->StorageCapacityMax);
 	FString NewId = OwnerPlayerId;
 	if (const UGrimTamerComponent* Tamer = GetTamer())
 	{
@@ -303,7 +304,7 @@ EGrimLearnResult UGrimCreatureStorageComponent::LearnStorageSkill()
 	bStorageLearned = true;
 	RefreshLimits();
 	MarkChanged();
-	Notice(FString::Printf(TEXT("쿠스토디아(생물 보관함)를 배웠다 — 가방(L) 「생물」 탭 · 생물 메뉴에서 넣기 (칸 %d)"), StorageCapacity));
+	Notice(FString::Printf(TEXT("쿠스토디아를 배웠다 — 생물 보관함이 %d칸으로 늘었다 (가방(L) 「생물」 탭)"), StorageCapacity));
 	UE_LOG(LogGrimTaming, Display, TEXT("[Server] 생물 보관함 배움 %s 칸=%d 데리고 다님=%d"), *GetNameSafe(GetOwner()), StorageCapacity, PartyLimit);
 	return EGrimLearnResult::Learned;
 }
@@ -379,7 +380,7 @@ void UGrimCreatureStorageComponent::FinishPlaceNewlyTamed(TWeakObjectPtr<AGrimCr
 	Record.SavedUtcSeconds = GrimCreatureStorageCompLocal::NowUtc();
 	const FString Name = DescribeRecord(Record);
 	bool bPlaced = false;
-	if (Destination == EGrimNewTameDestination::Storage && bStorageLearned && Stored.Num() < StorageCapacity)
+	if (Destination == EGrimNewTameDestination::Storage && Stored.Num() < StorageCapacity)
 	{
 		Stored.Add(Record);
 		bPlaced = true;
@@ -413,7 +414,7 @@ void UGrimCreatureStorageComponent::FinishPlaceNewlyTamed(TWeakObjectPtr<AGrimCr
 bool UGrimCreatureStorageComponent::AcceptOverflowRecord(const FGrimOwnedCreatureRecord& Record)
 {
 	RefreshLimits();
-	if (!HasAuthority() || !bStorageLearned || Stored.Num() >= StorageCapacity
+	if (!HasAuthority() || Stored.Num() >= StorageCapacity
 		|| GrimCreatureStorageMath::FindRecord(Stored, Record.Instance.SpeciesId, Record.Instance.Seed) != INDEX_NONE)
 	{
 		return false;

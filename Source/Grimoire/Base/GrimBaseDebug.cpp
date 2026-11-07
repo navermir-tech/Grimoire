@@ -165,7 +165,7 @@ namespace GrimBaseConsoleLocal
 					}
 				}
 				const bool bBuildMode = ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.BuildMode"), false));
-				UE_LOG(LogGrimBase, Display, TEXT("[BaseDump %s] player %s pos=%s inBase=%d sheltered=%d wet=%.1f sleeping=%d weather=%d buildMode=%d wandBroken=%d ColdResist=%.1f gear=[%s]"), Side,
+				UE_LOG(LogGrimBase, Display, TEXT("[BaseDump %s] player %s pos=%s inBase=%d sheltered=%d wet=%.1f sleeping=%d weather=%d buildMode=%d wandBroken=%d wandMissing=%d ColdResist=%.1f gear=[%s]"), Side,
 					*PlayerState->GetPlayerName(), Pawn ? *Pawn->GetActorLocation().ToCompactString() : TEXT("-"),
 					Pawn && Subsystem->FindBaseAt(Pawn->GetActorLocation()) ? 1 : 0,
 					Pawn && Weather && Weather->IsActorSheltered(Pawn) ? 1 : 0,
@@ -174,6 +174,7 @@ namespace GrimBaseConsoleLocal
 					Pawn && Weather ? static_cast<int32>(Weather->GetWeatherAt(Pawn->GetActorLocation())) : -1,
 					bBuildMode ? 1 : 0,
 					ASC && ASC->HasMatchingGameplayTag(GrimBaseTags::Status_WandBroken) ? 1 : 0,
+					ASC && ASC->HasMatchingGameplayTag(GrimBaseTags::Status_WandMissing) ? 1 : 0,
 					ASC ? ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetColdResistAttribute()) : -1.f, *Gear);
 			}
 		}

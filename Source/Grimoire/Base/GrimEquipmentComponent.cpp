@@ -103,6 +103,36 @@ bool UGrimEquipmentComponent::IsWandBroken() const
 	return !Wand.IsEmpty() && GetDurability(Wand) <= 0.f;
 }
 
+bool UGrimEquipmentComponent::IsWandMissing() const
+{
+	return GetSlot(EGrimEquipSlot::Wand).IsEmpty();
+}
+
+int32 UGrimEquipmentComponent::GiveStartingEquipment()
+{
+	int32 Given = 0;
+	for (const FName& ItemId : UGrimBaseSettings::Get()->StartingEquipment)
+	{
+		const FGrimEquipmentDefinition* Def = UGrimBaseSettings::GetDatabase().FindEquipment(ItemId);
+		const int32 Index = Def ? static_cast<int32>(Def->Row.Slot) : INDEX_NONE;
+		if (!Slots.IsValidIndex(Index))
+		{
+			UE_LOG(LogGrimBase, Warning, TEXT("[Server] 시작 장비 %s 가 장비 표에 없다"), *ItemId.ToString());
+			continue;
+		}
+		if (Slots[Index].IsEmpty())
+		{
+			Slots[Index] = FGrimItemInstance(ItemId, 1);
+			++Given;
+		}
+	}
+	if (Given > 0)
+	{
+		UE_LOG(LogGrimBase, Log, TEXT("[Server] %s 시작 장비 %d개를 입혔다"), *GetNameSafe(GetOwner()), Given);
+	}
+	return Given;
+}
+
 UAbilitySystemComponent* UGrimEquipmentComponent::GetASC() const
 {
 	const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
@@ -117,6 +147,8 @@ void UGrimEquipmentComponent::BeginPlay()
 	{
 		return;
 	}
+	// 처음 들어온 플레이어의 시작 장비(Q71 기본 완드). 세이브가 있으면 곧 ReadSaveData 가 칸을 통째로 바꾼다.
+	GiveStartingEquipment();
 	BindASC();
 	if (!CommittedHandle.IsValid())
 	{
@@ -300,8 +332,9 @@ void UGrimEquipmentComponent::RefreshEffects()
 			ResistHandle = ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 		}
 	}
-	// 부러진 완드(Q22) — 복제 루스 태그(클라이언트의 시전 예측도 막힌다).
+	// 부러진 완드(Q22) · 빈 완드 칸(Q71) — 복제 루스 태그(클라이언트의 시전 예측도 막힌다).
 	ASC->SetLooseGameplayTagCount(GrimBaseTags::Status_WandBroken, IsWandBroken() ? 1 : 0, EGameplayTagReplicationState::TagOnly);
+	ASC->SetLooseGameplayTagCount(GrimBaseTags::Status_WandMissing, IsWandMissing() ? 1 : 0, EGameplayTagReplicationState::TagOnly);
 }
 
 bool UGrimEquipmentComponent::EquipFromBag(int32 BagSlot)
@@ -412,7 +445,7 @@ int32 UGrimEquipmentComponent::RepairAll(UGrimInventoryComponent* Bag)
 	return Used;
 }
 
-// ───── 세이브 (Base.Equipment v1) ─────
+// ───── 세이브 (Base.Equipment v2 — 형식은 v1 그대로) ─────
 
 void UGrimEquipmentComponent::WriteSaveData(FArchive& Ar)
 {
@@ -445,6 +478,11 @@ void UGrimEquipmentComponent::ReadSaveData(FArchive& Ar, int32 Version)
 	if (!Ar.IsError())
 	{
 		Slots = Loaded;
+		// v1 세이브는 완드 칸이 비어도 보이지 않는 기본 완드로 시전했다(Q71 전) — 주먹만 남지 않게 시작 장비를 넣는다.
+		if (Version < 2)
+		{
+			GiveStartingEquipment();
+		}
 		CommitChange();
 	}
 }

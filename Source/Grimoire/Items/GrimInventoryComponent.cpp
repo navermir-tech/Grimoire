@@ -10,8 +10,10 @@
 #include "Core/GrimPlayerState.h"
 #include "Creatures/GrimCreatureStorageComponent.h"
 #include "Creatures/GrimCreatureStorageMath.h"
+#include "Creatures/GrimCreatureStorageSettings.h"
 #include "Interaction/GrimElementalObject.h"
 #include "Magic/GrimSpellbookComponent.h"
+#include "Magic/GrimSpellDefinition.h"
 #include "Quest/GrimQuestComponent.h"
 #include "Quest/GrimQuestSettings.h"
 #include "Survival/GrimSurvivalComponent.h"
@@ -429,6 +431,11 @@ EGrimItemUseResult UGrimInventoryComponent::ReadSkillbook(int32 SlotIndex, const
 			SendNotice(EGrimItemNotice::Learned, Def.Id, 1);
 			return EGrimItemUseResult::Learned;
 		}
+		if (SkillResult == EGrimLearnResult::CircleTooLow)
+		{
+			SendNotice(EGrimItemNotice::CircleTooLow, Def.Id, UGrimCreatureStorageSettings::Get()->StorageRequiredCircle);
+			return EGrimItemUseResult::CannotUse;
+		}
 		SendNotice(EGrimItemNotice::CannotUse, Def.Id, 1);
 		return EGrimItemUseResult::CannotUse;
 	}
@@ -449,7 +456,8 @@ EGrimItemUseResult UGrimInventoryComponent::ReadSkillbook(int32 SlotIndex, const
 		SendNotice(EGrimItemNotice::Learned, Def.Id, 1);
 		return Result == EGrimLearnResult::Learned ? EGrimItemUseResult::Learned : EGrimItemUseResult::ProficiencyGained;
 	}
-	SendNotice(EGrimItemNotice::CannotUse, Def.Id, 1);
+	// Q64: 왜 못 읽는지 — 서클이 모자라면 필요한 서클을 알린다(서버 판정 → 소유 클라이언트).
+	SendNotice(Result == EGrimLearnResult::CircleTooLow ? EGrimItemNotice::CircleTooLow : EGrimItemNotice::CannotUse, Def.Id, Result == EGrimLearnResult::CircleTooLow ? Spell->Circle : 1);
 	return EGrimItemUseResult::CannotUse;
 }
 
@@ -539,7 +547,7 @@ void UGrimInventoryComponent::SendNotice(EGrimItemNotice Notice, FName ItemId, i
 	}
 	if (GetLocalOwningController())
 	{
-		OnNotice.Broadcast(this, Notice, ItemId, Count); // 리슨 호스트 자신
+		Client_Notice_Implementation(Notice, ItemId, Count); // 리슨 호스트 자신 — RPC 없이 같은 처리
 	}
 	else
 	{
@@ -549,6 +557,10 @@ void UGrimInventoryComponent::SendNotice(EGrimItemNotice Notice, FName ItemId, i
 
 void UGrimInventoryComponent::Client_Notice_Implementation(EGrimItemNotice Notice, FName ItemId, int32 Count)
 {
+	if (Notice == EGrimItemNotice::CircleTooLow)
+	{
+		UE_LOG(LogGrimItems, Display, TEXT("[%s] 가방 알림 CircleTooLow %s 필요 서클 %d"), GetWorld() && GetWorld()->GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server"), *ItemId.ToString(), Count);
+	}
 	OnNotice.Broadcast(this, Notice, ItemId, Count);
 }
 

@@ -103,6 +103,14 @@ void UGrimSpellbookComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		PlayerState->OnAbilityActorInfoReady.Remove(ActorInfoReadyHandle);
 	}
+	if (UAbilitySystemComponent* ASC = GetASC())
+	{
+		for (const TPair<FGameplayTag, FDelegateHandle>& Pair : WandStatusHandles)
+		{
+			ASC->RegisterGameplayTagEvent(Pair.Key, EGameplayTagEventType::NewOrRemoved).Remove(Pair.Value);
+		}
+	}
+	WandStatusHandles.Reset();
 	if (GetOwner() && GetOwner()->HasAuthority() && Wand)
 	{
 		Wand->Destroy();
@@ -697,6 +705,40 @@ void UGrimSpellbookComponent::EquipWand(APawn* Pawn)
 	else
 	{
 		Wand->AttachToComponent(Pawn->GetRootComponent(), Rules);
+	}
+
+	// 쥔 완드가 없으면 손에서 숨긴다(Q71) — 장비 갈래의 태그가 바뀔 때마다.
+	if (UAbilitySystemComponent* ASC = GetASC(); ASC && WandStatusHandles.Num() == 0)
+	{
+		for (const TCHAR* TagName : { TEXT("Status.WandMissing"), TEXT("Status.WandBroken") })
+		{
+			const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TagName, false);
+			if (Tag.IsValid())
+			{
+				WandStatusHandles.Emplace(Tag, ASC->RegisterGameplayTagEvent(Tag, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &ThisClass::HandleWandStatusTagChanged));
+			}
+		}
+	}
+	RefreshWandVisibility();
+}
+
+void UGrimSpellbookComponent::HandleWandStatusTagChanged(const FGameplayTag Tag, int32 NewCount)
+{
+	RefreshWandVisibility();
+}
+
+void UGrimSpellbookComponent::RefreshWandVisibility()
+{
+	const UAbilitySystemComponent* ASC = GetASC();
+	if (!Wand || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	const bool bHide = UGrimSpellAbility::IsWandMissing(ASC) || UGrimSpellAbility::IsWandBroken(ASC);
+	if (Wand->IsHidden() != bHide)
+	{
+		Wand->SetActorHiddenInGame(bHide);
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 손의 완드 %s"), *GetNameSafe(GetOwner()), bHide ? TEXT("숨김(주먹질)") : TEXT("보임"));
 	}
 }
 

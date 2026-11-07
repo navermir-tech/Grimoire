@@ -172,15 +172,22 @@ bool FGrimCreatureStorageLimitsTest::RunTest(const FString& Parameters)
 	// ini 제안값(Q60 · Q61)
 	const UGrimCreatureStorageSettings* Settings = UGrimCreatureStorageSettings::Get();
 	auto Party = [Settings, &NoTags](int32 Circle) { return GrimCreatureStorageMath::ComputeLimit(Settings->PartyLimitByCircle, Circle, Settings->PartyLimitTagBonuses, NoTags, Settings->PartyLimitMax, 1); };
-	auto Capacity = [Settings, &NoTags](int32 Circle) { return GrimCreatureStorageMath::ComputeLimit(Settings->StorageCapacityByCircle, Circle, Settings->StorageCapacityTagBonuses, NoTags, Settings->StorageCapacityMax, 0); };
+	auto Capacity = [Settings, &NoTags](int32 Circle, bool bLearned) { return GrimCreatureStorageMath::ComputeStorageCapacity(Settings->StorageBaseCapacity, bLearned, Settings->StorageCapacityByCircle, Circle, Settings->StorageCapacityTagBonuses, NoTags, Settings->StorageCapacityMax); };
 	TestEqual(TEXT("ini: 1서클 데리고 다님 3"), Party(1), 3);
 	TestEqual(TEXT("ini: 3서클 데리고 다님 4"), Party(3), 4);
 	TestEqual(TEXT("ini: 5서클 데리고 다님 5(팰월드 파티)"), Party(5), 5);
-	TestEqual(TEXT("ini: 1서클 보관함 8"), Capacity(1), 8);
-	TestEqual(TEXT("ini: 5서클 보관함 16"), Capacity(5), 16);
+	// Q42 답(2026-11-07): 쿠스토디아 없이 처음부터 10칸, 배우면 기존 설계 수치(8 · 12 · 16 + 노드 4)만큼 늘어난다.
+	TestEqual(TEXT("ini: 안 배움 보관함 10(처음부터)"), Capacity(1, false), 10);
+	TestEqual(TEXT("ini: 안 배움은 서클이 올라도 10"), Capacity(5, false), 10);
+	TestEqual(TEXT("ini: 1서클 쿠스토디아 10 + 8"), Capacity(1, true), 18);
+	TestEqual(TEXT("ini: 3서클 쿠스토디아 10 + 12"), Capacity(3, true), 22);
+	TestEqual(TEXT("ini: 5서클 쿠스토디아 10 + 16"), Capacity(5, true), 26);
 	FGameplayTagContainer StorageTag;
 	StorageTag.AddTag(GrimTamingTags::Progression_Node_CreatureStorage);
-	TestEqual(TEXT("ini: 보관함 성장 노드 +4"), GrimCreatureStorageMath::ComputeLimit(Settings->StorageCapacityByCircle, 1, Settings->StorageCapacityTagBonuses, StorageTag, Settings->StorageCapacityMax, 0), 12);
+	TestEqual(TEXT("ini: 보관함 성장 노드 +4(배웠을 때)"), GrimCreatureStorageMath::ComputeStorageCapacity(Settings->StorageBaseCapacity, true, Settings->StorageCapacityByCircle, 1, Settings->StorageCapacityTagBonuses, StorageTag, Settings->StorageCapacityMax), 22);
+	TestEqual(TEXT("ini: 노드도 배워야 붙는다"), GrimCreatureStorageMath::ComputeStorageCapacity(Settings->StorageBaseCapacity, false, Settings->StorageCapacityByCircle, 1, Settings->StorageCapacityTagBonuses, StorageTag, Settings->StorageCapacityMax), 10);
+	TestEqual(TEXT("상한으로 자른다(기본 칸은 넘김)"), GrimCreatureStorageMath::ComputeStorageCapacity(10, true, Settings->StorageCapacityByCircle, 5, Settings->StorageCapacityTagBonuses, StorageTag, 20), 20);
+	TestEqual(TEXT("상한이 기본 칸보다 작아도 기본 칸"), GrimCreatureStorageMath::ComputeStorageCapacity(10, false, Settings->StorageCapacityByCircle, 1, Settings->StorageCapacityTagBonuses, NoTags, 5), 10);
 	TestEqual(TEXT("ini: 상자 60칸"), Settings->BoxCapacity, 60);
 	TestEqual(TEXT("ini: 풀어놓기 10마리"), Settings->BoxMaxReleased, 10);
 	TestEqual(TEXT("ini: 노말 스킬 ID"), Settings->StorageSkillId, FName(TEXT("CreatureStorage")));
@@ -220,7 +227,10 @@ bool FGrimCreatureStorageRulesTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("상자 안 → 풀어놓기 상한"), GrimCreatureStorageMath::CheckTransfer(EP::Box, EP::Released, Full), ER::ReleasedFull);
 	FGrimCreatureStorageCounts NotLearned = C;
 	NotLearned.bStorageLearned = false;
-	TestEqual(TEXT("보관함을 안 배움"), GrimCreatureStorageMath::CheckTransfer(EP::Party, EP::Storage, NotLearned), ER::NotLearned);
+	NotLearned.StorageCapacity = 10;
+	TestEqual(TEXT("안 배워도 기본 칸에 넣는다(Q42)"), GrimCreatureStorageMath::CheckTransfer(EP::Party, EP::Storage, NotLearned), ER::Ok);
+	NotLearned.StorageCount = 10;
+	TestEqual(TEXT("기본 칸 가득 → 쿠스토디아 안내"), GrimCreatureStorageMath::CheckTransfer(EP::Party, EP::Storage, NotLearned), ER::StorageFullUnlearned);
 	FGrimCreatureStorageCounts NoBox = C;
 	NoBox.bHasBox = false;
 	TestEqual(TEXT("상자 곁이 아님"), GrimCreatureStorageMath::CheckTransfer(EP::Storage, EP::Box, NoBox), ER::NoBox);
@@ -239,8 +249,13 @@ bool FGrimCreatureStorageRulesTest::RunTest(const FString& Parameters)
 	FGrimCreatureStorageCounts PartyFullNotLearned = PartyFull;
 	PartyFullNotLearned.bStorageLearned = false;
 	PartyFullNotLearned.StorageCount = 0;
+	PartyFullNotLearned.StorageCapacity = 10;
 	PartyFullNotLearned.BoxCount = 0;
-	TestEqual(TEXT("보관함 안 배움 → 상자"), GrimCreatureStorageMath::DecideNewTame(PartyFullNotLearned, true), EGrimNewTameDestination::Box);
+	TestEqual(TEXT("안 배워도 기본 칸 → 보관함(Q42)"), GrimCreatureStorageMath::DecideNewTame(PartyFullNotLearned, true), EGrimNewTameDestination::Storage);
+	PartyFullNotLearned.StorageCount = 10;
+	TestEqual(TEXT("기본 칸 가득 → 상자(Q64 순서)"), GrimCreatureStorageMath::DecideNewTame(PartyFullNotLearned, true), EGrimNewTameDestination::Box);
+	PartyFullNotLearned.BoxCount = 60;
+	TestEqual(TEXT("기본 칸 · 상자 가득 → 거절"), GrimCreatureStorageMath::DecideNewTame(PartyFullNotLearned, true), EGrimNewTameDestination::Refused);
 
 	// 보관 중 회복
 	TestEqual(TEXT("2분 × 분당 0.2 = +0.4"), GrimCreatureStorageMath::GetHealedRatio(0.4f, 1000.0, 1120.0, 0.2f), 0.8f, 1e-4f);
@@ -338,7 +353,8 @@ bool FGrimCreatureStorageActorTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("1서클 데리고 다니는 수(ini)"), Limit, 3);
 
 	// ── 스킬북으로 배운다(노말 스킬) ──
-	TestFalse(TEXT("처음엔 보관함 없음"), Storage->IsStorageLearned());
+	TestFalse(TEXT("처음엔 쿠스토디아를 모름"), Storage->IsStorageLearned());
+	TestEqual(TEXT("안 배워도 보관함 10칸(Q42)"), Storage->GetStorageCapacity(), 10);
 	const FName Book(TEXT("Skillbook_CreatureStorage"));
 	TestEqual(TEXT("스킬북을 가방에"), Inventory->AddItem(FGrimItemInstance(Book, 2), false), 2);
 	const int32 BookSlot = Inventory->GetSlots().IndexOfByPredicate([Book](const FGrimItemInstance& Slot) { return Slot.ItemId == Book; });
@@ -349,7 +365,7 @@ bool FGrimCreatureStorageActorTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("이미 배움 → 못 씀"), Inventory->UseItem(BookSlot2), EGrimItemUseResult::CannotUse);
 	TestEqual(TEXT("못 쓴 책은 남는다"), Inventory->CountOf(Book), 1);
 	const int32 Capacity = Storage->GetStorageCapacity();
-	TestEqual(TEXT("1서클 보관함 칸(ini)"), Capacity, 8);
+	TestEqual(TEXT("1서클 쿠스토디아 보관함 칸 10 + 8(ini)"), Capacity, 18);
 
 	// ── 데리고 다니는 수 ──
 	TArray<AGrimCreature*> Party;
@@ -552,6 +568,71 @@ bool FGrimCreatureStorageShopTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("솔 − 값"), Inventory->CountOf(Shop->CurrencyItem), 50);
 	TestEqual(TEXT("책이 가방에"), Inventory->CountOf(Book), 1);
 	TestEqual(TEXT("팔지 않는 물건"), GrimTowerShop::TryBuy(Inventory, TEXT("Herb")), GrimDialogueContexts::Refused);
+
+	// Q71: 기본 완드는 아주 싼 값에 늘 판다(여러 번 사도 된다).
+	const FName BasicWand(TEXT("Wand_Basic"));
+	TestEqual(TEXT("ini: 기본 완드 10 솔(제안 — Q71)"), Shop->FindPrice(BasicWand), 10);
+	TestEqual(TEXT("기본 완드 산다"), GrimTowerShop::TryBuy(Inventory, BasicWand), GrimDialogueContexts::Buy);
+	TestEqual(TEXT("또 산다(늘 판다)"), GrimTowerShop::TryBuy(Inventory, BasicWand), GrimDialogueContexts::Buy);
+	TestEqual(TEXT("완드 둘"), Inventory->CountOf(BasicWand), 2);
+	TestEqual(TEXT("솔 50 − 20"), Inventory->CountOf(Shop->CurrencyItem), 30);
+	return true;
+}
+
+// Q42 답: 쿠스토디아 없이 처음부터 10칸 — 가득이면 보관함 → 거점 상자 → 거절(Q64), 배우면 칸이 늘어난다.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimCreatureStorageBaseCapacityTest, "Grimoire.Creatures.Storage.BaseCapacity", StorageWorldFlags)
+bool FGrimCreatureStorageBaseCapacityTest::RunTest(const FString& Parameters)
+{
+	using EP = EGrimCreaturePlace;
+	using ER = EGrimCreatureStorageResult;
+	if (!TestNotNull(TEXT("재칼로프 에셋"), UGrimCreatureSettings::Get()->FindSpecies(TEXT("Jackalope"))))
+	{
+		return false;
+	}
+	FStorageScopedWorld TestWorld;
+	UWorld* World = TestWorld.World;
+	AGrimPlayerState* Player = SpawnPlayer(World, 1);
+	UGrimCreatureStorageComponent* Storage = UGrimCreatureStorageComponent::FindForActor(Player);
+	UGrimTamerComponent* Tamer = UGrimTamerComponent::FindForActor(Player);
+	if (!TestNotNull(TEXT("보관함 컴포넌트"), Storage) || !TestNotNull(TEXT("길들이기 컴포넌트"), Tamer))
+	{
+		return false;
+	}
+	const FString OwnerId = Tamer->GetPlayerId();
+	Storage->RefreshLimits();
+	TestFalse(TEXT("안 배움"), Storage->IsStorageLearned());
+	TestEqual(TEXT("기본 10칸"), Storage->GetStorageCapacity(), 10);
+
+	TArray<AGrimCreature*> Party;
+	for (int32 Index = 0; Index < Storage->GetPartyLimit(); ++Index)
+	{
+		Party.Add(SpawnOwned(World, Player, 8001 + Index));
+	}
+	TestEqual(TEXT("데리고 다님 가득 → 안 배워도 보관함"), Storage->DecideNewTame(), EGrimNewTameDestination::Storage);
+	const FGrimCreatureInstance First = Party[0]->GetInstance();
+	TestEqual(TEXT("안 배워도 넣기(인벤토리처럼)"), Storage->Transfer(nullptr, First.SpeciesId, First.Seed, EP::Party, EP::Storage, false), ER::Ok);
+	TestEqual(TEXT("꺼내기"), Storage->Transfer(nullptr, First.SpeciesId, First.Seed, EP::Storage, EP::Party, false), ER::Ok);
+
+	int32 Seed = 8100;
+	while (Storage->GetStored().Num() < 10 && Storage->AcceptOverflowRecord(MakeStoredRecord(OwnerId, Seed)))
+	{
+		++Seed;
+	}
+	TestEqual(TEXT("10마리까지"), Storage->GetStored().Num(), 10);
+	TestFalse(TEXT("11번째는 받지 않는다"), Storage->AcceptOverflowRecord(MakeStoredRecord(OwnerId, 8199)));
+	const FGrimCreatureInstance Second = Party[1]->GetInstance();
+	TestEqual(TEXT("기본 칸 가득 → 쿠스토디아 안내"), Storage->Transfer(nullptr, Second.SpeciesId, Second.Seed, EP::Party, EP::Storage, false), ER::StorageFullUnlearned);
+	TestEqual(TEXT("상자 없음 → 계약 거절(Q64)"), Storage->DecideNewTame(), EGrimNewTameDestination::Refused);
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AGrimCreatureBox* Box = World->SpawnActor<AGrimCreatureBox>(AGrimCreatureBox::StaticClass(), FVector(3000.f, 0.f, 0.f), FRotator::ZeroRotator, Params);
+	TestEqual(TEXT("세계에 상자 → 상자로(Q64 순서)"), Box ? Storage->DecideNewTame() : EGrimNewTameDestination::Refused, EGrimNewTameDestination::Box);
+
+	Storage->DebugSetLearned(true);
+	TestEqual(TEXT("쿠스토디아 → 10 + 8"), Storage->GetStorageCapacity(), 18);
+	TestEqual(TEXT("배우면 다시 보관함으로"), Storage->DecideNewTame(), EGrimNewTameDestination::Storage);
+	TestTrue(TEXT("11번째를 받는다"), Storage->AcceptOverflowRecord(MakeStoredRecord(OwnerId, 8199)));
 	return true;
 }
 

@@ -96,14 +96,26 @@ AGrimWand* UGrimSpellAbility::GetWand(const FGameplayAbilityActorInfo* ActorInfo
 {
 	const AGrimPlayerState* PlayerState = ActorInfo ? Cast<AGrimPlayerState>(ActorInfo->OwnerActor.Get()) : nullptr;
 	const UGrimSpellbookComponent* Spellbook = PlayerState ? PlayerState->GetSpellbook() : nullptr;
-	// 부러진 완드(Q22 — 장비 내구도 0, M4)는 완드 없음과 같다: 마법은 못 쓰고 주먹만.
-	static const FGameplayTag WandBrokenTag = FGameplayTag::RequestGameplayTag(TEXT("Status.WandBroken"), false);
+	// 빈 완드 칸(Q71) · 부러진 완드(Q22 — 장비 내구도 0, M4)는 완드 없음: 마법은 못 쓰고 주먹만.
 	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (WandBrokenTag.IsValid() && ASC && ASC->HasMatchingGameplayTag(WandBrokenTag))
+	if (IsWandMissing(ASC) || IsWandBroken(ASC))
 	{
 		return nullptr;
 	}
 	return Spellbook ? Spellbook->GetWand() : nullptr;
+}
+
+bool UGrimSpellAbility::IsWandMissing(const UAbilitySystemComponent* ASC)
+{
+	// 태그는 거점(장비) 갈래가 정의한다 — 이름으로 찾아 Magic 이 Base 를 몰라도 되게.
+	static const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TEXT("Status.WandMissing"), false);
+	return Tag.IsValid() && ASC && ASC->HasMatchingGameplayTag(Tag);
+}
+
+bool UGrimSpellAbility::IsWandBroken(const UAbilitySystemComponent* ASC)
+{
+	static const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TEXT("Status.WandBroken"), false);
+	return Tag.IsValid() && ASC && ASC->HasMatchingGameplayTag(Tag);
 }
 
 float UGrimSpellAbility::GetEffectiveManaCost(const UGrimSpellDefinition* Definition, const AGrimWand* Wand, float ProficiencyMultiplier)

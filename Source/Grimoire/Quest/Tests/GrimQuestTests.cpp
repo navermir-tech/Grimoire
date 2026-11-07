@@ -161,7 +161,8 @@ bool FGrimQuestTableTest::RunTest(const FString& Parameters)
 	}
 	TestTrue(TEXT("대사 표 문제 없음"), bDialogueOk);
 	const FGrimNpcDef* Master = Dialogues.FindNpc(TEXT("Master"));
-	TestTrue(TEXT("스승은 서비스 여덟(시험 · 정화 넷 · 수리 · 지우기 · 생물 보관함 스킬북 상점)"), Master && Master->Services.Num() == 8);
+	TestTrue(TEXT("스승은 서비스 아홉(시험 · 정화 넷 · 수리 · 지우기 · 생물 보관함 스킬북 · 기본 완드 상점)"), Master && Master->Services.Num() == 9);
+	TestTrue(TEXT("스승이 기본 완드를 늘 판다(Q71)"), Master && Master->Services.Contains(FName(TEXT("Buy:Wand_Basic"))));
 	return true;
 }
 

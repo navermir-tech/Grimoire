@@ -382,7 +382,7 @@ void UGrimCreatureStorageWidget::Refresh()
 		PartyCount += View.Place == EGrimCreaturePlace::Party ? 1 : 0;
 	}
 	FString Header = FString::Printf(TEXT("데리고 다님 %d / %d"), PartyCount, Owned->GetPartyLimit());
-	Header += Owned->IsStorageLearned() ? FString::Printf(TEXT("    보관함 %d / %d"), Owned->GetStored().Num(), Owned->GetStorageCapacity()) : FString(TEXT("    보관함 — 배우지 않음"));
+	Header += FString::Printf(TEXT("    보관함 %d / %d"), Owned->GetStored().Num(), Owned->GetStorageCapacity());
 	if (OpenBox)
 	{
 		Header += FString::Printf(TEXT("    상자 %d / %d (풀어놓음 %d / %d)"), OpenBox->GetEntries().Num(), OpenBox->GetCapacity(), OpenBox->GetReleasedCount(),
@@ -391,7 +391,7 @@ void UGrimCreatureStorageWidget::Refresh()
 	HeaderText->SetText(FText::FromString(Header));
 	if (StorageHint)
 	{
-		StorageHint->SetText(LOCTEXT("StorageHint", "「스킬북: 쿠스토디아」를 읽으면 생물을 넣어 다닐 수 있다 — 마법탑에서 산다(120 솔)."));
+		StorageHint->SetText(LOCTEXT("StorageHint", "「스킬북: 쿠스토디아」를 읽으면 보관함 칸이 늘어난다 — 마법탑에서 산다."));
 		StorageHint->SetVisibility(Owned->IsStorageLearned() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
 	}
 
