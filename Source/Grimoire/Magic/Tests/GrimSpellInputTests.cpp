@@ -128,7 +128,8 @@ bool FGrimInputSpecTagsTest::RunTest(const FString& Parameters)
 	{
 		ASC->AddSpawnedAttribute(PlayerState->GetMagicSet());
 	}
-	ASC->SetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute(), 1.f);
+	// 2서클 = 슬롯 세트 둘(Q122 서클 표) — 세트 2 를 쓴다.
+	ASC->SetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute(), 2.f);
 
 	UGrimSpellbookComponent* Spellbook = PlayerState->GetSpellbook();
 	UGrimSpellDefinition* A = MakeInputTestSpell(TEXT("InputTest_A"));

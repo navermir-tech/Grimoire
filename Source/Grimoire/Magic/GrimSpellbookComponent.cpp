@@ -69,6 +69,7 @@ void UGrimSpellbookComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_CONDITION(UGrimSpellbookComponent, Proficiency, COND_OwnerOnly);
 	DOREPLIFETIME(UGrimSpellbookComponent, SlotSpells);
 	DOREPLIFETIME(UGrimSpellbookComponent, ActiveSlotSet);
+	DOREPLIFETIME_CONDITION(UGrimSpellbookComponent, SealedSpells, COND_OwnerOnly);
 }
 
 UGrimSpellbookComponent* UGrimSpellbookComponent::FindForASC(const UAbilitySystemComponent* ASC)
@@ -231,7 +232,7 @@ bool UGrimSpellbookComponent::LearnSpell(UGrimSpellDefinition* Spell)
 		Proficiency.MarkItemDirty(Item);
 	}
 
-	// 첫 빈 단축 슬롯에(숙련도 없는 기본 공격 등은 슬롯과 따로).
+	// 열린 세트의 첫 빈 단축 슬롯에(숙련도 없는 기본 공격 등은 슬롯과 따로). 열린 칸이 다 차면 그리모어에서 바꿔 놓는다.
 	if (Spell->bTracksProficiency && UGrimSpellbookSettings::Get()->bAutoAssignSlots)
 	{
 		const int32 Total = UGrimSpellbookSettings::Get()->GetTotalSlots();
@@ -239,10 +240,14 @@ bool UGrimSpellbookComponent::LearnSpell(UGrimSpellDefinition* Spell)
 		{
 			SlotSpells.SetNum(Total);
 		}
-		const int32 Empty = SlotSpells.IndexOfByKey(nullptr);
-		if (Empty != INDEX_NONE)
+		const int32 Unlocked = GetUnlockedSlotCount();
+		for (int32 Index = 0; Index < Unlocked && Index < SlotSpells.Num(); ++Index)
 		{
-			SlotSpells[Empty] = Spell;
+			if (!SlotSpells[Index])
+			{
+				SlotSpells[Index] = Spell;
+				break;
+			}
 		}
 	}
 
@@ -337,13 +342,20 @@ EGrimLearnResult UGrimSpellbookComponent::PreviewSkillbook(const UGrimSpellDefin
 	return GetProficiency(Spell).bMaxGrade ? EGrimLearnResult::AlreadyMastered : EGrimLearnResult::ProficiencyGained;
 }
 
-EGrimLearnResult UGrimSpellbookComponent::UseSkillbook(UGrimSpellDefinition* Spell)
+EGrimLearnResult UGrimSpellbookComponent::UseSkillbook(UGrimSpellDefinition* Spell, bool bSealIfCircleTooLow)
 {
 	if (!GetOwner()->HasAuthority())
 	{
 		return EGrimLearnResult::Invalid;
 	}
 	EGrimLearnResult Result = PreviewSkillbook(Spell);
+	// 봉인된 책(Q122): 버려지지 않게 그리모어에 기록한다 — 같은 책이 이미 봉인돼 있으면 그대로 「서클 모자람」(책이 남는다).
+	if (Result == EGrimLearnResult::CircleTooLow && bSealIfCircleTooLow && !IsSealed(Spell))
+	{
+		SealedSpells.Add(Spell);
+		Result = EGrimLearnResult::Sealed;
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 봉인된 책 기록: %s (%d서클)"), *GetNameSafe(GetOwner()), *Spell->GetName(), Spell->Circle);
+	}
 	if (Result == EGrimLearnResult::Learned)
 	{
 		if (!LearnSpell(Spell))
@@ -391,8 +403,8 @@ EGrimLearnResult UGrimSpellbookComponent::PickUpSkillbook(AGrimSkillbook* Book, 
 		}
 		else
 		{
-			Result = UseSkillbook(Spell);
-			if (Result == EGrimLearnResult::Learned || Result == EGrimLearnResult::ProficiencyGained)
+			Result = UseSkillbook(Spell, true);
+			if (Result == EGrimLearnResult::Learned || Result == EGrimLearnResult::ProficiencyGained || Result == EGrimLearnResult::Sealed)
 			{
 				Book->ConsumeBook();
 			}
@@ -436,7 +448,8 @@ void UGrimSpellbookComponent::Client_LearnResult_Implementation(UGrimSpellDefini
 void UGrimSpellbookComponent::AssignSlot(int32 SlotIndex, UGrimSpellDefinition* Spell)
 {
 	const int32 Total = UGrimSpellbookSettings::Get()->GetTotalSlots();
-	if (!GetOwner()->HasAuthority() || SlotIndex < 0 || SlotIndex >= Total || (Spell && !KnowsSpell(Spell)))
+	// 잠긴 세트(서클 표 SlotSets 밖)에는 놓을 수 없다(Q122). 비우기는 어디든.
+	if (!GetOwner()->HasAuthority() || SlotIndex < 0 || SlotIndex >= Total || (Spell && (!KnowsSpell(Spell) || SlotIndex >= GetUnlockedSlotCount())))
 	{
 		return;
 	}
@@ -462,8 +475,94 @@ void UGrimSpellbookComponent::SetActiveSlotSet(int32 SetIndex)
 {
 	if (GetOwner()->HasAuthority())
 	{
-		ActiveSlotSet = FMath::Clamp(SetIndex, 0, FMath::Max(UGrimSpellbookSettings::Get()->SpellSlotSets, 1) - 1);
+		ActiveSlotSet = FMath::Clamp(SetIndex, 0, GetUnlockedSlotSets() - 1);
 	}
+}
+
+int32 UGrimSpellbookComponent::GetUnlockedSlotSets() const
+{
+	const int32 MaxSets = FMath::Max(UGrimSpellbookSettings::Get()->SpellSlotSets, 1);
+	const UAbilitySystemComponent* ASC = GetASC();
+	const int32 Circle = ASC ? FMath::RoundToInt(ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute())) : 1;
+	return FMath::Clamp(FGrimCircleMath::GetSlotSets(UGrimProgressionSettings::GetCircleTable(), Circle, MaxSets), 1, MaxSets);
+}
+
+int32 UGrimSpellbookComponent::GetUnlockedSlotCount() const
+{
+	return GetUnlockedSlotSets() * FMath::Max(UGrimSpellbookSettings::Get()->SpellSlotsPerSet, 1);
+}
+
+void UGrimSpellbookComponent::FillEmptySlots()
+{
+	if (!GetOwner()->HasAuthority() || !UGrimSpellbookSettings::Get()->bAutoAssignSlots)
+	{
+		return;
+	}
+	const int32 Total = UGrimSpellbookSettings::Get()->GetTotalSlots();
+	if (SlotSpells.Num() < Total)
+	{
+		SlotSpells.SetNum(Total);
+	}
+	const int32 Unlocked = FMath::Min(GetUnlockedSlotCount(), SlotSpells.Num());
+	bool bChanged = false;
+	for (UGrimSpellDefinition* Spell : KnownSpells)
+	{
+		if (!Spell || !Spell->bTracksProficiency)
+		{
+			continue;
+		}
+		const int32 Current = SlotSpells.IndexOfByKey(Spell);
+		if (Current != INDEX_NONE && Current < Unlocked)
+		{
+			continue; // 이미 열린 칸에 있다
+		}
+		const int32 Empty = SlotSpells.IndexOfByPredicate([](const TObjectPtr<UGrimSpellDefinition>& Slot) { return Slot == nullptr; });
+		if (Empty == INDEX_NONE || Empty >= Unlocked)
+		{
+			break; // 열린 칸이 다 찼다
+		}
+		if (Current != INDEX_NONE)
+		{
+			SlotSpells[Current] = nullptr; // 잠긴 칸(옛 세이브)에서 옮긴다
+		}
+		SlotSpells[Empty] = Spell;
+		bChanged = true;
+	}
+	if (bChanged)
+	{
+		OnSelectedSpellChanged.Broadcast(this, GetSelectedSpell());
+	}
+}
+
+void UGrimSpellbookComponent::HandleCircleRaised(int32 NewCircle)
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	// 봉인 풀기: 이제 서클이 닿는 책을 주운 순서대로 읽는다.
+	TArray<TObjectPtr<UGrimSpellDefinition>> StillSealed;
+	TArray<UGrimSpellDefinition*> Unsealed;
+	for (UGrimSpellDefinition* Spell : SealedSpells)
+	{
+		if (Spell && Spell->Circle <= NewCircle)
+		{
+			Unsealed.Add(Spell);
+		}
+		else if (Spell)
+		{
+			StillSealed.Add(Spell);
+		}
+	}
+	SealedSpells = MoveTemp(StillSealed);
+	for (UGrimSpellDefinition* Spell : Unsealed)
+	{
+		const EGrimLearnResult Result = UseSkillbook(Spell);
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 봉인 풀림(%d서클): %s → %s"), *GetNameSafe(GetOwner()), NewCircle, *Spell->GetName(),
+			*StaticEnum<EGrimLearnResult>()->GetNameStringByValue(static_cast<int64>(Result)));
+	}
+	// 새로 열린 슬롯 세트의 빈 칸 채우기
+	FillEmptySlots();
 }
 
 void UGrimSpellbookComponent::Server_AssignSlot_Implementation(int32 SlotIndex, UGrimSpellDefinition* Spell)
@@ -517,6 +616,19 @@ float UGrimSpellbookComponent::GetProficiencyExtraEffect(const UGrimSpellDefinit
 		return 0.f;
 	}
 	return FGrimProficiencyMath::GetExtraEffectValue(Spell->ProficiencyExtraEffect.MaxValue, GetProficiencyMultipliers(Spell));
+}
+
+void UGrimSpellbookComponent::GetProficiencyEntries(TArray<FGrimSpellGradeEntry>& OutEntries) const
+{
+	OutEntries.Reset();
+	for (const UGrimSpellDefinition* Spell : KnownSpells)
+	{
+		const FGrimProficiencyView View = GetProficiency(Spell);
+		if (View.bTracked)
+		{
+			OutEntries.Add({ Spell->Circle, FMath::Max(View.GradeIndex, 0) });
+		}
+	}
 }
 
 int32 UGrimSpellbookComponent::GetProficiencyGradeSum() const
@@ -779,6 +891,15 @@ void UGrimSpellbookComponent::WriteSaveData(FArchive& Ar)
 
 	int32 SlotSet = ActiveSlotSet;
 	Ar << SlotSet;
+
+	// v2: 봉인된 책
+	int32 NumSealed = SealedSpells.Num();
+	Ar << NumSealed;
+	for (const TObjectPtr<UGrimSpellDefinition>& Spell : SealedSpells)
+	{
+		FString Path = Spell ? Spell->GetPathName() : FString();
+		Ar << Path;
+	}
 }
 
 void UGrimSpellbookComponent::ReadSaveData(FArchive& Ar, int32 Version)
@@ -888,11 +1009,36 @@ void UGrimSpellbookComponent::ReadSaveData(FArchive& Ar, int32 Version)
 	Ar << SlotSet;
 	SetActiveSlotSet(Ar.IsError() ? 0 : SlotSet);
 
+	SealedSpells.Reset();
+	if (Version >= 2 && !Ar.IsError())
+	{
+		int32 NumSealed = 0;
+		Ar << NumSealed;
+		if (NumSealed < 0 || NumSealed > MaxSavedEntries)
+		{
+			Ar.SetError();
+			NumSealed = 0;
+		}
+		for (int32 i = 0; i < NumSealed && !Ar.IsError(); ++i)
+		{
+			FString Path;
+			Ar << Path;
+			UGrimSpellDefinition* Spell = LoadSpellPath(Path);
+			if (Spell && !KnowsSpell(Spell) && !SealedSpells.Contains(Spell))
+			{
+				SealedSpells.Add(Spell);
+			}
+		}
+	}
+	// 서클은 진행(Magic.Progression)이 먼저 읽었다 — 서클이 닿는 봉인을 풀고, 잠긴 칸(옛 세이브)의 마법을 열린 칸으로.
+	const UAbilitySystemComponent* CircleASC = GetASC();
+	HandleCircleRaised(CircleASC ? FMath::RoundToInt(CircleASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute())) : 1);
+
 	if (KnownSpells.Num() > 0)
 	{
 		SelectSpell(KnownSpells.IsValidIndex(Selected) ? Selected : 0);
 	}
-	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 세이브 읽음: 배운 마법 %d, 선택 %d, 슬롯 세트 %d"), *GetNameSafe(GetOwner()), KnownSpells.Num(), SelectedIndex, ActiveSlotSet);
+	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 세이브 읽음: 배운 마법 %d, 선택 %d, 슬롯 세트 %d, 봉인된 책 %d"), *GetNameSafe(GetOwner()), KnownSpells.Num(), SelectedIndex, ActiveSlotSet, SealedSpells.Num());
 }
 
 void UGrimSpellbookComponent::GiveSpellFromSave(UGrimSpellDefinition* Spell)

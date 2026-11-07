@@ -3,6 +3,7 @@
 #include "UI/GrimUIMath.h"
 #include "UI/GrimUISettings.h"
 #include "UI/GrimSkillTreeWidget.h"
+#include "UI/GrimUISubsystem.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimMagicMath.h"
 #include "Magic/GrimProficiencySettings.h"
@@ -12,6 +13,8 @@
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimWand.h"
 #include "Core/GrimPlayerState.h"
+#include "Creatures/GrimCreatureStorageMath.h"
+#include "Creatures/GrimCreatureStorageSettings.h"
 #include "AbilitySystemComponent.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -27,11 +30,29 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WidgetSwitcher.h"
 #include "GameFramework/PlayerController.h"
+#include "HAL/IConsoleManager.h"
+#include "UObject/UObjectIterator.h"
 
 #define LOCTEXT_NAMESPACE "GrimGrimoire"
 
 namespace GrimGrimoireLocal
 {
+	/** Grim.UI.GrimoireTab <0 마법 | 1 성장 트리 | 2 도감 | 3 서클> — 그리모어를 열고 그 탭으로(화면 QA) */
+	FAutoConsoleCommand GGrimoireTabCommand(TEXT("Grim.UI.GrimoireTab"),
+		TEXT("그리모어를 열고 탭을 고른다. <0 마법 | 1 성장 트리 | 2 도감 | 3 서클>"),
+		FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
+		{
+			const int32 Tab = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+			UGrimUISubsystem::ForEach([](UGrimUISubsystem& UI) { UI.SetGrimoireOpen(true); });
+			for (TObjectIterator<UGrimGrimoireWidget> It; It; ++It)
+			{
+				if (!It->HasAnyFlags(RF_ClassDefaultObject) && It->GetWorld())
+				{
+					It->SetTab(Tab);
+				}
+			}
+		}));
+
 	const FLinearColor PageColor(0.13f, 0.10f, 0.07f, 0.96f);
 	const FLinearColor RowColor(0.20f, 0.16f, 0.11f, 1.f);
 	const FLinearColor InkColor(0.95f, 0.90f, 0.78f, 1.f);
@@ -53,6 +74,78 @@ namespace GrimGrimoireLocal
 		FNumberFormattingOptions Options;
 		Options.SetMaximumFractionalDigits(Value < 10.f ? 2 : 1);
 		return FText::AsNumber(Value, &Options);
+	}
+
+	const FLinearColor LockedTab(0.3f, 0.3f, 0.3f, 0.2f);
+
+	FText Percent(float Fraction)
+	{
+		return FText::AsNumber(FMath::RoundToInt(Fraction * 100.f));
+	}
+
+	FText EnchantTierName(int32 Tier)
+	{
+		static const TCHAR* Names[] = { TEXT("Ⅰ"), TEXT("Ⅱ"), TEXT("Ⅲ"), TEXT("Ⅳ"), TEXT("Ⅴ") };
+		return Tier >= 1 && Tier <= UE_ARRAY_COUNT(Names) ? FText::FromString(Names[Tier - 1]) : FText::AsNumber(Tier);
+	}
+
+	/** 승급 자격(Q122) — bDetailed 면 조건마다 한 줄(서클 탭), 아니면 머리의 한 줄 */
+	FText DescribePromotion(const FGrimCircleCheck& Check, bool bDetailed)
+	{
+		if (Check.bAtMax)
+		{
+			return LOCTEXT("AtMax", "가장 높은 서클이다 — 더 오를 곳이 없다.");
+		}
+		TArray<FText> Parts;
+		for (const FGrimCircleGradeCheck& Grade : Check.Grades)
+		{
+			Parts.Add(FText::Format(LOCTEXT("PromoGrade", "숙련도 {0} 이상 마법 {1}/{2}{3}"), FText::FromName(Grade.Grade), Grade.Have, Grade.Required,
+				Grade.IsMet() ? LOCTEXT("PromoOk", " ✓") : FText::GetEmpty()));
+		}
+		if (Check.RequiredCurrentCircleSpells > 0)
+		{
+			Parts.Add(FText::Format(LOCTEXT("PromoCurrent", "그중 지금 {0}서클 마법 {1}/{2}{3}"), Check.CurrentCircle, Check.CurrentCircleSpells, Check.RequiredCurrentCircleSpells,
+				Check.IsCurrentCircleMet() ? LOCTEXT("PromoOk", " ✓") : FText::GetEmpty()));
+		}
+		const FText Ready = Check.bMet ? LOCTEXT("PromoReady", "자격을 채웠다 — 마법탑 스승에게 승급 시험을 청할 수 있다") : LOCTEXT("PromoNotReady", "자격이 모자라다");
+		if (!bDetailed)
+		{
+			return FText::Format(LOCTEXT("PromoShort", "다음 {0}서클 자격 — {1} · {2}"), Check.NextCircle, FText::Join(FText::FromString(TEXT(" · ")), Parts), Ready);
+		}
+		TArray<FText> Lines;
+		Lines.Add(FText::Format(LOCTEXT("PromoTitle", "{0}서클 승급 — {1}"), Check.NextCircle, Ready));
+		for (const FText& Part : Parts)
+		{
+			Lines.Add(FText::Format(LOCTEXT("PromoLine", "  · {0}"), Part));
+		}
+		if (!Check.Task.IsEmpty())
+		{
+			Lines.Add(FText::Format(LOCTEXT("PromoTask", "  · 시험 과제: {0}"), Check.Task));
+		}
+		return FText::Join(FText::FromString(TEXT("\n")), Lines);
+	}
+
+	/** 서클 한 줄의 보상 — ① 수치 보정 ② 해금(생물 칸은 생물 설정, Q60 · Q61) */
+	FText DescribeCircleStep(const FGrimCircleTable& Table, const FGrimCircleStep& Step)
+	{
+		const UGrimCreatureStorageSettings* Creatures = UGrimCreatureStorageSettings::Get();
+		const int32 Party = GrimCreatureStorageMath::GetCircleValue(Creatures->PartyLimitByCircle, Step.Circle, 1);
+		const int32 StorageBase = GrimCreatureStorageMath::ComputeStorageCapacity(Creatures->StorageBaseCapacity, false, Creatures->StorageCapacityByCircle, Step.Circle,
+			TArray<FGrimTagLimitBonus>(), FGameplayTagContainer(), Creatures->StorageCapacityMax);
+		const int32 StorageLearned = GrimCreatureStorageMath::ComputeStorageCapacity(Creatures->StorageBaseCapacity, true, Creatures->StorageCapacityByCircle, Step.Circle,
+			TArray<FGrimTagLimitBonus>(), FGameplayTagContainer(), Creatures->StorageCapacityMax);
+		const float LowPower = FGrimCircleMath::GetGapPowerBonus(Table, Step.Circle, 1);
+		const float LowMana = FGrimCircleMath::GetGapManaBonus(Table, Step.Circle, 1);
+		// 1서클이면 받는 마법이 없다(같은 서클) — 그 말은 뺀다.
+		const FText LowCircle = (LowPower > 0.f || LowMana > 0.f)
+			? FText::Format(LOCTEXT("CircleBonusLow", " 지금 1서클 마법은 위력 +{0}% · 마나 −{1}%."), Percent(LowPower), Percent(LowMana))
+			: LOCTEXT("CircleBonusNone", " (1서클에선 같은 서클이라 아직 붙지 않는다.)");
+		const FText Bonus = FText::Format(LOCTEXT("CircleBonus", "  ① 수치 보정 — 나보다 낮은 서클 마법일수록: 위력 +{0}% · 마나 −{1}% (서클 차이 하나마다, 최대 +{2}% · −{3}%).{4} 각인 후보 최고 {5}"),
+			Percent(Step.GapPowerPerCircle), Percent(Step.GapManaPerCircle), Percent(Step.GapPowerCap), Percent(Step.GapManaCap), LowCircle, EnchantTierName(Step.MaxEnchantTier));
+		const FText Unlock = FText::Format(LOCTEXT("CircleUnlock", "  ② 해금 — 슬롯 세트 {0} · 동시 유지 마법 {1} · 장비 등급 {2}까지 · 계약 생물 {3}서클 종까지 · 데리고 다님 {4} · 생물 보관함 {5}칸(쿠스토디아를 배우면 {6}칸){7}"),
+			Step.SlotSets, Step.MaxSustainedSpells, Step.EquipTier, Step.Circle, Party, StorageBase, StorageLearned,
+			Step.UnlockText.IsEmpty() ? FText::GetEmpty() : FText::Format(LOCTEXT("CircleOpens", " · 열리는 곳: {0}"), Step.UnlockText));
+		return FText::Format(LOCTEXT("CircleStepLines", "{0}\n{1}"), Bonus, Unlock);
 	}
 }
 
@@ -99,7 +192,7 @@ void UGrimGrimoireWidget::BuildTree()
 	// 탭
 	UHorizontalBox* TabRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Column->AddChildToVerticalBox(TabRow)->SetPadding(FMargin(0.f, 0.f, 0.f, 8.f));
-	const FText TabNames[] = { LOCTEXT("TabMagic", "마법"), LOCTEXT("TabTree", "성장 트리"), LOCTEXT("TabCodex", "도감") };
+	const FText TabNames[] = { LOCTEXT("TabMagic", "마법"), LOCTEXT("TabTree", "성장 트리"), LOCTEXT("TabCodex", "도감"), LOCTEXT("TabCircle", "서클") };
 	TabButtons.Reset();
 	for (int32 Index = 0; Index < UE_ARRAY_COUNT(TabNames); ++Index)
 	{
@@ -119,6 +212,7 @@ void UGrimGrimoireWidget::BuildTree()
 	Pages->AddChild(WidgetTree->ConstructWidget<UGrimSkillTreeWidget>(UGrimSkillTreeWidget::StaticClass(), TEXT("SkillTree")));
 	Pages->AddChild(BuildPlaceholderPage(LOCTEXT("CodexTitle", "도감"),
 		LOCTEXT("CodexBody", "발견한 상호작용 규칙(불 + 마른 풀 → 번짐 같은 것)이 여기에 기록된다.\n아직 기록된 것이 없다 — 다음 묶음에서 채워진다.")));
+	Pages->AddChild(BuildCirclePage());
 
 	Column->AddChildToVerticalBox(GrimUIData::MakeText(WidgetTree, LOCTEXT("Footer", "그리모어 키로 닫는다"), 11, FaintInk))
 		->SetPadding(FMargin(0.f, 8.f, 0.f, 0.f));
@@ -136,6 +230,16 @@ UWidget* UGrimGrimoireWidget::BuildPlaceholderPage(const FText& Title, const FTe
 	BodyText->SetAutoWrapText(true);
 	Box->AddChildToVerticalBox(BodyText);
 	return Box;
+}
+
+UWidget* UGrimGrimoireWidget::BuildCirclePage()
+{
+	using namespace GrimGrimoireLocal;
+	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("CirclePage"));
+	CirclePageText = GrimUIData::MakeText(WidgetTree, FText::GetEmpty(), 13, InkColor);
+	CirclePageText->SetAutoWrapText(true);
+	Scroll->AddChild(CirclePageText);
+	return Scroll;
 }
 
 UWidget* UGrimGrimoireWidget::BuildMagicPage()
@@ -352,6 +456,10 @@ void UGrimGrimoireWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaT
 	{
 		RefreshTimer = 0.1f;
 		RefreshHeader(PlayerState);
+		if (TabIndex == 3)
+		{
+			RefreshCirclePage(PlayerState);
+		}
 		RefreshSlotEditor(PlayerState);
 		RefreshRows(PlayerState);
 	}
@@ -525,9 +633,12 @@ void UGrimGrimoireWidget::RefreshSlotEditor(const AGrimPlayerState* PlayerState)
 		return;
 	}
 	const int32 ActiveSet = Spellbook->GetActiveSlotSet();
+	const int32 UnlockedSets = Spellbook->GetUnlockedSlotSets();
 	for (int32 Index = 0; Index < SetButtons.Num(); ++Index)
 	{
-		SetButtons[Index]->SetBackgroundColor(Index == ActiveSet ? ActiveTab : IdleTab);
+		// 잠긴 세트(Q122 — 서클이 연다)는 흐리게, 누르지 못하게
+		SetButtons[Index]->SetIsEnabled(Index < UnlockedSets);
+		SetButtons[Index]->SetBackgroundColor(Index >= UnlockedSets ? LockedTab : Index == ActiveSet ? ActiveTab : IdleTab);
 	}
 	const int32 PerSet = UGrimSpellbookSettings::Get()->SpellSlotsPerSet;
 	const TArray<TObjectPtr<UGrimSpellDefinition>>& SlotSpells = Spellbook->GetSlotSpells();
@@ -562,16 +673,52 @@ void UGrimGrimoireWidget::RefreshHeader(const AGrimPlayerState* PlayerState)
 	CircleText->SetText(FText::Format(LOCTEXT("Circle", "{0}서클 · {1} — 최대 마나 {2}"), Check.CurrentCircle, Title,
 		FText::AsNumber(FMath::RoundToInt(ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetMaxManaAttribute())))));
 
-	if (Check.bAtMax)
+	RequirementText->SetText(GrimGrimoireLocal::DescribePromotion(Check, false));
+}
+
+void UGrimGrimoireWidget::RefreshCirclePage(const AGrimPlayerState* PlayerState)
+{
+	using namespace GrimGrimoireLocal;
+	const UGrimProgressionComponent* Progression = PlayerState ? PlayerState->GetProgression() : nullptr;
+	const UGrimSpellbookComponent* Spellbook = PlayerState ? PlayerState->GetSpellbook() : nullptr;
+	const FGrimCircleTable& Table = UGrimProgressionSettings::GetCircleTable();
+	if (!CirclePageText || !Progression || !Spellbook || Table.IsEmpty())
 	{
-		RequirementText->SetText(LOCTEXT("AtMax", "지금 오를 수 있는 가장 높은 서클이다."));
+		if (CirclePageText)
+		{
+			CirclePageText->SetText(LOCTEXT("NoCircleTable", "서클 표를 읽지 못했다(Circles.csv)."));
+		}
+		return;
 	}
-	else
+
+	const FGrimCircleCheck Check = Progression->EvaluateNextCircle();
+	const UGrimUISettings* UISettings = UGrimUISettings::Get();
+	TArray<FText> Lines;
+	if (const FGrimCircleStep* Current = Table.FindClamped(Check.CurrentCircle))
 	{
-		const FText Progress = FText::Format(LOCTEXT("Requirement", "다음 {0}서클 — 배운 마법 {1}/{2} · 숙련도 등급 합 {3}/{4}"),
-			Check.NextCircle, Check.KnownSpells, Check.RequiredKnownSpells, Check.GradeSum, Check.RequiredGradeSum);
-		RequirementText->SetText(Check.bMet ? FText::Format(LOCTEXT("RequirementMet", "{0} — 조건을 채웠다, 승급 시험을 볼 수 있다"), Progress) : Progress);
+		Lines.Add(FText::Format(LOCTEXT("CircleNow", "지금 — {0}서클 · {1}"), Check.CurrentCircle, UISettings->GetCircleTitle(Check.CurrentCircle)));
+		Lines.Add(DescribeCircleStep(Table, *Current));
 	}
+	if (const FGrimCircleStep* Next = Table.Find(Check.CurrentCircle + 1))
+	{
+		Lines.Add(FText::GetEmpty());
+		Lines.Add(FText::Format(LOCTEXT("CircleNext", "다음 — {0}서클 · {1}"), Next->Circle, UISettings->GetCircleTitle(Next->Circle)));
+		Lines.Add(DescribeCircleStep(Table, *Next));
+	}
+	Lines.Add(FText::GetEmpty());
+	Lines.Add(DescribePromotion(Check, true));
+
+	Lines.Add(FText::GetEmpty());
+	const TArray<TObjectPtr<UGrimSpellDefinition>>& Sealed = Spellbook->GetSealedSpells();
+	Lines.Add(FText::Format(LOCTEXT("SealedTitle", "봉인된 책 — {0}권 (그 서클에 오르면 저절로 읽는다)"), Sealed.Num()));
+	for (const UGrimSpellDefinition* Spell : Sealed)
+	{
+		if (Spell)
+		{
+			Lines.Add(FText::Format(LOCTEXT("SealedLine", "  · {0} — {1}서클 · {2}"), Spell->DisplayName, Spell->Circle, ElementName(Spell->Element)));
+		}
+	}
+	CirclePageText->SetText(FText::Join(FText::FromString(TEXT("\n")), Lines));
 }
 
 #undef LOCTEXT_NAMESPACE

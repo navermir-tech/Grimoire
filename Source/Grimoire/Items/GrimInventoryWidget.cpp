@@ -727,6 +727,7 @@ FText UGrimInventoryWidget::DescribeNotice(EGrimItemNotice Notice, FName ItemId,
 	case EGrimItemNotice::TookBack: return FText::Format(LOCTEXT("TookBack", "냄비에서 {0}개를 꺼냈다"), Count);
 	case EGrimItemNotice::Equipped: return FText::Format(LOCTEXT("Equipped", "{0} 을(를) 입었다"), Name);
 	case EGrimItemNotice::CircleTooLow: return FText::Format(LOCTEXT("CircleTooLow", "{0} — {1}서클이 되어야 읽을 수 있다"), Name, Count);
+	case EGrimItemNotice::Sealed: return FText::Format(LOCTEXT("Sealed", "{0} — {1}서클 책이라 「봉인된 책」으로 그리모어에 기록했다. 그 서클에 오르면 저절로 읽는다"), Name, Count);
 	default: return FText::GetEmpty();
 	}
 }

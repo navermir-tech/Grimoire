@@ -2,6 +2,7 @@
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimSpellbookComponent.h"
 #include "Magic/GrimSpellDelivery.h"
+#include "Magic/GrimCastFailure.h"
 #include "Core/GrimPlayerState.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -32,9 +33,54 @@ int32 UGrimProgressionComponent::GetCircle() const
 
 FGrimCircleCheck UGrimProgressionComponent::EvaluateNextCircle() const
 {
-	const UGrimSpellbookComponent* Spellbook = GetSpellbook();
-	return UGrimProgressionSettings::Evaluate(UGrimProgressionSettings::Get()->CircleRequirements, GetCircle(),
-		Spellbook ? Spellbook->GetTrackedSpellCount() : 0, Spellbook ? Spellbook->GetProficiencyGradeSum() : 0);
+	TArray<FGrimSpellGradeEntry> Entries;
+	if (const UGrimSpellbookComponent* Spellbook = GetSpellbook())
+	{
+		Spellbook->GetProficiencyEntries(Entries);
+	}
+	TArray<FName> GradeOrder;
+	UGrimProgressionSettings::GetGradeOrder(GradeOrder);
+	return FGrimCircleMath::EvaluatePromotion(UGrimProgressionSettings::GetCircleTable(), GetCircle(), Entries, GradeOrder);
+}
+
+const FGrimCircleStep* UGrimProgressionComponent::GetCircleStep(int32 Circle)
+{
+	return UGrimProgressionSettings::GetCircleTable().FindClamped(Circle);
+}
+
+void UGrimProgressionComponent::ReportPromotionFailure(const FGrimCircleCheck& Check) const
+{
+	UAbilitySystemComponent* ASC = GetASC();
+	if (!ASC || !GetOwner()->HasAuthority() || Check.bMet)
+	{
+		return;
+	}
+	if (Check.bAtMax)
+	{
+		GrimCastFailure::Report(ASC, EGrimCastFailReason::PromotionAtMax, Check.CurrentCircle);
+	}
+	else if (const FGrimCircleGradeCheck* Unmet = Check.FirstUnmetGrade())
+	{
+		GrimCastFailure::Report(ASC, EGrimCastFailReason::PromotionGrade, FGrimCircleMath::PackGradeParam(Unmet->GradeIndex, Unmet->Required, Unmet->Have));
+	}
+	else if (!Check.IsCurrentCircleMet())
+	{
+		GrimCastFailure::Report(ASC, EGrimCastFailReason::PromotionCurrentCircle, Check.CurrentCircle);
+	}
+}
+
+namespace GrimProgressionLocal
+{
+	FString DescribeCheck(const FGrimCircleCheck& Check)
+	{
+		FString Text;
+		for (const FGrimCircleGradeCheck& Grade : Check.Grades)
+		{
+			Text += FString::Printf(TEXT(" %s이상 %d/%d"), *Grade.Grade.ToString(), Grade.Have, Grade.Required);
+		}
+		Text += FString::Printf(TEXT(" 지금서클마법 %d/%d"), Check.CurrentCircleSpells, Check.RequiredCurrentCircleSpells);
+		return Text;
+	}
 }
 
 bool UGrimProgressionComponent::TryCircleUp(bool bForce)
@@ -48,18 +94,24 @@ bool UGrimProgressionComponent::TryCircleUp(bool bForce)
 	const FGrimCircleCheck Check = EvaluateNextCircle();
 	if (Check.bAtMax || (!Check.bMet && !bForce))
 	{
-		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 승급 실패: 서클 %d, 다음 %s, 마법 %d/%d, 등급 합 %d/%d"), *GetNameSafe(GetOwner()), Check.CurrentCircle,
-			Check.bAtMax ? TEXT("없음") : *FString::FromInt(Check.NextCircle), Check.KnownSpells, Check.RequiredKnownSpells, Check.GradeSum, Check.RequiredGradeSum);
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 승급 실패: 서클 %d, 다음 %s,%s"), *GetNameSafe(GetOwner()), Check.CurrentCircle,
+			Check.bAtMax ? TEXT("없음") : *FString::FromInt(Check.NextCircle), *GrimProgressionLocal::DescribeCheck(Check));
+		ReportPromotionFailure(Check);
 		NotifyResult(Check.CurrentCircle, false);
 		return false;
 	}
 
 	const int32 NewCircle = Check.NextCircle;
 	ASC->SetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute(), NewCircle);
-	// TODO(레벨 묶음): 최대 마나는 서클에 묶지 않는다 — 캐릭터 레벨(HP · 마나 · 성장 트리 포인트)이 정한다. 지금은 값을 그대로 둔다.
 
 	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 서클 %d → %d%s"), *GetNameSafe(GetOwner()), Check.CurrentCircle, NewCircle,
 		(!Check.bMet && bForce) ? TEXT(" [강제]") : TEXT(""));
+
+	// 서클 보상 중 마법서 몫: 봉인된 책 풀기 · 새 슬롯 세트 채우기. 승급 알림이 마지막 토스트가 되게 먼저 한다.
+	if (UGrimSpellbookComponent* Spellbook = GetSpellbook())
+	{
+		Spellbook->HandleCircleRaised(NewCircle);
+	}
 	NotifyResult(NewCircle, true);
 	return true;
 }

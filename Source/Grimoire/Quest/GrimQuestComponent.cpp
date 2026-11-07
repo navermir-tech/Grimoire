@@ -515,7 +515,7 @@ void UGrimQuestComponent::GrantRewards(const FGrimQuestDef& Def)
 		UGrimSpellDefinition* Spell = UGrimQuestSettings::LoadSpell(Def.RewardSpell);
 		if (Spellbook && Spell)
 		{
-			Spellbook->UseSkillbook(Spell);
+			Spellbook->UseSkillbook(Spell, true); // 서클이 모자라면 봉인된 책으로(Q122)
 		}
 		else
 		{
@@ -617,9 +617,15 @@ FName UGrimQuestComponent::ExecuteService(AActor* Npc, FName Service)
 		{
 			return GrimDialogueContexts::TrialLocked;
 		}
-		if (Trial->bRequireCircleConditions && !Progression->EvaluateNextCircle().bMet)
+		if (Trial->bRequireCircleConditions)
 		{
-			return GrimDialogueContexts::TrialNotReady;
+			// 승급 자격(Q122 — 서클 표의 숙련도 조건). 모자라면 스승 대사 + 까닭 한 줄(Q64 실패 알림 방식, 글만).
+			const FGrimCircleCheck Check = Progression->EvaluateNextCircle();
+			if (!Check.bMet)
+			{
+				Progression->ReportPromotionFailure(Check);
+				return GrimDialogueContexts::TrialNotReady;
+			}
 		}
 		return StartQuest(Trial->Id) == EGrimQuestStartResult::Started ? GrimDialogueContexts::TrialStarted : GrimDialogueContexts::TrialNone;
 	}

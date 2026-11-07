@@ -23,7 +23,8 @@ class UGrimSpellbookComponent;
  *    단축 슬롯 배치(세트 고르기 → 마법 고르기 → 칸 누르기), 완드 보정. 줄을 누르면 그 마법을 고른다(서버 RPC). S 는 금테.
  *  - 「성장 트리」: 속성 성장 트리 노말 · 4원소 · 빛 · 어둠 — 트리 탭 · 노드 격자 · 남은 포인트 · 찍기(UGrimSkillTreeWidget).
  *  - 「도감」: 빈 자리(발견한 상호작용 규칙 기록 — 다음 묶음).
- * 머리에는 서클 · 호칭 · 최대 마나 · 다음 서클 조건. 열고 닫기는 UGrimUISubsystem(IA_ToggleGrimoire).
+ *  - 「서클」(Q122): 지금 서클이 주는 것(수치 보정 · 해금) · 다음 서클이 주는 것 · 승급 자격(숙련도 + 시험 과제) · 봉인된 책. 글만.
+ * 머리에는 서클 · 호칭 · 최대 마나 · 다음 서클 자격 한 줄. 잠긴 슬롯 세트는 흐리게(누르지 못함). 열고 닫기는 UGrimUISubsystem(IA_ToggleGrimoire).
  */
 UCLASS()
 class GRIMOIRE_API UGrimGrimoireWidget : public UUserWidget
@@ -34,7 +35,7 @@ public:
 	/** 다음 틱에 목록을 다시 짠다(열 때). */
 	void MarkDirty() { bListDirty = true; }
 
-	/** 0 = 마법, 1 = 성장 트리, 2 = 도감 */
+	/** 0 = 마법, 1 = 성장 트리, 2 = 도감, 3 = 서클 */
 	void SetTab(int32 TabIndex);
 
 protected:
@@ -47,6 +48,8 @@ protected:
 	void RebuildList(const AGrimPlayerState* PlayerState);
 	void RefreshRows(const AGrimPlayerState* PlayerState);
 	void RefreshHeader(const AGrimPlayerState* PlayerState);
+	void RefreshCirclePage(const AGrimPlayerState* PlayerState);
+	UWidget* BuildCirclePage();
 	void RefreshSlotEditor(const AGrimPlayerState* PlayerState);
 	void RefreshFilterButtons();
 	void RefreshTabButtons();
@@ -76,6 +79,8 @@ private:
 	UTextBlock* CircleText = nullptr;
 	UTextBlock* RequirementText = nullptr;
 	UTextBlock* WandText = nullptr;
+	/** 「서클」 탭 본문 */
+	UTextBlock* CirclePageText = nullptr;
 	UHorizontalBox* FilterRow = nullptr;
 	UVerticalBox* List = nullptr;
 	UWidgetSwitcher* Pages = nullptr;

@@ -322,7 +322,8 @@ void AGrimPlayerCharacter::CycleSlotSet(int32 Step)
 {
 	if (const UGrimSpellbookComponent* Spellbook = GetSpellbook())
 	{
-		RequestSlotSet(FGrimSpellSlotInputMath::CycleSet(Spellbook->GetActiveSlotSet(), Step, UGrimSpellbookSettings::Get()->SpellSlotSets));
+		// 서클이 연 세트 안에서만 돈다(Q122 — 서클 표 SlotSets)
+		RequestSlotSet(FGrimSpellSlotInputMath::CycleSet(Spellbook->GetActiveSlotSet(), Step, Spellbook->GetUnlockedSlotSets()));
 	}
 }
 

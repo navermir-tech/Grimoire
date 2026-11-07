@@ -1,6 +1,6 @@
 # 레벨 · 속성 성장 트리
 
-> 스펙: [성장](../spec/progression) (R27, Q30 · Q31). 서클 승급 · 숙련도 · 스킬북은 [마법](./magic#서클). M2 후반 갈래 L([작업 분할](./m2b-plan)).
+> 스펙: [성장](../spec/progression) (R27, Q30 · Q31 · Q122). 서클 승급 · 숙련도 · 스킬북은 [마법](./magic#서클). M2 후반 갈래 L([작업 분할](./m2b-plan)).
 
 레벨과 서클은 **무관하다**(Q30). 레벨은 최대 HP · 최대 마나 · 성장 트리 포인트만, 서클은 마법탑 시험만 정한다. 둘 다 `Source/Grimoire/Progression/` 에 있고, `AGrimPlayerState` 의 하위 객체다(`GetCharacterLevel()` · `GetSkillTree()`).
 
@@ -14,6 +14,20 @@
 | `FGrimLevelMath` · `FGrimSkillTreeMath` (`Source/Grimoire/Progression/GrimProgressionTypes.h`) | 순수 계산(곡선 · 포인트 · 선행 · 효과 합 · 예산) — 테스트 대상. 경험 출처 태그는 `GrimProgressionTags.h` |
 | `UGrimLevelSettings` · `UGrimSkillTreeSettings` (`Source/Grimoire/Progression/GrimProgressionSettings.h`) | ini 설정 · 표 읽기(에셋 → CSV, 한 번 읽어 둔다) |
 | `UGrimLevelWidget` · `UGrimSkillTreeWidget` (`Source/Grimoire/UI/GrimLevelWidget.h` · `Source/Grimoire/UI/GrimSkillTreeWidget.h`) | 레벨 · 경험 막대, 그리모어 「성장 트리」 탭 |
+
+## 세 축 — 스킬 · 숙련도 · 서클 (Q122)
+
+스펙 [세 축의 역할](../spec/progression#세-축의-역할-q122)이 코드에 어디 있는지(2026-11-07):
+
+| 축 | 코드 | 서클과의 고리 |
+|---|---|---|
+| 스킬(스킬북) = 넓이 | `UGrimSpellbookComponent::UseSkillbook` — 서클이 모자란 책을 주우면 **봉인된 책**(`SealedSpells`, 세이브 `Magic.Spellbook` v2) | 서클이 오르면 닿는 책을 저절로 읽는다(`HandleCircleRaised`) |
+| 숙련도 = 깊이 | 마법별 XP · 등급(`ProficiencyGrades.csv`) | **승급 자격**: 서클 표의 `PromotionGrades`(등급별 마법 수, 누적) + 그중 지금 서클 마법 하나 이상 |
+| 서클 = 높이 | **서클 표** `Content/Grimoire/Data/Circles.csv`(`FGrimCircleRow` · `FGrimCircleMath` — `Source/Grimoire/Magic/GrimCircleTypes.h`) | ① 수치 보정: 격 차이 위력 · 마나(연결), 각인 최고 단계(미연결) ② 해금: 슬롯 세트(연결) · 장비 등급(연결) · 동시 유지(미연결) · 출입 ID(미연결) |
+
+- 자세한 칸 · 연결 상태 · 승급 흐름 · 실패 알림은 [마법 — 서클](./magic#서클). 생물 몫(계약 종 서클 · 데리고 다님 · 보관함 칸)은 생물 설정, 성장 트리 큰 노드 서클 조건은 `SkillTreeNodes.csv` 가 정본 — 서클 표는 그 값을 다시 적지 않는다.
+- 레벨과는 여전히 무관하다(Q30): 서클 보정은 **마법을 쓰는 힘**(위력 · 마나 효율)에만 붙고, 최대 HP · 마나는 레벨이 정한다. 승급하면 경험(`XPSource.CircleUp`)을 받는 것은 그대로.
+- 숙련도 S 통달 효과(스펙 6절)는 제안이라 아직 없다.
 
 ## 레벨
 

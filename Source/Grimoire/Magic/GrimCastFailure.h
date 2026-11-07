@@ -40,6 +40,14 @@ enum class EGrimCastFailReason : uint8
 	RepairLocked,
 	/** 거점 핵 「전체 수리」가 잠김 — 레스티투오 막시마를 배워야(Q121). 연출 없음 */
 	BaseRepairLocked,
+	/** 승급 자격(Q122): 숙련도 등급 조건이 모자라다 — Param = FGrimCircleMath::PackGradeParam(등급 번호, 필요, 지금). 연출 없음 */
+	PromotionGrade,
+	/** 승급 자격(Q122): 조건을 채운 마법 가운데 지금 서클의 마법이 없다 — Param = 지금 서클. 연출 없음 */
+	PromotionCurrentCircle,
+	/** 이미 표의 가장 높은 서클 — 더 오를 곳이 없다. 연출 없음 */
+	PromotionAtMax,
+	/** 장비 재료 등급이 서클보다 높아 입을 수 없다(Q122 해금) — Param = 입을 수 있게 되는 서클. 연출 없음 */
+	EquipTierTooLow,
 };
 
 /** 서버 판정이 보는 값(순수 분류 — 테스트가 직접 채운다) */

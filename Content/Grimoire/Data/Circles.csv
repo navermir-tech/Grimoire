@@ -1,0 +1,11 @@
+Name,GapPowerPerCircle,GapPowerCap,GapManaPerCircle,GapManaCap,MaxEnchantTier,SlotSets,MaxSustainedSpells,EquipTier,Unlocks,UnlockText,PromotionGrades,PromotionCurrentCircleSpells,PromotionTask
+1,0.03,0.15,0.03,0.15,1,1,1,1,Access.TowerLibrary.1,"탑 서고(1서클 책)",,0,""
+2,0.03,0.15,0.03,0.15,1,2,1,2,Access.BranchLibrary,"분탑 서고, 성장 트리 셋째 줄",C:2,1,"탑 시험 — 과녁 · 양초 · 물레 과제(첫 승급은 가볍게)"
+3,0.03,0.15,0.03,0.15,1,3,2,2,Access.TowerLibrary.3,"탑 서고 3서클 책 전부",B:2,1,"탑 시험 — 결투 인형 · 상성 과제"
+4,0.03,0.15,0.03,0.15,2,4,2,3,Access.Dungeon,"성장 트리 큰 노드, 던전 입장",B:3,1,"지역 과제 — 분탑 하나 활성화 + 그 지역 의뢰"
+5,0.03,0.15,0.03,0.15,2,4,3,3,Access.BranchLibrary.5,"분탑 서고 5서클 책",B:3|A:1,1,"던전 하나 끝까지"
+6,0.03,0.15,0.03,0.15,2,4,3,4,Access.BranchLibrary.6|Pactum.Maxima,"분탑 서고 6서클 책(파는 책의 끝), 파크툼 막시마(거대 개체 계약)",B:4|A:2,1,"지역 과제 — 사냥꾼 거점 하나 해방"
+7,0.03,0.15,0.03,0.15,3,4,4,4,Access.HardDungeon,"고난도 던전",A:3,1,"고난도 던전"
+8,0.03,0.15,0.03,0.15,3,4,4,5,Access.FieldBoss|Access.Library.8,"필드 보스 · 8서클 책",A:3|S:1,1,"사냥꾼 간부 격파"
+9,0.03,0.15,0.03,0.15,3,4,5,5,Access.ElementSanctum,"속성 성소 시련",A:4|S:2,1,"빛 · 어둠 심화 — 속성 성소 시련 하나"
+10,0.03,0.15,0.03,0.15,3,4,5,5,Magic.WorldScale,"세계 규모 마법(최종 목표)",S:3,1,"최종 승급 의식 — 성소 소재"

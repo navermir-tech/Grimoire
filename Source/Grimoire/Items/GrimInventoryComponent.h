@@ -32,6 +32,8 @@ enum class EGrimItemNotice : uint8
 	Equipped,
 	/** 서클이 모자라 스킬북을 못 읽는다(Q64) — Count = 필요한 서클 */
 	CircleTooLow,
+	/** 서클이 모자란 스킬북을 「봉인된 책」으로 그리모어에 기록했다(Q122 — 책 소모) — Count = 필요한 서클 */
+	Sealed,
 };
 
 UENUM(BlueprintType)

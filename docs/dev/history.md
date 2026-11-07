@@ -32,6 +32,7 @@
 | 11-07 | 이펙트 다시 (Q85 · Q86) | 볼트 발사 빛줄기, 물줄기 · 미풍을 볼트 빛 언어로, 사양 파일 조립 · `EFT_Grim_Spell` | 브랜치 `claude/fx-rework-1a2d5c` |
 | 11-07 | 사용자 답 Q42 · Q64 · Q71 (코드) | 보관함 처음부터 10칸, 기본 완드 실제 아이템 · 빈 칸 = 주먹질, 마법 실패 알림 · 피식 연출 자리 | (메인이 합침) |
 | 11-07 | 수리 해금 Q121 (코드) | 레스티투오(2서클) = 작업대 「수리」 탭 · 조각 하나, 막시마 = 거점 전체 수리, 마법탑 대리 수리(솔) | (메인이 합침) |
+| 11-07 | 서클 세 축 Q122 (코드) | 서클 표 `Circles.csv` — 격 차이 위력 · 마나, 슬롯 세트 · 장비 등급 해금, 숙련도 승급 자격, 봉인된 책, 그리모어 「서클」 탭 | 브랜치 `claude/zen-goldwasser-c0e153` |
 
 ## M0 · 셋업 (2026-11-04 ~ 05)
 
@@ -159,3 +160,10 @@
 - **확인**: 자동화 173/173(새 `Grimoire.Base.Repair.Unlock` · `.NpcService`), 2인 `Scripts/Base/net_check_repair.ps1` fail=0.
 - **함정**: 콘솔 `Grim.Base.Repair <작업대>` 는 볼트가 아니라 「수리」 탭이라 작업대 몸이 아니라 장비를 고친다 — 조각 하나 확인은 저장고 같은 다른 시설로.
 
+## 서클 세 축 Q122 → 코드 (2026-11-07)
+
+- **무엇을**: 사용자가 「서클 성장의 이점이 확실해야 한다」며 Q122 를 정했다 — 스킬 = 넓이 · 숙련도 = 깊이 · 서클 = 높이. 서클이 주는 것을 ① 수치 보정 ② 해금으로, 승급 자격을 숙련도로 바꿨다([성장 — 세 축의 역할](../spec/progression#세-축의-역할-q122), [마법 — 서클](../systems/magic#서클)).
+- **어떻게**: 서클 1~10 의 보정 · 해금 · 승급 자격을 **표 하나**(`Content/Grimoire/Data/Circles.csv`, `FGrimCircleRow` · 순수 계산 `FGrimCircleMath` — `Source/Grimoire/Magic/GrimCircleTypes.h`)에 두고, 이미 있던 자리에 꽂았다: 격 차이 위력은 `MakeDamageSpec`(서버), 마나 효율은 `GetCasterMultipliers`(Cost GE · 판정 · 그리모어 표시가 함께), 슬롯 세트는 마법서 `GetUnlockedSlotSets`(자동 슬롯 · 배치 · 세트 돌리기 · HUD), 장비 등급은 `Equipment.csv` 의 새 `Tier` 칸과 `EquipFromBag`. 승급은 예전 「배운 마법 수 · 등급 합」(ini)을 없애고 등급별 마법 수(누적) + 지금 서클 마법 하나 이상, 모자라면 Q64 실패 알림 길(`PromotionGrade` · `PromotionCurrentCircle`, 글만)로 서버가 까닭을 보낸다. 두 승급 시험이 자격을 보도록 `RequireCircleConditions = True`. 서클이 모자란 책은 「봉인된 책」(`SealedSpells`, 세이브 v2)으로 받아 두고 승급 때 저절로 읽는다. 그리모어에 「서클」 탭(지금 · 다음 서클 보상, 자격, 봉인된 책).
+- **미연결**: 각인 최고 단계 · 동시 유지 · 출입 ID · 4서클 이상 시험 과제는 그 시스템이 없어 표 · 조회 함수만. 생물 · 성장 트리 큰 노드 서클 값은 원래 표가 정본이라 다시 적지 않았다.
+- **확인**: 자동화(새 `Grimoire.Magic.Circle.*` 다섯), 2인 `Scripts/Magic/net_check_circle.ps1`(봉인 · 거절 까닭 · 승급 · 격 차이를 서버가 정함), 튜토리얼 `check_tutorial.ps1`(자격 모자람 → 숙련도 채움 → 시험), 화면 `shoot_qa.ps1 -Set Circle` — [QA — 마법](../qa/magic#서클-보상-·-승급-자격-q122) · [QA — 튜토리얼](../qa/tutorial).
+- **함정**: 1서클 슬롯 세트가 하나가 되면서 「세트 2」를 쓰던 테스트 · 2서클 책 알림을 보던 2인 스크립트(`net_check_castfail.ps1` — 이제 `Sealed`)를 함께 고쳐야 했다. 새 파일로 유니티 묶음이 바뀌자 `GrimPlayerSaveParticipants.h` 의 전방 선언만 있던 `APlayerState` 가 `TWeakObjectPtr` 대입에서 깨졌다 → 헤더에 include.

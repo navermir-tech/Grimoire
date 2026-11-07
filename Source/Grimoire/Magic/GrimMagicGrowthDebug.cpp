@@ -118,9 +118,15 @@ namespace GrimMagicGrowthDebugLocal // 유니티 빌드에서 다른 디버그 �
 				continue;
 			}
 			const FGrimCircleCheck Check = Progression->EvaluateNextCircle();
-			UE_LOG(LogGrimMagic, Display, TEXT("[%s] Proficiency %s 서클=%d 마나=%.0f/%.0f 다음=%s 마법 %d/%d 등급합 %d/%d 충족=%d"), GrowthNetModeName(World), *PlayerState->GetName(),
+			FString Grades;
+			for (const FGrimCircleGradeCheck& Grade : Check.Grades)
+			{
+				Grades += FString::Printf(TEXT(" %s이상 %d/%d"), *Grade.Grade.ToString(), Grade.Have, Grade.Required);
+			}
+			UE_LOG(LogGrimMagic, Display, TEXT("[%s] Proficiency %s 서클=%d 마나=%.0f/%.0f 다음=%s%s 지금서클마법 %d/%d 충족=%d 슬롯세트=%d 봉인=%d"), GrowthNetModeName(World), *PlayerState->GetName(),
 				Check.CurrentCircle, ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetManaAttribute()), ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetMaxManaAttribute()),
-				Check.bAtMax ? TEXT("없음") : *FString::FromInt(Check.NextCircle), Check.KnownSpells, Check.RequiredKnownSpells, Check.GradeSum, Check.RequiredGradeSum, Check.bMet ? 1 : 0);
+				Check.bAtMax ? TEXT("없음") : *FString::FromInt(Check.NextCircle), *Grades, Check.CurrentCircleSpells, Check.RequiredCurrentCircleSpells, Check.bMet ? 1 : 0,
+				Spellbook->GetUnlockedSlotSets(), Spellbook->GetSealedSpells().Num());
 			for (const UGrimSpellDefinition* Spell : Spellbook->GetKnownSpells())
 			{
 				const FGrimProficiencyView View = Spellbook->GetProficiency(Spell);

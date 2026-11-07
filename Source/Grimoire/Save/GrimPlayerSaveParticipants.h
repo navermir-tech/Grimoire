@@ -3,9 +3,9 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 #include "Core/GrimSaveTypes.h"
+#include "GameFramework/PlayerState.h" // SetPlayerState 가 TWeakObjectPtr 에 넣는다 — 전방 선언만으로는 유니티 묶음에 따라 깨진다
 #include "GrimPlayerSaveParticipants.generated.h"
 
-class APlayerState;
 class UAbilitySystemComponent;
 struct FGameplayAttribute;
 

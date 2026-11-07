@@ -1,5 +1,6 @@
 #include "Magic/GrimCastFailure.h"
 #include "Magic/GrimBasicAttackAbility.h"
+#include "Magic/GrimProficiencySettings.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimSpellAbility.h"
 #include "Magic/GrimSpellDefinition.h"
@@ -70,15 +71,39 @@ FText GrimCastFailure::GetMessage(EGrimCastFailReason Reason, int32 Param)
 	case EGrimCastFailReason::TameRefused: return LOCTEXT("TameRefused", "이 생물은 계약을 받지 않는다");
 	case EGrimCastFailReason::RepairLocked: return LOCTEXT("RepairLocked", "수리는 「레스티투오」를 배워야 할 수 있다 — 그전엔 마법탑 스승에게 솔을 내고 맡긴다");
 	case EGrimCastFailReason::BaseRepairLocked: return LOCTEXT("BaseRepairLocked", "거점 전체 수리는 「레스티투오 막시마」를 배워야 열린다");
+	case EGrimCastFailReason::PromotionGrade:
+	{
+		int32 GradeIndex = 0;
+		int32 Required = 0;
+		int32 Have = 0;
+		FGrimCircleMath::UnpackGradeParam(Param, GradeIndex, Required, Have);
+		TArray<FName> GradeOrder;
+		UGrimProgressionSettings::GetGradeOrder(GradeOrder);
+		const FText Grade = GradeOrder.IsValidIndex(GradeIndex) ? FText::FromName(GradeOrder[GradeIndex]) : FText::AsNumber(GradeIndex);
+		return FText::Format(LOCTEXT("PromotionGrade", "승급 자격이 모자라다 — 숙련도 {0} 이상인 마법 {1}/{2}개"), Grade, Have, Required);
+	}
+	case EGrimCastFailReason::PromotionCurrentCircle:
+		return FText::Format(LOCTEXT("PromotionCurrentCircle", "승급 자격이 모자라다 — 숙련도를 채운 마법 가운데 하나는 지금 {0}서클의 마법이어야 한다"), Param);
+	case EGrimCastFailReason::PromotionAtMax: return LOCTEXT("PromotionAtMax", "더 오를 서클이 없다");
+	case EGrimCastFailReason::EquipTierTooLow: return FText::Format(LOCTEXT("EquipTierTooLow", "이 장비는 {0}서클이 되어야 입을 수 있다"), Param);
 	default: return FText::GetEmpty();
 	}
 }
 
 bool GrimCastFailure::ShouldFizzle(EGrimCastFailReason Reason)
 {
-	if (Reason == EGrimCastFailReason::None || Reason == EGrimCastFailReason::RepairLocked || Reason == EGrimCastFailReason::BaseRepairLocked)
+	switch (Reason)
 	{
+	case EGrimCastFailReason::None:
+	case EGrimCastFailReason::RepairLocked:
+	case EGrimCastFailReason::BaseRepairLocked:
+	case EGrimCastFailReason::PromotionGrade:
+	case EGrimCastFailReason::PromotionCurrentCircle:
+	case EGrimCastFailReason::PromotionAtMax:
+	case EGrimCastFailReason::EquipTierTooLow:
 		return false;
+	default:
+		break;
 	}
 	return Reason != EGrimCastFailReason::Cooldown || UGrimCastFailureSettings::Get()->bFizzleOnCooldown;
 }
@@ -98,6 +123,10 @@ const TCHAR* GrimCastFailure::ReasonName(EGrimCastFailReason Reason)
 	case EGrimCastFailReason::TameRefused: return TEXT("TameRefused");
 	case EGrimCastFailReason::RepairLocked: return TEXT("RepairLocked");
 	case EGrimCastFailReason::BaseRepairLocked: return TEXT("BaseRepairLocked");
+	case EGrimCastFailReason::PromotionGrade: return TEXT("PromotionGrade");
+	case EGrimCastFailReason::PromotionCurrentCircle: return TEXT("PromotionCurrentCircle");
+	case EGrimCastFailReason::PromotionAtMax: return TEXT("PromotionAtMax");
+	case EGrimCastFailReason::EquipTierTooLow: return TEXT("EquipTierTooLow");
 	default: return TEXT("?");
 	}
 }

@@ -8,6 +8,8 @@
 #include "Items/GrimItemSettings.h"
 #include "Items/GrimItemStatics.h"
 #include "Magic/GrimSpellAbility.h"
+#include "Magic/GrimCastFailure.h"
+#include "Magic/GrimProficiencySettings.h"
 #include "Survival/GrimSurvivalTickEffect.h"
 #include "Survival/GrimVitalAttributeSet.h"
 #include "AbilitySystemComponent.h"
@@ -348,6 +350,19 @@ bool UGrimEquipmentComponent::EquipFromBag(int32 BagSlot)
 	if (!Def)
 	{
 		return false;
+	}
+	// 장비 착용 등급(Q122 서클 해금): 재료 등급이 서클 표의 EquipTier 보다 높으면 입지 못한다 — 까닭은 Q64 실패 알림(글만).
+	{
+		const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
+		UAbilitySystemComponent* ASC = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+		const int32 Circle = FMath::Max(1, UGrimSpellAbility::GetCasterCircle(ASC));
+		int32 RequiredCircle = 0;
+		if (!FGrimCircleMath::CanWearTier(UGrimProgressionSettings::GetCircleTable(), Circle, Def->Row.Tier, RequiredCircle))
+		{
+			UE_LOG(LogGrimBase, Display, TEXT("[Server] %s 입기 거절: %s 등급 %d — 서클 %d(필요 %d)"), *GetNameSafe(GetOwner()), *Def->ItemId.ToString(), Def->Row.Tier, Circle, RequiredCircle);
+			GrimCastFailure::Report(ASC, EGrimCastFailReason::EquipTierTooLow, RequiredCircle);
+			return false;
+		}
 	}
 	const int32 Index = static_cast<int32>(Def->Row.Slot);
 	const FGrimItemInstance Taken = Bag->RemoveFromSlot(BagSlot, 1);

@@ -9,7 +9,7 @@
 | 스펙 개념 | GAS 구현 |
 |---|---|
 | 마법 하나 | `UGameplayAbility` 서브클래스(`UGrimSpellAbility`) + 정의 데이터 `UGrimSpellDefinition` |
-| 마나 소모 · 쿨다운 | Ability 의 Cost GE · Cooldown GE(서클 · 완드 보정은 GE 의 SetByCaller) |
+| 마나 소모 · 쿨다운 | Ability 의 Cost GE · Cooldown GE(서클 격 차이 · 숙련도 · 완드 보정은 GE 의 SetByCaller) |
 | 피해 · 화상 · 젖음 등 | `UGameplayEffect`(즉시 / 지속 / 주기) + 부여 태그 `State.*` |
 | 속성 | GameplayTag `Element.Fire` 등. 마법 · 완드 · 생물 · GE 모두 이 태그를 단다 |
 | 서클 | `Circle` 어트리뷰트(마법 정의의 `Circle` 과 비교). 승급은 `UGrimProgressionComponent` |
@@ -264,7 +264,8 @@ S,마스터,1500,0.75,0.80,1.0
   4. `GrimCastFailure::Report`: 같은 까닭은 `NoticeIntervalSeconds`(0.75초) 안에 한 번 → `Client_CastFailed(까닭, 값)`(Reliable, 소유 클라이언트) → `OnCastFailedNotice` → HUD 글. 그리고 `GameplayCue.Magic.Fizzle` 을 Execute(모두 — 다른 플레이어도 피식 꺼지는 것을 본다).
   - 로그: 서버 `[Server] 마법 실패 <PlayerState> <까닭> 값=n`, 받은 쪽 `[Client|Server] 마법 실패 알림 <까닭>: <글>`, 연출 `[…] 마법 실패 연출 <폰> <까닭> at <곳> 이펙트=0|1 몽타주=0|1`.
 - **실패 연출 자리**(임시): 큐 처리기가 작은 회색 파티클(`FizzleFX` — 엔진 기본 템플릿 `DirectionalBurstLightweight`, 크기 0.35 · 0.5초)을 완드 끝(완드가 없으면 손 앞 · 계약이면 생물 자리)에 띄우고, 몸짓 몽타주 `FizzleMontage`(지금 비어 있음 — 애니메이션 에셋이 생기면 ini 에 넣는다. 슬롯은 몽타주가 정하고 `ABP_GrimPlayer` 에 그 슬롯이 있어야 보인다)를 재생한다. 진짜 「피식」 이펙트는 이펙트 갈래가 `FizzleFX` 만 바꾸면 된다.
-- 가방에서 스킬북을 읽다 서클이 모자라면 가방 알림 `EGrimItemNotice::CircleTooLow`(「<책> — n서클이 되어야 읽을 수 있다」, 서버 `ReadSkillbook` → `Client_Notice`) — 노말 스킬(쿠스토디아 · 레스티투오 막시마)도 같다. 마법 스킬북은 HUD 의 배움 결과 알림도 함께 뜬다(예전 그대로).
+- 가방에서 마법 스킬북을 읽다 서클이 모자라면 [봉인된 책](#봉인된-책-q122)으로 기록한다(가방 알림 `EGrimItemNotice::Sealed`). 이미 봉인된 책 · 노말 스킬(쿠스토디아 · 레스티투오 막시마)은 예전처럼 `EGrimItemNotice::CircleTooLow`(「<책> — n서클이 되어야 읽을 수 있다」, 서버 `ReadSkillbook` → `Client_Notice`). 마법 스킬북은 HUD 의 배움 결과 알림도 함께 뜬다.
+- 서클 승급 자격 · 장비 착용 등급(Q122)도 같은 길로 알린다(연출 없음): `PromotionGrade` · `PromotionCurrentCircle` · `PromotionAtMax` · `EquipTierTooLow` — [서클](#서클).
 - 설정 `[/Script/Grimoire.GrimCastFailureSettings]`: `NoticeIntervalSeconds` 0.75 · `ClientReportIntervalSeconds` 0.2 · `FizzleMontage`(비움) · `FizzleMontagePlayRate` 1 · `FizzleFX` · `FizzleFXScale` 0.35 · `FizzleColor` 회색 · `FizzleFXSeconds` 0.5 · `bFizzleOnCooldown` True.
 - 테스트 `Grimoire.Magic.CastFailure.Classify`(순서 · 글 · 연출 · ini) · `.BasicWand`(기본 완드 표 · 시작 장비 · 닳기 → 부러짐 · 빈 칸 태그 · 판정 NoWand · 주먹질 · 알림 한 번 · 세이브 v1/v2). 2인 `Scripts/Magic/net_check_castfail.ps1`(호스트 · 클라이언트가 기본 완드로 시작 → 쿨타임 · 마나 부족 · 2서클 스킬북 · 완드 벗기(주먹질) → 다시 입기, `NETCHECK_RESULT fail=0`), 화면 `Scripts/QA/shoot_qa.ps1 -Set Fizzle`.
 
@@ -278,11 +279,11 @@ S,마스터,1500,0.75,0.80,1.0
   - **월드 책** `AGrimSkillbook`(아래) — 콘솔 · 표에 없는 책.
   - 모르는 마법 → 서클 확인 → `LearnSpell`(`GiveAbility(SourceObject = 정의)` → `KnownSpells` 복제 → 숙련도 칸 · 빈 단축 슬롯) → `Learned`.
   - 이미 아는 마법 → 숙련도 경험 `ComputeSkillbookXP` = (다음 문턱 − 지금 문턱) × `SkillbookXPFractionOfGrade`(0.4) + `SkillbookFlatXP`(0) → `ProficiencyGained`.
-  - 이미 S → `AlreadyMastered`(쓸 수 없다, 책이 남는다). 숙련도 없는 항목(기본 공격) → `AlreadyKnown`. 서클 모자람 → `CircleTooLow`.
+  - 이미 S → `AlreadyMastered`(쓸 수 없다, 책이 남는다). 숙련도 없는 항목(기본 공격) → `AlreadyKnown`. 서클 모자람 → `CircleTooLow`, 주운 책(가방 · 월드 · 퀘스트 보상)이면 [봉인된 책](#봉인된-책-q122) `Sealed`(책 소모).
   - 결과는 `OnLearnResult(마법서, 정의, EGrimLearnResult)` — 서버 · 소유 클라이언트(`Client_LearnResult`). HUD 알림.
   - 미리 보기 `PreviewSkillbook(정의)`(HUD 안내 · 테스트).
 - 월드 액터 `AGrimSkillbook`(`Source/Grimoire/Magic/GrimSkillbook.h` — 가방이 생기기 전의 「아이템」 자리, 지금은 콘솔 · 대체용): 엔진 기본 상자(책 크기 22 × 30 × 5cm, 바닥 1m 위) + 속성색 표지(`BasicShapeMaterial` `Color` = 정의의 `Color`), 초당 30° 돈다. 책 메시는 충돌 없음, 집기 구는 오브젝트 종류 `Destructible` · 폰 겹침만(마법 판정 · 조준에 걸리지 않는다). 겹친 채 스폰돼도 `BeginPlay` 에서 겹친 폰을 바로 집는다. `TeachesSpell`(복제) · `PickupRadius`(90cm, 폰 겹침 구) · `ReadRadius`(250cm — 콘솔 · HUD 안내 거리) · `ServerReadSlack`(150cm).
-  - **집기 = 사용**: 폰이 겹침 구에 들어오면(서버) `PickUpSkillbook(책, 폰)` → 거리 확인 → `UseSkillbook` → `Learned` · `ProficiencyGained` 면 책이 사라진다(`ConsumeBook` = `Destroy`, 복제). 못 쓰면 남고 알림만.
+  - **집기 = 사용**: 폰이 겹침 구에 들어오면(서버) `PickUpSkillbook(책, 폰)` → 거리 확인 → `UseSkillbook(봉인 허용)` → `Learned` · `ProficiencyGained` · `Sealed` 면 책이 사라진다(`ConsumeBook` = `Destroy`, 복제). 못 쓰면 남고 알림만.
   - 「모든 상호작용은 마법」(R16)의 직접 상호작용 예외(침대와 같이, 제안). 상호작용 키는 쓰지 않는다(겹침).
 - 필사는 없다(Q5 미채택). 스킬북은 탑 · 던전 · 유적 · 전리품으로만 얻는다.
 - 시험용 스킬북 마법 `DA_Spell_Fireball`「화염구」(표시 이름 이그니스): 2서클 · 불 · Bolt 5000cm/s · 반지름 25 · 유도 40°/s · 마나 25 · 쿨 2초 · Windup 0.15 · 피해 30 · 자극 2.0 · 30m. 불씨를 수치만 키웠다(`Scripts/Magic/make_spells.py`, `GRIM_SPELLS=DA_Spell_Fireball` 로 그것만 다시 만든다). 시작 마법에는 없다. VisualSet 은 비어 있어 연출 쪽이 속성(불)으로 `VS_Ember` 를 고른다.
@@ -290,23 +291,47 @@ S,마스터,1500,0.75,0.80,1.0
 
 ## 서클
 
-> 스펙: [마법 — 서클 제도](../spec/magic#서클-제도-r06). **M2 갈래 G** — 1→3서클.
+> 스펙: [마법 — 서클 제도](../spec/magic#서클-제도-r06) · [성장 — 세 축의 역할(Q122)](../spec/progression#세-축의-역할-q122). M2 갈래 G(1→3서클), Q122(2026-11-07 — 서클 표 · 숙련도 자격 · 서클 보상).
 
 - 서클은 `UGrimMagicAttributeSet::Circle`(복제). `Circle.N` 태그는 아직 쓰지 않는다(정의의 `Circle` 과 어트리뷰트를 바로 비교).
-- 승급: `UGrimProgressionComponent`(`Source/Grimoire/Magic/GrimProgressionComponent.h` — `AGrimPlayerState` 의 하위 객체 `Progression`, 세이브 참여자).
-  - `EvaluateNextCircle()` → `FGrimCircleCheck`(지금 서클 · 다음 서클 · 배운 마법 수 · 등급 합 · 필요치 · 충족). 순수 판정 `UGrimProgressionSettings::Evaluate(조건표, 서클, 마법 수, 등급 합)`.
-  - `TryCircleUp(bForce)`(서버): 조건이 맞으면(강제면 무시) `Circle + 1`. **최대 마나는 서클에 묶지 않는다** — 캐릭터 레벨(HP · 마나 · 성장 트리 포인트)이 정한다: `Source/Grimoire/Progression/GrimLevelComponent.h` 의 `UGrimLevelComponent` 가 레벨 보너스(`GetMaxManaBonus`)를 싣는다([성장](./progression)). `UGrimMagicSettings::MaxManaByCircle` 은 처음 마나(시작 서클 값)로만 쓰인다.
-  - 결과 `OnCircleUpResult(승급, 서클, 성공)` — 서버 · 소유 클라이언트(`Client_CircleUpResult`).
-  - `Server_RequestCircleUp(bForce)` · `RequestCircleUp` — `bForce` 는 개발 빌드에서만 듣는다.
-- 조건표 `[/Script/Grimoire.GrimProgressionSettings] CircleRequirements` — 지금은 데이터 조건만(`MinKnownSpells` = 숙련도를 쌓는 배운 마법 수, `MinGradeSum` = 그 마법들의 등급 번호 합: D 0 · C 1 …). 표에 있는 서클까지만 오른다:
+- **서클 표** `Content/Grimoire/Data/Circles.csv`(행 = 서클 1~10, 구조체 `FGrimCircleRow` — `Source/Grimoire/Magic/GrimCircleTypes.h`). 서클이 주는 것과 그 서클로 오르는 자격이 **모두 이 표**에 있다 — 코드에는 수치가 없다. 읽기 `UGrimProgressionSettings::GetCircleTable()`(에셋 `CircleTableAsset` → CSV `CircleTableCSV`, 한 번 읽어 둔다, 콘솔 `Grim.Magic.ReloadCircles`), 순수 계산 `FGrimCircleMath`.
 
-| 오르는 서클 | 배운 마법 | 등급 합 | 뜻 |
-|---|---|---|---|
-| 2 | 3 | 2 | 시작 마법 셋 중 둘을 C 로 |
-| 3 | 4 | 5 | 2서클 스킬북(화염구)을 배우고 더 익힌다 |
+| 칸 | 뜻(값은 스펙 제안 그대로) | 쓰는 곳 |
+|---|---|---|
+| `GapPowerPerCircle` · `GapPowerCap` | 격 차이 위력 — (내 서클 − 마법 서클) × 0.03, 상한 0.15. 내 서클의 줄을 쓴다 | `UGrimSpellAbility::MakeDamageSpec` 이 `SetByCaller.Magic.Damage` 에 곱한다(서버) — **연결** |
+| `GapManaPerCircle` · `GapManaCap` | 격 차이 마나 효율 — 같은 차이로 마나 × (1 − 0.03 × 차이), 상한 −0.15. 숙련도 배율과 곱 | `UGrimSpellAbility::GetCasterMultipliers` 의 `ManaCost` — Cost GE · `CheckCost` · 그리모어 표시가 같이 쓴다 — **연결** |
+| `MaxEnchantTier` | 각인대 인챈트 후보 최고 단계(1~3 Ⅰ · 4~6 Ⅱ · 7+ Ⅲ) | 조회 `FGrimCircleMath::GetMaxEnchantTier` 만 — **미연결**(각인대 · 인챈트 코드 없음, M5) |
+| `SlotSets` | 열린 단축 슬롯 세트(1 · 2 · 3 · 4 …, 마법서 설정 `SpellSlotSets` 4 를 넘지 않음) | `UGrimSpellbookComponent::GetUnlockedSlotSets` — 자동 슬롯 · `AssignSlot` · `SetActiveSlotSet` · 세트 돌리기 · HUD · 그리모어(잠긴 세트 흐림) — **연결** |
+| `MaxSustainedSpells` | 동시에 유지하는 마법(장벽 · 장판 · 몸 둘레) 수 | 조회 `GetMaxSustainedSpells` 만 — **미연결**(유지 마법이 아직 없다) |
+| `EquipTier` | 입을 수 있는 장비 재료 등급 | `UGrimEquipmentComponent::EquipFromBag` 이 `Equipment.csv` 의 `Tier` 와 비교(`FGrimCircleMath::CanWearTier`), 막히면 실패 알림 `EquipTierTooLow` — **연결**(지금 장비는 모두 1등급이라 막히는 일 없음) |
+| `Unlocks` · `UnlockText` | 새로 열리는 곳 · 것의 ID(`Access.Dungeon` 등, `|` 로 여럿 — 한 번 열리면 위 서클도 열림)와 화면 글 | 조회 `FGrimCircleMath::IsUnlocked` · `GetUnlockCircle` 만 — **미연결**(분탑 서고 · 던전 · 성소 출입 시스템 없음). 파크툼 막시마(`Pactum.Maxima`)도 ID 만 |
+| `PromotionGrades` · `PromotionCurrentCircleSpells` · `PromotionTask` | 그 서클로 오르는 숙련도 자격(`B:3|A:1`) · 그중 지금 서클 마법 수(1) · 시험 과제 글 | 아래 「승급」 — **연결** |
 
-- 마법탑 시험 · 의식은 다음 묶음(튜토리얼)에서 이 조건 앞에 붙인다. 사냥꾼의 "금지된 승급"은 같은 컴포넌트의 다른 경로(`AbsorbMana`, R09) — 아직 없음.
-- 콘솔 `Grim.Magic.CircleUp [강제 0|1] [지연초]`.
+- 생물 몫(계약 종 서클 ≤ 내 서클 — Q118, 데리고 다님 · 보관함 칸 — Q60 · Q61)은 **이미 생물 설정이 정본**이라 서클 표에 두지 않는다(`UGrimTamingSettings` · `UGrimCreatureStorageSettings` 의 `PartyLimitByCircle` · `StorageCapacityByCircle` — [생물](./creatures)). 성장 트리 큰 노드 · 셋째 줄의 서클 조건도 `SkillTreeNodes.csv` 의 `RequiredCircle` 이 정본이다. 그리모어 「서클」 탭은 그 값을 읽어 함께 보여 준다.
+- 격 차이는 내 서클이 마법 서클보다 **높을 때만** 붙는다(낮으면 0). 피해 Spec 은 서버가 만들고(`MakeDamageSpec` — 기본 공격도 같은 길), 마나는 서버 · 소유 클라이언트가 같은 표 · 같은 복제 서클로 같은 값을 낸다.
+
+### 승급 — 숙련도 자격 + 시험 (Q122)
+
+- `UGrimProgressionComponent`(`Source/Grimoire/Magic/GrimProgressionComponent.h` — `AGrimPlayerState` 의 하위 객체 `Progression`, 세이브 참여자).
+  - `EvaluateNextCircle()` → `FGrimCircleCheck`(지금 · 다음 서클, 등급 조건마다 필요 · 지금 수, 지금 서클 마법 수, 시험 과제 글, 충족). 마법서의 `GetProficiencyEntries`(숙련도를 쌓는 배운 마법마다 서클 · 등급 번호)를 `FGrimCircleMath::EvaluatePromotion` 에 넘긴다.
+  - **등급 조건은 누적으로 센다**: `B:3|A:1` = 「B 이상 마법 3개, 그 가운데 A 이상 1개」(A 마법은 B 이상에도 든다 — 스펙 「B 이상 3개 + A 1개」를 이렇게 읽었다). 등급 이름은 공용 숙련도 등급표(`ProficiencyGrades.csv`) 순서로 비교한다.
+  - **지금 서클 마법**: 가장 낮은 등급 조건을 채운 마법 가운데 서클이 지금 서클 이상인 것이 `PromotionCurrentCircleSpells`(1) 개 있어야 한다 — 낮은 마법만 갈고닦아 오르지 못하게.
+  - `TryCircleUp(bForce)`(서버): 자격이 맞으면(강제면 무시) `Circle + 1` → 마법서 `HandleCircleRaised`(봉인 풀기 · 새 세트 채우기) → `OnCircleUpResult`. 자격이 모자라면 `ReportPromotionFailure` 가 까닭을 [마법 실패 알림](#마법-실패-알림-q64)으로(연출 없이 글만): `PromotionGrade`(Param = `PackGradeParam(등급 번호, 필요, 지금)` → 「승급 자격이 모자라다 — 숙련도 B 이상인 마법 1/2개」) · `PromotionCurrentCircle`(「…하나는 지금 2서클의 마법이어야 한다」) · `PromotionAtMax`.
+  - **최대 마나는 서클에 묶지 않는다**(Q30) — 레벨이 정한다(`UGrimLevelComponent`, [성장](./progression)). `UGrimMagicSettings::MaxManaByCircle` 은 처음 마나로만 쓰인다.
+  - 결과 `OnCircleUpResult(승급, 서클, 성공)` — 서버 · 소유 클라이언트(`Client_CircleUpResult`). `Server_RequestCircleUp(bForce)` · `RequestCircleUp` — `bForce` 는 개발 빌드에서만 듣는다.
+- **시험**: 마법탑 스승의 「서클 승급 시험」(`Quests.csv` 의 `Trial_Circle2` · `Trial_Circle3`, 이제 `RequireCircleConditions = True`)이 시작할 때 자격을 본다 — 모자라면 스승 대사 `Trial.NotReady` + 위 까닭 한 줄. 통과 = `TryCircleUp(강제)`. 4서클 이상 시험 과제(지역 과제 · 던전 · 간부 격파 …)는 퀘스트가 아직 없어 표의 글로만 보인다(**미연결** — 그 서클 시험은 `Trial.None`).
+- 지금 표의 자격(스펙 제안): 2 = C 이상 2 · 3 = B 이상 2 · 4 = B 3 · 5 = B 3 + A 1 · 6 = B 4 + A 2 · 7 = A 3 · 8 = A 3 + S 1 · 9 = A 4 + S 2 · 10 = S 3, 모두 지금 서클 마법 하나 이상. 예전 조건(배운 마법 수 · 등급 합, ini `CircleRequirements`)은 없앴다.
+- 사냥꾼의 「금지된 승급」은 같은 컴포넌트의 다른 경로(`AbsorbMana`, R09) — 아직 없음.
+
+### 봉인된 책 (Q122)
+
+- 서클이 모자란 스킬북을 **주우면**(월드 책 `PickUpSkillbook` · 가방 `ReadSkillbook` · 퀘스트 보상 `RewardSpell`) `UseSkillbook(정의, bSealIfCircleTooLow = true)` 가 `SealedSpells`(소유 클라이언트에만 복제)에 기록하고 결과 `EGrimLearnResult::Sealed` — 책은 소모된다(가방 알림 `EGrimItemNotice::Sealed`, HUD 「봉인된 책 「…」 — 그 서클에 오르면 저절로 읽는다」). 같은 책이 이미 봉인돼 있으면 예전처럼 `CircleTooLow`(책이 남는다).
+- 서클이 오르면 `HandleCircleRaised(새 서클)` 가 닿는 책을 주운 순서대로 읽는다(`UseSkillbook` → `Learned` 알림). 스펙의 「봉인이 풀려 바로 읽을 수 있다」를 **저절로 읽기**로 했다(버튼 없음).
+- 세이브 `Magic.Spellbook` **v2** 가 봉인 목록(마법 경로)을 더한다. 읽은 뒤에도 서클이 닿는 봉인은 풀고, 잠긴 세트(옛 세이브)에 있던 마법은 열린 빈 칸으로 옮긴다(`FillEmptySlots`).
+- 화면: 그리모어 「서클」 탭 끝에 「봉인된 책 — n권」 · 이름 · 서클 · 속성. HUD 의 책 곁 안내는 「집으면 「봉인된 책」으로 그리모어에 기록한다」.
+
+- 콘솔 `Grim.Magic.CircleUp [강제 0|1] [지연초]` · `Grim.Magic.Proficiency [지연초]`(자격 · 열린 슬롯 세트 · 봉인 수도 찍는다) · `Grim.Magic.ReloadCircles`.
+- 테스트 `Grimoire.Magic.Circle.Table`(테스트 표 · 실제 표 10서클 · 잘못된 표) · `.GapBonus` · `.Unlocks` · `.Promotion`(누적 · 지금 서클 마법 · 실패 Param · 연출 없음) · `.Spellbook`(잠긴 세트 · 봉인 · 자격 승급 · 봉인 풀림 · 새 세트 채움 · 격 차이 · 세이브 v2), `Grimoire.Magic.Proficiency.CircleUp`. 2인 `Scripts/Magic/net_check_circle.ps1`.
 
 ## 속성 태그 · 상성 표
 
@@ -550,7 +575,7 @@ M1 규칙(11행 — 원본은 CSV):
 |---|---|
 | `UGrimUISubsystem` | `ULocalPlayerSubsystem`. 0.25초마다 로컬 컨트롤러가 바뀌었는지 보고, 바뀌면 HUD 를 띄우고 **Enhanced Input 에 `IMC_UI` 를 더하고 자기 입력 컴포넌트를 컨트롤러 입력 스택에 올린다** — 컨트롤러 · 캐릭터 파일을 고치지 않는다. 그리지 못하는 프로세스(`-nullrhi` · 전용 서버)는 위젯을 만들지 않는다 |
 | `UGrimHUDWidget` | 왼쪽 아래: 서클 · 호칭 + 막대들. 가운데 아래: **기본 공격 자리(R26 — 연타 「n/4」)** + **지금 세트의 단축 슬롯 4칸**(키 글자 · 속성색 · 패드 세트 활성 테두리 · 쿨다운 막과 초 · 숙련도 등급 글자, S 는 금색). 위: 알림(등급 오름 · 배움 · 스킬북 · 승급). 가운데 아래 위: 스킬북 곁이면 안내(배운다 / 숙련도 / 이미 통달 / 서클 모자람) |
-| `UGrimGrimoireWidget` | 그리모어 화면 — 탭 셋. **마법**: 완드 보정(마나 절약 · 시전 속도), 단축 슬롯 배치(세트 버튼 → 마법 줄 누르기 → 칸 누르기, 같은 마법 칸을 누르면 비움), 속성 필터(전체 + 설정의 속성), 목록(숙련도 없는 항목 「기본」 → 서클별 머리 「1서클 — 견습」 → 배운 순서). 줄마다 속성색 띠 · 이름 · 속성 · 서클 · 등급 글자(없으면 「—」) · 등급 이름 · 다음 등급 막대 · 경험 · 실제 마나/쿨타임(완드 · 숙련도 반영) · 「지금 마법」. S 는 금테. 줄을 누르면 그 마법을 고른다(`Server_SelectSpell`). **성장 트리**: `UGrimSkillTreeWidget`(`Source/Grimoire/UI/GrimSkillTreeWidget.h` — [성장](./progression)). **도감**: 빈 자리(다음 묶음) |
+| `UGrimGrimoireWidget` | 그리모어 화면 — 탭 넷. 머리: 서클 · 호칭 · 최대 마나 + 다음 서클 자격 한 줄(「다음 2서클 자격 — 숙련도 C 이상 마법 1/2 · 그중 지금 1서클 마법 1/1 ✓ · 자격이 모자라다」). **마법**: 완드 보정(마나 절약 · 시전 속도), 단축 슬롯 배치(세트 버튼 → 마법 줄 누르기 → 칸 누르기, 같은 마법 칸을 누르면 비움 — 서클이 열지 않은 세트 버튼은 흐리고 눌리지 않음), 속성 필터(전체 + 설정의 속성), 목록(숙련도 없는 항목 「기본」 → 서클별 머리 「1서클 — 견습」 → 배운 순서). 줄마다 속성색 띠 · 이름 · 속성 · 서클 · 등급 글자(없으면 「—」) · 등급 이름 · 다음 등급 막대 · 경험 · 실제 마나/쿨타임(완드 · 숙련도 반영) · 「지금 마법」. S 는 금테. 줄을 누르면 그 마법을 고른다(`Server_SelectSpell`). **성장 트리**: `UGrimSkillTreeWidget`(`Source/Grimoire/UI/GrimSkillTreeWidget.h` — [성장](./progression)). **도감**: 빈 자리(다음 묶음). **서클**(Q122, 글만): 지금 서클 · 다음 서클이 주는 것(① 수치 보정 — 격 차이 위력 · 마나, 1서클 마법이 받는 값, 각인 최고 단계 ② 해금 — 슬롯 세트 · 동시 유지 · 장비 등급 · 계약 생물 서클 · 데리고 다님 · 보관함 칸 · 열리는 곳), 승급 자격(조건마다 지금/필요 · 시험 과제), 봉인된 책 목록 |
 | `UGrimIdButton` | 자기 번호를 알리는 버튼(목록 · 필터 · 탭 · 슬롯) |
 | `FGrimUIMath` | 순수 계산: 막대 비율 · 어트리뷰트 이름 나누기 · 쿨다운 비율/글 · 속성 필터 · 그리모어 순서 · 슬롯 배치 · 등급 글자 |
 | `GrimUIData` | 어트리뷰트를 이름으로 찾기(`"Health"` · `"GrimVitalAttributeSet.Health"`) · 쿨다운 남은 초(쿨다운 태그 GE) · 속성색 · 위젯 만들기 도우미 |
@@ -558,11 +583,11 @@ M1 규칙(11행 — 원본은 CSV):
 
 - 막대(`VitalBars`): HP(Health/MaxHealth) · 마나(Mana/MaxMana) · 배고픔(Hunger/MaxHunger, 없으면 100) · 체온(BodyTemperature, 30~44°C) · 피곤함(Fatigue/MaxFatigue). **어트리뷰트를 이름으로 읽고 없으면 그 줄을 숨긴다**(1초마다 다시 찾는다) — 생존 갈래가 `Fatigue` 를 만들면 저절로 나타난다. 생존 값은 읽기만 한다.
 - 기존 생존 디버그 글(`grim.Survival.ShowDebug`)은 지우지 않았다. HUD 를 띄우면 `bHideSurvivalDebugWithHUD` 로 0 으로 바꾸고, 콘솔 `grim.Survival.ShowDebug 1` 로 다시 켠다.
-- 단축 슬롯(호그와트 레거시 — 4칸 세트 여러 개): 데이터는 마법서 `SlotSpells`(세트 × 칸, 모두에게 복제) · `ActiveSlotSet`, 수는 `[/Script/Grimoire.GrimSpellbookSettings] SpellSlotsPerSet`(4) · `SpellSlotSets`(4) · `bAutoAssignSlots`(새로 배운 마법을 첫 빈 칸에). 같은 마법은 한 칸에만. 서버 `AssignSlot` · `SetActiveSlotSet`, 클라이언트 `Server_AssignSlot` · `Server_SetActiveSlotSet`. 숙련도 없는 항목은 슬롯에 넣지 않고 HUD 의 기본 공격 자리에(`bSeparateBasicAttackSlot`).
+- 단축 슬롯(호그와트 레거시 — 4칸 세트 여러 개): 데이터는 마법서 `SlotSpells`(세트 × 칸, 모두에게 복제) · `ActiveSlotSet`, 수는 `[/Script/Grimoire.GrimSpellbookSettings] SpellSlotsPerSet`(4) · `SpellSlotSets`(4 — 최대) · `bAutoAssignSlots`(새로 배운 마법을 열린 첫 빈 칸에). **열린 세트 수는 서클 표 `SlotSets`**(1서클 1 · 2서클 2 · 3서클 3 · 4서클+ 4, Q122) — `GetUnlockedSlotSets()`, 잠긴 세트에는 놓지도 바꾸지도 못하고 서클이 오르면 슬롯 없는 마법이 새 세트 빈 칸에 들어간다. 같은 마법은 한 칸에만. 서버 `AssignSlot` · `SetActiveSlotSet`, 클라이언트 `Server_AssignSlot` · `Server_SetActiveSlotSet`. 숙련도 없는 항목은 슬롯에 넣지 않고 HUD 의 기본 공격 자리에(`bSeparateBasicAttackSlot`).
   - **슬롯 바로 시전(1~4 키 · 패드 R2 + 얼굴 버튼)** · 패드 세트 고르기(R2 + 십자키)는 M2 갈래 K — [조작](#조작-q29). HUD 칸마다 키 글자(「1 · RT+Y」, 기본 공격 「좌클릭 · RT」), 패드 세트 활성 중엔 테두리가 밝고, 기본 공격 칸의 등급 자리에 연타 번째(「2/4」).
 - 입력(`Content/Grimoire/UI`, `Scripts/UI/make_ui_input.py`, 호그와트 레거시 배치): `IA_ToggleGrimoire` = **T · 패드 십자키 →**(호그와트의 마법 배치 메뉴 자리 — R2 를 누른 채면 세트 고르기라 열지 않는다), `IA_SpellSet1~4` = F1~F4(패드 세트 고르기는 캐릭터의 `IMC_Spell`). 컨텍스트 `IMC_UI`(우선순위 1).
 - 그리모어가 열리면 Game+UI 입력 · 마우스 커서 · 시점 고정(`SetIgnoreLookInput`), 키는 게임으로 계속 가서 같은 키로 닫는다. 왼손 책이 다가오는 연출(스펙 「제안」)은 연출 쪽 몫.
-- 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.SlotSet <1부터>` · `Grim.UI.Level [0|1]`(레벨 · 경험 막대 단독 — [성장](./progression)).
+- 콘솔: `Grim.UI.HUD 0|1` · `Grim.UI.Grimoire [0|1]` · `Grim.UI.GrimoireTab <0~3>`(열고 그 탭 — 3 = 서클) · `Grim.UI.SlotSet <1부터>` · `Grim.UI.Level [0|1]`(레벨 · 경험 막대 단독 — [성장](./progression)).
 - 테스트 `Grimoire.UI.*`: `BarFraction`(쿨다운 글 포함) · `AttributeName`(실제 ASC 에서 이름으로 찾기) · `ElementFilter` · `GrimoireOrder` · `SlotLayout` · `Settings`(ini 값).
 - 아직 없는 것: 조준점 · 대상의 속성 상태 표시(「젖음」), 마법 아이콘(정의의 `Icon` 이 비어 이름 글자로), 도감 기록(반응 규칙을 발견하면 쓰기), 옵션 화면(조준 옵션은 메뉴 갈래의 `UGrimMenuSettingsPanel` 에 일부 — [월드 · 멀티플레이](./world-multiplayer)).
 
