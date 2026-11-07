@@ -63,8 +63,14 @@ public:
 	/** 그 칸을 닳게 한다 */
 	void Wear(EGrimEquipSlot Slot, float Amount);
 
-	/** 닳은 장비를 모두 가방의 재료로 고친다. 쓴 재료 수. */
+	/** 닳은 장비를 모두 가방의 재료로 고친다(작업대 「수리」 탭 — 레스티투오, Q121). 쓴 재료 수. */
 	int32 RepairAll(UGrimInventoryComponent* Bag);
+
+	/** 닳은 장비를 다 고치는 데 드는 재료 몫(대리 수리 값 셈 — 재료 종류와 상관없이 개수 합) */
+	int32 GetRepairUnitsNeeded() const;
+
+	/** 닳은 장비를 재료 없이 다 고친다(대리 수리 — 솔은 부른 쪽이 받는다). 고친 재료 몫. 수리 횟수 · 최대치 감소는 같다 */
+	int32 RepairAllWithoutMaterials();
 
 	/** 빈 칸에 시작 장비(UGrimBaseSettings::StartingEquipment)를 넣는다. 넣은 수 */
 	int32 GiveStartingEquipment();
@@ -102,6 +108,8 @@ private:
 	void CommitChange();
 	void RefreshEffects();
 	void BreakSlot(EGrimEquipSlot Slot);
+	/** 수리 공통: Provide(재료 ID, 필요 수) → 실제로 쓴 수 */
+	int32 RepairWith(TFunctionRef<int32(FName RepairItem, int32 Needed)> Provide);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Slots)
 	TArray<FGrimItemInstance> Slots;

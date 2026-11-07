@@ -36,6 +36,10 @@ enum class EGrimCastFailReason : uint8
 	TameCircleTooLow,
 	/** 계약(파크툼): 계약을 받지 않는 생물(길들일 수 없음 · 이미 주인 있음 · 죽음) */
 	TameRefused,
+	/** 작업대 「수리」 탭 · 조각 하나씩 고치기가 잠김 — 레스티투오를 배워야(Q121 · Q123). 연출 없음 */
+	RepairLocked,
+	/** 거점 핵 「전체 수리」가 잠김 — 레스티투오 막시마를 배워야(Q121). 연출 없음 */
+	BaseRepairLocked,
 };
 
 /** 서버 판정이 보는 값(순수 분류 — 테스트가 직접 채운다) */
@@ -116,7 +120,7 @@ namespace GrimCastFailure
 	/** HUD 알림 글(한국어 게임 문구) */
 	GRIMOIRE_API FText GetMessage(EGrimCastFailReason Reason, int32 Param);
 
-	/** 실패 연출(피식)을 하는 까닭인가 */
+	/** 실패 연출(피식)을 하는 까닭인가 — 마법이 아닌 잠김(수리 해금)은 글만 */
 	GRIMOIRE_API bool ShouldFizzle(EGrimCastFailReason Reason);
 
 	GRIMOIRE_API const TCHAR* ReasonName(EGrimCastFailReason Reason);

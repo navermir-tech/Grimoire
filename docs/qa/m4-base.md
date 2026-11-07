@@ -62,6 +62,19 @@
 
 - 참고: 집 안 그림이 어두운 것은 모닥불을 켜지 않았고 지붕이 해를 막아서다(정상).
 
+## F. 수리 해금 (Q121 답 2026-11-07)
+
+| # | 항목 | 방법 | 기대 | 결과 | 근거 |
+|---|---|---|---|---|---|
+| F1 | 레스티투오 전엔 작업대 「수리」 잠김 · 까닭 알림(Q64 방식, 연출 없음) → 2서클에 배우면 재료로 고침 · 최대치 −10%, 막시마 전엔 거점 「전체 수리」 잠김 → 스킬북(4서클)으로 배움 · 2서클엔 못 읽음, 세이브 `Base.Skills` 왕복 | ① `Grimoire.Base.Repair.Unlock` | 통과 | ✅ 11-07 | 자동화 173/173 |
+| F2 | 마법탑 대리 수리(솔): 멀쩡하면 `Repair.Nothing`, 솔 모자람 `Repair.NoMoney`(그대로), 값 = 재료 몫 × 5 솔, 고치면 수리 횟수 1 · 새 최대치까지, 재료는 안 받음. 대사 표가 두 맥락을 요구 | ① `Grimoire.Base.Repair.NpcService` · `Grimoire.Quest.Table` | 통과 | ✅ 11-07 | 자동화 173/173 |
+| F3 | 2인: 레스티투오 · 막시마 없이 누르면 **서버가 판정**하고 그 사람의 소유 클라이언트에만 까닭 한 줄 — 피식 연출은 없음 | ④ `Scripts/Base/net_check_repair.ps1` | 서버 `수리 잠김: 레스티투오 필요` ×2 · `… 막시마 필요` ×2(클라이언트 · 호스트), `[Client] 마법 실패 알림 RepairLocked` · `BaseRepairLocked`, 호스트 몫은 서버 로그 | ✅ 11-07 | `Saved/repair_result.txt` — 클라이언트 알림 RepairLocked 2 · BaseRepairLocked 1, 호스트 알림 1, 연출 0, `NETCHECK_RESULT fail=0` |
+| F4 | 2인: 레스티투오를 배운 뒤 작업대 「수리」(장비) · 조각 하나(저장고 몸) | ④ 같은 스크립트 | `장비 수리 Wand_Basic: 재료 Wood ×2 → 180/180(수리 1번)` · `수리 GrimStorageChest_0: Wood ×2 → 150/150` | ✅ 11-07 | 같음 |
+| F5 | 2인: 막시마를 배운 뒤 거점 핵 「전체 수리」(저장고 재료) | ④ 같은 스크립트 | `노말 스킬 RestituoMaxima 배움` · `거점 수리: 닳은 것 n, 저장고 재료 m` | ✅ 11-07 | `거점 수리: 닳은 것 3, 저장고 재료 2` |
+| F6 | 회귀: 거점 2인(레스티투오를 배워 작업대 · 벽 수리) | ④ `Scripts/Base/net_check_base.ps1` | 털 두건 수리 · 벽 150/150 등 M4 기록과 같음 | ✅ 11-07 — 1 · 2회차는 이 워크트리에 앞선 점검이 남긴 세이브(`Saved/SaveGames`)로 호스트가 다른 자리에서 시작해 거점 핵이 샌드박스 소품과 겹쳐(`놓기 거절 BaseCore: 무언가와 겹친다 StaticMeshActor_1`) 아무것도 못 지음 — 세이브를 치우고 3회차 통과(수리와 무관, 스크립트가 세이브를 지우지 않는 문제) | `Saved/NetCheck/base_server.log` — `cores=1 pieces=10 structures=17`, 밤 0.921 → 0.194(day 1), `장비 수리 FurHood: 재료 JackalopeFur ×3 → 101/108(수리 1번)`, `수리 GrimBuildPiece_2: Wood ×3 → 150/150`, 철거 뒤 9 · 16 |
+| F7 | 화면: 작업대 옆 「수리」 탭(잠김 한 줄 · 장비 목록 · 단추), 거점 탭 「전체 수리 (잠김)」 글 | ③ 사람 눈 | 잠김 · 열림 글이 바뀐다 | ⏸ 11-07 — `Grim.Base.Bag` 가 「수리」 탭을 아직 열지 못해 장면을 못 만듦(탭 글은 ① 의 같은 함수 `UGrimRepairTab::DescribeLock`) | — |
+| F8 | 2인: 마렌과 대화해 「대리 수리 (솔)」 메뉴를 고름 | ④ | `대리 수리: … 재료 몫 n → m Solidus` | ⏸ 11-07 — 헤드리스에서 NPC 메뉴를 고르는 명령이 없다(서비스 함수는 F2 에서 확인) | — |
+
 ## 다시 돌리기
 
 ```powershell
@@ -69,7 +82,8 @@
 powershell -File Scripts\Base\qa_creature_box.ps1           # C5~C9 — 끝줄 QA_RESULT fail=0
 powershell -File Scripts\Base\capture_base.ps1              # B2~B5 · C3 · D3 그림 → Saved\BaseCapture
 powershell -File Scripts\Creatures\net_check_storage.ps1    # D1
-powershell -File Scripts\Base\net_check_base.ps1            # D2
+powershell -File Scripts\Base\net_check_base.ps1            # D2 · F6
+powershell -File Scripts\Base\net_check_repair.ps1          # F3~F5
 ```
 
 - 새 워크트리는 LFS 에셋이 포인터 그대로일 수 있다 — `git lfs checkout` 을 먼저 하지 않으면 A2 가 실패하거나 엔진이 죽는다.

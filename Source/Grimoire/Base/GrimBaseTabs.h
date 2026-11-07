@@ -87,7 +87,7 @@ private:
 	TArray<TObjectPtr<UTextBlock>> ChestTexts;
 };
 
-/** 작업대 탭 — 레시피(Station=Workbench)를 누르면 만든다, 「수리」 걸기(장비) */
+/** 작업대 탭 — 레시피(Station=Workbench)를 누르면 만든다. 장비 수리는 옆 「수리」 탭(UGrimRepairTab) */
 UCLASS()
 class GRIMOIRE_API UGrimWorkbenchTab : public UGrimBaseTabBase
 {
@@ -113,7 +113,39 @@ private:
 	TArray<FName> RecipeIds;
 };
 
-/** 거점 탭 — 거점 핵을 F 로 열었을 때만. 조각 수 · 닳은 것 · 저장고 재료, 「거점 수리」 */
+/**
+ * 수리 탭(Q121) — 작업대를 F 로 열었을 때. 「레스티투오」를 배워야 열린다: 잠겼으면 까닭 한 줄(마법탑 대리 수리 값),
+ * 단추를 누르면 서버가 판정해 잠김 까닭을 HUD 에 알린다(Q64 방식). 열렸으면 입은 장비를 가방의 재료로 모두 고친다.
+ */
+UCLASS()
+class GRIMOIRE_API UGrimRepairTab : public UGrimBaseTabBase
+{
+	GENERATED_BODY()
+
+public:
+	static const FName TabId;
+
+	virtual FName GetTabId() const override { return TabId; }
+	virtual FText GetLabel() const override;
+	virtual int32 GetOrder() const override { return 35; }
+	virtual bool IsAvailable() const override;
+	virtual UWidget* BuildContent(UWidgetTree* Tree) override;
+	virtual void Refresh() override;
+
+	/** 잠김 · 열림 안내 한 줄(테스트 · 덤프) */
+	static FText DescribeLock(bool bUnlocked);
+
+private:
+	void HandleRepairClicked(int32 Unused);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> StatusText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ListText;
+};
+
+/** 거점 탭 — 거점 핵을 F 로 열었을 때만. 조각 수 · 닳은 것 · 저장고 재료, 「전체 수리」(레스티투오 막시마를 배워야 — Q121) */
 UCLASS()
 class GRIMOIRE_API UGrimBaseCoreTab : public UGrimBaseTabBase
 {
@@ -132,4 +164,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> InfoText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> RepairLabel;
 };

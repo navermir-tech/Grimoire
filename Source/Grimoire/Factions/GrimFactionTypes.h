@@ -43,7 +43,10 @@ namespace GrimDialogueContexts
 	GRIMOIRE_API extern const FName Purify;
 	/** 정화할 것(찍은 노드)이 없다 */
 	GRIMOIRE_API extern const FName PurifyEmpty;
+	/** 대리 수리(솔, Q121): 고쳤다 · 솔이 모자람 · 고칠 것이 없다 */
 	GRIMOIRE_API extern const FName Repair;
+	GRIMOIRE_API extern const FName RepairNoMoney;
+	GRIMOIRE_API extern const FName RepairNothing;
 	GRIMOIRE_API extern const FName Erase;
 	/** 너무 멀다 · 잘못된 요청 */
 	GRIMOIRE_API extern const FName Refused;

@@ -1,4 +1,6 @@
 #include "Items/GrimInventoryComponent.h"
+#include "Base/GrimBaseSettings.h"
+#include "Base/GrimBuilderComponent.h"
 #include "Base/GrimEquipmentComponent.h"
 #include "Items/GrimCookingPot.h"
 #include "Items/GrimInventoryWidget.h"
@@ -424,7 +426,11 @@ EGrimItemUseResult UGrimInventoryComponent::ReadSkillbook(int32 SlotIndex, const
 	FName NormalSkill;
 	if (GrimCreatureStorageMath::ParseNormalSkill(Def.Row.TeachesSpell, NormalSkill))
 	{
-		const EGrimLearnResult SkillResult = UGrimCreatureStorageComponent::LearnNormalSkill(GetOwner(), NormalSkill);
+		// 노말 스킬은 그 기능을 가진 컴포넌트가 배운다 — 레스티투오 막시마(거점 전체 수리, Q121)는 건축, 쿠스토디아(R38)는 보관함.
+		UGrimBuilderComponent* Builder = UGrimBuilderComponent::FindForActor(GetOwner());
+		const bool bBaseRepair = NormalSkill == UGrimBaseSettings::Get()->BaseRepairSkillId;
+		const EGrimLearnResult SkillResult = bBaseRepair ? (Builder ? Builder->LearnNormalSkill(NormalSkill) : EGrimLearnResult::Invalid)
+			: UGrimCreatureStorageComponent::LearnNormalSkill(GetOwner(), NormalSkill);
 		if (SkillResult == EGrimLearnResult::Learned)
 		{
 			RemoveFromSlot(SlotIndex, 1);
@@ -433,7 +439,7 @@ EGrimItemUseResult UGrimInventoryComponent::ReadSkillbook(int32 SlotIndex, const
 		}
 		if (SkillResult == EGrimLearnResult::CircleTooLow)
 		{
-			SendNotice(EGrimItemNotice::CircleTooLow, Def.Id, UGrimCreatureStorageSettings::Get()->StorageRequiredCircle);
+			SendNotice(EGrimItemNotice::CircleTooLow, Def.Id, bBaseRepair ? UGrimBaseSettings::Get()->BaseRepairRequiredCircle : UGrimCreatureStorageSettings::Get()->StorageRequiredCircle);
 			return EGrimItemUseResult::CannotUse;
 		}
 		SendNotice(EGrimItemNotice::CannotUse, Def.Id, 1);

@@ -68,13 +68,15 @@ FText GrimCastFailure::GetMessage(EGrimCastFailReason Reason, int32 Param)
 	case EGrimCastFailReason::TameNoRoom: return LOCTEXT("TameNoRoom", "데리고 다님 · 보관함 · 생물 상자가 모두 가득 — 계약이 걸리지 않는다");
 	case EGrimCastFailReason::TameCircleTooLow: return FText::Format(LOCTEXT("TameCircleTooLow", "이 생물과 계약하려면 {0}서클이 필요하다"), Param);
 	case EGrimCastFailReason::TameRefused: return LOCTEXT("TameRefused", "이 생물은 계약을 받지 않는다");
+	case EGrimCastFailReason::RepairLocked: return LOCTEXT("RepairLocked", "수리는 「레스티투오」를 배워야 할 수 있다 — 그전엔 마법탑 스승에게 솔을 내고 맡긴다");
+	case EGrimCastFailReason::BaseRepairLocked: return LOCTEXT("BaseRepairLocked", "거점 전체 수리는 「레스티투오 막시마」를 배워야 열린다");
 	default: return FText::GetEmpty();
 	}
 }
 
 bool GrimCastFailure::ShouldFizzle(EGrimCastFailReason Reason)
 {
-	if (Reason == EGrimCastFailReason::None)
+	if (Reason == EGrimCastFailReason::None || Reason == EGrimCastFailReason::RepairLocked || Reason == EGrimCastFailReason::BaseRepairLocked)
 	{
 		return false;
 	}
@@ -94,6 +96,8 @@ const TCHAR* GrimCastFailure::ReasonName(EGrimCastFailReason Reason)
 	case EGrimCastFailReason::TameNoRoom: return TEXT("TameNoRoom");
 	case EGrimCastFailReason::TameCircleTooLow: return TEXT("TameCircleTooLow");
 	case EGrimCastFailReason::TameRefused: return TEXT("TameRefused");
+	case EGrimCastFailReason::RepairLocked: return TEXT("RepairLocked");
+	case EGrimCastFailReason::BaseRepairLocked: return TEXT("BaseRepairLocked");
 	default: return TEXT("?");
 	}
 }

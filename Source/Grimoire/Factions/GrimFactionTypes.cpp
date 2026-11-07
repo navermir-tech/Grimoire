@@ -51,6 +51,8 @@ namespace GrimDialogueContexts
 	const FName Purify(TEXT("Purify"));
 	const FName PurifyEmpty(TEXT("Purify.Empty"));
 	const FName Repair(TEXT("Repair"));
+	const FName RepairNoMoney(TEXT("Repair.NoMoney"));
+	const FName RepairNothing(TEXT("Repair.Nothing"));
 	const FName Erase(TEXT("Erase"));
 	const FName Refused(TEXT("Refused"));
 	const FName Buy(TEXT("Buy"));
@@ -59,7 +61,7 @@ namespace GrimDialogueContexts
 
 	TArray<FName> RequiredForServices()
 	{
-		return { Menu, TrialStarted, TrialNotReady, TrialLocked, TrialNone, TrialBusy, Purify, PurifyEmpty, Repair, Erase, Refused };
+		return { Menu, TrialStarted, TrialNotReady, TrialLocked, TrialNone, TrialBusy, Purify, PurifyEmpty, Repair, RepairNoMoney, RepairNothing, Erase, Refused };
 	}
 
 	TArray<FName> RequiredForShop()

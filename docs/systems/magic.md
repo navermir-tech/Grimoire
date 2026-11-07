@@ -254,6 +254,7 @@ S,마스터,1500,0.75,0.80,1.0
 | `CircleTooLow` | 서클 < 정의의 서클 | 「n서클 마법이다 — 아직 다룰 수 없다」 |
 | `Cooldown` | 쿨다운 태그 | 「아직 다시 쓸 수 없다 — n초」(남은 초 올림) |
 | `NotEnoughMana` | `CheckCost` 실패 | 「마나가 모자라다 (필요 n)」 |
+| `RepairLocked` · `BaseRepairLocked` | 수리 해금 전(Q121) — 작업대 「수리」 탭 · 조각 수리 / 거점 핵 「전체 수리」([건축 — 수리](./building#내구도-·-수리-·-인챈트-r18-·-r19)). 마법이 아니라 연출 없이 글만 | 「수리는 「레스티투오」를 배워야 할 수 있다 — 그전엔 마법탑 스승에게 솔을 내고 맡긴다」 · 「거점 전체 수리는 「레스티투오 막시마」를 배워야 열린다」 |
 | `TameNoRoom` · `TameCircleTooLow` · `TameRefused` | 파크툼이 맞았는데 계약이 안 걸림([생물 — 새로 길들일 때](./creatures#새로-길들일-때-ugrimtamingsubsystem-trytame)) | 「데리고 다님 · 보관함 · 생물 상자가 모두 가득 — 계약이 걸리지 않는다」 등 |
 
 - **서버 판정 → 소유 클라이언트 알림**:
@@ -263,7 +264,7 @@ S,마스터,1500,0.75,0.80,1.0
   4. `GrimCastFailure::Report`: 같은 까닭은 `NoticeIntervalSeconds`(0.75초) 안에 한 번 → `Client_CastFailed(까닭, 값)`(Reliable, 소유 클라이언트) → `OnCastFailedNotice` → HUD 글. 그리고 `GameplayCue.Magic.Fizzle` 을 Execute(모두 — 다른 플레이어도 피식 꺼지는 것을 본다).
   - 로그: 서버 `[Server] 마법 실패 <PlayerState> <까닭> 값=n`, 받은 쪽 `[Client|Server] 마법 실패 알림 <까닭>: <글>`, 연출 `[…] 마법 실패 연출 <폰> <까닭> at <곳> 이펙트=0|1 몽타주=0|1`.
 - **실패 연출 자리**(임시): 큐 처리기가 작은 회색 파티클(`FizzleFX` — 엔진 기본 템플릿 `DirectionalBurstLightweight`, 크기 0.35 · 0.5초)을 완드 끝(완드가 없으면 손 앞 · 계약이면 생물 자리)에 띄우고, 몸짓 몽타주 `FizzleMontage`(지금 비어 있음 — 애니메이션 에셋이 생기면 ini 에 넣는다. 슬롯은 몽타주가 정하고 `ABP_GrimPlayer` 에 그 슬롯이 있어야 보인다)를 재생한다. 진짜 「피식」 이펙트는 이펙트 갈래가 `FizzleFX` 만 바꾸면 된다.
-- 가방에서 스킬북을 읽다 서클이 모자라면 가방 알림 `EGrimItemNotice::CircleTooLow`(「<책> — n서클이 되어야 읽을 수 있다」, 서버 `ReadSkillbook` → `Client_Notice`) — 노말 스킬(쿠스토디아)도 같다. 마법 스킬북은 HUD 의 배움 결과 알림도 함께 뜬다(예전 그대로).
+- 가방에서 스킬북을 읽다 서클이 모자라면 가방 알림 `EGrimItemNotice::CircleTooLow`(「<책> — n서클이 되어야 읽을 수 있다」, 서버 `ReadSkillbook` → `Client_Notice`) — 노말 스킬(쿠스토디아 · 레스티투오 막시마)도 같다. 마법 스킬북은 HUD 의 배움 결과 알림도 함께 뜬다(예전 그대로).
 - 설정 `[/Script/Grimoire.GrimCastFailureSettings]`: `NoticeIntervalSeconds` 0.75 · `ClientReportIntervalSeconds` 0.2 · `FizzleMontage`(비움) · `FizzleMontagePlayRate` 1 · `FizzleFX` · `FizzleFXScale` 0.35 · `FizzleColor` 회색 · `FizzleFXSeconds` 0.5 · `bFizzleOnCooldown` True.
 - 테스트 `Grimoire.Magic.CastFailure.Classify`(순서 · 글 · 연출 · ini) · `.BasicWand`(기본 완드 표 · 시작 장비 · 닳기 → 부러짐 · 빈 칸 태그 · 판정 NoWand · 주먹질 · 알림 한 번 · 세이브 v1/v2). 2인 `Scripts/Magic/net_check_castfail.ps1`(호스트 · 클라이언트가 기본 완드로 시작 → 쿨타임 · 마나 부족 · 2서클 스킬북 · 완드 벗기(주먹질) → 다시 입기, `NETCHECK_RESULT fail=0`), 화면 `Scripts/QA/shoot_qa.ps1 -Set Fizzle`.
 

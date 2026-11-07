@@ -414,6 +414,43 @@ int32 UGrimEquipmentComponent::RepairAll(UGrimInventoryComponent* Bag)
 	{
 		return 0;
 	}
+	return RepairWith([Bag](FName RepairItem, int32 Needed)
+	{
+		const int32 Use = FMath::Min(Needed, Bag->CountOf(RepairItem));
+		if (Use > 0)
+		{
+			Bag->RemoveItem(RepairItem, Use);
+		}
+		return Use;
+	});
+}
+
+int32 UGrimEquipmentComponent::RepairAllWithoutMaterials()
+{
+	if (!GetOwner()->HasAuthority())
+	{
+		return 0;
+	}
+	return RepairWith([](FName RepairItem, int32 Needed) { return Needed; });
+}
+
+int32 UGrimEquipmentComponent::GetRepairUnitsNeeded() const
+{
+	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
+	int32 Units = 0;
+	for (const FGrimItemInstance& Item : Slots)
+	{
+		const FGrimEquipmentDefinition* Def = UGrimBaseSettings::GetDatabase().FindEquipment(Item.ItemId);
+		if (Def && !Def->Row.RepairItem.IsNone())
+		{
+			Units += FGrimDurabilityMath::GetMaterialsNeeded(GetDurability(Item), GetMaxDurability(Item), Settings->RepairFractionPerMaterial);
+		}
+	}
+	return Units;
+}
+
+int32 UGrimEquipmentComponent::RepairWith(TFunctionRef<int32(FName RepairItem, int32 Needed)> Provide)
+{
 	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
 	int32 Used = 0;
 	for (FGrimItemInstance& Item : Slots)
@@ -425,12 +462,11 @@ int32 UGrimEquipmentComponent::RepairAll(UGrimInventoryComponent* Bag)
 		}
 		const float Current = GetDurability(Item);
 		const int32 Needed = FGrimDurabilityMath::GetMaterialsNeeded(Current, GetMaxDurability(Item), Settings->RepairFractionPerMaterial);
-		const int32 Use = FMath::Min(Needed, Bag->CountOf(Def->Row.RepairItem));
+		const int32 Use = Needed > 0 ? FMath::Min(Needed, Provide(Def->Row.RepairItem, Needed)) : 0;
 		if (Use <= 0)
 		{
 			continue;
 		}
-		Bag->RemoveItem(Def->Row.RepairItem, Use);
 		// 고칠 때마다 최대치가 준다(인슈라오디드처럼 결국 새로 만들게).
 		++Item.RepairCount;
 		const float NewMax = GetMaxDurability(Item);

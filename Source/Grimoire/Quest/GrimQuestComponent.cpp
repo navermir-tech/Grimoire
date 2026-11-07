@@ -637,8 +637,8 @@ FName UGrimQuestComponent::ExecuteService(AActor* Npc, FName Service)
 	}
 	if (Service == GrimTowerServices::Repair)
 	{
-		// 인벤토리 · 내구도(M4) 전 — 대사 자리만.
-		return GrimDialogueContexts::Repair;
+		// 대리 수리(Q121): 레스티투오를 배우지 않았어도 솔을 내고 입은 장비를 고친다 — 값은 UGrimShopSettings::RepairPricePerMaterial.
+		return GrimTowerShop::TryRepair(UGrimInventoryComponent::FindForActor(GetOwner()));
 	}
 	if (Service == GrimTowerServices::Erase)
 	{

@@ -174,11 +174,19 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Durability", meta = (ClampMin = "0"))
 	float BaseRepairManaCost = 40.f;
 
-	/** 「수리」 마법을 배워야 고칠 수 있다(R28) */
+	/** 수리를 배워야 할 수 있다(R28 · Q121 — 끄면 작업대 수리 · 거점 전체 수리 · 조각 수리가 모두 열린다) */
 	UPROPERTY(Config, EditAnywhere, Category = "Durability")
 	bool bRequireRepairSpell = true;
 
-	/** 「수리」 마법(무속성 1서클 볼트 — Scripts/Base/make_repair_spell.py) */
+	/** 노말 스킬 「레스티투오 막시마」 ID(Q121 — 스킬북 TeachesSpell = "Skill:<이 값>"). 배우면 거점 핵 「전체 수리」가 열린다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Durability")
+	FName BaseRepairSkillId = TEXT("RestituoMaxima");
+
+	/** 레스티투오 막시마를 배우는 데 필요한 서클(제안 4 — 스킬북 목록) */
+	UPROPERTY(Config, EditAnywhere, Category = "Durability", meta = (ClampMin = "1"))
+	int32 BaseRepairRequiredCircle = 4;
+
+	/** 「레스티투오」 — 무속성 2서클 수리 볼트(Q121 · Q123, Scripts/Base/make_repair_spell.py). 배우면 작업대 「수리」 탭이 열리고 조각 · 시설을 하나씩 고친다 */
 	UPROPERTY(Config, EditAnywhere, Category = "Durability")
 	TSoftObjectPtr<UGrimSpellDefinition> RepairSpell;
 
