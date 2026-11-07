@@ -8,6 +8,9 @@ namespace GrimBaseTags
 	/** 완드가 부러졌다(Q22) — 마법은 못 쓰고 주먹만(UGrimSpellAbility::GetWand 가 완드 없음으로 본다) */
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_WandBroken);
 
+	/** 완드 칸이 비었다(Q71) — 마법은 못 쓰고 주먹만. 부러짐과 같은 길(GetWand 가 완드 없음으로 본다) */
+	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_WandMissing);
+
 	/** 「수리」 마법(무속성) */
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spell_Repair);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_Spell_Repair);

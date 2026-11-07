@@ -1,4 +1,5 @@
 #include "Factions/GrimShopSettings.h"
+#include "Base/GrimEquipmentComponent.h"
 #include "Factions/GrimFactionTypes.h"
 #include "Items/GrimInventoryComponent.h"
 #include "Items/GrimItemSettings.h"
@@ -29,4 +30,31 @@ FName GrimTowerShop::TryBuy(UGrimInventoryComponent* Inventory, FName ItemId)
 	Inventory->AddItem(FGrimItemInstance(ItemId, 1));
 	UE_LOG(LogGrimQuest, Display, TEXT("[Server] 상점: %s 이(가) %s 을(를) %d %s 에 샀다"), *GetNameSafe(Inventory->GetOwner()), *ItemId.ToString(), Price, *Shop->CurrencyItem.ToString());
 	return GrimDialogueContexts::Buy;
+}
+
+FName GrimTowerShop::TryRepair(UGrimInventoryComponent* Inventory, int32* OutFee)
+{
+	const UGrimShopSettings* Shop = UGrimShopSettings::Get();
+	UGrimEquipmentComponent* Equipment = Inventory ? UGrimEquipmentComponent::FindForActor(Inventory->GetOwner()) : nullptr;
+	if (!Equipment || !Inventory->GetOwner()->HasAuthority())
+	{
+		return GrimDialogueContexts::Refused;
+	}
+	const int32 Units = Equipment->GetRepairUnitsNeeded();
+	const int32 Fee = Units * Shop->RepairPricePerMaterial;
+	if (OutFee)
+	{
+		*OutFee = Fee;
+	}
+	if (Units <= 0)
+	{
+		return GrimDialogueContexts::RepairNothing;
+	}
+	if (Inventory->CountOf(Shop->CurrencyItem) < Fee || (Fee > 0 && Inventory->RemoveItem(Shop->CurrencyItem, Fee) < Fee))
+	{
+		return GrimDialogueContexts::RepairNoMoney;
+	}
+	const int32 Repaired = Equipment->RepairAllWithoutMaterials();
+	UE_LOG(LogGrimQuest, Display, TEXT("[Server] 대리 수리: %s 재료 몫 %d → %d %s"), *GetNameSafe(Inventory->GetOwner()), Repaired, Fee, *Shop->CurrencyItem.ToString());
+	return GrimDialogueContexts::Repair;
 }

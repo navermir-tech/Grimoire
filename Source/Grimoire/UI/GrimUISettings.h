@@ -109,6 +109,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "UI")
 	FLinearColor MasterColor = FLinearColor(1.f, 0.78f, 0.25f);
 
+	/** 마법 실패 알림 글 색(Q64) */
+	UPROPERTY(Config, EditAnywhere, Category = "UI")
+	FLinearColor CastFailColor = FLinearColor(1.f, 0.6f, 0.5f);
+
 	UPROPERTY(Config, EditAnywhere, Category = "Input")
 	TSoftObjectPtr<UInputMappingContext> InputContext;
 

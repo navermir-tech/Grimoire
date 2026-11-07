@@ -9,6 +9,7 @@ struct FGrimCreatureStorageCounts
 {
 	int32 PartyCount = 0;
 	int32 PartyLimit = 0;
+	/** 쿠스토디아를 배웠다(칸이 가득일 때 알림 글만 달라진다 — 기본 칸은 배우지 않아도 쓴다, Q42) */
 	bool bStorageLearned = false;
 	int32 StorageCount = 0;
 	int32 StorageCapacity = 0;
@@ -31,7 +32,11 @@ namespace GrimCreatureStorageMath
 	GRIMOIRE_API int32 ComputeLimit(const TArray<FGrimCircleLimitStep>& Steps, int32 Circle, const TArray<FGrimTagLimitBonus>& TagBonuses,
 		const FGameplayTagContainer& OwnedTags, int32 Max, int32 Fallback);
 
-	/** 새로 길들인 생물이 갈 곳: 파티 자리 → 보관함(배웠고 자리) → 상자(있고 자리) → 거절 */
+	/** 보관함 칸 수(Q42): 기본 칸 + (쿠스토디아를 배웠으면 서클 표 + 태그 보너스), 기본 칸~Max 로 자른다 */
+	GRIMOIRE_API int32 ComputeStorageCapacity(int32 BaseCapacity, bool bLearned, const TArray<FGrimCircleLimitStep>& Steps, int32 Circle,
+		const TArray<FGrimTagLimitBonus>& TagBonuses, const FGameplayTagContainer& OwnedTags, int32 Max);
+
+	/** 새로 길들인 생물이 갈 곳: 파티 자리 → 보관함(자리 — 배우지 않아도 기본 칸) → 상자(있고 자리) → 거절 */
 	GRIMOIRE_API EGrimNewTameDestination DecideNewTame(const FGrimCreatureStorageCounts& Counts, bool bAllowBox);
 
 	/** From → To 로 옮길 수 있나(자리 · 배움 · 상자). 된다면 Ok */

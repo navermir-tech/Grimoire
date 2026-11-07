@@ -64,7 +64,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | 키 | M1 값 |
 |---|---|
 | `StartingSpells` · `bGrantStartingSpells` | 불씨 · 물줄기 · 미풍 · false — 개발 옵션일 때만 준다(위 「시작 마법」) |
-| `StartingWandClass` · `WandSocketName` | `AGrimWand` · `hand_r` |
+| `StartingWandClass` · `WandSocketName` | `AGrimWand` · `hand_r` — 손에 붙는 완드 **액터**(모양 · 완드 끝). 쥐었는지는 장비 칸이 정한다([완드](#완드-agrimwand)) |
 | `StartingCircle` · `MaxManaByCircle` | 1 · 100 / 130 / 160 / 200 / 250 / 300 / 360 / 430 / 510 / 600 — 표는 처음 마나(시작 서클 값)로만 쓰인다([서클](#서클)) |
 | `ManaRegenPerSecond` | 2 |
 | `bFriendlyFire` | false — 플레이어끼리는 피해 없음(속성 자극은 준다) |
@@ -81,7 +81,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 
 1. 입력: 캐릭터가 `UGrimAbilitySystemComponent::AbilityInputTagPressed(Input.Spell.BasicAttack | Input.Spell.Slot1~4)`. 서버가 **지금 세트의 칸 i 에 놓인 마법 Spec 에만** `Input.Spell.Slot(i+1)`, 기본 공격 Spec 에 `Input.Spell.BasicAttack` 을 동적 태그로 붙여 두므로(아래 [조작](#조작-q29)) 그 마법만 발동한다.
 2. `UGrimSpellAbility`(InstancedPerActor · LocalPredicted):
-   - `CanActivateAbility` — 정의 있음 · 완드 있음(완드 없으면 주먹 기본 공격만, Q4) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용.
+   - `CanActivateAbility` — 정의 있음 · 완드 있음(장비 완드 칸이 비었거나 부러졌으면 없음 — 기본 공격 입력은 주먹질, Q71 · Q22) · `Circle` ≥ 정의의 서클 · 쿨다운 · 비용. 막히면 [마법 실패 알림](#마법-실패-알림-q64)이 까닭을 알린다.
    - `CommitAbility` — 비용 `UGrimGE_SpellCost`(즉시, `Mana += SetByCaller.Magic.ManaCost`), 쿨다운 `UGrimGE_SpellCooldown`(지속 `SetByCaller.Magic.Cooldown` 초, `CooldownTag` 를 Spec 의 `DynamicGrantedTags` 로). 클라이언트도 예측 적용한다.
    - 완드 · 숙련도 보정: 비용 = `ManaCost × (1 − ManaEfficiency) × 숙련도 ManaCostMultiplier`, 쿨다운 = `Cooldown × 숙련도 CooldownMultiplier ÷ CastSpeed`(`GrimMagicMath` · [숙련도](#숙련도-q26)). 누르는 마법은 시작할 때 `ManaCost` + 첫 판정 몫이 있어야 한다.
 3. 조준 · 네트워크 — 자세한 표는 [투사체 · 시전 감각 — 네트워크](./spell-feel#네트워크-—-내-화면에서는-즉시):
@@ -110,6 +110,7 @@ Magic 은 그리지 않고 `GrimCueTags`(`Source/Grimoire/Core/GrimSpellFXTypes.
 | `GameplayCue.Spell.Cast` (Execute) | 시전자: `ActivateAbility`(예측) / 서버: TargetData 콜백 · 호스트는 `BeginAuthorityCast`. **누르는 순간** 한 번 — 실제 발사는 `CastWindup` 뒤라 섬광은 처리기가 그만큼 늦춰도 된다 | 시작점(완드 끝 또는 가슴) · 발사 방향 |
 | `GameplayCue.Spell.Channel` (Add/Remove) | Stream(`bChanneled`)만. Cast 와 같은 곳에서 `K2_AddGameplayCueWithParams(.., bRemoveOnAbilityEnd)` → 어빌리티가 끝나면 거둔다 | 시작 때의 시작점 · 방향. 줄기 모양은 처리기가 `UGrimSpellAbility::TraceStreamArc` 로 매 프레임 같은 식을 그린다 |
 | `GameplayCue.Spell.Impact` (Execute) | 서버 확정 뒤(예측 키 없음 → 시전자 포함 모두): Bolt 투사체 명중, Stream 자극 때, Cone 대상마다, Beam 맞은 곳마다 | 맞은 곳 · 표면 법선(Cone 은 −발사 방향) |
+| `GameplayCue.Magic.Fizzle` (Execute) | 마법이 걸리지 않음(Q64) — 서버 판정 뒤(모두). 처리기 `UGrimCueNotify_Fizzle`(`Source/Grimoire/Magic/GrimCastFailure.h`), 에셋 `GC_Magic_Fizzle`(`/Game/Grimoire/Magic/Cues`, `Scripts/Magic/make_fizzle_cue.py`) | 완드 끝(완드가 없으면 손 앞) · 계약 실패면 생물 자리, `RawMagnitude` = 까닭 |
 
 - Bolt 의 **꼬리**는 큐가 아니라 투사체(진짜 · 가짜 모두)가 `VisualSet.Trail` 을 직접 붙인다(움직이는 액터라서). 색은 `UGrimSpellVisualSet::TintNiagara`(`Source/Grimoire/Core/GrimSpellFXTypes.h`)가 Niagara 사용자 변수 중 이름에 `Color` 가 든 것 모두에 `ElementColor` 를 넣는다(팩마다 이름이 달라서 — 연기 · 흙 · 먼지 색은 둔다). VisualSet 의 `bHideProjectileMesh` 가 켜져 있으면 투사체의 색 구를 숨긴다(볼트 이펙트가 머리 빛까지 그릴 때 — 불씨 · 기본 공격). VisualSet 이 없으면 속성색 구만.
 - 시전자 클라이언트에서는 진짜 투사체 복제본을 숨기고(가짜가 대신 보인다), 진짜가 사라지면 같은 마법의 가장 오래된 가짜도 지운다. 가짜는 판정 없이 지형 · 사물에서 멈춰 사라지고, 터짐은 서버 Impact 큐가 그린다.
@@ -151,7 +152,7 @@ Magic 은 그리지 않고 `GrimCueTags`(`Source/Grimoire/Core/GrimSpellFXTypes.
 - **연타 리듬**: 한 발 사이 `AttackInterval`(0.3초). 쿨다운이 아니라 `CanActivateAbility` 가 인스턴스의 마지막 발 시각으로 막는다 — 시전자는 그대로, 서버는 원격 시전자에게 `ServerIntervalTolerance`(0.08초)를 봐준다(거절되면 `[Server] 기본 공격 거절` 로그).
 - **4연타 강타**: 첫 발부터 `ComboWindow`(1.5초) 안에 이어 친 `ComboLength`(4) 번째가 강타 — 피해 × `HeavyDamageMultiplier`(3), 볼트 크기 × `HeavyBoltScale`(1.6, 모두에게), 맞은 대상 밀어냄(캐릭터 `LaunchCharacter` 수평 900 · 위 250cm/s, 물리 사물 속도 변화 600cm/s, 플레이어끼리는 아군 피해 설정을 따름). 창을 넘기거나 강타 뒤면 1번째부터. 서버와 시전자가 **각자 시계로 같은 규칙**을 센다 — 판정 · 피해는 서버 값, 시전자 값은 가짜 볼트 크기 · HUD 「n/4」에만(`FGrimBasicAttackMath`).
 - **조준 · 책**: 부모 그대로(소프트 락온 쪽으로 휨, 줌인 조준이면 곧게, Cast 큐 → 책장 한 장 · 무속성 문양 · 튕기기 동작).
-- **주먹질 `UGrimFistAbility`(Q4, 임시)**: 기본 공격을 **아직 배우지 않았거나 완드가 없을 때**(부러진 완드 포함 — 내구도 M4 가 생기면 「완드 없음」으로 친다) 같은 입력(`Input.Spell.BasicAttack`)이 주먹질이 된다. 마법 정의가 없는 어빌리티라 캐릭터가 서버에서 한 번 준다(`EnsureGranted`, 태그 관리 밖). 기본 공격 Spec(그 입력 태그를 가진 마법)이 있고 완드가 있으면 `CanActivate` 가 물러나고, 기본 공격은 완드가 없으면 부모 검사로 막힌다 — 둘 중 하나만 나간다. 서버가 앞쪽 `FistRange`(130cm) · 반지름 `FistRadius`(35cm) 구 스윕, 받는 쪽 · ASC 가 있는 첫 대상에 피해 `FistDamage`(3, 플레이어끼리는 아군 피해 설정) · 무속성 자극 `FistStimulusIntensity`(0.5). 리듬은 같은 `AttackInterval`, 강타 · 동작 · 책장 · 이펙트 없음.
+- **주먹질 `UGrimFistAbility`(Q4 · Q71)**: 기본 공격을 **아직 배우지 않았거나 완드가 없을 때**(장비 완드 칸이 비었거나 부러진 완드 — `Status.WandMissing` · `Status.WandBroken`) 같은 입력(`Input.Spell.BasicAttack`)이 주먹질이 된다. 마법 정의가 없는 어빌리티라 캐릭터가 서버에서 한 번 준다(`EnsureGranted`, 태그 관리 밖). 기본 공격 Spec(그 입력 태그를 가진 마법)이 있고 완드가 있으면 `CanActivate` 가 물러나고, 기본 공격은 완드가 없으면 부모 검사로 막힌다 — 둘 중 하나만 나간다. 서버가 앞쪽 `FistRange`(130cm) · 반지름 `FistRadius`(35cm) 구 스윕, 받는 쪽 · ASC 가 있는 첫 대상에 피해 `FistDamage`(3, 플레이어끼리는 아군 피해 설정) · 무속성 자극 `FistStimulusIntensity`(0.5). 리듬은 같은 `AttackInterval`, 강타 · 동작 · 책장 · 이펙트 없음.
 - 부모에 더한 고리(최소): `UGrimSpellAbility::MakeDamageSpec` 을 virtual 로, `OnSpellProjectileSpawning`(FinishSpawning 직전 — 진짜 · 가짜), `AGrimSpellProjectile::HandleHit` 을 virtual 로.
 - 설정 `[/Script/Grimoire.GrimBasicAttackSettings]`: `BasicAttackSpell` · `AttackInterval` · `ServerIntervalTolerance` · `ComboWindow` · `ComboLength` · `HeavyDamageMultiplier` · `HeavyKnockbackSpeed` · `HeavyKnockbackUpSpeed` · `HeavyPhysicsSpeed` · `HeavyBoltScale` · `FistRange` · `FistRadius` · `FistDamage` · `FistStimulusIntensity`.
 - 테스트: `Grimoire.Input.SlotMath` · `.Labels` · `.SpecTags`(주먹질 한 번 지급 · 기본 공격 스킬북으로 배움 · 마법서 · ASC 로 세트를 바꾸며 태그가 옮겨 붙음), `Grimoire.Magic.BasicAttack.Rhythm` · `.Combo` · `.Definition`(에셋 값).
@@ -233,7 +234,39 @@ S,마스터,1500,0.75,0.80,1.0
 - 컴포넌트: `Root`(Scene, 변환 없음 — 소켓에 그대로 붙는다) → `Grip`(손 안에서 쥐는 자세, +X = 완드 끝) → `Mesh`(회전 · 비균일 스케일은 여기만) · `Muzzle`(Grip 아래 +X 27.5cm). 루트나 Muzzle 의 부모에 스케일을 걸지 않는다 — 자식이 찌그러진다.
 - `Grip` 기본값은 마네킹 `hand_r` 축을 재서 정했다: 손가락 −X, 손바닥 +Y, 엄지 쪽 +Z → 위치 (−9, 3.5, 0), 회전 Pitch 90(완드가 주먹에서 엄지 쪽으로 나옴). 캐릭터 뼈대 · 완드 모양이 바뀌면 블루프린트 자식에서 `Grip` 변환을 고친다. 콘솔 `Grim.Magic.DumpWands [지연초]` 가 부착 부모 · 손에서 떨어진 거리 · 손 공간 축을 찍는다.
 - 보정은 클래스 기본값: `ElementPower`(`TMap<Element, 배율>`, 없으면 1) · `ManaEfficiency`(0~1) · `CastSpeed`(쿨다운을 나눔). 완드 종류는 블루프린트 자식으로 만든다.
-- 계획(미구현): `UGrimWandDefinition`(아이템 정의의 하위) · 등급 · 내구도, 장착 시 `GE_WandBonus` 로 어트리뷰트에 싣기. (아이템 인스턴스에는 `Durability` 칸이 이미 있다 — `Source/Grimoire/Items/GrimItemTypes.h`.)
+- **쥔 완드 = 장비 완드 칸(Q71 답 2026-11-07)**: 「보이지 않는 기본 완드로 시전」은 없앴다. 완드 칸(`UGrimEquipmentComponent`, [건축 · 장비 — 내구도](./building#내구도-·-수리-·-인챈트-r18-·-r19))이 비면 `Status.WandMissing`, 부러지면 `Status.WandBroken`(복제 루스 태그) — `UGrimSpellAbility::GetWand` 가 둘 다 「완드 없음」으로 보고, 기본 공격 입력은 주먹질이 된다. 마법서가 붙인 완드 액터는 그대로 두고, 두 태그가 바뀔 때마다 서버가 손에서 숨긴다/보인다(`RefreshWandVisibility`, `bHidden` 복제, 로그 `[Server] … 손의 완드 숨김(주먹질)` · `보임`).
+  - **기본 완드 `Wand_Basic`**: 실제 아이템(`Items.csv` 「기본 완드」, `Equipment.csv` 완드 칸 · 내구도 200 · 시전마다 1 · 수리 재료 나무 — 다른 장비와 같은 M4 규칙: 수리마다 최대 −10%, 하한 50%, 부러지면 칸에 남고 「수리」로 되살림). 처음 들어온 플레이어는 이것을 입고 시작한다(`UGrimBaseSettings::StartingEquipment` — 튜토리얼 첫 단계 전부터 쥐고 있어 흐름이 그대로다). 마법탑 스승 마렌이 **늘** 판다(`Buy:Wand_Basic`, 10 솔 — `GrimShopSettings` `Prices`).
+  - 완드 액터 하나가 모든 완드 아이템의 모양 · 보정을 맡는다 — 아이템마다 다른 액터 · 보정(참나무 완드 등)은 아직 없다.
+- 계획(미구현): `UGrimWandDefinition`(아이템 정의의 하위) · 등급, 장착 시 `GE_WandBonus` 로 어트리뷰트에 싣기, 완드 아이템 → 완드 액터 클래스.
+
+## 마법 실패 알림 (Q64)
+
+> 사용자 결정(2026-11-07, Q64 답): 마법이 걸리지 않으면 **왜 안 되는지** 플레이어에게 알린다. 호그와트 레거시처럼 마법 실패 연출을 넣을 자리를 둔다.
+
+구현: `Source/Grimoire/Magic/GrimCastFailure.h` 의 `GrimCastFailure`(분류 · 판정 · 알림) · `UGrimCastFailureSettings` · 큐 처리기 `UGrimCueNotify_Fizzle`, 고리는 `UGrimAbilitySystemComponent`(`Source/Grimoire/Core/GrimAbilitySystemComponent.h`), 글은 `UGrimHUDWidget` 위쪽 알림 한 줄(색 `UGrimUISettings::CastFailColor`).
+
+- **까닭 `EGrimCastFailReason`** — 순수 분류 `GrimCastFailure::Classify(FGrimCastFailInputs)`, 이 순서로 처음 걸린 것:
+
+| 까닭 | 언제 | HUD 글(값) |
+|---|---|---|
+| (알리지 않음) | 잠 · 기절 · 쓰러짐(`CastBlockingTags`), 기본 공격의 완드 없음(주먹질이 대신 나감), 기본 공격 연타 간격 | — |
+| `NoWand` · `WandBroken` | 완드 칸 빔(Q71) · 부러짐(Q22) | 「완드가 없다 — 주먹만 나간다. 마법탑에서 기본 완드를 살 수 있다」 · 「완드가 부러졌다 — 「수리」로 고치거나 …」 |
+| `CircleTooLow` | 서클 < 정의의 서클 | 「n서클 마법이다 — 아직 다룰 수 없다」 |
+| `Cooldown` | 쿨다운 태그 | 「아직 다시 쓸 수 없다 — n초」(남은 초 올림) |
+| `NotEnoughMana` | `CheckCost` 실패 | 「마나가 모자라다 (필요 n)」 |
+| `RepairLocked` · `BaseRepairLocked` | 수리 해금 전(Q121) — 작업대 「수리」 탭 · 조각 수리 / 거점 핵 「전체 수리」([건축 — 수리](./building#내구도-·-수리-·-인챈트-r18-·-r19)). 마법이 아니라 연출 없이 글만 | 「수리는 「레스티투오」를 배워야 할 수 있다 — 그전엔 마법탑 스승에게 솔을 내고 맡긴다」 · 「거점 전체 수리는 「레스티투오 막시마」를 배워야 열린다」 |
+| `TameNoRoom` · `TameCircleTooLow` · `TameRefused` | 파크툼이 맞았는데 계약이 안 걸림([생물 — 새로 길들일 때](./creatures#새로-길들일-때-ugrimtamingsubsystem-trytame)) | 「데리고 다님 · 보관함 · 생물 상자가 모두 가득 — 계약이 걸리지 않는다」 등 |
+
+- **서버 판정 → 소유 클라이언트 알림**:
+  1. 발동 실패는 GAS 가 그 기기의 `NotifyAbilityFailed` 를 부른다 — `UGrimAbilitySystemComponent` 가 받아 `GrimCastFailure::HandleAbilityFailed`(마법 어빌리티만 — 주먹질 · 선택 어빌리티는 아님).
+  2. **소유 클라이언트**(예측 발동이 자기 쪽에서 막힘): 복제된 값으로 같은 `Judge` 를 돌려 알릴 까닭이 있을 때만(연타 간격 같은 None 은 거름) `Server_ReportCastFailed(Spec 핸들)`(Unreliable, `ClientReportIntervalSeconds` 0.2초에 한 번). 글은 띄우지 않는다.
+  3. **서버**: 그 Spec 이 이 ASC 것인지 보고 `GrimCastFailure::Judge`(서버 값 — 완드 태그 · 서클 · `CheckCooldown` · `CheckCost`)로 까닭을 정한다. 서버 자신이 막은 경우(예측이 서버에서 거절 · 리슨 호스트 · 계약)는 바로 여기.
+  4. `GrimCastFailure::Report`: 같은 까닭은 `NoticeIntervalSeconds`(0.75초) 안에 한 번 → `Client_CastFailed(까닭, 값)`(Reliable, 소유 클라이언트) → `OnCastFailedNotice` → HUD 글. 그리고 `GameplayCue.Magic.Fizzle` 을 Execute(모두 — 다른 플레이어도 피식 꺼지는 것을 본다).
+  - 로그: 서버 `[Server] 마법 실패 <PlayerState> <까닭> 값=n`, 받은 쪽 `[Client|Server] 마법 실패 알림 <까닭>: <글>`, 연출 `[…] 마법 실패 연출 <폰> <까닭> at <곳> 이펙트=0|1 몽타주=0|1`.
+- **실패 연출 자리**(임시): 큐 처리기가 작은 회색 파티클(`FizzleFX` — 엔진 기본 템플릿 `DirectionalBurstLightweight`, 크기 0.35 · 0.5초)을 완드 끝(완드가 없으면 손 앞 · 계약이면 생물 자리)에 띄우고, 몸짓 몽타주 `FizzleMontage`(지금 비어 있음 — 애니메이션 에셋이 생기면 ini 에 넣는다. 슬롯은 몽타주가 정하고 `ABP_GrimPlayer` 에 그 슬롯이 있어야 보인다)를 재생한다. 진짜 「피식」 이펙트는 이펙트 갈래가 `FizzleFX` 만 바꾸면 된다.
+- 가방에서 스킬북을 읽다 서클이 모자라면 가방 알림 `EGrimItemNotice::CircleTooLow`(「<책> — n서클이 되어야 읽을 수 있다」, 서버 `ReadSkillbook` → `Client_Notice`) — 노말 스킬(쿠스토디아 · 레스티투오 막시마)도 같다. 마법 스킬북은 HUD 의 배움 결과 알림도 함께 뜬다(예전 그대로).
+- 설정 `[/Script/Grimoire.GrimCastFailureSettings]`: `NoticeIntervalSeconds` 0.75 · `ClientReportIntervalSeconds` 0.2 · `FizzleMontage`(비움) · `FizzleMontagePlayRate` 1 · `FizzleFX` · `FizzleFXScale` 0.35 · `FizzleColor` 회색 · `FizzleFXSeconds` 0.5 · `bFizzleOnCooldown` True.
+- 테스트 `Grimoire.Magic.CastFailure.Classify`(순서 · 글 · 연출 · ini) · `.BasicWand`(기본 완드 표 · 시작 장비 · 닳기 → 부러짐 · 빈 칸 태그 · 판정 NoWand · 주먹질 · 알림 한 번 · 세이브 v1/v2). 2인 `Scripts/Magic/net_check_castfail.ps1`(호스트 · 클라이언트가 기본 완드로 시작 → 쿨타임 · 마나 부족 · 2서클 스킬북 · 완드 벗기(주먹질) → 다시 입기, `NETCHECK_RESULT fail=0`), 화면 `Scripts/QA/shoot_qa.ps1 -Set Fizzle`.
 
 ## 스킬북 · 배우기
 

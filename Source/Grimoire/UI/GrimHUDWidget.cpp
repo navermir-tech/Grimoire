@@ -5,12 +5,14 @@
 #include "Character/GrimPlayerCharacter.h"
 #include "Magic/GrimBasicAttackAbility.h"
 #include "Magic/GrimBasicAttackTypes.h"
+#include "Magic/GrimCastFailure.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimProficiencySettings.h"
 #include "Magic/GrimSpellSlotInput.h"
 #include "Magic/GrimProgressionComponent.h"
 #include "Magic/GrimSkillbook.h"
 #include "Magic/GrimSpellDefinition.h"
+#include "Core/GrimAbilitySystemComponent.h"
 #include "Core/GrimPlayerState.h"
 #include "AbilitySystemComponent.h"
 #include "Blueprint/WidgetTree.h"
@@ -204,6 +206,11 @@ void UGrimHUDWidget::BindPlayerState(AGrimPlayerState* PlayerState)
 		{
 			Progression->OnCircleUpResult.RemoveDynamic(this, &ThisClass::HandleCircleUpResult);
 		}
+		if (UGrimAbilitySystemComponent* OldASC = Cast<UGrimAbilitySystemComponent>(Old->GetAbilitySystemComponent()))
+		{
+			OldASC->OnCastFailedNotice.Remove(CastFailedHandle);
+		}
+		CastFailedHandle.Reset();
 	}
 	BoundPlayerState = PlayerState;
 	ResolvedASC = nullptr;
@@ -218,6 +225,20 @@ void UGrimHUDWidget::BindPlayerState(AGrimPlayerState* PlayerState)
 		{
 			Progression->OnCircleUpResult.AddUniqueDynamic(this, &ThisClass::HandleCircleUpResult);
 		}
+		if (UGrimAbilitySystemComponent* GrimASC = Cast<UGrimAbilitySystemComponent>(PlayerState->GetAbilitySystemComponent()))
+		{
+			CastFailedHandle = GrimASC->OnCastFailedNotice.AddUObject(this, &ThisClass::HandleCastFailed);
+		}
+	}
+}
+
+void UGrimHUDWidget::HandleCastFailed(uint8 Reason, int32 Param)
+{
+	// 마법 실패(Q64) — 서버가 정한 까닭을 위쪽 알림 한 줄로.
+	const FText Text = GrimCastFailure::GetMessage(static_cast<EGrimCastFailReason>(Reason), Param);
+	if (!Text.IsEmpty())
+	{
+		ShowToast(Text, UGrimUISettings::Get()->CastFailColor);
 	}
 }
 

@@ -30,6 +30,8 @@ enum class EGrimItemNotice : uint8
 	TookBack,
 	/** 장비를 입었다(M4) */
 	Equipped,
+	/** 서클이 모자라 스킬북을 못 읽는다(Q64) — Count = 필요한 서클 */
+	CircleTooLow,
 };
 
 UENUM(BlueprintType)

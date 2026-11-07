@@ -1,6 +1,4 @@
 #include "Base/GrimRepairProjectile.h"
-#include "Base/GrimBaseCore.h"
-#include "Base/GrimBaseStations.h"
 #include "Base/GrimBuilderComponent.h"
 #include "Base/GrimStructureComponent.h"
 #include "Magic/GrimSpellAbility.h"
@@ -10,7 +8,8 @@
 
 void AGrimRepairProjectile::HandleHit(AActor* HitActor, const FHitResult& Hit, bool bHasHitResult)
 {
-	const bool bRepairable = HitActor && (UGrimStructureComponent::FindOn(HitActor) || Cast<AGrimWorkbench>(HitActor) || Cast<AGrimBaseCore>(HitActor));
+	// 레스티투오(Q123): 맞은 조각 · 시설 하나만 — 작업대 · 거점 핵도 자기 몸만(장비 · 전체 수리는 탭 기능, Q121).
+	const bool bRepairable = HitActor && UGrimStructureComponent::FindOn(HitActor);
 	if (!bRepairable || !HasAuthority() || IsFake() || IsActorBeingDestroyed() || !Definition)
 	{
 		Super::HandleHit(HitActor, Hit, bHasHitResult);

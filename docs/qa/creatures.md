@@ -26,13 +26,17 @@
 
 | ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
 |---|---|---|---|---|---|---|
-| QA-CRE-020 | R38 | 서클별 데리고 다니는 수 · 보관함 칸(1~2서클 3 · 8, 3서클 4 · 12, 5서클 5 · 16) | ① `Grimoire.Creatures.Storage.Limits` | 통과 | ✅ 11-06 | 자동화 |
-| QA-CRE-021 | R38 | 가득 차면 보관함 → 거점 상자 순, 둘 다 안 되면 계약이 안 걸림 · 옮기기 규칙 | ① `Grimoire.Creatures.Storage.Rules` · `.Actor` | 통과 | ✅ 11-06 | 자동화 |
-| QA-CRE-022 | R38 | 마탑 마렌 「스킬북: 쿠스토디아 사기 (120 솔)」 | ① `Grimoire.Creatures.Storage.Shop` | 통과 | ✅ 11-06 | 자동화 |
+| QA-CRE-020 | R38 · Q42 | 서클별 데리고 다니는 수(1~2서클 3 · 3서클 4 · 5서클 5) · 보관함 칸(안 배움 10, 쿠스토디아 10 + 8 · 12 · 16, 노드 +4는 배웠을 때만) | ① `Grimoire.Creatures.Storage.Limits` | 통과 | ✅ 11-07 | 자동화 171/171 |
+| QA-CRE-021 | R38 · Q64 | 가득 차면 보관함 → 거점 상자 순, 둘 다 안 되면 계약이 안 걸림 · 옮기기 규칙 | ① `Grimoire.Creatures.Storage.Rules` · `.Actor` | 통과 | ✅ 11-07 | 자동화 171/171 |
+| QA-CRE-022 | R38 · Q71 | 마탑 마렌 「스킬북: 쿠스토디아 사기 (120 솔)」 · 「기본 완드 사기 (10 솔)」 늘 판다(두 번 사도 됨) | ① `Grimoire.Creatures.Storage.Shop` · `Grimoire.Quest.Table`(마렌 서비스 아홉 · `Buy:Wand_Basic`) | 통과 | ✅ 11-07 | 자동화 171/171 |
 | QA-CRE-023 | R38 | 저장: 보관함 · 풀어놓은 생물 직렬화 | ① `Grimoire.Creatures.Storage.Serialize` · `.ReleasedSave` | 통과 | ✅ 11-06 | 자동화 |
 | QA-CRE-024 | R38 · R13 | 2인: 각자 길들이기 → 스킬북(가방)으로 보관함 배움 → 넣기 → 꺼내기 → 상자로 → 풀어놓기 → 다시 데리고 다니기 | ④ `Scripts\Creatures\net_check_storage.ps1` | 클라이언트 · 서버가 본 클라이언트 · 호스트 덤프가 단계마다 맞음, `NETCHECK_RESULT fail=0` | ✅ 11-06 | `storage.txt` — `party=0/3 stored=1/8` → `party=1/3` → `box=yes boxEntries=1` → `released=1` → `party=1/3`, 15개 덤프 「맞음」 |
 | QA-CRE-025 | R38 | 화면: 거점 생물 상자 관리 화면 | ③ 장면 `qa-creature-box`(`Grim.Taming.StorageLearn 1` · `SpawnBox 250` · `Box Open`) | 데리고 다님 · 보관함 · 상자 칸이 보인다 | ✅ 11-06 — 「거점 생물 상자 ([F] · [Esc] 닫기)」, `데리고 다님 0/3 · 보관함 0/8 · 상자 0/60(풀어놓음 0/10)`, 세 칸. 열린 동안에도 아래 `[F] 거점 생물 상자 열기` 안내가 남는다(사소) | `qa-creature-box.jpg` |
 | QA-CRE-026 | R38 | 화면: 가방(L) 안 보관함 탭(호그와트 레거시처럼 인벤토리에서 바로) | ③ 사람 눈 | — | ⏸ 가방을 여는 콘솔 명령이 없어 장면을 못 만듦 | — |
+| QA-CRE-027 | Q42 | 쿠스토디아 없이 처음부터 보관함 10마리(인벤토리처럼 넣고 꺼냄) → 11번째 거절 `StorageFullUnlearned` → 상자 없으면 계약 거절 · 상자 있으면 상자로(Q64 순서) → 배우면 18칸 | ① `Grimoire.Creatures.Storage.BaseCapacity` | 통과 | ✅ 11-07 | 자동화 171/171 |
+| QA-CRE-028 | Q42 · R13 | 2인: 보관함 흐름이 새 칸 수로 그대로(배운 뒤 18칸) | ④ `Scripts\Creatures\net_check_storage.ps1` | `stored=1/18` 등 다섯 덤프 맞음, `NETCHECK_RESULT fail=0` | ✅ 11-07 — 2회차(1회차는 호스트 파크툼이 소품 `StaticMeshActor_1` 에 맞아 빗나감 — [BUG-007](./bugs) 계열, 클라이언트 쪽은 1회차도 다섯 덤프 맞음) | `Saved/storage_result2.txt` — 덤프 1~5 같음(`stored=1/18` → `party=1/3` → `boxEntries=1` → `released=1` → `party=1/3`), 클라이언트 · 호스트 덤프 10개 「맞음」, `NETCHECK_RESULT fail=0` |
+| QA-CRE-029 | Q42 · M4 | 지은 생물 상자를 쿠스토디아 없이 헐어도 생물이 기본 보관함(10칸)으로 — 사라지지 않음 | ② `Scripts\Base\qa_creature_box.ps1`(C6) | `learned=0 … stored=1/10 box=no`, 「옮길 곳이 없다」 0줄, `QA_RESULT fail=0` | ✅ 11-07 | `Saved/QA/creature_box_2.log` — `learned=0 party=0/3 stored=0/10 box=yes boxEntries=1` → `learned=0 party=0/3 stored=1/10 box=no`, 경고 0줄, C5~C9 PASS |
+| QA-CRE-030 | Q64 | 계약이 안 걸리면 까닭 알림(갈 곳 없음 · 서클 · 받지 않음) + 생물 자리 피식 연출 | ① `Grimoire.Magic.CastFailure.Classify`(글) · `Grimoire.Creatures.Storage.BaseCapacity`(거절 판정) — 알림 · 연출 전달 길은 [QA-MAG-043](./magic) 과 같은 `GrimCastFailure::Report` | 통과 | ⏸ 11-07 — 판정 · 글 · 전달 길은 ①④ 로 확인, 「파티 · 보관함 · 상자가 모두 가득한 채 파크툼」을 2인으로 만드는 시나리오는 아직 없다(생물 13마리 길들이기) | 자동화 |
 
 ## 그림
 

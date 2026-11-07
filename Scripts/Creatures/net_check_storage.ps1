@@ -6,7 +6,7 @@
 #   powershell -File Scripts\Creatures\net_check_storage.ps1        # 결과: Saved\NetCheckStorage\server.log · client.log 의 요약 + 덤프 비교, NETCHECK_RESULT fail=0
 #
 # 시간표(초)는 두 플레이어가 모인 때(Grim.Taming.AfterJoin 2 …)부터 센다 — 기계가 바빠 클라이언트가 늦게 붙어도 서버 · 클라이언트가 같은 차례로 움직인다:
-#   2 파크툼 배우기(1서클 — 데리고 다님 3 · 보관함 8) · 4 클라이언트 앞 재칼로프 · 5 클라이언트를 그 4m 앞으로(사이에 호스트가 서 있지 않게) → 6.5 클라이언트 파크툼 · 9 호스트 앞 재칼로프 → 11 호스트 파크툼 →
+#   2 파크툼 배우기(1서클 — 데리고 다님 3 · 보관함 10, 쿠스토디아를 배우면 18) · 4 클라이언트 앞 재칼로프 · 5 클라이언트를 그 4m 앞으로(사이에 호스트가 서 있지 않게) → 6.5 클라이언트 파크툼 · 9 호스트 앞 재칼로프 → 11 호스트 파크툼 →
 #   15 스킬북 받기 → 17 읽기(배움) → 20 넣기(데리고 다님 → 보관함) → 23 덤프① → 25 꺼내기 → 28 덤프② → 30 상자 두 개(각자 앞 2.5m) →
 #   32 데리고 다님 → 상자 · 33 상자 화면 열기 → 35 덤프③ → 37 풀어놓기 → 40 덤프④ → 42 풀어놓은 것 → 데리고 다님 → 45 덤프⑤.
 param(
@@ -142,11 +142,11 @@ if ($RemoteBlocks.Count -ne 5 -or $ClientBlocks.Count -ne 5) { $Fail++; "덤프 
 
 # 단계마다 있어야 할 목록(클라이언트 · 호스트 같은 흐름): ① 보관함 1 ② 데리고 다님 1 ③ 상자 ④ 풀어놓음 ⑤ 다시 데리고 다님
 $Expect = @(
-	@{ Head = "storage learned=1 party=0/3 stored=1/8"; Row = "storagerow place=Storage" },
-	@{ Head = "storage learned=1 party=1/3 stored=0/8"; Row = "storagerow place=Party" },
-	@{ Head = "storage learned=1 party=0/3 stored=0/8 box=yes boxEntries=1 released=0"; Row = "storagerow place=Box" },
-	@{ Head = "storage learned=1 party=0/3 stored=0/8 box=yes boxEntries=1 released=1"; Row = "storagerow place=Released" },
-	@{ Head = "storage learned=1 party=1/3 stored=0/8 box=yes boxEntries=0 released=0"; Row = "storagerow place=Party" }
+	@{ Head = "storage learned=1 party=0/3 stored=1/18"; Row = "storagerow place=Storage" },
+	@{ Head = "storage learned=1 party=1/3 stored=0/18"; Row = "storagerow place=Party" },
+	@{ Head = "storage learned=1 party=0/3 stored=0/18 box=yes boxEntries=1 released=0"; Row = "storagerow place=Box" },
+	@{ Head = "storage learned=1 party=0/3 stored=0/18 box=yes boxEntries=1 released=1"; Row = "storagerow place=Released" },
+	@{ Head = "storage learned=1 party=1/3 stored=0/18 box=yes boxEntries=0 released=0"; Row = "storagerow place=Party" }
 )
 foreach ($Pair in @(@{ Name = "클라이언트"; Blocks = $ClientBlocks }, @{ Name = "호스트"; Blocks = $HostBlocks })) {
 	for ($i = 0; $i -lt $Expect.Count; $i++) {
@@ -173,7 +173,7 @@ foreach ($Want in @(@{ T = "길들임 Jackalope"; N = 2 }, @{ T = "생물 보관
 	if ($Count -lt $Want.N) { $Fail++; "서버 로그: 「$($Want.T)」 $Count 번(기대 $($Want.N))" }
 }
 $ClientText = Get-Content -Encoding UTF8 -Raw $ClientLog
-foreach ($Want in @("Taming.Storage Party → Storage", "Taming.Storage Box → Released", "거점 생물 상자 화면 열기", "알림: 쿠스토디아(생물 보관함)를 배웠다")) {
+foreach ($Want in @("Taming.Storage Party → Storage", "Taming.Storage Box → Released", "거점 생물 상자 화면 열기", "알림: 쿠스토디아를 배웠다")) {
 	if ($ClientText -notmatch [regex]::Escape($Want)) { $Fail++; "클라이언트 로그에 없음: $Want" }
 }
 "NETCHECK_RESULT fail=$Fail"

@@ -30,6 +30,8 @@
 | 11-06 | 생물 보관함 (R38) | 데리고 다니기 · 쿠스토디아 · 거점 생물 상자 | `68650ec` |
 | 11-06 | 커스터마이징 · 성능 · 이펙트 | 외형 조립, 성능 예산 · 첫 최적화, 이펙트 자체 제작 · 볼트 | `7800e3d` `9b815cf` `1f51324` `a6da3f7` |
 | 11-07 | 이펙트 다시 (Q85 · Q86) | 볼트 발사 빛줄기, 물줄기 · 미풍을 볼트 빛 언어로, 사양 파일 조립 · `EFT_Grim_Spell` | 브랜치 `claude/fx-rework-1a2d5c` |
+| 11-07 | 사용자 답 Q42 · Q64 · Q71 (코드) | 보관함 처음부터 10칸, 기본 완드 실제 아이템 · 빈 칸 = 주먹질, 마법 실패 알림 · 피식 연출 자리 | (메인이 합침) |
+| 11-07 | 수리 해금 Q121 (코드) | 레스티투오(2서클) = 작업대 「수리」 탭 · 조각 하나, 막시마 = 거점 전체 수리, 마법탑 대리 수리(솔) | (메인이 합침) |
 
 ## M0 · 셋업 (2026-11-04 ~ 05)
 
@@ -141,3 +143,19 @@
 ## 문서 맞추기 (2026-11-06)
 
 - 빠른 합치기로 어긋난 시스템 · 스펙 문서를 코드에 맞추고, 구현된 절마다 「구현: `Source/...` 의 `UGrim...`」 로 코드 위치를 적었다. 앞으로는 [문서 갱신 체크리스트](./docs-checklist)와 검사 스크립트 `npm run docs:check` 로 지킨다.
+
+## 사용자 답 Q42 · Q64 · Q71 → 코드 (2026-11-07)
+
+- **Q42 생물 보관함**: 쿠스토디아 없이 처음부터 10칸(`StorageBaseCapacity`), 배우면 기존 설계 수치(8 · 12 · 16 + 노드 4)만큼 더한다 — 순수 계산 `GrimCreatureStorageMath::ComputeStorageCapacity`. 「안 배움」 거절(`NotLearned`)은 없애고 기본 칸이 차면 `StorageFullUnlearned`(「배우면 늘어난다」). 꽉 찼을 때 순서는 Q64 그대로(보관함 → 거점 상자 → 거절) — [생물 시스템](../systems/creatures#데리고-다니기-·-보관함-·-거점-상자-r38).
+- **Q71 완드**: 「보이지 않는 기본 완드」를 없애고 장비 완드 칸이 정한다. 빈 칸 = 복제 루스 태그 `Status.WandMissing`(부러짐과 같은 길) → 마법 불가 · 기본 공격 입력은 주먹질, 손의 완드 액터는 서버가 숨긴다. 「기본 완드」 `Wand_Basic` 는 실제 장비(내구도 200, 기존 M4 수리 규칙), 처음 입고 시작(`StartingEquipment`), 마렌이 10 솔에 늘 판다. 옛 세이브(`Base.Equipment` v1)는 빈 칸에 기본 완드를 넣어 준다(v2) — [마법 — 완드](../systems/magic#완드-agrimwand).
+- **Q64 실패 알림**: `GrimCastFailure` — GAS `NotifyAbilityFailed` → 소유 클라이언트는 복제 값으로 걸러 서버에 묻고(`Server_ReportCastFailed`), **서버가 판정**해 `Client_CastFailed` 로 소유 클라이언트 HUD 에 한 줄, `GameplayCue.Magic.Fizzle` 은 모두에게. 계약(파크툼) 실패 · 2서클 스킬북도 같은 길. 연출은 임시(엔진 기본 파티클 작게 + 비어 있는 몽타주 자리) — [마법 실패 알림](../systems/magic#마법-실패-알림-q64).
+- **함정**: 예측 발동이 클라이언트에서 막히면 서버는 아무것도 모른다 — 「서버 판정」을 지키려고 클라이언트가 Spec 핸들만 보내 서버가 다시 판정하게 했다(연타 간격 같은 「알릴 것 없음」은 클라이언트가 미리 걸러 RPC 를 아낀다). C++ `UGameplayCueNotify_Static` 은 블루프린트 자식 에셋이 있어야 큐 관리자가 찾는다(`Scripts/Magic/make_fizzle_cue.py`).
+- **확인**: 자동화 171/171, 2인 `Scripts/Magic/net_check_castfail.ps1` · `Scripts/Creatures/net_check_storage.ps1` fail=0, `Scripts/Base/qa_creature_box.ps1` PASS, 화면 `shoot_qa.ps1 -Set Fizzle`. 보류: 실패 몸짓(애니메이션 에셋 없음), 「모두 가득한 채 파크툼」 2인 시나리오.
+
+## 수리 해금 Q121 → 코드 (2026-11-07)
+
+- **무엇을**: 1서클 「수리」 볼트 하나가 장비 · 조각 · 거점을 다 고치던 것(Q70)을 나눴다. 레스티투오(같은 에셋 `DA_Spell_Repair` 를 2서클로)를 배우면 작업대 옆 「수리」 탭(`UGrimRepairTab`)이 열리고 볼트는 조각 · 시설 하나만 고친다(Q123 제안). 노말 스킬 레스티투오 막시마(`Skill:RestituoMaxima`, 4서클)는 거점 핵 「전체 수리」를 연다. 배우기 전엔 마법탑 스승의 대리 수리(재료 몫 × 5 솔) — [건축 — 수리](../systems/building#내구도-·-수리-·-인챈트-r18-·-r19).
+- **어떻게**: 잠김은 Q64 실패 알림 길(`GrimCastFailure::Report` — `RepairLocked` · `BaseRepairLocked`, 연출 없음)로 서버가 판정해 소유 클라이언트에 알린다. 노말 스킬은 그 기능의 컴포넌트가 든다(막시마 = `UGrimBuilderComponent::LearnedSkills`, 세이브 `Base.Skills` v1). 장비 수리는 `UGrimEquipmentComponent::RepairWith`(재료 공급 함수) 하나로 작업대 · 대리 수리가 같은 규칙(수리 횟수 · 최대치 −10%)을 쓴다.
+- **확인**: 자동화 173/173(새 `Grimoire.Base.Repair.Unlock` · `.NpcService`), 2인 `Scripts/Base/net_check_repair.ps1` fail=0.
+- **함정**: 콘솔 `Grim.Base.Repair <작업대>` 는 볼트가 아니라 「수리」 탭이라 작업대 몸이 아니라 장비를 고친다 — 조각 하나 확인은 저장고 같은 다른 시설로.
+

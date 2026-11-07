@@ -23,9 +23,10 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FGrimOnEquipmentChanged, UGrimEquipmentCompo
  *  - 내구도: 인스턴스의 Durability(음수 = 가득) · RepairCount. 최대 = 표의 MaxDurability × (1 − 0.1 × 수리 횟수, 하한 50%).
  *    닳기(서버만): 완드 = 마법 시전 확정(ASC AbilityCommitted), 방어구 = 체력이 깎일 때(생존 틱 제외) 피해 비례, 장신구 = 착용 시간.
  *    0 → 완드는 「부러진 완드」(Q22 — Status.WandBroken: 마법 불가 · 주먹만, 수리로 되살림), 방어구 · 장신구는 사라지고 수리 재료를 조금 돌려준다.
+ *  - 완드 칸이 비면(Q71) Status.WandMissing — 부러짐과 같이 마법 불가 · 주먹만. 처음 들어오면 StartingEquipment(기본 완드)를 입힌다.
  *  - 체온 보정: 장비의 ColdResist · HeatResist 합을 무한 GE(SetByCaller) 하나로 건다.
  *  - 수리: RepairAll — 「수리」 마법을 작업대에 걸 때(가방의 재료로).
- *  - 세이브: Player 「Base.Equipment」 v1(칸 수 + FGrimItemInstance).
+ *  - 세이브: Player 「Base.Equipment」 v2(칸 수 + FGrimItemInstance — v1 과 형식이 같고, v1 을 읽으면 빈 칸에 시작 장비를 넣는다).
  */
 UCLASS(ClassGroup = (Grimoire), meta = (BlueprintSpawnableComponent))
 class GRIMOIRE_API UGrimEquipmentComponent : public UActorComponent, public IGrimSaveParticipant
@@ -48,6 +49,9 @@ public:
 
 	bool IsWandBroken() const;
 
+	/** 완드 칸이 비었다(Q71 — 주먹질) */
+	bool IsWandMissing() const;
+
 	// ───── 서버 ─────
 
 	/** 가방 칸의 장비를 입는다(그 칸에 있던 것은 가방으로) */
@@ -59,8 +63,17 @@ public:
 	/** 그 칸을 닳게 한다 */
 	void Wear(EGrimEquipSlot Slot, float Amount);
 
-	/** 닳은 장비를 모두 가방의 재료로 고친다. 쓴 재료 수. */
+	/** 닳은 장비를 모두 가방의 재료로 고친다(작업대 「수리」 탭 — 레스티투오, Q121). 쓴 재료 수. */
 	int32 RepairAll(UGrimInventoryComponent* Bag);
+
+	/** 닳은 장비를 다 고치는 데 드는 재료 몫(대리 수리 값 셈 — 재료 종류와 상관없이 개수 합) */
+	int32 GetRepairUnitsNeeded() const;
+
+	/** 닳은 장비를 재료 없이 다 고친다(대리 수리 — 솔은 부른 쪽이 받는다). 고친 재료 몫. 수리 횟수 · 최대치 감소는 같다 */
+	int32 RepairAllWithoutMaterials();
+
+	/** 빈 칸에 시작 장비(UGrimBaseSettings::StartingEquipment)를 넣는다. 넣은 수 */
+	int32 GiveStartingEquipment();
 
 	/** 칸에 바로 넣는다(콘솔 · 테스트 · 세이브) */
 	void SetSlotItem(EGrimEquipSlot Slot, const FGrimItemInstance& Item);
@@ -74,6 +87,7 @@ public:
 
 	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
 	virtual FName GetSaveId() const override { return TEXT("Base.Equipment"); }
+	virtual int32 GetSaveVersion() const override { return 2; }
 	virtual void WriteSaveData(FArchive& Ar) override;
 	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
@@ -94,6 +108,8 @@ private:
 	void CommitChange();
 	void RefreshEffects();
 	void BreakSlot(EGrimEquipSlot Slot);
+	/** 수리 공통: Provide(재료 ID, 필요 수) → 실제로 쓴 수 */
+	int32 RepairWith(TFunctionRef<int32(FName RepairItem, int32 Needed)> Provide);
 
 	UPROPERTY(ReplicatedUsing = OnRep_Slots)
 	TArray<FGrimItemInstance> Slots;

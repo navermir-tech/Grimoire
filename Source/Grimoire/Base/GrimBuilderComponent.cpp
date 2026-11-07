@@ -1,4 +1,4 @@
-#include "Base/GrimBuilderComponent.h"
+﻿#include "Base/GrimBuilderComponent.h"
 #include "Base/GrimBaseCore.h"
 #include "Base/GrimBaseInteractable.h"
 #include "Base/GrimBaseSettings.h"
@@ -17,6 +17,7 @@
 #include "Items/GrimInventoryWidget.h"
 #include "Items/GrimItemSettings.h"
 #include "Items/GrimItemStatics.h"
+#include "Magic/GrimCastFailure.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimSpellbookComponent.h"
@@ -31,6 +32,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
+#include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 
 #define LOCTEXT_NAMESPACE "GrimBuilder"
@@ -84,6 +86,12 @@ UGrimBuilderComponent::UGrimBuilderComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetIsReplicatedByDefault(true);
+}
+
+void UGrimBuilderComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME_CONDITION(UGrimBuilderComponent, LearnedSkills, COND_OwnerOnly);
 }
 
 UGrimBuilderComponent* UGrimBuilderComponent::FindForActor(const AActor* Actor)
@@ -691,6 +699,10 @@ bool UGrimBuilderComponent::SpendMana(float Amount)
 
 void UGrimBuilderComponent::SendNotice(EGrimBaseNotice Notice, FName Item, int32 CountOrResult)
 {
+	if (HasAuthority())
+	{
+		UE_LOG(LogGrimBase, Log, TEXT("[Server] %s 거점 알림 %s %s %d"), *GetNameSafe(GetOwner()), *StaticEnum<EGrimBaseNotice>()->GetNameStringByValue(static_cast<int64>(Notice)), *Item.ToString(), CountOrResult);
+	}
 	if (GetLocalOwningController())
 	{
 		OnNotice.Broadcast(this, Notice, Item, CountOrResult); // 리슨 호스트 자신
@@ -973,17 +985,49 @@ bool UGrimBuilderComponent::KnowsRepairSpell() const
 	return false;
 }
 
+bool UGrimBuilderComponent::KnowsBaseRepairSkill() const
+{
+	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
+	return !Settings->bRequireRepairSpell || LearnedSkills.Contains(Settings->BaseRepairSkillId);
+}
+
+EGrimLearnResult UGrimBuilderComponent::LearnNormalSkill(FName SkillId)
+{
+	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
+	if (!HasAuthority() || SkillId.IsNone() || SkillId != Settings->BaseRepairSkillId)
+	{
+		return EGrimLearnResult::Invalid;
+	}
+	if (LearnedSkills.Contains(SkillId))
+	{
+		return EGrimLearnResult::AlreadyKnown;
+	}
+	const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
+	const UAbilitySystemComponent* ASC = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+	const int32 Circle = ASC ? FMath::Max(1, FMath::RoundToInt(ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute()))) : 1;
+	if (Circle < Settings->BaseRepairRequiredCircle)
+	{
+		return EGrimLearnResult::CircleTooLow;
+	}
+	LearnedSkills.Add(SkillId);
+	UE_LOG(LogGrimBase, Display, TEXT("[Server] %s 노말 스킬 %s 배움 — 거점 핵 「전체 수리」 열림"), *GetNameSafe(GetOwner()), *SkillId.ToString());
+	return EGrimLearnResult::Learned;
+}
+
+void UGrimBuilderComponent::ReportRepairLocked(bool bBaseRepair) const
+{
+	const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
+	UE_LOG(LogGrimBase, Display, TEXT("[Server] %s 수리 잠김: %s"), *GetNameSafe(GetOwner()), bBaseRepair ? TEXT("레스티투오 막시마 필요") : TEXT("레스티투오 필요"));
+	GrimCastFailure::Report(PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr,
+		bBaseRepair ? EGrimCastFailReason::BaseRepairLocked : EGrimCastFailReason::RepairLocked, 0);
+}
+
 int32 UGrimBuilderComponent::PerformRepair(AActor* Target, bool bFromSpell, bool bCheckReach)
 {
 	using namespace GrimBuilderLocal;
 	UGrimInventoryComponent* Bag = GetBag();
 	if (!HasAuthority() || !Target || !Bag)
 	{
-		return 0;
-	}
-	if (!KnowsRepairSpell())
-	{
-		SendNotice(EGrimBaseNotice::NeedRepairSpell);
 		return 0;
 	}
 	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
@@ -994,9 +1038,14 @@ int32 UGrimBuilderComponent::PerformRepair(AActor* Target, bool bFromSpell, bool
 	const UGrimSpellDefinition* Spell = Settings->RepairSpell.LoadSynchronous();
 	const float SpellMana = bFromSpell ? 0.f : (Spell ? Spell->ManaCost : 15.f);
 
-	// 작업대 = 내 장비
-	if (Cast<AGrimWorkbench>(Target))
+	// 작업대 「수리」 탭 = 내 장비(레스티투오를 배워야 열림 — Q121). 볼트가 작업대에 맞으면 작업대 몸만 고친다(아래).
+	if (!bFromSpell && Cast<AGrimWorkbench>(Target))
 	{
+		if (!KnowsRepairSpell())
+		{
+			ReportRepairLocked(false);
+			return 0;
+		}
 		UGrimEquipmentComponent* Equipment = UGrimEquipmentComponent::FindForActor(GetOwner());
 		if (!Equipment)
 		{
@@ -1012,9 +1061,15 @@ int32 UGrimBuilderComponent::PerformRepair(AActor* Target, bool bFromSpell, bool
 		return Used;
 	}
 
-	// 거점 핵 = 거점의 닳은 것을 저장고의 재료로(마나 많이 듦)
-	if (AGrimBaseCore* Core = Cast<AGrimBaseCore>(Target))
+	// 거점 핵 「전체 수리」 = 거점의 닳은 것을 저장고의 재료로(레스티투오 막시마를 배워야 열림 — Q121, 마나 많이 듦)
+	AGrimBaseCore* Core = Cast<AGrimBaseCore>(Target);
+	if (!bFromSpell && Core)
 	{
+		if (!KnowsBaseRepairSkill())
+		{
+			ReportRepairLocked(true);
+			return 0;
+		}
 		UGrimBaseSubsystem* Subsystem = UGrimBaseSubsystem::Get(this);
 		TArray<UGrimItemContainerComponent*> Storages;
 		for (TActorIterator<AGrimStorageChest> It(GetWorld()); It; ++It)
@@ -1037,7 +1092,7 @@ int32 UGrimBuilderComponent::PerformRepair(AActor* Target, bool bFromSpell, bool
 			SendNotice(EGrimBaseNotice::NothingToRepair);
 			return 0;
 		}
-		if (!SpendMana(SpellMana + Settings->BaseRepairManaCost))
+		if (!SpendMana(Settings->BaseRepairManaCost))
 		{
 			SendNotice(EGrimBaseNotice::NoMana);
 			return 0;
@@ -1061,6 +1116,13 @@ int32 UGrimBuilderComponent::PerformRepair(AActor* Target, bool bFromSpell, bool
 		UE_LOG(LogGrimBase, Log, TEXT("[Server] %s 거점 수리: 닳은 것 %d, 저장고 재료 %d"), *GetNameSafe(GetOwner()), Damaged.Num(), Used);
 		SendNotice(Used > 0 ? EGrimBaseNotice::BaseRepaired : EGrimBaseNotice::NoRepairMaterials, NAME_None, Used);
 		return Used;
+	}
+
+	// 조각 · 시설 하나씩 = 레스티투오(Q123 제안 — 배우지 않았으면 개별 수리 없음)
+	if (!KnowsRepairSpell())
+	{
+		ReportRepairLocked(false);
+		return 0;
 	}
 
 	// 조각 · 시설 = 가방의 재료로 그것을
@@ -1314,8 +1376,27 @@ void UGrimBuilderComponent::ServerDebugCommand_Implementation(const FString& Com
 		const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
 		UGrimSpellDefinition* Spell = UGrimBaseSettings::Get()->RepairSpell.LoadSynchronous();
 		UGrimSpellbookComponent* Spellbook = PlayerState ? PlayerState->GetSpellbook() : nullptr;
+		// 시험용: 레스티투오는 2서클(Q121) — 서클이 모자라면 먼저 올린다.
+		if (UAbilitySystemComponent* ASC = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr; ASC && Spell
+			&& ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute()) < Spell->Circle)
+		{
+			ASC->SetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute(), static_cast<float>(Spell->Circle));
+		}
 		const bool bLearned = Spell && Spellbook && Spellbook->LearnSpell(Spell);
 		UE_LOG(LogGrimBase, Display, TEXT("[Server] 「수리」 배우기: %s(%s)"), bLearned ? TEXT("배움") : TEXT("못 배움 · 이미 앎"), *GetNameSafe(Spell));
+	}
+	else if (Command == TEXT("LearnBaseRepair"))
+	{
+		// 시험용: 레스티투오 막시마(노말 스킬) — 서클이 모자라면 먼저 올린다.
+		const AGrimPlayerState* PlayerState = Cast<AGrimPlayerState>(GetOwner());
+		const int32 Required = UGrimBaseSettings::Get()->BaseRepairRequiredCircle;
+		if (UAbilitySystemComponent* ASC = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+			ASC && ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute()) < Required)
+		{
+			ASC->SetNumericAttributeBase(UGrimMagicAttributeSet::GetCircleAttribute(), static_cast<float>(Required));
+		}
+		const EGrimLearnResult Result = LearnNormalSkill(UGrimBaseSettings::Get()->BaseRepairSkillId);
+		UE_LOG(LogGrimBase, Display, TEXT("[Server] 레스티투오 막시마 배우기: %s"), *StaticEnum<EGrimLearnResult>()->GetNameStringByValue(static_cast<int64>(Result)));
 	}
 	else if (Command == TEXT("Store") || Command == TEXT("Take"))
 	{
@@ -1383,3 +1464,37 @@ void UGrimBuilderComponent::ServerDebugCommand_Implementation(const FString& Com
 }
 
 #undef LOCTEXT_NAMESPACE
+
+// ───── 세이브 (Base.Skills v1 — 배운 노말 스킬 ID) ─────
+
+void UGrimBuilderComponent::WriteSaveData(FArchive& Ar)
+{
+	int32 Count = LearnedSkills.Num();
+	Ar << Count;
+	for (FName& Skill : LearnedSkills)
+	{
+		FString Text = Skill.ToString();
+		Ar << Text;
+	}
+}
+
+void UGrimBuilderComponent::ReadSaveData(FArchive& Ar, int32 Version)
+{
+	int32 Count = 0;
+	Ar << Count;
+	Count = FMath::Clamp(Count, 0, 64);
+	TArray<FName> Loaded;
+	for (int32 Index = 0; Index < Count && !Ar.IsError(); ++Index)
+	{
+		FString Text;
+		Ar << Text;
+		if (!Text.IsEmpty())
+		{
+			Loaded.AddUnique(FName(*Text));
+		}
+	}
+	if (!Ar.IsError())
+	{
+		LearnedSkills = Loaded;
+	}
+}

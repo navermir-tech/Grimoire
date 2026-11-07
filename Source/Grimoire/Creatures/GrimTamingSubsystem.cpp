@@ -1,4 +1,5 @@
 #include "Creatures/GrimTamingSubsystem.h"
+#include "Magic/GrimCastFailure.h"
 #include "Creatures/GrimCreature.h"
 #include "Creatures/GrimCreatureBox.h"
 #include "Creatures/GrimCreatureSettings.h"
@@ -239,7 +240,8 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 	}
 	if (!Species->bTameable || Creature->IsDead() || Taming->IsTamed())
 	{
-		Tamer->SendNotice(FString::Printf(TEXT("%s 은(는) 계약을 받지 않는다"), *Taming->GetDisplayName()));
+		const FVector At = Creature->GetActorLocation();
+		GrimCastFailure::Report(CasterASC, EGrimCastFailReason::TameRefused, 0, &At);
 		return EGrimTamingResult::NotTameable;
 	}
 
@@ -249,8 +251,10 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 	if (Destination == EGrimNewTameDestination::Refused)
 	{
 		UE_LOG(LogGrimTaming, Display, TEXT("[Server] 계약 → %s seed=%d: 갈 곳 없음(데리고 다님 %d/%d · 보관함 %s)"), *Species->SpeciesId.ToString(), Creature->GetInstance().Seed,
-			Storage->GetPartyCount(), Storage->GetPartyLimit(), Storage->IsStorageLearned() ? *FString::Printf(TEXT("%d/%d"), Storage->GetStored().Num(), Storage->GetStorageCapacity()) : TEXT("안 배움"));
-		Tamer->SendNotice(FString::Printf(TEXT("더 데리고 다닐 수 없다(%d/%d) — 보관함 · 거점 생물 상자도 가득"), Storage->GetPartyCount(), Storage->GetPartyLimit()));
+			Storage->GetPartyCount(), Storage->GetPartyLimit(), *FString::Printf(TEXT("%d/%d%s"), Storage->GetStored().Num(), Storage->GetStorageCapacity(), Storage->IsStorageLearned() ? TEXT("") : TEXT(" 쿠스토디아 안 배움")));
+		// Q64: 왜 안 걸렸는지 — 서버 판정 → 소유 클라이언트 알림 + 생물 앞에서 피식 꺼지는 연출.
+		const FVector At = Creature->GetActorLocation();
+		GrimCastFailure::Report(CasterASC, EGrimCastFailReason::TameNoRoom, 0, &At);
 		return EGrimTamingResult::NoRoom;
 	}
 
@@ -264,7 +268,8 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 	if (Chance.bCircleTooLow)
 	{
 		UE_LOG(LogGrimTaming, Display, TEXT("[Server] 계약 %s → %s seed=%d: 서클 모자람(%d < %d)"), *SpellName, *Species->SpeciesId.ToString(), Creature->GetInstance().Seed, Input.CasterCircle, Input.RequiredCircle);
-		Tamer->SendNotice(FString::Printf(TEXT("%s 와(과) 계약하려면 %d서클이 필요하다"), *Taming->GetDisplayName(), Input.RequiredCircle));
+		const FVector At = Creature->GetActorLocation();
+		GrimCastFailure::Report(CasterASC, EGrimCastFailReason::TameCircleTooLow, Input.RequiredCircle, &At);
 		return EGrimTamingResult::CircleTooLow;
 	}
 

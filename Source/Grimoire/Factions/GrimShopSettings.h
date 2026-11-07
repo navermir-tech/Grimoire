@@ -39,6 +39,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Shop")
 	TArray<FGrimShopPrice> Prices;
 
+	/** 마법탑 대리 수리(Q121): 수리 재료 1개 몫(최대 내구도 RepairFractionPerMaterial)마다 이만큼 솔. 재료는 받지 않는다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Shop", meta = (ClampMin = "0"))
+	int32 RepairPricePerMaterial = 5;
+
 	/** 값(없으면 INDEX_NONE — 팔지 않는다) */
 	int32 FindPrice(FName ItemId) const
 	{
@@ -56,4 +60,10 @@ namespace GrimTowerShop
 	 * NPC 서비스 「Buy:<아이템 ID>」(UGrimQuestComponent::ExecuteService)가 부른다.
 	 */
 	GRIMOIRE_API FName TryBuy(UGrimInventoryComponent* Inventory, FName ItemId);
+
+	/**
+	 * 서버: 대리 수리(Q121 — 레스티투오를 배우지 않은 사람). 입은 장비의 닳은 만큼(재료 몫 × RepairPricePerMaterial 솔)을 받고 고친다
+	 * — 수리 횟수 · 최대치 −10% 는 작업대 수리와 같다. 대사 맥락 Repair · Repair.NoMoney · Repair.Nothing. OutFee = 받은(받을) 솔.
+	 */
+	GRIMOIRE_API FName TryRepair(UGrimInventoryComponent* Inventory, int32* OutFee = nullptr);
 }

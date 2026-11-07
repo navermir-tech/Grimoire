@@ -5,7 +5,8 @@
 # 1회차(슬롯 QABox 를 지우고 시작): 탁 트인 원점에서 재칼로프 하나를 길들임(빗나가면 다시 쏨) → 보관함 배움 →
 #   원점에서 +X 를 보고 거점 핵(나무 5 · 돌 5) → 생물 상자 시설(칸 1,-2 · 나무 10 · 돌 4) → 상자에 넣고 풀어놓음 → 저장 → 끔
 # 2회차(같은 슬롯으로 다시 켬): 지은 상자 · 칸 · 체력 · 풀어놓은 생물이 되살아났나 → 철거 → 생물이 주인 보관함으로 · 재료 절반 환급
-#   → 꺼내서 데리고 다님 → 보관함을 안 배운 상태로 돌림(디버그) → 상자를 다시 지어 넣고 철거 → 옮길 곳이 없어 사라짐(경고 로그)
+#   → 꺼내서 데리고 다님 → 쿠스토디아를 안 배운 상태로 돌림(디버그) → 상자를 다시 지어 넣고 철거 → 안 배워도 기본 보관함(10칸, Q42)으로 옮겨짐
+#   (옮길 곳이 정말 없어 사라지는 경우 — 보관함까지 가득 — 는 이 스크립트로 만들지 않는다)
 # 길들이기는 하나만 쓴다 — 헤드리스에서 두 번째 파크툼이 소품에 맞아 빗나가는 일이 있었다.
 param(
 	[string]$Slot = "QABox",
@@ -85,5 +86,5 @@ Check "C9 철거하면 주인 보관함으로(풀어놓은 액터는 거둠)" ($
 $i0 = At $I1 0; $i1 = At $I2 0
 Check "C7 철거 환급 = 비용의 절반(나무 5 · 돌 2)" (($i0 -match "Wood×15" -and $i0 -match "Stone×11") -and ($i1 -match "Wood×20" -and $i1 -match "Stone×13")) "$(Tail $i0) → $(Tail $i1)"
 $d = At $D2 2; $e = At $D2 3; $Lost = @(Lines $Log2 "옮길 곳이 없다")
-Check "C6 옮길 곳이 없으면 사라지고 경고 한 줄" (($d -match "learned=0 party=0/\d+ .*box=yes boxEntries=1") -and ($e -match "learned=0 party=0/\d+ stored=0/\d+ box=no") -and $Lost.Count -eq 1) "$(Tail $d) → $(Tail $e) / 경고 $($Lost.Count)줄"
+Check "C6 쿠스토디아 없이 철거해도 기본 보관함(10칸, Q42)으로" (($d -match "learned=0 party=0/\d+ .*box=yes boxEntries=1") -and ($e -match "learned=0 party=0/\d+ stored=1/10 box=no") -and $Lost.Count -eq 0) "$(Tail $d) → $(Tail $e) / 경고 $($Lost.Count)줄"
 "QA_RESULT fail=$Fail"

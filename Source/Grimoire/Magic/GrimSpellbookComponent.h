@@ -243,6 +243,10 @@ protected:
 	/** 서버: 완드를 (없으면 만들어) 폰에 붙인다. */
 	void EquipWand(APawn* Pawn);
 
+	/** 서버: 쥔 완드가 없으면(빈 칸 Q71 · 부러짐 Q22) 손의 완드 액터를 숨긴다(bHidden 복제) — 주먹질 */
+	void RefreshWandVisibility();
+	void HandleWandStatusTagChanged(const FGameplayTag Tag, int32 NewCount);
+
 	UAbilitySystemComponent* GetASC() const;
 
 	FGrimSpellProficiency* FindProficiencyItem(const UGrimSpellDefinition* Spell);
@@ -289,6 +293,9 @@ protected:
 	bool bInitialized = false;
 
 	FDelegateHandle ActorInfoReadyHandle;
+
+	/** 서버: 완드 상태 태그(Status.WandMissing · Status.WandBroken) 구독 */
+	TArray<TPair<FGameplayTag, FDelegateHandle>> WandStatusHandles;
 
 	// ───── 세이브 ─────
 

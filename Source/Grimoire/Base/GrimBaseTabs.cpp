@@ -7,6 +7,7 @@
 #include "Base/GrimEquipmentComponent.h"
 #include "Base/GrimItemContainerComponent.h"
 #include "Base/GrimStructureComponent.h"
+#include "Factions/GrimShopSettings.h"
 #include "Items/GrimInventoryComponent.h"
 #include "Items/GrimInventoryWidget.h"
 #include "Items/GrimItemSettings.h"
@@ -169,7 +170,7 @@ void UGrimEquipmentTab::Refresh()
 	const UAbilitySystemComponent* ASC = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
 	const float Cold = ASC ? ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetColdResistAttribute()) : 0.f;
 	const float Heat = ASC ? ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetHeatResistAttribute()) : 0.f;
-	SummaryText->SetText(FText::Format(LOCTEXT("Summary", "체온 보정 합: 추위 저항 +{0} · 더위 저항 +{1}\n입기: 가방 탭에서 장비를 고르고 [사용]. 수리: 작업대에 「수리」 마법(재료 1개 = 25%, 고칠 때마다 최대치 −10%)."),
+	SummaryText->SetText(FText::Format(LOCTEXT("Summary", "체온 보정 합: 추위 저항 +{0} · 더위 저항 +{1}\n입기: 가방 탭에서 장비를 고르고 [사용]. 수리: 작업대 「수리」 탭(레스티투오를 배워야 — 재료 1개 = 25%, 고칠 때마다 최대치 −10%) · 배우기 전엔 마법탑 대리 수리(솔)."),
 		FText::AsNumber(FMath::RoundToInt(Cold)), FText::AsNumber(FMath::RoundToInt(Heat))));
 }
 
@@ -314,10 +315,6 @@ UWidget* UGrimWorkbenchTab::BuildContent(UWidgetTree* Tree)
 		Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, Button, 660.f, 36.f))->SetPadding(FMargin(0.f, 2.f));
 		RecipeTexts.Add(Label);
 	}
-	const int32 RepairIndex = -1;
-	UGrimIdButton* RepairButton = MakeButton(Tree, RepairIndex, LOCTEXT("RepairEquipment", "「수리」 걸기 — 닳은 장비를 가방의 재료로 고친다"), 660.f, 36.f);
-	RepairButton->OnIdClicked.BindUObject(this, &UGrimWorkbenchTab::HandleRecipeClicked);
-	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, RepairButton, 660.f, 36.f))->SetPadding(FMargin(0.f, 10.f, 0.f, 2.f));
 	InfoText = GrimUIData::MakeText(Tree, FText::GetEmpty(), 13, DimColor);
 	InfoText->SetAutoWrapText(true);
 	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, InfoText, 660.f, 60.f));
@@ -347,9 +344,7 @@ void UGrimWorkbenchTab::Refresh()
 			*UGrimItemStatics::GetItemDisplayName(Recipe->Row.Output).ToString(), *FString::Join(Parts, TEXT(" · ")))));
 	}
 	const UGrimBuilderComponent* Builder = GetBuilder();
-	InfoText->SetText(Builder && Builder->KnowsRepairSpell()
-		? LOCTEXT("RepairKnown", "「수리」 마법을 작업대에 쏘아도 같다(마나 15).")
-		: LOCTEXT("RepairUnknown", "「수리」 마법을 아직 모른다 — 스킬북으로 배운다."));
+	InfoText->SetText(UGrimRepairTab::DescribeLock(Builder && Builder->KnowsRepairSpell()));
 }
 
 void UGrimWorkbenchTab::HandleRecipeClicked(int32 Index)
@@ -360,13 +355,85 @@ void UGrimWorkbenchTab::HandleRecipeClicked(int32 Index)
 	{
 		return;
 	}
-	if (Index < 0)
-	{
-		Builder->Server_Repair(Workbench);
-	}
-	else if (RecipeIds.IsValidIndex(Index))
+	if (RecipeIds.IsValidIndex(Index))
 	{
 		Builder->Server_Craft(Workbench, RecipeIds[Index]);
+	}
+	MarkDirty();
+}
+
+// ───────────────────────── 수리 (Q121) ─────────────────────────
+
+const FName UGrimRepairTab::TabId(TEXT("Repair"));
+
+FText UGrimRepairTab::GetLabel() const
+{
+	return LOCTEXT("RepairTab", "수리");
+}
+
+bool UGrimRepairTab::IsAvailable() const
+{
+	return GetOpenStation<AGrimWorkbench>() != nullptr;
+}
+
+FText UGrimRepairTab::DescribeLock(bool bUnlocked)
+{
+	if (bUnlocked)
+	{
+		return LOCTEXT("RepairUnlocked", "「레스티투오」 — 입은 장비를 가방의 재료로 고친다(재료 1개 = 최대 내구도 25%, 고칠 때마다 최대치 −10%). 조각 · 시설은 레스티투오를 겨눠 하나씩.");
+	}
+	return FText::Format(LOCTEXT("RepairLockedTab", "잠김 — 「레스티투오」(2서클 스킬북)를 배워야 열린다. 그전엔 마법탑 스승에게 솔을 내고 맡긴다(재료 1개 몫 = {0} 솔)."),
+		FText::AsNumber(UGrimShopSettings::Get()->RepairPricePerMaterial));
+}
+
+UWidget* UGrimRepairTab::BuildContent(UWidgetTree* Tree)
+{
+	using namespace GrimBaseTabsLocal;
+	UVerticalBox* Box = Tree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	StatusText = GrimUIData::MakeText(Tree, FText::GetEmpty(), 13, BodyColor);
+	StatusText->SetAutoWrapText(true);
+	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, StatusText, 660.f, 48.f));
+	ListText = GrimUIData::MakeText(Tree, FText::GetEmpty(), 13, DimColor);
+	ListText->SetAutoWrapText(true);
+	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, ListText, 660.f, 160.f))->SetPadding(FMargin(0.f, 4.f));
+	UGrimIdButton* Button = MakeButton(Tree, 0, LOCTEXT("RepairAll", "닳은 장비를 모두 고친다"), 660.f, 36.f);
+	Button->OnIdClicked.BindUObject(this, &UGrimRepairTab::HandleRepairClicked);
+	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, Button, 660.f, 36.f))->SetPadding(FMargin(0.f, 8.f, 0.f, 0.f));
+	return Box;
+}
+
+void UGrimRepairTab::Refresh()
+{
+	const UGrimBuilderComponent* Builder = GetBuilder();
+	StatusText->SetText(DescribeLock(Builder && Builder->KnowsRepairSpell()));
+	const UGrimEquipmentComponent* Equipment = UGrimEquipmentComponent::FindForActor(GetOwningPlayer());
+	const UGrimInventoryComponent* Bag = GetInventory();
+	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
+	TArray<FString> Lines;
+	for (const FGrimItemInstance& Item : Equipment ? Equipment->GetSlots() : TArray<FGrimItemInstance>())
+	{
+		const FGrimEquipmentDefinition* Def = UGrimBaseSettings::GetDatabase().FindEquipment(Item.ItemId);
+		const float Current = UGrimEquipmentComponent::GetDurability(Item);
+		const float Max = UGrimEquipmentComponent::GetMaxDurability(Item);
+		const int32 Needed = Def ? FGrimDurabilityMath::GetMaterialsNeeded(Current, Max, Settings->RepairFractionPerMaterial) : 0;
+		if (!Def || Needed <= 0 || Def->Row.RepairItem.IsNone())
+		{
+			continue;
+		}
+		Lines.Add(FString::Printf(TEXT("%s %.0f/%.0f — %s %d (가방 %d)"), *UGrimItemStatics::GetItemDisplayName(Item.ItemId).ToString(), Current, Max,
+			*UGrimItemStatics::GetItemDisplayName(Def->Row.RepairItem).ToString(), Needed, Bag ? Bag->CountOf(Def->Row.RepairItem) : 0));
+	}
+	ListText->SetText(Lines.Num() > 0 ? FText::FromString(FString::Join(Lines, *FString::Chr(10))) : LOCTEXT("NothingToRepair", "닳은 장비가 없다."));
+}
+
+void UGrimRepairTab::HandleRepairClicked(int32 Unused)
+{
+	UGrimBuilderComponent* Builder = GetBuilder();
+	AGrimWorkbench* Workbench = GetOpenStation<AGrimWorkbench>();
+	if (Builder && Workbench)
+	{
+		// 잠김 여부도 서버가 다시 판정해 알린다(Q64 방식).
+		Builder->Server_Repair(Workbench);
 	}
 	MarkDirty();
 }
@@ -395,8 +462,9 @@ UWidget* UGrimBaseCoreTab::BuildContent(UWidgetTree* Tree)
 	InfoText = GrimUIData::MakeText(Tree, FText::GetEmpty(), 13, BodyColor);
 	InfoText->SetAutoWrapText(true);
 	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, InfoText, 660.f, 200.f));
-	UGrimIdButton* Button = MakeButton(Tree, 0, FText::Format(LOCTEXT("BaseRepair", "거점 수리 — 저장고의 재료로 닳은 것을 모두 고친다(마나 {0})"),
-		FText::AsNumber(FMath::RoundToInt(UGrimBaseSettings::Get()->BaseRepairManaCost))), 660.f, 36.f);
+	UTextBlock* Label = nullptr;
+	UGrimIdButton* Button = MakeButton(Tree, 0, FText::GetEmpty(), 660.f, 36.f, &Label);
+	RepairLabel = Label;
 	Button->OnIdClicked.BindUObject(this, &UGrimBaseCoreTab::HandleRepairClicked);
 	Box->AddChildToVerticalBox(GrimUIData::MakeSizeBox(Tree, Button, 660.f, 36.f))->SetPadding(FMargin(0.f, 8.f, 0.f, 0.f));
 	return Box;
@@ -452,6 +520,13 @@ void UGrimBaseCoreTab::Refresh()
 		Core->GetOwnerName().IsEmpty() ? TEXT("주인 없는") : *Core->GetOwnerName(), UGrimBaseSettings::Get()->BaseRadius / 100.f, Count, Damaged,
 		Needs.Num() > 0 ? *FString::Join(Needs, TEXT(" · ")) : TEXT("없음"));
 	InfoText->SetText(FText::FromString(Text));
+	const UGrimBuilderComponent* Builder = GetBuilder();
+	if (RepairLabel)
+	{
+		RepairLabel->SetText(Builder && Builder->KnowsBaseRepairSkill()
+			? FText::Format(LOCTEXT("BaseRepair", "전체 수리 — 저장고의 재료로 반경 안 닳은 것을 모두 고친다(마나 {0})"), FText::AsNumber(FMath::RoundToInt(UGrimBaseSettings::Get()->BaseRepairManaCost)))
+			: LOCTEXT("BaseRepairLocked", "전체 수리 (잠김) — 「레스티투오 막시마」를 배워야 열린다"));
+	}
 }
 
 void UGrimBaseCoreTab::HandleRepairClicked(int32 Unused)

@@ -7,7 +7,7 @@
 # 장면 = 이름, 찍는 초, 앞서 칠 명령(쉼표 없이 ; 로 — 1초 간격으로 차례로). 맵 로드(10~40초)를 넉넉히 둔다.
 param(
 	# Main = 기본 장면들, Pose = 시작 자리 앞 고정 카메라로 완드 · 그리모어 앞모습과 시전 순간(R21)
-	[ValidateSet("Main", "Pose")]
+	[ValidateSet("Main", "Pose", "Fizzle")]
 	[string]$Set = "Main",
 	[int]$Start = 45,
 	[int]$ResX = 1600,
@@ -51,6 +51,12 @@ $PoseScenes = @(
 	@("qa-pose-cast", "slomo 0.05;Grim.Input.Press Slot1 None", 0)
 )
 if ($Set -eq "Pose") { $Scenes = $PoseScenes }
+# 마법 실패 알림 · 피식 연출(Q64) — 같은 앞모습 카메라, 느린 시간(1/10)에서 누르고 1초(게임 0.1초) 뒤: HUD 위쪽 까닭 한 줄 + 완드 끝(손) 회색 터짐
+$FizzleScenes = @(
+	@("qa-castfail-mana", "Grim.Cam 160 800 4700 -12 180 60;Grim.Save.SetAttr Mana 0;slomo 0.1;Grim.Input.Press Slot1 None", 0),
+	@("qa-castfail-nowand", "slomo 1;Grim.Base.Unequip 0;slomo 0.1;Grim.Input.Press Slot2 None", 0)
+)
+if ($Set -eq "Fizzle") { $Scenes = $FizzleScenes }
 
 $Cmds = @("r.ScreenPercentage 100")
 $T = $Start

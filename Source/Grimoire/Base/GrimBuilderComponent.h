@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Base/GrimBaseTypes.h"
+#include "Core/GrimSaveTypes.h"
+#include "Magic/GrimSpellbookComponent.h"
 #include "GrimBuilderComponent.generated.h"
 
 class AGrimBaseCore;
@@ -82,9 +84,10 @@ struct GRIMOIRE_API FGrimBuildPreview
  *    고스트(AGrimBuildGhost)는 로컬 전용, 유효 검사는 서버와 같은 CheckPlacement(복제된 조각 · 가방으로).
  *  - 서버 RPC: 놓기 · 철거 · 상호작용(문 · 밭) · 저장고 옮기기 · 제작 · 수리 — 서버가 거리 · 재료 · 격자 · 지지를 다시 검사한다.
  *  - 건축 모드는 State.BuildMode(복제 루스 태그) — 그리모어를 거두고(Q25) 시전 · 기본 공격을 막는다(CastBlockingTags).
+ *  - 수리 해금(Q121): 「레스티투오」(마법 — 마법서) = 작업대 「수리」 탭 · 조각 하나씩, 「레스티투오 막시마」(노말 스킬 — 여기 LearnedSkills, 세이브 Base.Skills v1) = 거점 핵 「전체 수리」.
  */
 UCLASS(ClassGroup = (Grimoire), meta = (BlueprintSpawnableComponent))
-class GRIMOIRE_API UGrimBuilderComponent : public UActorComponent
+class GRIMOIRE_API UGrimBuilderComponent : public UActorComponent, public IGrimSaveParticipant
 {
 	GENERATED_BODY()
 
@@ -132,8 +135,17 @@ public:
 	static FText DescribeResult(EGrimBuildResult Result);
 	static FText DescribeNotice(EGrimBaseNotice Notice, FName Item, int32 CountOrResult);
 
-	/** 「수리」 마법을 아는가(R28) — 설정이 끄면 늘 참 */
+	/** 「레스티투오」(수리 마법)를 아는가(R28 · Q121) — 설정이 끄면 늘 참. 작업대 「수리」 탭 · 조각 하나씩 */
 	bool KnowsRepairSpell() const;
+
+	/** 「레스티투오 막시마」를 배웠나(Q121) — 설정이 끄면 늘 참. 거점 핵 「전체 수리」 */
+	bool KnowsBaseRepairSkill() const;
+
+	/** 배운 노말 스킬(소유 클라이언트에 복제) */
+	const TArray<FName>& GetLearnedSkills() const { return LearnedSkills; }
+
+	/** 서버: 노말 스킬 배우기(스킬북 Skill:<ID> — 레스티투오 막시마). 모르는 ID 면 Invalid */
+	EGrimLearnResult LearnNormalSkill(FName SkillId);
 
 	// ───── 서버 ─────
 
@@ -145,14 +157,24 @@ public:
 	bool PlantOrHarvest(AGrimFarmPlot* Plot);
 
 	/**
-	 * 「수리」(R18 · R28): 조각 · 시설 = 가방의 재료로 그것을, 작업대 = 내 장비를, 거점 핵 = 거점의 닳은 것을 저장고 재료로(마나 BaseRepairManaCost 더).
-	 * bFromSpell = 마법 볼트가 맞힌 것(마법 마나는 이미 냈다). 아니면(탭 단추 · 콘솔) 「수리」 마법의 마나를 여기서 낸다. 고친 재료 수(못 고치면 0).
+	 * 수리(R18 · R28 · Q121 · Q123). 잠겼으면 서버가 까닭을 소유 클라이언트에 알린다(Q64 방식 — GrimCastFailure).
+	 *  - bFromSpell(레스티투오 볼트가 맞힘): 맞은 조각 · 시설 하나를 가방 재료로(작업대 · 거점 핵도 자기 몸만). 마나는 시전 때 냈다.
+	 *  - 탭 · 콘솔: 작업대 = 입은 장비 전부(레스티투오, 가방 재료, 레스티투오 마나), 거점 핵 = 「전체 수리」(막시마, 저장고 재료, 마나 BaseRepairManaCost),
+	 *    그 밖의 조각 · 시설 = 그것 하나(레스티투오, 가방 재료).
+	 * 고친 재료 수(못 고치면 0).
 	 */
 	int32 PerformRepair(AActor* Target, bool bFromSpell, bool bCheckReach);
 
 	void SendNotice(EGrimBaseNotice Notice, FName Item = NAME_None, int32 CountOrResult = 0);
 
 	FGrimOnBaseNotice OnNotice;
+
+	// ───── 세이브 (Player Base.Skills v1 — 배운 노말 스킬) ─────
+
+	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
+	virtual FName GetSaveId() const override { return TEXT("Base.Skills"); }
+	virtual void WriteSaveData(FArchive& Ar) override;
+	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
 	// ───── RPC ─────
 
@@ -184,6 +206,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UFUNCTION(Client, Reliable)
@@ -222,4 +245,10 @@ private:
 	TObjectPtr<UGrimBaseWidget> Widget;
 
 	bool bLocalSetupDone = false;
+
+	/** 서버: 잠긴 수리의 까닭을 알린다(Q64 방식) */
+	void ReportRepairLocked(bool bBaseRepair) const;
+
+	UPROPERTY(Replicated)
+	TArray<FName> LearnedSkills;
 };

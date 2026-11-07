@@ -165,7 +165,7 @@ namespace GrimBaseConsoleLocal
 					}
 				}
 				const bool bBuildMode = ASC && ASC->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(TEXT("State.BuildMode"), false));
-				UE_LOG(LogGrimBase, Display, TEXT("[BaseDump %s] player %s pos=%s inBase=%d sheltered=%d wet=%.1f sleeping=%d weather=%d buildMode=%d wandBroken=%d ColdResist=%.1f gear=[%s]"), Side,
+				UE_LOG(LogGrimBase, Display, TEXT("[BaseDump %s] player %s pos=%s inBase=%d sheltered=%d wet=%.1f sleeping=%d weather=%d buildMode=%d wandBroken=%d wandMissing=%d ColdResist=%.1f gear=[%s]"), Side,
 					*PlayerState->GetPlayerName(), Pawn ? *Pawn->GetActorLocation().ToCompactString() : TEXT("-"),
 					Pawn && Subsystem->FindBaseAt(Pawn->GetActorLocation()) ? 1 : 0,
 					Pawn && Weather && Weather->IsActorSheltered(Pawn) ? 1 : 0,
@@ -174,6 +174,7 @@ namespace GrimBaseConsoleLocal
 					Pawn && Weather ? static_cast<int32>(Weather->GetWeatherAt(Pawn->GetActorLocation())) : -1,
 					bBuildMode ? 1 : 0,
 					ASC && ASC->HasMatchingGameplayTag(GrimBaseTags::Status_WandBroken) ? 1 : 0,
+					ASC && ASC->HasMatchingGameplayTag(GrimBaseTags::Status_WandMissing) ? 1 : 0,
 					ASC ? ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetColdResistAttribute()) : -1.f, *Gear);
 			}
 		}
@@ -349,7 +350,7 @@ static FAutoConsoleCommandWithWorldAndArgs GGrimBaseDamageCommand(TEXT("Grim.Bas
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseSetHealthCommand(TEXT("Grim.Base.SetHealth"),
 	TEXT("지은 것의 내구도를 값으로. <액터 이름> <값>"), GrimBaseConsoleLocal::Make(TEXT("SetHealth")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseLearnRepairCommand(TEXT("Grim.Base.LearnRepair"),
-	TEXT("「수리」 마법을 배운다(DA_Spell_Repair)."), GrimBaseConsoleLocal::Make(TEXT("LearnRepair")));
+	TEXT("「레스티투오」(수리 마법 DA_Spell_Repair, 2서클 — 모자라면 서클을 올림)를 배운다."), GrimBaseConsoleLocal::Make(TEXT("LearnRepair")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseStoreCommand(TEXT("Grim.Base.Store"),
 	TEXT("가장 가까운 저장고에 넣는다. <아이템> [개수]"), GrimBaseConsoleLocal::Make(TEXT("Store")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseTakeCommand(TEXT("Grim.Base.Take"),
@@ -360,6 +361,8 @@ static FAutoConsoleCommandWithWorldAndArgs GGrimBasePlotCommand(TEXT("Grim.Base.
 	TEXT("가장 가까운 밭: 심기(가방의 첫 씨앗) · 거두기."), GrimBaseConsoleLocal::Make(TEXT("Plot")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseGrowCommand(TEXT("Grim.Base.Grow"),
 	TEXT("모든 밭을 지금 조건으로 <초> 만큼 키운다."), GrimBaseConsoleLocal::Make(TEXT("Grow")));
+static FAutoConsoleCommandWithWorldAndArgs GGrimBaseLearnBaseRepairCommand(TEXT("Grim.Base.LearnBaseRepair"),
+	TEXT("「레스티투오 막시마」(거점 핵 전체 수리 — Q121)를 배운다(서클이 모자라면 올림)."), GrimBaseConsoleLocal::Make(TEXT("LearnBaseRepair")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseEquipCommand(TEXT("Grim.Base.Equip"),
 	TEXT("가방의 장비를 입는다. <아이템>"), GrimBaseConsoleLocal::Make(TEXT("Equip")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimBaseUnequipCommand(TEXT("Grim.Base.Unequip"),

@@ -56,7 +56,7 @@
 
 ## 튜토리얼 흐름 (Tutorial)
 
-시작할 때 아는 마법이 없다 — 모두 스킬북(`Give`)으로 받는다. 대사는 `TowerDialogue.csv`(퀘스트 · 단계마다 한 행).
+시작할 때 아는 마법이 없다 — 모두 스킬북(`Give`)으로 받는다. 완드는 처음부터 **기본 완드**(`Wand_Basic` — 실제 장비, Q71)를 쥐고 있다(시작 장비 `UGrimBaseSettings::StartingEquipment`, [건축 · 장비](./building#내구도-·-수리-·-인챈트-r18-·-r19)) — 그래서 1 · 2단계 기본 공격 흐름이 그대로다. 대사는 `TowerDialogue.csv`(퀘스트 · 단계마다 한 행).
 
 | 단계 | 할 일 | 목표 | 판정 |
 |---|---|---|---|
@@ -93,7 +93,7 @@
 | `Trial` | 지금 서클 + 1 의 시험을 시작 | `Trial.Started` · `Trial.Busy` · `Trial.Locked` · `Trial.NotReady` · `Trial.None` |
 | `Purify:<트리>` | 정화 의식 — `UGrimSkillTreeComponent::ResetTree(트리)`, 트리마다 메뉴 하나(Q31). 비용은 아직 무료(TODO 재화) | `Purify` · `Purify.Empty` |
 | `Repair` · `Erase` | 대리 수리 · 지우기 — 내구도 · 인챈트(M4) 전이라 「아직 할 수 없다」 대사만 | `Repair` · `Erase` |
-| `Buy:<아이템>` | 상점 — 가방의 솔리두스(`Solidus`)로 아이템 하나(`GrimTowerShop::TryBuy`, 값 `[/Script/Grimoire.GrimShopSettings] Prices`). 마렌: `Buy:Skillbook_CreatureStorage`(쿠스토디아) 120 솔(R38 — [생물 보관함](./creatures#데리고-다니기-·-보관함-·-거점-상자-r38)). 상점이 있는 NPC 는 표 검사가 아래 세 맥락을 요구 | `Buy` · `Buy.NoMoney` · `Buy.BagFull` |
+| `Buy:<아이템>` | 상점 — 가방의 솔리두스(`Solidus`)로 아이템 하나(`GrimTowerShop::TryBuy`, 값 `[/Script/Grimoire.GrimShopSettings] Prices`). 마렌: `Buy:Skillbook_CreatureStorage`(쿠스토디아) 120 솔(R38 — [생물 보관함](./creatures#데리고-다니기-·-보관함-·-거점-상자-r38)) · `Buy:Wand_Basic`(기본 완드) 10 솔 — 늘 판다(Q71 — [완드](./magic#완드-agrimwand)). 상점이 있는 NPC 는 표 검사가 아래 세 맥락을 요구 | `Buy` · `Buy.NoMoney` · `Buy.BagFull` |
 
 ## 맵 L_Tower
 
