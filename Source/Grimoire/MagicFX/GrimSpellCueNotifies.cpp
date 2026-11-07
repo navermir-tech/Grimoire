@@ -10,6 +10,7 @@
 #include "Character/GrimPlayerCharacter.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "NiagaraComponent.h"
 #include "GameFramework/Pawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGrimMagicFX, Log, All);
@@ -57,7 +58,14 @@ namespace
 			// 원뿔 마법(쓸기)은 발사 순간에 파동이 다 나간다 — 몸통(Trail) 도 여기서. Bolt · Stream 몸통은 투사체 · Channel 큐가 그린다.
 			if (Motion == EGrimCastMotion::Sweep && VisualSet->Trail)
 			{
-				UGrimMagicFXStatics::SpawnFX(World, VisualSet->Trail, Muzzle, AxisRotation(Direction), Extended ? Extended->TrailScale : 1.f, Color, true, StopAfter);
+				UFXSystemComponent* Wave = UGrimMagicFXStatics::SpawnFX(World, VisualSet->Trail, Muzzle, AxisRotation(Direction), Extended ? Extended->TrailScale : 1.f, Color, true, StopAfter);
+				// 부채꼴 깃털(NS_Cone_Trail)은 마법의 원뿔 사거리 · 반각만큼 퍼진다 — 사용자 변수가 없는 시스템이면 무시된다.
+				if (UNiagaraComponent* Niagara = Cast<UNiagaraComponent>(Wave))
+				{
+					const UGrimMagicFXSettings* Settings = UGrimMagicFXSettings::Get();
+					Niagara->SetVariableFloat(TEXT("ConeRange"), UGrimMagicFXStatics::ReadFloatProperty(Definition, Settings->ConeRangeProperty, Settings->DefaultConeRange));
+					Niagara->SetVariableFloat(TEXT("ConeHalfAngle"), UGrimMagicFXStatics::ReadFloatProperty(Definition, Settings->ConeHalfAngleProperty, Settings->DefaultConeHalfAngle));
+				}
 			}
 		}
 

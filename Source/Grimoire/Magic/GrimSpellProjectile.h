@@ -18,6 +18,7 @@ class UGrimSpellDefinition;
  *  - 가짜: 시전자 클라이언트가 누르는 즉시 스스로 스폰(복제 안 함, 판정 없음, 지형에서 멈춤). 진짜가 사라지면 같이 사라진다.
  *  - 시전자 클라이언트에서는 진짜 복제본을 숨긴다(가짜가 대신 보인다). 다른 클라이언트는 진짜를 본다.
  * 꼬리는 정의의 VisualSet.Trail 을 붙인다(움직이는 액터라 큐 대신 여기서). 없으면 속성색 구만 보인다.
+ * 보이는 사본은 시작할 때 VisualSet.LaunchStreak 으로 완드 끝부터 첫 구간을 한 번 긋는다(Q85 — 가까운 표적 · 지연 보정).
  */
 UCLASS(Blueprintable)
 class GRIMOIRE_API AGrimSpellProjectile : public AActor
@@ -68,6 +69,9 @@ protected:
 	bool IsHiddenForLocalCaster() const;
 
 	void StartTrail();
+
+	/** 완드 끝부터 볼트가 갈 길 첫 구간에 빛줄기를 한 번 긋는다(Q85, 연출만). 보이는 사본에서 시작할 때 한 번. */
+	void SpawnLaunchStreak();
 
 	UPROPERTY(VisibleAnywhere, Category = "Projectile")
 	TObjectPtr<USphereComponent> Collision;

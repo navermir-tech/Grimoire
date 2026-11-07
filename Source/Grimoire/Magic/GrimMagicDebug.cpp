@@ -20,6 +20,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "HAL/IConsoleManager.h"
+#include "NiagaraComponent.h"
 
 #if !UE_BUILD_SHIPPING
 
@@ -290,8 +291,8 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 
 	/**
 	 * Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm] — 시전 없이 그 자리에서 볼트 연출만 날린다(판정 없는 가짜
-	 * 투사체 + 완드 끝 섬광, 거리를 주면 거기서 적중 연출). 실제 시전은 투사체를 시전 대기만큼 앞당겨 만들어(볼트 75~90 m/s × 0.1초)
-	 * 좁은 방에서는 비행이 안 보인다 — 이펙트를 찍을 때 쓴다(Scripts/MagicFX/capture_bolt.ps1).
+	 * 투사체 + 완드 끝 섬광 + 발사 빛줄기, 거리를 주면 거기서 적중 연출). 볼트는 75~90 m/s 라 좁은 방의 실제 시전은 비행이 몇 프레임뿐이다
+	 * — 이펙트를 찍을 때 쓴다(Scripts/MagicFX/capture_bolt.ps1).
 	 * 예: Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 250
 	 */
 	void FxBoltCommand(const TArray<FString>& Args, UWorld* World)
@@ -361,6 +362,63 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 		TEXT("Grim.FX.Bolt"),
 		TEXT("시전 없이 볼트 연출만 날린다(판정 없음). <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm]"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&FxBoltCommand));
+
+	/**
+	 * Grim.FX.Spawn <마법 정의 이름> <Muzzle|Trail|Impact|Launch> <X> <Y> <Z> <요> [피치] [초] [이름=값 ...] — 시전 없이 연출 묶음의
+	 * Niagara 하나를 그 자리 · 방향(+Z = 요 · 피치)에 띄운다. 값은 Niagara 사용자 변수(수 또는 x,y,z). 초 > 0 이면 그만큼 뒤 멈춘다.
+	 * 시전하면 조준 = 카메라라 Grim.Cam 옆 · 위 시점에서는 줄기 · 부채가 카메라 쪽으로만 나간다 — 연출을 옆에서 볼 때 쓴다(Q86).
+	 * 예: Grim.FX.Spawn DA_Spell_WaterJet Trail 30 -1000 150 0 8 3 LaunchSpeed=1400 GravityZ=-980 ArcTime=0.2 EndSplash=1 EndPoint=270,-1000,170
+	 */
+	void FxSpawnCommand(const TArray<FString>& Args, UWorld* World)
+	{
+		if (Args.Num() < 6 || !World)
+		{
+			UE_LOG(LogGrimMagicDebug, Warning, TEXT("사용: Grim.FX.Spawn <마법 정의 이름> <Muzzle|Trail|Impact|Launch> <X> <Y> <Z> <요> [피치] [초] [이름=값 ...]"));
+			return;
+		}
+		const UGrimSpellDefinition* Definition = LoadObject<UGrimSpellDefinition>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/Magic/Spells/%s.%s"), *Args[0], *Args[0]));
+		const UGrimSpellVisualSet* VisualSet = Definition ? Definition->VisualSet.Get() : nullptr;
+		if (!VisualSet)
+		{
+			UE_LOG(LogGrimMagicDebug, Warning, TEXT("[Grim.FX.Spawn] 연출 묶음 없음 %s"), *Args[0]);
+			return;
+		}
+		const FString Slot = Args[1];
+		UFXSystemAsset* Asset = Slot == TEXT("Muzzle") ? VisualSet->MuzzleFlash.Get() : Slot == TEXT("Trail") ? VisualSet->Trail.Get()
+			: Slot == TEXT("Impact") ? VisualSet->Impact.Get() : Slot == TEXT("Launch") ? VisualSet->LaunchStreak.Get() : nullptr;
+		const FVector Location(FCString::Atod(*Args[2]), FCString::Atod(*Args[3]), FCString::Atod(*Args[4]));
+		const FRotator Aim(Args.Num() >= 7 ? FCString::Atod(*Args[6]) : 0.0, FCString::Atod(*Args[5]), 0.0);
+		const float StopAfter = Args.Num() >= 8 ? FCString::Atof(*Args[7]) : 0.f;
+		UFXSystemComponent* Component = UGrimMagicFXStatics::SpawnFX(World, Asset, Location, FRotationMatrix::MakeFromZ(Aim.Vector()).Rotator(), 1.f, VisualSet->ElementColor, true, StopAfter);
+		if (UNiagaraComponent* Niagara = Cast<UNiagaraComponent>(Component))
+		{
+			for (int32 Index = 8; Index < Args.Num(); ++Index)
+			{
+				FString Name;
+				FString Value;
+				if (!Args[Index].Split(TEXT("="), &Name, &Value))
+				{
+					continue;
+				}
+				TArray<FString> Parts;
+				Value.ParseIntoArray(Parts, TEXT(","));
+				if (Parts.Num() == 3)
+				{
+					Niagara->SetVariableVec3(FName(*Name), FVector(FCString::Atod(*Parts[0]), FCString::Atod(*Parts[1]), FCString::Atod(*Parts[2])));
+				}
+				else
+				{
+					Niagara->SetVariableFloat(FName(*Name), FCString::Atof(*Value));
+				}
+			}
+		}
+		UE_LOG(LogGrimMagicDebug, Display, TEXT("[Grim.FX.Spawn] %s %s %s → %s"), *Args[0], *Slot, *GetNameSafe(Asset), *Location.ToCompactString());
+	}
+
+	FAutoConsoleCommandWithWorldAndArgs GFxSpawnCommand(
+		TEXT("Grim.FX.Spawn"),
+		TEXT("시전 없이 연출 묶음의 이펙트 하나를 띄운다. <마법 정의 이름> <Muzzle|Trail|Impact|Launch> <X> <Y> <Z> <요> [피치] [초] [이름=값 ...]"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&FxSpawnCommand));
 }
 
 #endif

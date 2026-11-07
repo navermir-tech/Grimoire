@@ -1,6 +1,7 @@
 #include "MagicFX/GrimSpellChannelCue.h"
 #include "Magic/GrimSpellAbility.h"
 #include "Magic/GrimSpellDefinition.h"
+#include "Magic/GrimSpellDelivery.h"
 #include "MagicFX/GrimGrimoireBook.h"
 #include "MagicFX/GrimMagicFXMath.h"
 #include "MagicFX/GrimMagicFXSettings.h"
@@ -231,9 +232,37 @@ void AGrimCueNotify_SpellChannel::UpdateStream()
 	const FVector Direction = UGrimMagicFXStatics::GetAimDirection(Pawn);
 	SetActorLocation(Muzzle);
 
+	// 판정과 같은 호: 갈래 A 의 UGrimSpellAbility::TraceStreamArc 가 내는 점들(판정은 서버 — 이건 그림만).
+	const UGrimSpellDefinition* Def = StreamDefinition.Get();
+	TArray<FVector> ArcPoints;
+	bool bArcBlocked = false;
+	FVector LaunchDirection = Direction;
+	float Speed = LaunchSpeed;
+	float ArcTime = FlightTime;
+	if (Def)
+	{
+		const FVector AimPoint = Muzzle + Direction * Def->Range;
+		bArcBlocked = UGrimSpellAbility::TraceStreamArc(World, Def, Muzzle, AimPoint, Pawn, ArcPoints, nullptr);
+		GrimSpellDelivery::SolveLaunchDirection(Muzzle, AimPoint, Def->StreamLaunchSpeed, GravityZ, LaunchDirection);
+		Speed = Def->StreamLaunchSpeed;
+		ArcTime = ArcPoints.Num() >= 2
+			? GrimSpellDelivery::CalcArcTimeToPoint(Muzzle, LaunchDirection * Speed, ArcPoints.Last(), Def->GetStreamFlightTime())
+			: Def->GetStreamFlightTime();
+	}
+
 	if (TrailComponent)
 	{
-		TrailComponent->SetWorldLocationAndRotation(Muzzle, FRotationMatrix::MakeFromZ(Direction).Rotator());
+		// 몸통 Niagara(NS_Stream_Trail)는 +Z 로 User.LaunchSpeed 만큼 쏘고 User.GravityZ 로 떨어뜨린다 — 판정 호와 같은 포물선.
+		// 물방울은 호가 막힌 곳(User.ArcTime 뒤)에서 끝나고, 막혔으면 그 자리(User.EndPoint)에서 튄다.
+		TrailComponent->SetWorldLocationAndRotation(Muzzle, FRotationMatrix::MakeFromZ(LaunchDirection).Rotator());
+		if (UNiagaraComponent* Niagara = Cast<UNiagaraComponent>(TrailComponent))
+		{
+			Niagara->SetVariableFloat(TEXT("LaunchSpeed"), Speed);
+			Niagara->SetVariableFloat(TEXT("GravityZ"), GravityZ);
+			Niagara->SetVariableFloat(TEXT("ArcTime"), FMath::Max(ArcTime, 0.02f));
+			Niagara->SetVariableFloat(TEXT("EndSplash"), bArcBlocked ? 1.f : 0.f);
+			Niagara->SetVariableVec3(TEXT("EndPoint"), ArcPoints.Num() > 0 ? ArcPoints.Last() : Muzzle + LaunchDirection * Speed * ArcTime);
+		}
 	}
 	if (LoopAudio)
 	{
@@ -251,11 +280,9 @@ void AGrimCueNotify_SpellChannel::UpdateStream()
 		return;
 	}
 
-	// 판정과 같은 호: 갈래 A 의 UGrimSpellAbility::TraceStreamArc 가 내는 점들을 따라 구슬을 놓는다(판정은 서버 — 이건 그림만).
-	if (const UGrimSpellDefinition* Def = StreamDefinition.Get())
+	// 구슬도 위의 판정 호를 따라 놓는다.
+	if (Def)
 	{
-		TArray<FVector> ArcPoints;
-		UGrimSpellAbility::TraceStreamArc(World, Def, Muzzle, Muzzle + Direction * Def->Range, Pawn, ArcPoints, nullptr);
 		if (ArcPoints.Num() >= 2)
 		{
 			for (int32 Index = 0; Index < Beads.Num(); ++Index)

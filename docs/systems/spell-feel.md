@@ -1,6 +1,6 @@
 # 투사체 · 시전 감각 (Spell Feel)
 
-> 상태: **구현 문서 v1.2** · 2026-11-06 코드 대조 · 마일스톤 **M1.5 「시전 감각」** (M1 다음, M2 전) — 전달 방식 · 네트워크(갈래 A) · 연출 · 동작(갈래 C) · 볼트 이펙트(2026-11-06) 코드 반영. 코드 `Source/Grimoire/Magic/` · `Source/Grimoire/MagicFX/`
+> 상태: **구현 문서 v1.3** · 2026-11-07 코드 대조 · 마일스톤 **M1.5 「시전 감각」** (M1 다음, M2 전) — 전달 방식 · 네트워크(갈래 A) · 연출 · 동작(갈래 C) · 볼트 이펙트(2026-11-06) · 볼트 발사 빛줄기(Q85) · 물줄기 · 미풍 빛 언어(Q86, 2026-11-07) 코드 반영. 코드 `Source/Grimoire/Magic/` · `Source/Grimoire/MagicFX/`
 >
 > 레퍼런스: **호그와트 레거시**의 마법 시전 · 투사체. 관련: [마법 시스템](./magic) · [소프트 락온 (R17)](./magic#소프트-락온-r17) · [스펙 — 마법](../spec/magic)
 
@@ -97,16 +97,16 @@
 
 #### 임시 이펙트 — 엔진 기본 · Niagara Examples Pack
 
-처음(사용자 지시 2026-11-05)은 엔진 Niagara 플러그인의 기본 템플릿 시스템(`/Niagara/DefaultAssets/Templates/Systems/`)만 썼고, 같은 날 사용자가 넣은 **Niagara Examples Pack**(`Content/NiagaraExamples/`)으로 일부를 바꿨다. 볼트(불씨 · 기본 공격)는 다음 절의 자체 제작 `NS_Bolt_*` 다. 색은 두 겹으로 맞춘다: ① 큐 처리기 · 투사체가 `UGrimSpellVisualSet::TintNiagara` 로 이름에 `Color` 가 든 Niagara 사용자 변수 모두에 속성색을 넣는다(팩마다 이름이 달라서 — 연기 · 흙 · 먼지 색은 둔다). 엔진 템플릿처럼 색 변수가 없으면 안 입혀진다. ② **속성색 펄스**(엔진 기본 도형 + 가산 발광 머티리얼 `M_GrimFX_Glow` + 점광원)가 「색이 곧 정보」를 거든다(볼트 묶음은 끔).
+처음(사용자 지시 2026-11-05)은 엔진 Niagara 플러그인의 기본 템플릿 시스템(`/Niagara/DefaultAssets/Templates/Systems/`)만 썼고, 같은 날 사용자가 넣은 **Niagara Examples Pack**(`Content/NiagaraExamples/`)으로 일부를 바꿨다. 지금은 네 묶음 모두 자체 제작으로 바뀌었다 — 볼트(불씨 · 기본 공격)는 다음 절의 `NS_Bolt_*`, 물줄기 · 미풍은 그다음 절의 `NS_Stream_*` · `NS_Cone_*`(2026-11-07, Q86). 아래 색 입히기 · 펄스 구조는 그대로 쓴다. 색은 두 겹으로 맞춘다: ① 큐 처리기 · 투사체가 `UGrimSpellVisualSet::TintNiagara` 로 이름에 `Color` 가 든 Niagara 사용자 변수 모두에 속성색을 넣는다(팩마다 이름이 달라서 — 연기 · 흙 · 먼지 색은 둔다). 엔진 템플릿처럼 색 변수가 없으면 안 입혀진다. ② **속성색 펄스**(엔진 기본 도형 + 가산 발광 머티리얼 `M_GrimFX_Glow` + 점광원)가 「색이 곧 정보」를 거든다(볼트 묶음은 끔).
 
 지금 연결된 것(정본 `Scripts/MagicFX/make_magicfx_assets.py` 의 `make_visual_sets`):
 
 | 묶음 | 색 | 섬광 | 몸통(Trail) | 터짐 | 펄스 · 자국 — 멀리서 구분되는 모양 |
 |---|---|---|---|---|---|
-| `VS_Ember` 불씨 | `#E0582B` | `NS_Bolt_Cast` | `NS_Bolt_Trail`(투사체 꼬리, 색 구 숨김) | `NS_Bolt_Impact` | 구 펄스 끔, 그을음 자국 |
-| `VS_BasicAttack` 기본 공격 | `#CFE3FF` | `NS_Bolt_Cast`(0.8배) | `NS_Bolt_Trail`(색 구 숨김) | `NS_Bolt_Impact`(0.8배) | 펄스 · 자국 없음, 책장 0.15초 |
-| `VS_WaterJet` 물줄기 | `#3A7BD5` | 팩 `NS_Bubble_Burst` | 엔진 FountainLightweight(줄기) | 팩 `NS_Bubble_Burst` | 파란 물방울 구슬 포물선, 터지면 납작한 물보라 원반 · 젖은 자국 |
-| `VS_Breeze` 미풍 | `#7CC9A6` | 엔진 DirectionalBurstLightweight | 엔진 RadialBurst(파동) | 팩 `NS_Dirt_Explosion_Small` | 반투명 연두 원뿔 껍질(사거리 · 반각만큼 퍼짐), 터지면 테두리 빛 구 · 자국 없음 |
+| `VS_Ember` 불씨 | `#E0582B` | `NS_Bolt_Cast` | `NS_Bolt_Trail`(투사체 꼬리, 색 구 숨김) + 발사 빛줄기 `NS_Bolt_Launch` | `NS_Bolt_Impact` | 구 펄스 끔, 그을음 자국 |
+| `VS_BasicAttack` 기본 공격 | `#CFE3FF` | `NS_Bolt_Cast`(0.8배) | `NS_Bolt_Trail`(색 구 숨김) + `NS_Bolt_Launch` | `NS_Bolt_Impact`(0.8배) | 펄스 · 자국 없음, 책장 0.15초 |
+| `VS_WaterJet` 물줄기 | `#3A7BD5` | `NS_Bolt_Cast`(0.7배) | `NS_Stream_Trail`(이어진 바늘 빛줄기 · 물방울 불티 · 끝 물보라) | `NS_Stream_Impact` | 펄스 · 구슬 끔, 젖은 자국 |
+| `VS_Breeze` 미풍 | `#7CC9A6` | `NS_Bolt_Cast`(0.7배) | `NS_Cone_Trail`(부채꼴 깃털 빛줄기) | `NS_Cone_Impact` | 원뿔 껍질 · 펄스 끔, 자국 없음 |
 
 소리도 임시로 엔진 기본(`/Engine/EngineSounds/1kSineTonePing` 을 높낮이만 달리 · `WhiteNoise` 를 짧게 끊어 · 줄기는 다시 틀어 반복)을 쓴다. 파티클 배율(0.25~0.6)은 눈으로 본 값이 아니라 추정이다 — 플레이로 맞춘다.
 
@@ -125,7 +125,33 @@
 - 색은 모두 Niagara 사용자 변수 `User.Color` 하나 — `TintNiagara` 가 연출 묶음의 속성색을 넣는다. 다른 속성 볼트는 같은 시스템에 색만 다른 연출 묶음이면 된다.
 - Niagara 는 엔진 실험 플러그인 **NiagaraToolsets**(ToolsetRegistry 의 JSON 도구: 템플릿 이미터 붙이기 · 모듈 입력 · HLSL 식 · Set Parameters)로 `Scripts/MagicFX/make_bolt_fx.py` 가 데이터에서 만든다(텍스처는 먼저 `Scripts/MagicFX/make_bolt_textures.py`). 그다음 `Scripts/MagicFX/make_magicfx_assets.py`(`GRIM_FX_STEPS=visual_sets`)를 돌린다. 비교 그림은 `Scripts/MagicFX/compare_bolt.py`.
 - 볼트 연출 묶음은 `bHideProjectileMesh` 로 투사체의 색 구를 숨기고, 구 펄스(`MuzzlePulse` · `ImpactPulse`)는 끈다.
-- 가까운 표적은 비행 장면이 거의 없다(볼트 75~90 m/s — 7.5 m 를 0.1초에 지난다) — 화면 확인은 `Grim.FX.Bolt`(시전 없이 연출만, `Source/Grimoire/Magic/GrimMagicDebug.cpp`) · `Grim.Cam` 으로 한다(`Scripts/MagicFX/capture_bolt.ps1`, [치트](../dev/cheats)). 볼트 갈래의 기록 · `Grim.FX.Bolt` 주석은 「투사체를 시전 대기(0.1초)만큼 앞당겨 만든다」고 하지만, 코드상 호스트 · 단독은 `CastWindup` 만큼 **기다렸다가** 완드 끝에서 쏘고, 앞당김(`AGrimSpellProjectile::CatchUp`)은 원격 시전자의 한쪽 지연이 Windup 을 넘을 때 그 넘은 만큼만(상한 0.15초 — `GrimSpellDelivery::SplitLag`)이다. 연출 방향은 Q85.
+- 화면 확인은 `Grim.FX.Bolt`(시전 없이 연출만, `Source/Grimoire/Magic/GrimMagicDebug.cpp`) · `Grim.Cam` 으로 한다(`Scripts/MagicFX/capture_bolt.ps1`, [치트](../dev/cheats)). 호스트 · 단독은 `CastWindup` 만큼 **기다렸다가** 완드 끝에서 쏘고, 앞당김(`AGrimSpellProjectile::CatchUp`)은 원격 시전자의 한쪽 지연이 Windup 을 넘을 때 그 넘은 만큼만(상한 0.15초 — `GrimSpellDelivery::SplitLag`)이다(Q110).
+
+##### 발사 빛줄기 (Q85, 2026-11-07)
+
+볼트는 75~90 m/s 라 4 m 앞 표적까지 0.05초(몇 프레임)에 닿는다 — 꼬리(`NS_Bolt_Trail`)는 투사체와 함께 사라져 가까운 표적에서는 날아가는 빛줄기가 거의 안 보였다. 원격 시전자의 볼트는 다른 사람 화면에서 지연을 당긴 만큼(최대 0.15초 ≈ 11 m) 앞에서 나타난다. **판정은 그대로 두고**, 보이는 볼트 사본이 시작할 때(`BeginPlay`, 시전자 화면에서 숨긴 진짜 복제본은 빼고 — 가짜가 대신 긋는다) 완드 끝부터 한 번 긋는 연출을 더했다.
+
+- 구현: `Source/Grimoire/Magic/GrimSpellProjectile.h` 의 `AGrimSpellProjectile::SpawnLaunchStreak`. 시작 = 시전자 완드 끝(`AGrimWand::GetMuzzleTransform`, 없으면 볼트 자리), 길이 = `GrimSpellDelivery::CalcLaunchStreakLength` — 볼트가 이미 가 있는 틈(Gap)과 `BoltSpeed × LaunchStreakSeconds`(0.1초 → 불씨 7.5 m) 중 긴 쪽, 그 사이에 맞을 것(지형 · 사물 · 폰, 감지용 영역 제외)이 있으면 거기까지. 그리는 시간 = 길이 ÷ 볼트 속력(0.02~0.12초).
+- 연출 묶음 칸: `UGrimSpellVisualSet::LaunchStreak` · `LaunchStreakSeconds`(`Source/Grimoire/Core/GrimSpellFXTypes.h`). 불씨 · 기본 공격 묶음이 `NS_Bolt_Launch` 를 쓴다. 시스템 +Z = 날아가는 쪽, 사용자 변수 `User.Length` · `User.DrawTime` · `User.Color`. 기본 공격 연타라 컴포넌트 풀링(`AutoRelease`, 성능 규칙 24).
+- `NS_Bolt_Launch`: 바늘 빛줄기(스프라이트 기준점 = 아래 끝 → 완드에서 길이가 0 → Length 로 자람) · 깃털 껍질(실안개) · 앞 끝 번쩍임(길이 ÷ 그리는 시간의 속도로 감) · 길 위 불티 16. 다 그린 뒤 0.14초에 사라진다.
+- 가까운 표적: 완드 → 표적까지 그어지고 표적에서 터짐. 먼 표적: 첫 7.5 m 를 긋고 볼트(꼬리)가 이어 날아간다. 확인: `Grimoire.Magic.Delivery.LaunchStreak`, [QA-FX-005 · 010](../qa/fx).
+
+#### 물줄기 · 미풍 — 볼트와 같은 빛 언어 (Q86, 2026-11-07)
+
+물줄기(아쿠엘, Stream) · 미풍(벤투스, Cone)도 볼트와 같은 그림 언어(흰 심 → 속성색 가산 발광, 바늘 빛줄기 · 불티 · 고리 · 번쩍임)로 다시 만들었다. 머티리얼 · 텍스처는 볼트의 `MI_Bolt_*` 를 그대로 쓰고, Niagara 는 사양 파일 → 헤드리스 조립으로 만든다([마법 이펙트 자체 제작 — 사양 파일로 만들기](./magic-fx-authoring#사양-파일로-만들기-2026-11-07)).
+
+| 시스템(`Content/Grimoire/MagicFX/Stream/` · `Cone/`) | 그리는 것 | C++ 가 넣는 사용자 변수 |
+|---|---|---|
+| `NS_Stream_Trail` | 이어진 바늘 빛줄기(초당 240, 속도 정렬) · 물빛 껍질 · 호 위 아무 데서나 떨어지는 물방울 불티 · 호가 막힌 곳의 물보라 · 고리 | `LaunchSpeed` · `GravityZ`(판정과 같은 포물선) · `ArcTime`(막힌 곳까지 시간 — 빛줄기가 거기서 끝남) · `EndPoint` · `EndSplash`(막혔으면 1) |
+| `NS_Stream_Impact` | 위로 튀는 물방울 22 · 퍼지는 고리 · 번쩍임 · 물안개 | — |
+| `NS_Cone_Trail` | 깃털 빛줄기 9가닥이 부채꼴로(시스템 X 축 = 수평으로 펼침) · 가는 바늘 가닥 6 · 실안개 8 · 빛 티끌 28 · 완드 끝 번쩍임 | `ConeRange` · `ConeHalfAngle`(마법의 원뿔 사거리 · 반각) |
+| `NS_Cone_Impact` | 바람 갈래 6 · 고리 · 티끌 · 번쩍임 | — |
+
+- 물줄기: 줄기 큐(`AGrimCueNotify_SpellChannel::UpdateStream`)가 매 프레임 판정과 같은 호(`UGrimSpellAbility::TraceStreamArc`)를 따라가 몸통을 발사 방향(`GrimSpellDelivery::SolveLaunchDirection`)으로 돌리고 위 변수를 넣는다. 막힌 곳까지 시간은 `GrimSpellDelivery::CalcArcTimeToPoint`(수평 거리 ÷ 수평 속력). 예전 물방울 구슬(엔진 구 메시)은 묶음에서 껐다(`StreamBeadCount` 0 — 기능은 남김).
+- 미풍: 시전 큐(쓸기)의 몸통(`Trail`)이 원뿔 껍질 펄스 대신 이 시스템이다. 큐가 원뿔 사거리 · 반각을 넣는다(`Source/Grimoire/MagicFX/GrimSpellCueNotifies.cpp`).
+- 완드 끝 섬광은 볼트의 `NS_Bolt_Cast`(0.7배)를 같이 쓴다. 색은 모두 `User.Color`.
+- 입자 어림(동시에 살아 있는 최대): 물줄기 몸통 355 · 터짐 29, 미풍 52 · 22, 볼트 발사 빛줄기 19 — 상한 2,000(성능 규칙 24) 안. 모두 Effect Type `EFT_Grim_Spell`.
+- 시전 동작 · 판정 · 네트워크는 그대로다. 확인: [QA-FX-008 · 009](../qa/fx) 그림.
 
 ### 네트워크 — "내 화면에서는 즉시"
 

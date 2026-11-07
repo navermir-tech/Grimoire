@@ -3,6 +3,9 @@
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimSpellDelivery.h"
 #include "Magic/GrimMagicSettings.h"
+#include "Magic/GrimSpellbookComponent.h"
+#include "Magic/GrimWand.h"
+#include "Core/GrimPlayerState.h"
 #include "Core/GrimSpellFXTypes.h"
 #include "AbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
@@ -120,6 +123,7 @@ void AGrimSpellProjectile::BeginPlay()
 	else
 	{
 		StartTrail();
+		SpawnLaunchStreak();
 	}
 
 	SetActorTickEnabled(HomingTarget.IsValid() && Definition && Definition->HomingStrength > 0.f);
@@ -258,6 +262,77 @@ void AGrimSpellProjectile::StartTrail()
 			Component->SetColorParameter(TEXT("Color"), Color);
 		}
 		TrailComponent = Component;
+	}
+}
+
+void AGrimSpellProjectile::SpawnLaunchStreak()
+{
+	const UGrimSpellVisualSet* VisualSet = Definition ? Definition->VisualSet.Get() : nullptr;
+	UNiagaraSystem* Streak = VisualSet ? Cast<UNiagaraSystem>(VisualSet->LaunchStreak) : nullptr;
+	UWorld* World = GetWorld();
+	if (!Streak || !World || GetNetMode() == NM_DedicatedServer || Definition->BoltSpeed <= 0.f)
+	{
+		return;
+	}
+
+	// 시작 = 시전자 완드 끝(없으면 볼트 자리). 원격 시전자의 볼트는 지연을 당긴 만큼 앞에서 나타난다 — 그 틈(Gap)도 잇는다.
+	const FVector BoltLocation = GetActorLocation();
+	const FVector Forward = GetActorForwardVector();
+	FVector Start = BoltLocation;
+	const APawn* InstigatorPawn = GetInstigator();
+	if (const AGrimPlayerState* PlayerState = InstigatorPawn ? InstigatorPawn->GetPlayerState<AGrimPlayerState>() : nullptr)
+	{
+		const UGrimSpellbookComponent* Spellbook = PlayerState->GetSpellbook();
+		if (const AGrimWand* Wand = Spellbook ? Spellbook->GetWand() : nullptr)
+		{
+			Start = Wand->GetMuzzleTransform().GetLocation();
+		}
+	}
+	const float Gap = FVector::Dist(Start, BoltLocation);
+	const float Ahead = FMath::Max(Definition->BoltSpeed * VisualSet->LaunchStreakSeconds - Gap, 0.f);
+	const FVector Aim = BoltLocation + Forward * Ahead;
+	const FVector Direction = (Aim - Start).GetSafeNormal(UE_SMALL_NUMBER, Forward);
+
+	// 그 사이에 맞을 것(지형 · 사물 · 폰)이 있으면 거기까지만 — 가까운 표적에서 빛줄기가 표적을 뚫고 지나가지 않게.
+	float HitDistance = 0.f;
+	FCollisionObjectQueryParams Objects;
+	Objects.AddObjectTypesToQuery(ECC_WorldStatic);
+	Objects.AddObjectTypesToQuery(ECC_WorldDynamic);
+	Objects.AddObjectTypesToQuery(ECC_Pawn);
+	Objects.AddObjectTypesToQuery(ECC_PhysicsBody);
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(GrimLaunchStreak), false, this);
+	Query.AddIgnoredActor(InstigatorPawn);
+	TArray<FHitResult> Hits;
+	World->LineTraceMultiByObjectType(Hits, Start, Start + Direction * (FVector::Dist(Start, Aim) + 1.f), Objects, Query);
+	for (const FHitResult& Hit : Hits)
+	{
+		if (!IsSensorComponent(Hit.GetComponent()) && Hit.GetActor() != GetOwner())
+		{
+			HitDistance = FMath::Max(Hit.Distance, 1.f);
+			break;
+		}
+	}
+
+	const float Length = GrimSpellDelivery::CalcLaunchStreakLength(Gap, Definition->BoltSpeed, VisualSet->LaunchStreakSeconds, HitDistance);
+	if (Length <= 1.f)
+	{
+		return;
+	}
+
+	FFXSystemSpawnParameters Spawn;
+	Spawn.WorldContextObject = this;
+	Spawn.SystemTemplate = Streak;
+	Spawn.Location = Start;
+	Spawn.Rotation = FRotationMatrix::MakeFromZ(Direction).Rotator();
+	Spawn.bAutoDestroy = true;
+	Spawn.bAutoActivate = false;
+	Spawn.PoolingMethod = EPSCPoolMethod::AutoRelease; // 기본 공격 연타 — 성능 규칙 24 풀링
+	if (UNiagaraComponent* Component = UNiagaraFunctionLibrary::SpawnSystemAtLocationWithParams(Spawn))
+	{
+		UGrimSpellVisualSet::TintNiagara(Component, VisualSet->ElementColor);
+		Component->SetVariableFloat(TEXT("Length"), Length);
+		Component->SetVariableFloat(TEXT("DrawTime"), FMath::Clamp(Length / Definition->BoltSpeed, 0.02f, 0.12f));
+		Component->Activate(true);
 	}
 }
 

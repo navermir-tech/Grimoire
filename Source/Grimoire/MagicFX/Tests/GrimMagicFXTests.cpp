@@ -4,6 +4,8 @@
 #include "MagicFX/GrimMagicFXStatics.h"
 #include "Magic/GrimMagicTags.h"
 #include "MagicFX/GrimMagicFXVisualSet.h"
+#include "NiagaraSystem.h"
+#include "NiagaraEffectType.h"
 #include "MagicFX/GrimMagicFXTags.h"
 #include "Core/GrimGameplayTags.h"
 #include "Magic/GrimSpellDefinition.h"
@@ -303,6 +305,28 @@ bool FGrimMagicFXAssetsTest::RunTest(const FString& Parameters)
 			TestTrue(*FString::Printf(TEXT("속성색 %d · %d 구분"), A, B), Distance > 0.3f);
 		}
 	}
+	// 연출 묶음의 Niagara 는 모두 마법 Effect Type 을 단다(성능 규칙 24 · BUG-006). 볼트 묶음은 발사 빛줄기(Q85)가 있다.
+	for (const TCHAR* Name : { TEXT("VS_Ember"), TEXT("VS_WaterJet"), TEXT("VS_Breeze"), TEXT("VS_BasicAttack") })
+	{
+		const UGrimMagicFXVisualSet* VisualSet = LoadObject<UGrimMagicFXVisualSet>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/MagicFX/VisualSets/%s.%s"), Name, Name));
+		if (!TestNotNull(Name, VisualSet))
+		{
+			continue;
+		}
+		for (const UFXSystemAsset* Asset : { VisualSet->MuzzleFlash.Get(), VisualSet->Trail.Get(), VisualSet->Impact.Get(), VisualSet->LaunchStreak.Get() })
+		{
+			if (const UNiagaraSystem* System = Cast<UNiagaraSystem>(Asset))
+			{
+				TestEqual(*FString::Printf(TEXT("%s · %s Effect Type"), Name, *System->GetName()), GetNameSafe(System->GetEffectType()), FString(TEXT("EFT_Grim_Spell")));
+			}
+		}
+		if (FCString::Strcmp(Name, TEXT("VS_Ember")) == 0 || FCString::Strcmp(Name, TEXT("VS_BasicAttack")) == 0)
+		{
+			TestNotNull(*FString::Printf(TEXT("%s 발사 빛줄기"), Name), VisualSet->LaunchStreak.Get());
+			TestTrue(*FString::Printf(TEXT("%s 발사 빛줄기 시간"), Name), VisualSet->LaunchStreakSeconds > 0.f);
+		}
+	}
+
 	TestNotNull(TEXT("펄스 머티리얼"), Settings->GlowMaterial.LoadSynchronous());
 	TestNotNull(TEXT("책 머티리얼"), Settings->BookMaterial.LoadSynchronous());
 
