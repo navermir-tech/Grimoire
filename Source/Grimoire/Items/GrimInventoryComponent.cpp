@@ -455,7 +455,14 @@ EGrimItemUseResult UGrimInventoryComponent::ReadSkillbook(int32 SlotIndex, const
 		SendNotice(EGrimItemNotice::CannotUse, Def.Id, 1);
 		return EGrimItemUseResult::Invalid;
 	}
-	const EGrimLearnResult Result = Spellbook->UseSkillbook(Spell);
+	const EGrimLearnResult Result = Spellbook->UseSkillbook(Spell, true);
+	if (Result == EGrimLearnResult::Sealed)
+	{
+		// 봉인된 책(Q122): 그리모어에 기록하고 가방에서 뺀다 — 그 서클에 오르면 저절로 읽는다.
+		RemoveFromSlot(SlotIndex, 1);
+		SendNotice(EGrimItemNotice::Sealed, Def.Id, Spell->Circle);
+		return EGrimItemUseResult::CannotUse;
+	}
 	if (Result == EGrimLearnResult::Learned || Result == EGrimLearnResult::ProficiencyGained)
 	{
 		RemoveFromSlot(SlotIndex, 1);
@@ -563,9 +570,10 @@ void UGrimInventoryComponent::SendNotice(EGrimItemNotice Notice, FName ItemId, i
 
 void UGrimInventoryComponent::Client_Notice_Implementation(EGrimItemNotice Notice, FName ItemId, int32 Count)
 {
-	if (Notice == EGrimItemNotice::CircleTooLow)
+	if (Notice == EGrimItemNotice::CircleTooLow || Notice == EGrimItemNotice::Sealed)
 	{
-		UE_LOG(LogGrimItems, Display, TEXT("[%s] 가방 알림 CircleTooLow %s 필요 서클 %d"), GetWorld() && GetWorld()->GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server"), *ItemId.ToString(), Count);
+		UE_LOG(LogGrimItems, Display, TEXT("[%s] 가방 알림 %s %s 필요 서클 %d"), GetWorld() && GetWorld()->GetNetMode() == NM_Client ? TEXT("Client") : TEXT("Server"),
+			Notice == EGrimItemNotice::Sealed ? TEXT("Sealed") : TEXT("CircleTooLow"), *ItemId.ToString(), Count);
 	}
 	OnNotice.Broadcast(this, Notice, ItemId, Count);
 }

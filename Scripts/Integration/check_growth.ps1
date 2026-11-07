@@ -3,10 +3,10 @@
 #   powershell -File Scripts\Integration\check_growth.ps1     # 결과: Saved\NetCheck\growth.log 의 요약
 #
 # 기대(시작 기준 초):
-#   16 화염구 스킬북 → 17 집기: CircleTooLow(1서클)
+#   16 화염구 스킬북 → 17 집기: Sealed(1서클 — 봉인된 책으로 기록, 책 사라짐, Q122)
 #   18 불씨를 양초에 시전 → 숙련도 경험 5(시전 1 + 의미 있는 명중 4 — 시전과 명중은 반복을 따로 센다)
-#   22 불씨 · 물줄기 +100 → 둘 다 C → 23 승급: 서클 1 → 2(마법 3 · 등급 합 2)
-#   24 화염구 집기: Learned → 25~26 불씨 스킬북: ProficiencyGained(C 구간 200 × 0.4 = 80)
+#   22 불씨 · 물줄기 +100 → 둘 다 C → 23 승급: 서클 1 → 2(자격 C 이상 2개, 그중 1서클 마법) → 봉인 풀려 화염구 Learned
+#   24 집을 책 없음(이미 배움) → 25~26 불씨 스킬북: ProficiencyGained(C 구간 200 × 0.4 = 80)
 #   27 불씨 +5000(S) → 28~29 불씨 스킬북: AlreadyMastered(책 남음)
 param(
 	[int]$RunSeconds = 55

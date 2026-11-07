@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
 #include "Magic/GrimProficiencyTypes.h"
+#include "Magic/GrimCircleTypes.h"
 #include "GrimProficiencySettings.generated.h"
 
 class UDataTable;
@@ -62,42 +63,9 @@ public:
 	TSoftObjectPtr<UDataTable> GradeTableAsset;
 };
 
-/** 서클 승급 조건 하나 (R06). 지금은 데이터 조건만 — 마법탑 시험은 튜토리얼 묶음에서 더한다. */
-USTRUCT(BlueprintType)
-struct GRIMOIRE_API FGrimCircleRequirement
-{
-	GENERATED_BODY()
-
-	/** 이 조건으로 오르는 서클(2 = 1→2) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Progression", meta = (ClampMin = "2", ClampMax = "10"))
-	int32 TargetCircle = 2;
-
-	/** 배운 마법 수(숙련도를 쌓는 마법만 센다) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Progression", meta = (ClampMin = "0"))
-	int32 MinKnownSpells = 0;
-
-	/** 숙련도 등급 합(D = 0, C = 1 … — 등급표의 행 번호) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Progression", meta = (ClampMin = "0"))
-	int32 MinGradeSum = 0;
-};
-
-/** 승급 조건 검사 결과 */
-struct GRIMOIRE_API FGrimCircleCheck
-{
-	int32 CurrentCircle = 1;
-	/** 다음 서클 조건이 표에 없으면(지금 열린 최고 서클) true */
-	bool bAtMax = true;
-	int32 NextCircle = 0;
-	int32 KnownSpells = 0;
-	int32 RequiredKnownSpells = 0;
-	int32 GradeSum = 0;
-	int32 RequiredGradeSum = 0;
-	bool bMet = false;
-};
-
 /**
- * 서클 승급 (R06) — [/Script/Grimoire.GrimProgressionSettings]. 승급은 서클만 올린다(최대 마나는 레벨 몫 — 다음 묶음).
- * 조건 표에 있는 서클까지만 오른다(M2 = 3서클).
+ * 서클 (R06 · Q122) — [/Script/Grimoire.GrimProgressionSettings]. 서클 표(Circles.csv)가 서클마다 주는 것(수치 보정 · 해금)과
+ * 그 서클로 오르는 숙련도 자격을 갖는다. 승급은 서클만 올린다(최대 마나는 레벨 몫 — Q30). 표에 있는 서클까지만 오른다.
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Grimoire Progression"))
 class GRIMOIRE_API UGrimProgressionSettings : public UDeveloperSettings
@@ -109,11 +77,25 @@ public:
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 
-	/** 순수 계산: 지금 서클 · 배운 마법 수 · 등급 합으로 다음 서클 조건을 본다. */
-	static FGrimCircleCheck Evaluate(TConstArrayView<FGrimCircleRequirement> Requirements, int32 CurrentCircle, int32 KnownSpells, int32 GradeSum);
+	/** 서클 표(에셋이 지정돼 있으면 그것, 아니면 CSV). 한 번 읽어 둔다. 읽지 못하면 빈 표 */
+	static const FGrimCircleTable& GetCircleTable();
 
-	UPROPERTY(Config, EditAnywhere, Category = "Progression", meta = (TitleProperty = "→ {TargetCircle}"))
-	TArray<FGrimCircleRequirement> CircleRequirements;
+	/** 다시 읽게 한다(콘솔 Grim.Magic.ReloadCircles) */
+	static void ResetCircleTable();
+
+	/** CSV 문자열 → 표(테스트 · 로더 공용). 문제는 OutProblems 에 */
+	static UDataTable* CreateCircleTableFromCSV(const FString& CSV, TArray<FString>& OutProblems);
+
+	/** 공용 숙련도 등급표의 등급 순서(D, C, B, A, S) */
+	static void GetGradeOrder(TArray<FName>& OutOrder);
+
+	/** 서클 표 원본 CSV. 프로젝트 Content 폴더 기준 */
+	UPROPERTY(Config, EditAnywhere, Category = "Circle")
+	FString CircleTableCSV = TEXT("Grimoire/Data/Circles.csv");
+
+	/** 지정하면 CSV 대신 이 DataTable(DT_Circles)을 쓴다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Circle", meta = (RequiredAssetDataTags = "RowStructure=/Script/Grimoire.GrimCircleRow"))
+	TSoftObjectPtr<UDataTable> CircleTableAsset;
 };
 
 /**

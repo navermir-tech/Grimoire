@@ -121,23 +121,98 @@ FGrimProficiencyCurve UGrimProficiencySettings::GetCurveFor(const UGrimSpellDefi
 	return Curves[FMath::Clamp(Circle - 1, 0, Curves.Num() - 1)];
 }
 
-FGrimCircleCheck UGrimProgressionSettings::Evaluate(TConstArrayView<FGrimCircleRequirement> Requirements, int32 CurrentCircle, int32 KnownSpells, int32 GradeSum)
+namespace GrimCircleSettingsLocal
 {
-	FGrimCircleCheck Check;
-	Check.CurrentCircle = CurrentCircle;
-	Check.KnownSpells = KnownSpells;
-	Check.GradeSum = GradeSum;
-	for (const FGrimCircleRequirement& Requirement : Requirements)
+	FGrimCircleTable GCircleTable;
+	bool GCircleTableTried = false;
+	TStrongObjectPtr<UDataTable> GCircleDataTable;
+
+	FAutoConsoleCommand GReloadCirclesCommand(
+		TEXT("Grim.Magic.ReloadCircles"),
+		TEXT("서클 표(Circles.csv)를 다시 읽는다"),
+		FConsoleCommandDelegate::CreateStatic(&UGrimProgressionSettings::ResetCircleTable));
+}
+
+UDataTable* UGrimProgressionSettings::CreateCircleTableFromCSV(const FString& CSV, TArray<FString>& OutProblems)
+{
+	UDataTable* Table = NewObject<UDataTable>(GetTransientPackage(), MakeUniqueObjectName(GetTransientPackage(), UDataTable::StaticClass(), TEXT("DT_Circles")));
+	Table->RowStruct = FGrimCircleRow::StaticStruct();
+	OutProblems.Append(Table->CreateTableFromCSVString(CSV));
+	if (Table->GetRowMap().Num() == 0)
 	{
-		if (Requirement.TargetCircle == CurrentCircle + 1)
+		OutProblems.Add(TEXT("행이 없다"));
+		return nullptr;
+	}
+	return Table;
+}
+
+void UGrimProgressionSettings::GetGradeOrder(TArray<FName>& OutOrder)
+{
+	TArray<FGrimProficiencyGrade> Grades;
+	UGrimProficiencySettings::GetGradesFor(nullptr, Grades);
+	OutOrder.Reset(Grades.Num());
+	for (const FGrimProficiencyGrade& Grade : Grades)
+	{
+		OutOrder.Add(Grade.Grade);
+	}
+}
+
+const FGrimCircleTable& UGrimProgressionSettings::GetCircleTable()
+{
+	using namespace GrimCircleSettingsLocal;
+	if (GCircleTableTried)
+	{
+		return GCircleTable;
+	}
+	GCircleTableTried = true;
+	GCircleTable = FGrimCircleTable();
+
+	const UGrimProgressionSettings* Settings = Get();
+	TArray<FString> Problems;
+	UDataTable* Table = nullptr;
+	FString Source = Settings->CircleTableAsset.ToString();
+	if (!Settings->CircleTableAsset.IsNull())
+	{
+		Table = Settings->CircleTableAsset.LoadSynchronous();
+		if (!Table || Table->GetRowStruct() != FGrimCircleRow::StaticStruct())
 		{
-			Check.bAtMax = false;
-			Check.NextCircle = Requirement.TargetCircle;
-			Check.RequiredKnownSpells = Requirement.MinKnownSpells;
-			Check.RequiredGradeSum = Requirement.MinGradeSum;
-			Check.bMet = KnownSpells >= Requirement.MinKnownSpells && GradeSum >= Requirement.MinGradeSum;
-			break;
+			UE_LOG(LogGrimMagic, Error, TEXT("서클 표 에셋 %s 을 쓸 수 없다(없거나 행 구조체가 다름). CSV 로 대신한다."), *Source);
+			Table = nullptr;
 		}
 	}
-	return Check;
+	if (!Table)
+	{
+		Source = FPaths::Combine(FPaths::ProjectContentDir(), Settings->CircleTableCSV);
+		FString Text;
+		if (FFileHelper::LoadFileToString(Text, *Source))
+		{
+			Table = CreateCircleTableFromCSV(Text, Problems);
+		}
+		else
+		{
+			Problems.Add(TEXT("파일을 열 수 없다"));
+		}
+	}
+	GCircleDataTable.Reset(Table);
+
+	TArray<FName> GradeOrder;
+	GetGradeOrder(GradeOrder);
+	if (Table)
+	{
+		FGrimCircleMath::ReadTable(Table, GCircleTable, GradeOrder, Problems);
+	}
+	for (const FString& Problem : Problems)
+	{
+		UE_LOG(LogGrimMagic, Warning, TEXT("서클 표 %s: %s"), *Source, *Problem);
+	}
+	UE_LOG(LogGrimMagic, Log, TEXT("서클 %d 개를 읽었다: %s"), GCircleTable.GetMaxCircle(), *Source);
+	return GCircleTable;
+}
+
+void UGrimProgressionSettings::ResetCircleTable()
+{
+	using namespace GrimCircleSettingsLocal;
+	GCircleTable = FGrimCircleTable();
+	GCircleTableTried = false;
+	GCircleDataTable.Reset();
 }

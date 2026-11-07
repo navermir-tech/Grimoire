@@ -178,6 +178,10 @@ struct GRIMOIRE_API FGrimEquipmentRow : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment")
 	float HeatResist = 0.f;
+
+	/** 재료 등급 1~5(장비 스펙 「재료 등급」). 서클 표(Circles.csv)의 EquipTier 이하여야 입는다(Q122) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Equipment", meta = (ClampMin = "1"))
+	int32 Tier = 1;
 };
 
 struct GRIMOIRE_API FGrimBuildPieceDefinition

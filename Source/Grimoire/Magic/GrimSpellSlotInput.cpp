@@ -131,7 +131,7 @@ namespace GrimSpellSlotInput
 			}
 			const int32 AbsoluteSlot = SlotSpells.IndexOfByKey(Spell);
 			const FGameplayTag Desired = FGrimSpellSlotInputMath::ComputeInputTag(IsBasicAttackSpell(Spell), AbsoluteSlot,
-				Spellbook->GetActiveSlotSet(), Settings->SpellSlotsPerSet, Settings->SpellSlotSets);
+				Spellbook->GetActiveSlotSet(), Settings->SpellSlotsPerSet, Spellbook->GetUnlockedSlotSets());
 
 			FGameplayTagContainer& Tags = Spec.GetDynamicSpecSourceTags();
 			FGameplayTagContainer ToRemove;

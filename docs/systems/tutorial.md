@@ -19,7 +19,7 @@
 
 ## 퀘스트 표
 
-- **Quests.csv**: 행 이름 = 퀘스트 ID. `Kind`(Main · Trial · Side), `AutoStart`(설정 `AutoStartMaps` 의 맵에서만), `TrialCircle`(시험이면 통과 때 오르는 서클), `RequireCircleConditions`(시험 시작에 승급 조건 — 배운 마법 수 · 등급 합 — 도 볼까), `RequiresQuest` · `RequiresStep`(그 퀘스트를 끝냈거나 그 단계 이상 진행 중), `RewardXP`(`UGrimLevelComponent::AwardExperience`, 출처 `XPSource.Quest`), `RewardSpell`(스킬북 하나를 쓴 것처럼), `NextQuest`.
+- **Quests.csv**: 행 이름 = 퀘스트 ID. `Kind`(Main · Trial · Side), `AutoStart`(설정 `AutoStartMaps` 의 맵에서만), `TrialCircle`(시험이면 통과 때 오르는 서클), `RequireCircleConditions`(시험 시작에 승급 자격 — 서클 표의 숙련도 조건, Q122 — 도 볼까. 지금 두 시험 모두 True), `RequiresQuest` · `RequiresStep`(그 퀘스트를 끝냈거나 그 단계 이상 진행 중), `RewardXP`(`UGrimLevelComponent::AwardExperience`, 출처 `XPSource.Quest`), `RewardSpell`(스킬북 하나를 쓴 것처럼), `NextQuest`.
 - **QuestSteps.csv**: `Quest` · `Step`(0 부터 빈틈 없이) · `Text`(추적 창) · `TimeLimitSeconds`(넘기면 퀘스트 실패 — 다시 청할 수 있다) · `TimeOfDayOnStart`(`Dusk+0.2` = 해넘이 + 0.2시간, `Dawn` · `Noon` · `Midnight` · 숫자 시) · `PropsTag`(이 태그의 소품을 단계 시작에 처음 상태로 되돌리고 켠다, 끝나면 끈다) · `Give`(아래).
 - **QuestObjectives.csv**: 한 단계의 목표를 **모두** 채우면 다음 단계. 한 번 채운 목표는 그 단계 동안 남는다(켰던 양초가 꺼져도 「켰다」).
 
@@ -79,7 +79,7 @@
 | 22 | 아침 — 스승에게(거점 핵, 이제 승급 시험을 청할 수 있다) | TalkToNpc | 진짜 |
 | 23 · 24 | 거점 세울 곳으로(Item BaseCore) · 첫 거점 | ReachLocation Tut_BaseSite · Event Base.Founded | 진짜 · M4 |
 
-- **승급 시험**(튜토리얼 밖, 스승의 서비스 「서클 승급 시험」 — 첫 밤 뒤): `Trial_Circle2` = 시험의 방으로 → 40초 안에 양초 셋(소품 `Trial2_Prop` 을 처음 상태로), 보상 이그니스 스킬북. `Trial_Circle3` = 60초 안에 움직이는 표적 세 번 + 젖은 양초(젖음 2) 말려 켜기. 통과 = `UGrimProgressionComponent::TryCircleUp(강제)`. 지금 표는 `RequireCircleConditions = False`(시험이 승급 조건을 대신) — 결정 필요.
+- **승급 시험**(튜토리얼 밖, 스승의 서비스 「서클 승급 시험」 — 첫 밤 뒤): `Trial_Circle2` = 시험의 방으로 → 40초 안에 양초 셋(소품 `Trial2_Prop` 을 처음 상태로), 보상 이그니스 스킬북. `Trial_Circle3` = 60초 안에 움직이는 표적 세 번 + 젖은 양초(젖음 2) 말려 켜기. 통과 = `UGrimProgressionComponent::TryCircleUp(강제)`. 시험을 청할 때 승급 자격(Q122 — 2서클 = 숙련도 C 이상 마법 둘, 3서클 = B 이상 둘, 그중 지금 서클 마법 하나 이상)을 본다(`RequireCircleConditions = True`). 모자라면 스승 대사 `Trial.NotReady` + HUD 위쪽 까닭 한 줄(마법 실패 알림 `PromotionGrade` · `PromotionCurrentCircle`) — [마법 — 서클](./magic#승급-—-숙련도-자격-시험-q122).
 - **사냥꾼 첫 등장**(`Hunter_FirstEncounter`): 튜토리얼을 끝낸 뒤 사냥꾼 거점의 발동 볼륨에 들어가면 시작 → 거점 살펴보기 → 스승에게 알리기. 이야기는 다음 묶음에서.
 
 ## 마법탑 NPC · 서비스

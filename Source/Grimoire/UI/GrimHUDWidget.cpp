@@ -383,7 +383,7 @@ void UGrimHUDWidget::RefreshSlots(UAbilitySystemComponent* ASC, const UGrimSpell
 		}
 	}
 	const FGrimSlotLayout Layout = FGrimUIMath::ComputeSlotLayout(SlotKnown, Tracked, Spellbook ? Spellbook->GetActiveSlotSet() : 0,
-		SlotSettings->SpellSlotsPerSet, SlotSettings->SpellSlotSets, Settings->bSeparateBasicAttackSlot);
+		SlotSettings->SpellSlotsPerSet, Spellbook ? Spellbook->GetUnlockedSlotSets() : SlotSettings->SpellSlotSets, Settings->bSeparateBasicAttackSlot);
 
 	auto SpellAt = [Spellbook](int32 Index) -> const UGrimSpellDefinition*
 	{
@@ -443,7 +443,9 @@ void UGrimHUDWidget::RefreshPrompt(const UGrimSpellbookComponent* Spellbook)
 		Text = FText::Format(LOCTEXT("PromptMastered", "스킬북 「{0}」 — 이미 통달한 마법"), Spell->DisplayName);
 		break;
 	case EGrimLearnResult::CircleTooLow:
-		Text = FText::Format(LOCTEXT("PromptCircle", "스킬북 「{0}」 — {1}서클이 되어야 읽을 수 있다"), Spell->DisplayName, Spell->Circle);
+		Text = Spellbook->IsSealed(Spell)
+			? FText::Format(LOCTEXT("PromptCircle", "스킬북 「{0}」 — {1}서클이 되어야 읽을 수 있다(이미 봉인된 책으로 기록됨)"), Spell->DisplayName, Spell->Circle)
+			: FText::Format(LOCTEXT("PromptSeal", "스킬북 「{0}」 ({1}서클) — 집으면 「봉인된 책」으로 그리모어에 기록한다"), Spell->DisplayName, Spell->Circle);
 		break;
 	default:
 		Text = FText::Format(LOCTEXT("PromptKnown", "스킬북 「{0}」"), Spell->DisplayName);
@@ -500,6 +502,10 @@ void UGrimHUDWidget::HandleLearnResult(UGrimSpellbookComponent* Spellbook, const
 	case EGrimLearnResult::TooFar:
 		ShowToast(LOCTEXT("TooFar", "책에서 너무 멀다"));
 		break;
+	case EGrimLearnResult::Sealed:
+		ShowToast(FText::Format(LOCTEXT("Sealed", "봉인된 책 「{0}」 ({1}서클) — 그리모어에 기록했다. 그 서클에 오르면 저절로 읽는다"), Name, Spell ? Spell->Circle : 0),
+			FLinearColor(0.85f, 0.8f, 1.f));
+		break;
 	default:
 		break;
 	}
@@ -514,7 +520,7 @@ void UGrimHUDWidget::HandleCircleUpResult(UGrimProgressionComponent* Progression
 	}
 	else
 	{
-		ShowToast(LOCTEXT("CircleUpFail", "아직 다음 서클의 조건이 모자라다 — 그리모어에서 확인"), FLinearColor(1.f, 0.6f, 0.5f));
+		ShowToast(LOCTEXT("CircleUpFail", "아직 다음 서클의 자격이 모자라다 — 그리모어 「서클」 탭에서 확인"), FLinearColor(1.f, 0.6f, 0.5f));
 	}
 }
 

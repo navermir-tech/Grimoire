@@ -1,5 +1,5 @@
 Name,Title,Summary,Kind,AutoStart,TrialCircle,RequireCircleConditions,RequiresQuest,RequiresStep,RewardXP,RewardSpell,NextQuest
 Tutorial,"마법탑의 견습","탑에서 깨어나 마법을 배우고, 첫 밤을 넘기고, 첫 거점을 세운다",Main,True,0,False,None,0,100,None,None
-Trial_Circle2,"2서클 승급 시험","시험의 방에서 제한 시간 안에 양초 셋을 켠다",Trial,False,2,False,Tutorial,22,30,Fireball,None
-Trial_Circle3,"3서클 승급 시험","움직이는 표적을 맞히고 젖은 양초를 말려 켠다",Trial,False,3,False,Tutorial,22,50,None,None
+Trial_Circle2,"2서클 승급 시험","시험의 방에서 제한 시간 안에 양초 셋을 켠다",Trial,False,2,True,Tutorial,22,30,Fireball,None
+Trial_Circle3,"3서클 승급 시험","움직이는 표적을 맞히고 젖은 양초를 말려 켠다",Trial,False,3,True,Tutorial,22,50,None,None
 Hunter_FirstEncounter,"사냥꾼의 흔적","사냥꾼 거점에서 본 것을 마법탑에 알린다",Main,False,0,False,Tutorial,999,0,None,None

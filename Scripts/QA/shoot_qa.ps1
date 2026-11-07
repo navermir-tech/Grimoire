@@ -7,7 +7,7 @@
 # 장면 = 이름, 찍는 초, 앞서 칠 명령(쉼표 없이 ; 로 — 1초 간격으로 차례로). 맵 로드(10~40초)를 넉넉히 둔다.
 param(
 	# Main = 기본 장면들, Pose = 시작 자리 앞 고정 카메라로 완드 · 그리모어 앞모습과 시전 순간(R21)
-	[ValidateSet("Main", "Pose", "Fizzle")]
+	[ValidateSet("Main", "Pose", "Fizzle", "Circle")]
 	[string]$Set = "Main",
 	[int]$Start = 45,
 	[int]$ResX = 1600,
@@ -57,6 +57,14 @@ $FizzleScenes = @(
 	@("qa-castfail-nowand", "slomo 1;Grim.Base.Unequip 0;slomo 0.1;Grim.Input.Press Slot2 None", 0)
 )
 if ($Set -eq "Fizzle") { $Scenes = $FizzleScenes }
+# 서클(Q122) — 2서클 책을 가방에서 읽어 봉인된 책으로 만든 뒤 그리모어 「서클」 탭(지금 · 다음 서클 보상 · 승급 자격 · 봉인된 책),
+# 「마법」 탭(1서클이라 슬롯 세트 2~4 가 흐림), 숙련도를 채워 승급한 뒤 다시 「서클」 탭
+$CircleScenes = @(
+	@("qa-grimoire-circle", "Grim.Items.Give Skillbook_Fireball 1;Grim.Items.Eat Skillbook_Fireball;Grim.UI.GrimoireTab 3", 2),
+	@("qa-grimoire-slotsets", "Grim.UI.GrimoireTab 0", 2),
+	@("qa-grimoire-circle2", "Grim.Magic.AddXP Ember 100000;Grim.Magic.AddXP WaterJet 100000;Grim.Magic.CircleUp 0;Grim.UI.GrimoireTab 3", 2)
+)
+if ($Set -eq "Circle") { $Scenes = $CircleScenes }
 
 $Cmds = @("r.ScreenPercentage 100")
 $T = $Start

@@ -1,5 +1,5 @@
 ﻿# Q71 기본 완드 · Q64 마법 실패 알림 2인 확인(헤드리스): 리슨 서버 + 클라이언트를 -game -nullrhi 로 띄우고
-# 호스트 · 클라이언트가 각자 ① 기본 완드를 쥐고 시작 → ② 쿨타임 중 다시 누름 → ③ 마나가 모자람 → ④ 2서클 스킬북 읽기 →
+# 호스트 · 클라이언트가 각자 ① 기본 완드를 쥐고 시작 → ② 쿨타임 중 다시 누름 → ③ 마나가 모자람 → ④ 2서클 스킬북 읽기(봉인된 책, Q122) →
 # ⑤ 완드를 벗고 마법(완드 없음) · 기본 공격 입력(주먹질) → ⑥ 다시 입기. 서버가 까닭을 정하고 소유 클라이언트에 알렸는지, 연출 큐가 모두에게 갔는지 로그로 본다.
 #
 #   powershell -File Scripts\Magic\net_check_castfail.ps1      # 결과: Saved\NetCheckCastFail\server.log · client.log 요약, NETCHECK_RESULT fail=0
@@ -94,9 +94,9 @@ if (([regex]::Matches($ServerText, "\[Server\] 마법 실패 알림 ")).Count -g
 # 연출 큐: 모든 기기 — 클라이언트는 자기 것 + 호스트 것
 Expect-Count "클라이언트가 본 실패 연출" $ClientText "\[Client\] 마법 실패 연출 " 5
 Expect-Count "호스트가 본 실패 연출" $ServerText "\[Server\] 마법 실패 연출 " 5
-# ④ 2서클 스킬북
-Expect-Count "호스트 가방 알림 서클" $ServerText "\[Server\] 가방 알림 CircleTooLow Skillbook_Fireball 필요 서클 2" 1
-Expect-Count "클라이언트 가방 알림 서클" $ClientText "\[Client\] 가방 알림 CircleTooLow Skillbook_Fireball 필요 서클 2" 1
+# ④ 2서클 스킬북 — Q122 부터는 봉인된 책으로 기록(책 소모)
+Expect-Count "호스트 가방 알림 봉인" $ServerText "\[Server\] 가방 알림 Sealed Skillbook_Fireball 필요 서클 2" 1
+Expect-Count "클라이언트 가방 알림 봉인" $ClientText "\[Client\] 가방 알림 Sealed Skillbook_Fireball 필요 서클 2" 1
 # ⑤ 완드 벗음 → 손에서 숨김 · 주먹질, ⑥ 다시 입음 → 보임
 Expect-Count "손의 완드 숨김" $ServerText "손의 완드 숨김" 2
 Expect-Count "손의 완드 보임" $ServerText "손의 완드 보임" 2

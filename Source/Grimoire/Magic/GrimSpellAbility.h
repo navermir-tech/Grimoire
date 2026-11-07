@@ -87,6 +87,15 @@ public:
 	 */
 	static FGrimProficiencyMultipliers GetCasterMultipliers(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
 
+	/** 시전자 서클(Circle 어트리뷰트 — 없으면 0) */
+	static int32 GetCasterCircle(const UAbilitySystemComponent* ASC);
+
+	/** 격 차이 위력 배율(Q122 — 서클 표): 1 + min(차이 × GapPowerPerCircle, GapPowerCap). 피해 Spec 에 곱한다(서버) */
+	static float GetCirclePowerMultiplier(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
+
+	/** 격 차이 마나 배율(Q122): 1 − min(차이 × GapManaPerCircle, GapManaCap). GetCasterMultipliers 의 ManaCost 에 들어 있다 */
+	static float GetCircleManaMultiplier(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
+
 	/** 시전을 막는 상태 태그(잠 · 쓰러짐 · 기절 — 이름은 UGrimSpellbookSettings::CastBlockingTags)가 붙어 있는가 */
 	static bool HasCastBlockingTag(const UAbilitySystemComponent* ASC);
 

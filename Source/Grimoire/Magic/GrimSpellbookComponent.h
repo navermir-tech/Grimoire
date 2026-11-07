@@ -5,6 +5,7 @@
 #include "GameplayAbilitySpecHandle.h"
 #include "Net/Serialization/FastArraySerializer.h"
 #include "Magic/GrimProficiencyTypes.h"
+#include "Magic/GrimCircleTypes.h"
 #include "Core/GrimSaveTypes.h"
 #include "GrimSpellbookComponent.generated.h"
 
@@ -32,7 +33,9 @@ enum class EGrimLearnResult : uint8
 	AlreadyKnown,
 	CircleTooLow,
 	TooFar,
-	Invalid
+	Invalid,
+	/** 서클이 모자라 「봉인된 책」으로 그리모어에 기록했다(책 소모 — Q122). 그 서클에 오르면 저절로 읽는다 */
+	Sealed
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FGrimOnLearnResult, UGrimSpellbookComponent*, Spellbook, const UGrimSpellDefinition*, Spell, EGrimLearnResult, Result);
@@ -97,6 +100,9 @@ public:
 
 	// ───── 세이브 (IGrimSaveParticipant — Player 「Magic.Spellbook」, docs/systems/world-multiplayer 「세이브」) ─────
 	// v1: 배운 마법(경로 · 숙련도 XP, 배운 순서) · 선택 · 단축 슬롯 · 보이는 세트. 읽을 때 서클은 보지 않는다(세이브가 진실).
+	// v2: + 봉인된 책(마법 경로 목록, Q122).
+
+	virtual int32 GetSaveVersion() const override { return 2; }
 
 	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
 	virtual FName GetSaveId() const override { return TEXT("Magic.Spellbook"); }
@@ -136,7 +142,20 @@ public:
 	 *  - 이미 S → 쓸 수 없다. 결과가 Learned · ProficiencyGained 면 책을 소모한다(부른 쪽이).
 	 * 결과는 OnLearnResult 로(소유 클라이언트에도) 알린다.
 	 */
-	EGrimLearnResult UseSkillbook(UGrimSpellDefinition* Spell);
+	EGrimLearnResult UseSkillbook(UGrimSpellDefinition* Spell, bool bSealIfCircleTooLow = false);
+
+	// ───── 봉인된 책 (Q122) ─────
+
+	/** 서클이 모자라 아직 못 읽는 책(주운 순서). 소유 클라이언트에만 복제 */
+	const TArray<TObjectPtr<UGrimSpellDefinition>>& GetSealedSpells() const { return SealedSpells; }
+
+	bool IsSealed(const UGrimSpellDefinition* Spell) const { return Spell && SealedSpells.Contains(Spell); }
+
+	/**
+	 * 서버: 서클이 올랐다(UGrimProgressionComponent::TryCircleUp) — 이제 서클이 닿는 봉인된 책을 읽고(배움 알림),
+	 * 새로 열린 슬롯 세트의 빈 칸에 슬롯 없는 마법을 채운다(bAutoAssignSlots).
+	 */
+	void HandleCircleRaised(int32 NewCircle);
 
 	/** 서버: 선택을 Step 만큼 옮긴다(끝에서 돈다). */
 	void CycleSelection(int32 Step);
@@ -171,8 +190,15 @@ public:
 	/** 서버: 슬롯에 마법을 놓는다(nullptr = 비우기). 같은 마법이 다른 칸에 있으면 그 칸은 비운다. */
 	void AssignSlot(int32 SlotIndex, UGrimSpellDefinition* Spell);
 
-	/** 서버: 보이는 세트를 바꾼다 */
+	/** 서버: 보이는 세트를 바꾼다(열린 세트 안으로 자른다) */
 	void SetActiveSlotSet(int32 SetIndex);
+
+	/** 서클이 연 슬롯 세트 수(서클 표 SlotSets, 마법서 설정 SpellSlotSets 이하 · 1 이상). 서버 · 클라이언트 */
+	UFUNCTION(BlueprintPure, Category = "Grimoire|Spellbook")
+	int32 GetUnlockedSlotSets() const;
+
+	/** 열린 슬롯 수(열린 세트 × 세트당 칸) */
+	int32 GetUnlockedSlotCount() const;
 
 	UFUNCTION(Server, Reliable)
 	void Server_AssignSlot(int32 SlotIndex, UGrimSpellDefinition* Spell);
@@ -197,7 +223,10 @@ public:
 
 	float GetProficiencyXP(const UGrimSpellDefinition* Spell) const;
 
-	/** 배운 마법(숙련도를 쌓는 것만)의 등급 합 · 수 — 서클 승급 조건. */
+	/** 배운 마법(숙련도를 쌓는 것만)마다 (마법 서클, 등급 번호) — 서클 승급 자격(Q122). 서버 · 소유 클라이언트 */
+	void GetProficiencyEntries(TArray<FGrimSpellGradeEntry>& OutEntries) const;
+
+	/** 배운 마법(숙련도를 쌓는 것만)의 등급 합 · 수. */
 	int32 GetProficiencyGradeSum() const;
 	int32 GetTrackedSpellCount() const;
 
@@ -283,6 +312,13 @@ protected:
 	/** 마법별 숙련도 경험 — 소유 클라이언트에게만 복제(플레이어 세이브 대상). */
 	UPROPERTY(Replicated)
 	FGrimSpellProficiencyArray Proficiency;
+
+	/** 봉인된 책(Q122) — 소유 클라이언트에게만 복제(플레이어 세이브 v2) */
+	UPROPERTY(Replicated)
+	TArray<TObjectPtr<UGrimSpellDefinition>> SealedSpells;
+
+	/** 서버: 빈 열린 칸에 슬롯 없는 숙련도 마법을 배운 순서대로 채운다 */
+	void FillEmptySlots();
 
 	/** 서버 전용: KnownSpells 와 같은 순서의 어빌리티 핸들. */
 	TArray<FGameplayAbilitySpecHandle> SpellHandles;

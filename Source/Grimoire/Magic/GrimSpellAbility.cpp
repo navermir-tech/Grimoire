@@ -157,8 +157,31 @@ FGrimProficiencyMultipliers UGrimSpellAbility::GetCasterMultipliers(const UGrimS
 
 	const UGrimSpellbookSettings* Settings = UGrimSpellbookSettings::Get();
 	Result.ManaCost *= FMath::Max(0.f, ReadAttributeByName(ASC, Settings->ManaCostScaleAttribute, 1.f));
+	// 격 차이 마나 효율(Q122) — 숙련도 배율과 곱으로 쌓인다.
+	Result.ManaCost *= GetCircleManaMultiplier(Definition, ASC);
 	Result.Cooldown /= FMath::Max(KINDA_SMALL_NUMBER, ReadAttributeByName(ASC, Settings->CastSpeedScaleAttribute, 1.f));
 	return Result;
+}
+
+int32 UGrimSpellAbility::GetCasterCircle(const UAbilitySystemComponent* ASC)
+{
+	if (!ASC || !ASC->HasAttributeSetForAttribute(UGrimMagicAttributeSet::GetCircleAttribute()))
+	{
+		return 0;
+	}
+	return FMath::RoundToInt(ASC->GetNumericAttribute(UGrimMagicAttributeSet::GetCircleAttribute()));
+}
+
+float UGrimSpellAbility::GetCirclePowerMultiplier(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC)
+{
+	const int32 Circle = GetCasterCircle(ASC);
+	return Definition && Circle > 0 ? FGrimCircleMath::GetPowerMultiplier(UGrimProgressionSettings::GetCircleTable(), Circle, Definition->Circle) : 1.f;
+}
+
+float UGrimSpellAbility::GetCircleManaMultiplier(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC)
+{
+	const int32 Circle = GetCasterCircle(ASC);
+	return Definition && Circle > 0 ? FGrimCircleMath::GetManaMultiplier(UGrimProgressionSettings::GetCircleTable(), Circle, Definition->Circle) : 1.f;
 }
 
 bool UGrimSpellAbility::HasCastBlockingTag(const UAbilitySystemComponent* ASC)
@@ -331,6 +354,13 @@ void UGrimSpellAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const
 	{
 		Spec.Data->SetSetByCallerMagnitude(GrimMagicTags::SetByCaller_ManaCost, -Cost);
 		ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, Spec);
+	}
+	// 격 차이 마나 효율(Q122)이 붙은 시전만 한 줄(2인 확인 net_check_circle).
+	const float CircleMana = GetCircleManaMultiplier(Definition, ActorInfo->AbilitySystemComponent.Get());
+	if (CircleMana < 1.f && ActorInfo->IsNetAuthority())
+	{
+		UE_LOG(LogGrimMagic, Log, TEXT("[Server] 서클 격 차이 마나 %s: %s %.2f (격 차이 ×%.2f, 서클 %d · 마법 %d서클)"), *GetNameSafe(ActorInfo->OwnerActor.Get()),
+			*GetNameSafe(Definition), Cost, CircleMana, GetCasterCircle(ActorInfo->AbilitySystemComponent.Get()), Definition->Circle);
 	}
 }
 
@@ -834,7 +864,15 @@ FGameplayEffectSpecHandle UGrimSpellAbility::MakeDamageSpec(const UGrimSpellDefi
 	if (Spec.IsValid())
 	{
 		const float WandPower = Wand ? Wand->GetElementPower(Definition->Element) : 1.f;
-		Spec.Data->SetSetByCallerMagnitude(GrimMagicTags::SetByCaller_Damage, GrimMagicMath::CalcDamage(Definition->Damage, WandPower, 1.f));
+		// 격 차이 위력(Q122): 내 서클이 마법 서클보다 높을수록 — 피해 Spec 은 서버가 만든다.
+		const float CirclePower = GetCirclePowerMultiplier(Definition, GetAbilitySystemComponentFromActorInfo());
+		Spec.Data->SetSetByCallerMagnitude(GrimMagicTags::SetByCaller_Damage, GrimMagicMath::CalcDamage(Definition->Damage, WandPower, 1.f) * CirclePower);
+		if (CirclePower > 1.f && HasAuthority(&CurrentActivationInfo))
+		{
+			UE_LOG(LogGrimMagic, Log, TEXT("[Server] 서클 격 차이 위력 %s: %s 피해 %.2f (격 차이 ×%.2f, 서클 %d · 마법 %d서클)"), *GetNameSafe(GetOwningActorFromActorInfo()),
+				*GetNameSafe(Definition), GrimMagicMath::CalcDamage(Definition->Damage, WandPower, 1.f) * CirclePower, CirclePower,
+				GetCasterCircle(GetAbilitySystemComponentFromActorInfo()), Definition->Circle);
+		}
 		if (Definition->Element.IsValid())
 		{
 			Spec.Data->AddDynamicAssetTag(Definition->Element);

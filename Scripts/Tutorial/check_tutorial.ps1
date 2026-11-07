@@ -13,8 +13,8 @@
 #   31 주방(Zone.NoCombat 붙임) → 16 · 32 아궁이 불 → 17 · 33~33.5 재료 · 완성 → 18 · 34 먹기 → 19
 #   35~36 스승 → 대화 → 20(해넘이, 모닥불 곁 침낭) · 37 모닥불 → 21 · 38 침낭 곁 → 39 눕기 → (페이드 3초) 밤 건너뜀, 피로 0 → 22 · 45 덤프
 #   46~47 스승 → 대화 → 23 · 48 거점 자리 → 24 · 49 거점 이벤트 → Tutorial 완료(경험치) · 50 덤프
-#   51 시험 양초 미리 켬 → 52~53 스승 → 시험 → 시험의 방: 양초를 처음 상태로(새로 놓음) → 53.5 포기(실패) → 54~55 다시 → 56 양초 셋 → 통과, 서클 2, 이그니스
-#   57~59 3서클 시험 → 60~61 표적 세 번 · 62~63 젖은 양초에 불 셋 → 통과, 서클 3 · 64 덤프
+#   51 시험 양초 미리 켬 → 52 스승 → 52.1 시험 청함: 자격 모자람(Trial.NotReady + PromotionGrade 알림, Q122) → 52.3 플라미스 · 아쿠엘 숙련도 채움 → 52.5~53 시험 → 시험의 방: 양초를 처음 상태로(새로 놓음) → 53.5 포기(실패) → 54~55 다시 → 56 양초 셋 → 통과, 서클 2, 이그니스
+#   57.3 3서클 시험 청함: 자격 모자람(B 이상 2개 중 지금 서클 마법) → 57.5 이그니스 숙련도 채움 → 58~59 3서클 시험 → 60~61 표적 세 번 · 62~63 젖은 양초에 불 셋 → 통과, 서클 3 · 64 덤프
 #   65 사냥꾼 거점(발동 볼륨) → 사냥꾼 퀘스트 → 66~67 스승 → 대화 → 완료 · 68 정화 의식(노말) · 69 덤프
 param(
 	# 지연은 엔진 시작부터 센다 — 맵 로드(10초 안팎)를 더해 마지막 덤프(69)보다 넉넉히
@@ -70,6 +70,9 @@ $Cmds = @(
 	"Grim.Quest.At 50 Dump",
 	"Grim.Quest.At 51 Stimulus Trial2_Candle Element.Fire 1",
 	"Grim.Quest.At 52 Teleport Npc_Master 150",
+	"Grim.Quest.At 52.1 Service Master Trial",
+	"Grim.Magic.AddXP Ember 100000 52.3",
+	"Grim.Magic.AddXP WaterJet 100000 52.35",
 	"Grim.Quest.At 52.5 Service Master Trial",
 	"Grim.Quest.At 53 Teleport Trial_Room 0",
 	"Grim.Quest.At 53.5 Fail Trial_Circle2",
@@ -79,6 +82,8 @@ $Cmds = @(
 	"Grim.Quest.At 55.5 Dump",
 	"Grim.Quest.At 56 Stimulus Trial2_Candle Element.Fire 1",
 	"Grim.Quest.At 57 Teleport Npc_Master 150",
+	"Grim.Quest.At 57.3 Service Master Trial",
+	"Grim.Magic.AddXP Fireball 100000 57.5",
 	"Grim.Quest.At 58 Service Master Trial",
 	"Grim.Quest.At 59 Teleport Trial_Room 0",
 	"Grim.Quest.At 60 Stimulus Trial3_Target Element.Fire 1",
@@ -115,6 +120,8 @@ $Checks = [ordered]@{
 	"튜토리얼 완료" = "퀘스트 완료: Tutorial"
 	"퀘스트 경험치" = "퀘스트 경험치 100"
 	"시험 소품 되돌림" = "처음 상태로"
+	"승급 자격 모자람 대사" = "서비스 Trial → Trial.NotReady"
+	"승급 자격 까닭 알림" = " PromotionGrade 값="
 	"시험 실패 뒤 다시" = "퀘스트 실패: Trial_Circle2"
 	"2서클 시험 통과" = "퀘스트 완료: Trial_Circle2"
 	"3서클 시험 통과" = "퀘스트 완료: Trial_Circle3"

@@ -2,7 +2,7 @@
 
 개발 빌드(Editor · Development · DebugGame)에서만 쓰는 콘솔 명령(`~`). 출시 빌드(Shipping)에는 CheatManager 가 아예 만들어지지 않고(`UE_WITH_CHEAT_MANAGER` 0), 서버 RPC 본문과 `*Debug.cpp` 의 명령도 `#if !UE_BUILD_SHIPPING` 으로 빠진다. 코드는 `Source/Grimoire/Core/Cheats/` 와 시스템 폴더마다 `*Debug.cpp`.
 
-- 출시 빌드에도 남는 것: 표 다시 읽기(`Grim.*.Reload` · `Grim.Interaction.ReloadReactions` · `Grim.Magic.ReloadProficiency`), 접속 · 메뉴(`Grim.Online.*`), UI(`Grim.UI.*`), 시간(`grim.Time.*`), 콘솔 변수 `Grim.Sky.SunRotationStep` · `Grim.Targeting.Debug` · `grim.Survival.ShowDebug`.
+- 출시 빌드에도 남는 것: 표 다시 읽기(`Grim.*.Reload` · `Grim.Interaction.ReloadReactions` · `Grim.Magic.ReloadProficiency` · `Grim.Magic.ReloadCircles`), 접속 · 메뉴(`Grim.Online.*`), UI(`Grim.UI.*`), 시간(`grim.Time.*`), 콘솔 변수 `Grim.Sky.SunRotationStep` · `Grim.Targeting.Debug` · `grim.Survival.ShowDebug`.
 - 인자 끝의 `[지연초]` 는 점검 스크립트가 `-ExecCmds` 로 맵이 뜬 뒤 실행하려고 쓴다. 「(서버)」 는 단독 · 리슨 호스트에서, 「(로컬)」 은 누구나 자기 콘솔에서(서버 RPC 로 적용).
 - 콘솔 명령은 대소문자를 가리지 않는다(`grim.Survival.*` · `grim.Time.*` 만 소문자로 등록돼 있다).
 
@@ -101,11 +101,12 @@
 | `Grim.Magic.Cast <마법 이름 일부> [대상 클래스\|None] [누르는 초] [지연초]` | (로컬) 대상 고정 조준으로 시전 |
 | `Grim.Magic.Place <대상 클래스> <거리cm> [지연초]` | (서버) 원격 클라이언트 폰을 대상 앞에 두고 보게(호스트는 사선 밖으로 비킨다) |
 | `Grim.Magic.DumpWands [지연초]` | 완드 부착 부모 · 소켓 · 손에서 떨어진 거리 |
-| `Grim.Magic.CircleUp [강제 0\|1] [지연초]` | (로컬) 서클 승급(조건 확인, 1 이면 무시) |
+| `Grim.Magic.CircleUp [강제 0\|1] [지연초]` | (로컬) 서클 승급(서클 표의 숙련도 자격 확인 — 모자라면 까닭 알림, 1 이면 무시) |
 | `Grim.Magic.ReadSkillbook [지연초]` · `Grim.Magic.SpawnSkillbook <마법 이름 일부> [앞cm] [지연초]` | (로컬) 곁의 스킬북 읽기 · (서버) 플레이어마다 앞에 스킬북 |
 | `Grim.Magic.AddXP <마법 이름 일부> <양> [지연초]` · `Grim.Magic.XPRate [배율]` | 숙련도 경험 더하기 · 서버 배율(`GlobalXPRate`) |
 | `Grim.Magic.Proficiency [지연초]` | 서클 · 숙련도 · 승급 조건을 로그로 |
 | `Grim.Magic.ReloadProficiency` | 숙련도 등급표 `ProficiencyGrades.csv` 다시 읽기 |
+| `Grim.Magic.ReloadCircles` | 서클 표 `Circles.csv`(Q122 — 보정 · 해금 · 승급 자격) 다시 읽기 |
 | `Grim.Input.Press <Basic\|Slot1~4\|Protego\|Dodge> [대상 클래스\|None] [누르는 초] [지연초] [횟수] [간격초]` | (로컬) 실제 입력과 같은 길로 누른다 |
 | `Grim.Input.SlotSet <1부터> [지연초]` · `Grim.Input.Dump [지연초]` | 보이는 슬롯 세트 바꾸기 · 세트 · 입력 태그 · 연타 상태 로그 |
 
@@ -178,7 +179,7 @@
 | `Grim.Tree.Unlock <노드 id> [지연초]` · `Grim.Tree.Reset <트리 id> [지연초]` | 노드 찍기 · 트리 비우기(정화 의식, 비용 없이) |
 | `Grim.Level.Dump [지연초]` | 레벨 · 경험 · 포인트 · 노드 · 보너스 어트리뷰트 로그 |
 | `Grim.Level.Reload` · `Grim.Tree.Reload` | `LevelCurve.csv` · `SkillTreeNodes.csv` 다시 읽기 |
-| `Grim.UI.HUD 0/1` · `Grim.UI.Grimoire [0\|1]` · `Grim.UI.SlotSet <세트>` · `Grim.UI.Level [0\|1]` | HUD 보이기 · 그리모어 화면 · 단축 슬롯 세트 · 레벨 막대 단독 |
+| `Grim.UI.HUD 0/1` · `Grim.UI.Grimoire [0\|1]` · `Grim.UI.GrimoireTab <0~3>` · `Grim.UI.SlotSet <세트>` · `Grim.UI.Level [0\|1]` | HUD 보이기 · 그리모어 화면 · 그리모어를 열고 탭 고르기(0 마법 · 1 성장 트리 · 2 도감 · 3 서클) · 단축 슬롯 세트 · 레벨 막대 단독 |
 
 ## 퀘스트 · 튜토리얼
 

@@ -213,29 +213,20 @@ bool FGrimProficiencySkillbookXPTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-// 서클 승급 조건(순수)
+// 서클 승급 자격(순수) — 자세한 경우는 Grimoire.Magic.Circle.Promotion
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimProficiencyCircleUpTest, "Grimoire.Magic.Proficiency.CircleUp", GrimProficiencyTestsLocal::ProficiencyTestFlags)
 bool FGrimProficiencyCircleUpTest::RunTest(const FString& Parameters)
 {
 	using namespace GrimProficiencyTestsLocal;
-	TArray<FGrimCircleRequirement> Requirements;
-	Requirements.Add({ 2, 3, 2 });
-	Requirements.Add({ 3, 4, 5 });
-
-	FGrimCircleCheck Check = UGrimProgressionSettings::Evaluate(Requirements, 1, 3, 1);
-	TestFalse(TEXT("등급 합 모자람"), Check.bMet);
-	TestEqual(TEXT("다음 = 2"), Check.NextCircle, 2);
-	Check = UGrimProgressionSettings::Evaluate(Requirements, 1, 3, 2);
-	TestTrue(TEXT("1 → 2 충족"), Check.bMet);
-	Check = UGrimProgressionSettings::Evaluate(Requirements, 2, 3, 9);
-	TestFalse(TEXT("2 → 3 마법 수 모자람"), Check.bMet);
-	Check = UGrimProgressionSettings::Evaluate(Requirements, 3, 9, 99);
-	TestTrue(TEXT("3 이 끝"), Check.bAtMax);
-	TestFalse(TEXT("끝이면 충족 아님"), Check.bMet);
-
-	// 설정 값: M2 는 3서클까지
-	const FGrimCircleCheck Configured = UGrimProgressionSettings::Evaluate(UGrimProgressionSettings::Get()->CircleRequirements, 3, 99, 99);
-	TestTrue(TEXT("ini: 3서클이 끝"), Configured.bAtMax);
+	// 설정 표(Circles.csv): 2서클 = C 이상 2개, 그중 1서클 마법 하나 이상. 10서클이 끝.
+	const FGrimCircleTable& Table = UGrimProgressionSettings::GetCircleTable();
+	TArray<FName> GradeOrder;
+	UGrimProgressionSettings::GetGradeOrder(GradeOrder);
+	const FGrimSpellGradeEntry OneC[] = { { 1, 1 } };
+	const FGrimSpellGradeEntry TwoC[] = { { 1, 1 }, { 1, 2 } };
+	TestFalse(TEXT("ini: C 이상 하나로는 2서클 못 감"), FGrimCircleMath::EvaluatePromotion(Table, 1, OneC, GradeOrder).bMet);
+	TestTrue(TEXT("ini: C · B 둘이면 2서클 자격"), FGrimCircleMath::EvaluatePromotion(Table, 1, TwoC, GradeOrder).bMet);
+	TestTrue(TEXT("ini: 10서클이 끝"), FGrimCircleMath::EvaluatePromotion(Table, 10, TwoC, GradeOrder).bAtMax);
 	return true;
 }
 
@@ -306,9 +297,9 @@ bool FGrimProficiencySpellbookTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("S"), Spellbook->GetProficiency(Ember).bMaxGrade);
 	TestEqual(TEXT("S 스킬북 → 못 씀"), Spellbook->UseSkillbook(Ember), EGrimLearnResult::AlreadyMastered);
 
-	// 승급: 조건 미달 → 실패, 강제 → 2서클, 최대 마나는 그대로(레벨 몫)
+	// 승급: 자격 미달(숙련도 마법 하나뿐) → 실패, 강제 → 2서클, 최대 마나는 그대로(레벨 몫)
 	const FGrimCircleCheck Check = Progression->EvaluateNextCircle();
-	TestEqual(TEXT("숙련도 마법 수 1"), Check.KnownSpells, 1);
+	TestEqual(TEXT("C 이상 마법 1/2"), Check.Grades.Num() > 0 ? Check.Grades[0].Have : -1, 1);
 	TestFalse(TEXT("1 → 2 조건 미달"), Progression->TryCircleUp(false));
 	TestTrue(TEXT("강제 승급"), Progression->TryCircleUp(true));
 	TestEqual(TEXT("2서클"), Progression->GetCircle(), 2);
@@ -321,7 +312,7 @@ bool FGrimProficiencySpellbookTest::RunTest(const FString& Parameters)
 	TestNull(TEXT("옛 칸 비움"), Spellbook->GetSlotSpells()[0].Get());
 	TestEqual(TEXT("새 칸"), Spellbook->GetSlotSpells()[5].Get(), Ember);
 	Spellbook->SetActiveSlotSet(99);
-	TestEqual(TEXT("세트 번호는 범위로 자름"), Spellbook->GetActiveSlotSet(), UGrimSpellbookSettings::Get()->SpellSlotSets - 1);
+	TestEqual(TEXT("세트 번호는 열린 세트 안으로 자름(2서클 = 2세트)"), Spellbook->GetActiveSlotSet(), Spellbook->GetUnlockedSlotSets() - 1);
 
 	PlayerState->Destroy();
 	return true;
