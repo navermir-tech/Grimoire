@@ -1,0 +1,39 @@
+{
+  "_설명": "Q85 볼트 발사 빛줄기 — 볼트가 보이기 시작할 때 완드 끝부터 한 번 긋는 바늘 빛줄기(연출만). 시스템 +Z = 날아가는 쪽. User.Length(cm) · DrawTime(초)는 AGrimSpellProjectile::SpawnLaunchStreak 가 넣는다(길이 = 볼트 속력 × 0.1초, 맞을 곳이 가까우면 거기까지). 그리는 동안 길이가 0 → Length 로 자라고(스프라이트 기준점 = 아래 끝 = 완드), 다 그리면 0.14초에 사라진다.",
+  "folder": "/Game/Grimoire/MagicFX/Bolt/Systems",
+  "systems": {
+    "NS_Bolt_Launch": {
+      "user": {"Length": 750.0, "DrawTime": 0.1},
+      "emitters": [
+        {"name": "Streak", "kind": "still", "mi": "Streak", "aligned": true, "lifetime": [0.24, 0.24],
+         "disable": [["update", "GravityForce"], ["update", "Drag"]],
+         "spawn": [["Particles.Velocity", "vec3", "Engine.Owner.SystemZAxis"],
+                   ["Particles.Lifetime", "float", "User.DrawTime + 0.14"]],
+         "update": [["Particles.SpriteSize", "vec2", "float2(12.0, max(User.Length * saturate(Particles.Age / max(User.DrawTime, 0.01)), 1.0))"],
+                    ["Particles.Color", "color", "float4(User.Color.rgb, pow(saturate(1.0 - (Particles.Age - User.DrawTime) / 0.14), 2.0))"]],
+         "renderer": {"PivotInUVSpace": {"x": 0.5, "y": 1.0}}},
+        {"name": "Sheath", "kind": "still", "mi": "Wisp", "aligned": true, "lifetime": [0.3, 0.3],
+         "disable": [["update", "GravityForce"], ["update", "Drag"]],
+         "spawn": [["Particles.Velocity", "vec3", "Engine.Owner.SystemZAxis"],
+                   ["Particles.Lifetime", "float", "User.DrawTime + 0.2"]],
+         "update": [["Particles.SpriteSize", "vec2", "float2(30.0, max(User.Length * saturate(Particles.Age / max(User.DrawTime, 0.01)), 1.0))"],
+                    ["Particles.Color", "color", "float4(User.Color.rgb, 0.55 * pow(saturate(1.0 - (Particles.Age - User.DrawTime) / 0.2), 2.0))"]],
+         "renderer": {"PivotInUVSpace": {"x": 0.5, "y": 1.0}}},
+        {"name": "Head", "kind": "still", "mi": "Flare", "aligned": false, "lifetime": [0.1, 0.1],
+         "disable": [["update", "GravityForce"], ["update", "Drag"]],
+         "spawn": [["Particles.Velocity", "vec3", "Engine.Owner.SystemZAxis * User.Length / max(User.DrawTime, 0.01)"],
+                   ["Particles.Lifetime", "float", "max(User.DrawTime, 0.02)"]],
+         "update": [["Particles.SpriteSize", "vec2", "float2(30.0, 30.0)"],
+                    ["Particles.Color", "color", "float4(User.Color.rgb, 1.0)"]]},
+        {"name": "Sparks", "kind": "burst", "mi": "Spark", "aligned": true, "count": 16, "lifetime": [0.22, 0.45], "size": [3.0, 6.0],
+         "defs": {"U": "saturate((Particles.Lifetime - 0.22) / 0.23)"},
+         "disable": [["spawn", "ShapeLocation"], ["update", "ScaleSpriteSize"]],
+         "set": [["update", "Drag", "Drag", {"float": 10.0}],
+                 ["update", "GravityForce", "Gravity", {"vec3": [0.0, 0.0, -150.0]}]],
+         "spawn": [["Particles.Velocity", "vec3", "Particles.Velocity * 0.25 + Engine.Owner.SystemZAxis * User.Length * 10.0 * {U}"],
+                   ["Particles.SpriteSize", "vec2", "Particles.SpriteSize * float2(0.5, 3.0)"]],
+         "update": [["Particles.Color", "color", "float4(User.Color.rgb, 1.0 - Particles.NormalizedAge)"]]}
+      ]
+    }
+  }
+}

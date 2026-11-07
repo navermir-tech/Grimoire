@@ -42,7 +42,8 @@
 | `Grim.Creature.Time <0~1> [지연초]` | 시각(0 자정 · 0.5 정오). 검은 개는 밤에만 나온다 |
 | `Grim.At <초> <명령 …>` | 명령을 몇 초 뒤 실행 — 점검 스크립트가 `-ExecCmds` 로 맵이 뜬 뒤 · 시전 도중에 무엇을 할 때(`Grim.At 20 HighResShot 1280x720`) |
 | `Grim.Cam <X> <Y> <Z> <피치> <요> [FOV]` | 그 자리 고정 카메라로 본다(캐릭터는 계속 조종 · 시전). 인자 없으면 캐릭터 카메라로. 이펙트를 옆에서 찍을 때 |
-| `Grim.FX.Bolt <마법 정의> <X> <Y> <Z> <요> [피치] [터질 거리cm]` | 시전 없이 볼트 연출만 날린다(판정 없음, 섬광 · 몸통 · 터짐). 예: `Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 225` — `Scripts/MagicFX/capture_bolt.ps1` 가 `slomo` 와 함께 쓴다 |
+| `Grim.FX.Bolt <마법 정의> <X> <Y> <Z> <요> [피치] [터질 거리cm]` | 시전 없이 볼트 연출만 날린다(판정 없음, 섬광 · 발사 빛줄기 · 몸통 · 터짐). 예: `Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 225` — `Scripts/MagicFX/capture_bolt.ps1` 가 `slomo` 와 함께 쓴다 |
+| `Grim.FX.Spawn <마법 정의> <Muzzle\|Trail\|Impact\|Launch> <X> <Y> <Z> <요> [피치] [초] [이름=값 …]` | 시전 없이 연출 묶음의 Niagara 하나를 그 자리 · 방향(+Z)에 띄운다. 값은 사용자 변수(수 또는 `x,y,z`). 예: `Grim.FX.Spawn DA_Spell_Breeze Trail 30 -1000 120 0 0 0 ConeRange=1000 ConeHalfAngle=30` — 시전하면 조준 = 카메라라 `Grim.Cam` 옆 · 위 시점에서 쓸 수 없는 물줄기 · 미풍을 볼 때(`capture_bolt.ps1 -FxCmd`) |
 
 생물은 서식 구역(수백 m)에 무리로 기록만 되어 있다가 **플레이어 60m 안**에 들어오면 나온다(설정 `Ecosystem.SpawnRadius`). 구역 한가운데에 서도 무리가 멀면 아무것도 안 보인다 — `Grim.Creature.Mark 1` 의 노란 기둥을 따라가거나 `Grim.Go <종>` 을 쓴다.
 

@@ -1,8 +1,8 @@
 # M1.5 갈래 C 「연출 · 동작」 에셋을 만든다 / 고친다. 값은 이 스크립트가 정본이다.
 #  - 머티리얼: M_GrimFX_Glow(색 펄스 · 줄기 구슬) · M_GrimFX_Book(그리모어) · M_GrimFX_Decal(그을음 · 젖음)
 #  - GameplayCue: GC_Spell_Cast · GC_Spell_Impact · GC_Spell_Channel (C++ 처리기의 블루프린트 자식)
-#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 볼트(불씨 · 기본 공격)는 make_bolt_fx.py 의
-#    NS_Bolt_*, 나머지는 Niagara Examples Pack(없는 칸은 엔진 기본 템플릿)
+#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 모두 볼트 빛 언어:
+#    볼트는 make_bolt_fx.py 의 NS_Bolt_*, 발사 빛줄기 · 물줄기 · 미풍은 make_spell_fx.py 의 NS_Bolt_Launch · NS_Stream_* · NS_Cone_*
 #  - 애님: ABP_GrimPlayer = 템플릿 ABP_Unarmed 복제 + 부모를 UGrimSpellPoseAnimInstance 로
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
@@ -41,6 +41,12 @@ BOLT = "/Game/Grimoire/MagicFX/Bolt/Systems/"
 FX_BOLT_CAST = BOLT + "NS_Bolt_Cast.NS_Bolt_Cast"
 FX_BOLT_TRAIL = BOLT + "NS_Bolt_Trail.NS_Bolt_Trail"
 FX_BOLT_IMPACT = BOLT + "NS_Bolt_Impact.NS_Bolt_Impact"
+# 같은 빛 언어로 사양 파일에서 만든 것(make_spell_fx.py — art/fx/specs/spell/*.json, 2026-11-07 Q85 · Q86).
+FX_BOLT_LAUNCH = BOLT + "NS_Bolt_Launch.NS_Bolt_Launch"
+FX_STREAM_TRAIL = "/Game/Grimoire/MagicFX/Stream/Systems/NS_Stream_Trail.NS_Stream_Trail"
+FX_STREAM_IMPACT = "/Game/Grimoire/MagicFX/Stream/Systems/NS_Stream_Impact.NS_Stream_Impact"
+FX_CONE_TRAIL = "/Game/Grimoire/MagicFX/Cone/Systems/NS_Cone_Trail.NS_Cone_Trail"
+FX_CONE_IMPACT = "/Game/Grimoire/MagicFX/Cone/Systems/NS_Cone_Impact.NS_Cone_Impact"
 
 # 엔진 기본 소리(임시).
 SND_PING = "/Engine/EngineSounds/1kSineTonePing.1kSineTonePing"
@@ -285,6 +291,9 @@ def make_visual_sets(decal_mat):
         "trail": load(FX_BOLT_TRAIL),
         "impact": load(FX_BOLT_IMPACT),
         "hide_projectile_mesh": True,
+        # Q85: 볼트가 보이기 시작할 때 완드 끝부터 첫 0.1초 길(맞을 곳이 가까우면 거기까지)을 한 번 긋는다.
+        "launch_streak": load(FX_BOLT_LAUNCH),
+        "launch_streak_seconds": 0.1,
         "muzzle_flash_scale": 1.0,
         "trail_scale": 1.0,
         "impact_scale": 1.0,
@@ -301,26 +310,27 @@ def make_visual_sets(decal_mat):
         "stream_bead_count": 0,
     })
 
-    # 물줄기 — 파랑, 포물선 물방울 구슬 · 물보라 원반 · 젖은 자국. 뻗고 유지(Stream).
+    # 물줄기 — 파랑. 볼트와 같은 빛 언어(Q86): 이어진 바늘 빛줄기 + 물방울 불티, 닿은 곳 물보라 · 고리 · 젖은 자국. 뻗고 유지(Stream).
     make_visual_set("VS_WaterJet", {
         "element_color": srgb("#3A7BD5"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
-        "muzzle_flash": load(FX_BUBBLE_BURST),
-        "trail": load(FX_FOUNTAIN_LW),
-        "impact": load(FX_BUBBLE_BURST),
-        "muzzle_flash_scale": 0.4,
-        "trail_scale": 0.5,
-        "impact_scale": 0.8,
+        "muzzle_flash": load(FX_BOLT_CAST),
+        "trail": load(FX_STREAM_TRAIL),
+        "impact": load(FX_STREAM_IMPACT),
+        "muzzle_flash_scale": 0.7,
+        "trail_scale": 1.0,
+        "impact_scale": 1.0,
         "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.08, "cast_sound_pitch": 0.8,
         "loop_sound": noise, "loop_sound_volume": 0.1, "loop_sound_pitch": 0.6,
         "impact_sound": noise, "impact_sound_volume": 0.2, "impact_sound_pitch": 1.0, "impact_sound_duration": 0.2,
         "camera_shake": shake, "camera_shake_scale": 0.6,
-        "muzzle_pulse": pulse(SHAPE.SPHERE, (4, 4, 4), (16, 16, 16), 0.1, 6.0, 0.2, 2500.0, 200.0),
+        # 구 펄스 · 구슬은 끈다 — 줄기 Niagara 가 빛줄기 · 물방울 · 물보라를 그린다.
+        "muzzle_pulse": off,
         "cast_wave": off,
-        "impact_pulse": pulse(SHAPE.DISC, (10, 10, 2), (70, 70, 6), 0.35, 4.0, 0.3, 1500.0, 300.0),
+        "impact_pulse": off,
         "impact_decal": decal(decal_mat, unreal.LinearColor(0.01, 0.015, 0.03, 1), 0.1, 0.7, 90.0, 15.0, 6.0),
-        "stream_bead_count": 12,
+        "stream_bead_count": 0,
         "stream_bead_size": 7.0,
         "stream_bead_glow": 3.0,
         "stream_flight_time": 0.6,
@@ -328,24 +338,25 @@ def make_visual_sets(decal_mat):
         "stream_default_gravity_scale": 1.0,
     })
 
-    # 미풍 — 연두, 반투명 공기 고리(원뿔 껍질) · 둥근 바람 터짐 · 자국 없음. 쓸기(Cone).
+    # 미풍 — 연두. 볼트와 같은 빛 언어(Q86): 깃털 빛줄기 여러 가닥이 부채꼴로(원뿔 사거리 · 반각만큼) · 빛 티끌, 맞은 곳 바람 갈래 · 고리. 쓸기(Cone).
     make_visual_set("VS_Breeze", {
         "element_color": srgb("#7CC9A6"),
         "cast_motion": unreal.GrimCastMotion.AUTO,
-        "muzzle_flash": load(FX_DIRECTIONAL_BURST_LW),
-        "trail": load(FX_RADIAL_BURST),
-        "impact": load(FX_DIRT_EXPLOSION_SMALL),
-        "muzzle_flash_scale": 0.25,
-        "trail_scale": 0.6,
-        "impact_scale": 0.4,
+        "muzzle_flash": load(FX_BOLT_CAST),
+        "trail": load(FX_CONE_TRAIL),
+        "impact": load(FX_CONE_IMPACT),
+        "muzzle_flash_scale": 0.7,
+        "trail_scale": 1.0,
+        "impact_scale": 1.0,
+        "one_shot_stop_seconds": 0.0,
         "cast_sound": ping, "cast_sound_volume": 0.08, "cast_sound_pitch": 0.5,
         "loop_sound": None,
         "impact_sound": noise, "impact_sound_volume": 0.25, "impact_sound_pitch": 0.7, "impact_sound_duration": 0.3,
         "camera_shake": shake, "camera_shake_scale": 0.8,
-        "muzzle_pulse": pulse(SHAPE.SPHERE, (6, 6, 6), (30, 30, 30), 0.15, 3.0, 1.0, 0.0, 200.0),
-        # 끝 크기는 마법의 원뿔 사거리 · 반각이 덮어쓴다 — 시작 크기는 그 비율(10%)로 쓰인다.
-        "cast_wave": pulse(SHAPE.CONE, (60, 60, 60), (600, 600, 600), 0.35, 2.5, 1.0, 0.0, 300.0),
-        "impact_pulse": pulse(SHAPE.SPHERE, (20, 20, 20), (120, 120, 120), 0.3, 2.0, 1.0, 0.0, 300.0),
+        # 원뿔 껍질 · 구 펄스는 끈다 — 부채꼴 깃털이 원뿔 범위를 보여 준다.
+        "muzzle_pulse": off,
+        "cast_wave": off,
+        "impact_pulse": off,
         "impact_decal": no_decal,
         "stream_bead_count": 0,
     })
@@ -360,6 +371,9 @@ def make_visual_sets(decal_mat):
         "trail": load(FX_BOLT_TRAIL),
         "impact": load(FX_BOLT_IMPACT),
         "hide_projectile_mesh": True,
+        # Q85: 볼트가 보이기 시작할 때 완드 끝부터 첫 0.1초 길(맞을 곳이 가까우면 거기까지)을 한 번 긋는다.
+        "launch_streak": load(FX_BOLT_LAUNCH),
+        "launch_streak_seconds": 0.1,
         "muzzle_flash_scale": 0.8,
         "trail_scale": 1.0,
         "impact_scale": 0.8,

@@ -2,7 +2,7 @@
 
 2026-11-06 사용자 요청: 「이펙트가 마음에 안 든다 — 지피티로 시안을 뽑아 그대로 만들 수 없나?」. Niagara 에디터를 손으로 만지지 않고, **GPT 시안 → 사양(파이썬) → 자동 생성 에셋 → 게임 화면 비교** 로 이펙트를 만드는 길을 조사하고 불씨 · 기본 공격 두 마법으로 끝까지 증명했다. **이 시험 이펙트(`NS_GrimEmber_*` · `NS_GrimBasic_*`)는 마법에 연결하지 않았다** — 볼트 이펙트는 그 뒤 별도 갈래가 사용자가 준 레퍼런스(바늘 빛줄기)대로 `NS_Bolt_*` 로 만들어 불씨 · 기본 공격에 연결했다([투사체 · 시전 감각 — 볼트 이펙트](./spell-feel#볼트-이펙트-—-사용자-참고-그림대로-2026-11-06)). 이 문서와 도구는 이후 물줄기 · 미풍이 쓰는 저작 도구다. 연출이 어디서 그려지는지는 [투사체 · 시전 감각](./spell-feel) · [마법](./magic).
 
-> 상태(2026-11-06 코드 대조): 이 갈래의 도구(`Scripts/MagicFX/make_fx_niagara.py` · `Scripts/MagicFX/fx_niagara_builder.py` · `Scripts/MagicFX/fx_materials.py` · `Scripts/MagicFX/make_fx_textures.py` · `Scripts/MagicFX/image_to_alpha.py` · `Scripts/MagicFX/capture_spell.ps1` · `Scripts/MagicFX/compare_fx.py`)와 에셋은 있고, 게임에 연결된 것은 없다. 볼트 갈래는 같은 툴셋을 자기 스크립트(`Scripts/MagicFX/make_bolt_fx.py` — `ToolsetRegistry.execute_tool` 을 직접 부름, 이 문서의 빌더를 쓰지 않음)로 불렀다.
+> 상태(2026-11-07 코드 대조): 이 갈래의 첫 도구(`Scripts/MagicFX/make_fx_niagara.py` · `Scripts/MagicFX/fx_niagara_builder.py` · `Scripts/MagicFX/fx_materials.py` · `Scripts/MagicFX/make_fx_textures.py` · `Scripts/MagicFX/image_to_alpha.py` · `Scripts/MagicFX/capture_spell.ps1` · `Scripts/MagicFX/compare_fx.py`)로 만든 시험 이펙트는 게임에 연결돼 있지 않다. 볼트 갈래는 같은 툴셋을 자기 스크립트(`Scripts/MagicFX/make_bolt_fx.py`)로 불렀고, 2026-11-07 그 빛 언어를 **사양 파일 → 헤드리스 조립**으로 다시 쓸 수 있게 한 것이 `Scripts/MagicFX/make_spell_fx.py` 다(아래 「사양 파일로 만들기」) — 물줄기 · 미풍 · 볼트 발사 빛줄기가 이걸로 만들어져 게임에 연결돼 있다.
 
 ## 결과 먼저
 
@@ -17,7 +17,7 @@
 | 불씨 | 주황 별 섬광 · 불티, 흰 심 + 주황 껍질 혜성과 꼬리, 터질 때 큰 섬광 · 주황 빛 번짐, 뒤늦게 오르는 짙은 연기 | 불꽃 **모양** — 시안은 말려 올라가는 불꽃 혀(꽃잎), 게임은 둥근 덩이. 절차적 플립북 텍스처의 한계(아래 「텍스처」). 터짐 한가운데가 아직 살구색으로 밝다. 바닥 그을음 링은 C++ 데칼 그대로 |
 | 기본 공격 | 얇은 마법진 고리 + 별빛, 밝은 구슬 + 보랏빛 광륜 + 가는 빛 꼬리, 별 섬광 + 퍼지는 고리 + 빛 알갱이 | 구슬 둘레를 **감는 빛 띠**(시안 2) — 궤도 리본이 없다. 시전 고리가 휘두르는 완드 끝(아래쪽)에 생겨 몸통과 떨어져 보인다(섬광 위치는 C++ 큐가 정함). 고리에 룬 점이 없다 |
 
-물줄기 · 미풍 시안도 뽑아 두었다(아래). 게임에 연결된 이펙트는 지금 불씨 · 기본 공격 = 볼트 갈래의 `NS_Bolt_*`, 물줄기 · 미풍 = Niagara Examples Pack + 엔진 템플릿이다([투사체 · 시전 감각 — 임시 이펙트](./spell-feel#임시-이펙트-—-엔진-기본-·-niagara-examples-pack)).
+물줄기 · 미풍 시안도 뽑아 두었다(아래). 게임에 연결된 이펙트는 지금 불씨 · 기본 공격 = 볼트 갈래의 `NS_Bolt_*` + 발사 빛줄기 `NS_Bolt_Launch`, 물줄기 · 미풍 = 볼트 빛 언어로 다시 만든 `NS_Stream_*` · `NS_Cone_*`(2026-11-07, 아래 「사양 파일로 만들기」 · [투사체 · 시전 감각](./spell-feel)). 아래 시안은 그 전 갈래의 것이라 지금 게임 그림과 다르다.
 
 | 물줄기 | 미풍 |
 |---|---|
@@ -87,6 +87,35 @@ python Scripts/MagicFX/compare_fx.py art/fx/raw/ember.png art/fx/ingame/ember do
 
 캡처 때는 투사체의 엔진 기본 회색 구를 감췄다(Niagara 몸통이 있을 때). 그 변경은 이 갈래에서는 되돌렸고, 볼트 갈래가 연출 묶음 칸 `bHideProjectileMesh`(`Source/Grimoire/Core/GrimSpellFXTypes.h`)로 넣었다.
 
+## 사양 파일로 만들기 (2026-11-07)
+
+Q85 · Q86(사용자 「제안대로」)에서 볼트 빛 언어를 물줄기 · 미풍 · 볼트 발사 빛줄기로 넓히면서, `make_bolt_fx.py` 의 조립 방식(템플릿 이미터 + 모듈 끄기 + 단계 끝 Set Parameters HLSL 덮어쓰기)을 **JSON 사양 파일**로 꺼냈다. 값은 사양 파일이 정본이다. 결과 그림은 [QA — 이펙트](../qa/fx).
+
+| 파일 | 하는 일 |
+|---|---|
+| `art/fx/specs/spell/*.json` | 사양. `bolt_launch.json`(`NS_Bolt_Launch`) · `stream.json`(`NS_Stream_Trail` · `NS_Stream_Impact`) · `breeze.json`(`NS_Cone_Trail` · `NS_Cone_Impact`). 시스템마다 사용자 변수(`user`) + 이미터 목록 |
+| `Scripts/MagicFX/spell_fx_spec.py` | 사양 → 툴셋 호출. 이미터 키: `kind`(burst · still · stream) · `mi`(`MI_Bolt_*` 이름) · `aligned` · `count` · `rate` · `lifetime` · `size` · `disable` · `set`(모듈 입력: 수 · vec3 · HLSL · 링크) · `spawn` · `update`(속성 덮어쓰기 HLSL) · `renderer` · `defs`(HLSL 안 `{이름}` 치환) · `max_life`(입자 어림용). 파일 머리 주석이 형식 설명 |
+| `Scripts/MagicFX/make_spell_fx.py` | 실행기. Effect Type `EFT_Grim_Spell`(`Content/Grimoire/MagicFX/EFT_Grim_Spell`)을 만들거나 맞추고, 사양의 시스템을 만들고, `/Game/Grimoire/MagicFX` 아래 **모든** Niagara 시스템에 그 Effect Type 을 붙인다. 시스템마다 입자 어림(2,000 넘으면 실패로 셈) · 컴파일 상태를 `Saved/MagicFX/make_spell_fx.txt` 에 |
+| `UGrimMagicFXEditorLibrary::SetDistanceSignificance` | Effect Type 의 중요도 처리기를 「거리」로(처리기 클래스가 파이썬에 없다) |
+
+```powershell
+# 에디터를 닫고. 먼저 make_bolt_fx.py(MI_Bolt_*), 끝에 연출 묶음 연결
+& "$UE\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\MagicFX\make_spell_fx.py" -unattended -nop4 -nosplash -nullrhi
+$env:GRIM_FX_STEPS = "visual_sets"; & "$UE\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\MagicFX\make_magicfx_assets.py" -unattended -nop4 -nosplash -nullrhi
+```
+
+- 일부만: `GRIM_FX_SPEC=stream`(파일 이름, 쉼표 여럿) · `GRIM_FX_SYSTEMS=NS_Stream_Trail`. 2026-11-07 결과: 시스템 5개 모두 「컴파일=UpToDate 오류=False 설정 실패=0」, Effect Type 은 그 밖 9개(`NS_Bolt_*` · 시험 `NS_Grim*`)에도.
+- Effect Type 값(`make_spell_fx.py` 의 `EFT_VALUES`): 갱신 주기 Low · 컬 반응 즉시 끄기 · 중요도 = 거리 · 80 m 밖 컬 · 전체 160개 · 시스템당 48개.
+- 화면 확인: 실제 시전은 `Scripts/MagicFX/capture_bolt.ps1 -Cast`(물줄기는 `-Hold`), 연출만 옆 · 위에서 보려면 `-FxCmd "Grim.FX.Spawn …"`. 시전하면 조준 = 카메라라 `Grim.Cam` 고정 카메라 시점에서는 줄기 · 부채가 카메라 쪽으로만 나간다. 어깨 뒤 게임 시점은 `Scripts/MagicFX/capture_spell.ps1 -Hold`.
+
+사양 쓸 때 알아 둘 것:
+
+- **Niagara 식에 난수가 없다** → 이미터의 수명 난수(`InitializeParticle` 의 Lifetime Min~Max)를 `saturate((Particles.Lifetime - 최소) / 폭)` 로 0~1 에 펴서 각도 · 속력 · 호 위 시간에 쓴다(`defs` 의 `U`). 수명과 짝지어지니, 결이 다른 값이 필요하면 `frac(U × 소수)`.
+- 위치를 덮어쓸 때는 속성 타입이 `position`(`Particles.Position` 은 Vector3f 가 아니라 NiagaraPosition). `Engine.Owner.Position + …` 이 그대로 된다.
+- 속도 정렬 스프라이트의 위(텍스처 V=0) = 진행 방향. 렌더러 `PivotInUVSpace` (0.5, 1.0) 이면 아래 끝이 입자 자리 — 완드에서 앞으로 자라는 빛줄기.
+- 시스템 회전은 `MakeFromZ(방향)` 이라 X 축이 수평(위 × 방향) — 부채꼴은 `Engine.Owner.SystemXAxis` 쪽으로 펼친다.
+- 계속 뿜는 이미터는 수명 주기 Infinite — 끄는 것은 C++(`UGrimMagicFXStatics::StopFX`). 내는 양을 변수로 켜고 끌 때는 `SpawnRate` 입력에 HLSL(`100.0 * User.EndSplash`).
+
 ## 함정 (이번에 밟은 것)
 
 1. **같은 세션에서 시스템을 지우고 같은 이름으로 다시 만들면 저장 때 엔진이 죽는다**(널 참조 접근). 빌더는 있는 에셋을 지우지 않고 에미터만 비워 다시 채운다.
@@ -100,7 +129,7 @@ python Scripts/MagicFX/compare_fx.py art/fx/raw/ember.png art/fx/ingame/ember do
 ## 다음 단계
 
 - **불꽃 · 물 · 바람 모양 텍스처를 GPT 로**: 시트 전체가 아니라 「검은 배경 위 불꽃 혀 하나」 같은 **낱장 4~8장**을 뽑아 `image_to_alpha.py flipbook` 으로 묶는다(칸 맞춤은 코드가). 불씨 터짐의 꽃잎 모양이 이걸로 시안에 가까워질 것이다.
-- **물줄기 · 미풍**: 블렌더로 휘어진 리본/원뿔 메시 + UV 흘리는 머티리얼 + 메시 파티클(물줄기 몸통 · 미풍 바람 줄기), 물 왕관은 메시 플립북 또는 GPT 낱장.
+- ~~물줄기 · 미풍~~: 2026-11-07 볼트 빛 언어(스프라이트)로 만들었다(위 「사양 파일로 만들기」). 휘어진 리본 · 원뿔 메시나 물 왕관은 그 위에 더할 거리.
 - 기본 공격 궤도 띠: 심 둘레를 도는 파티클 하나에 리본을 달거나(로컬 공간 원운동 HLSL), 고리 메시를 빙글 돌린다.
 - 시전 섬광 위치를 완드 끝 **발사 순간**으로(지금은 휘두르는 도중의 완드 끝).
 - 소리는 아직 엔진 기본 임시 소리다.

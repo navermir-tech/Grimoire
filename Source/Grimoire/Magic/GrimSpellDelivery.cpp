@@ -100,6 +100,27 @@ namespace GrimSpellDelivery
 		}
 	}
 
+	float CalcArcTimeToPoint(const FVector& Start, const FVector& Velocity, const FVector& Point, float Fallback)
+	{
+		const float FlatSpeed = FVector2D(Velocity.X, Velocity.Y).Size();
+		if (FlatSpeed < KINDA_SMALL_NUMBER)
+		{
+			return FMath::Max(Fallback, 0.f);
+		}
+		const float FlatDistance = FVector2D(Point.X - Start.X, Point.Y - Start.Y).Size();
+		return FMath::Clamp(FlatDistance / FlatSpeed, 0.f, FMath::Max(Fallback, 0.f));
+	}
+
+	float CalcLaunchStreakLength(float Gap, float BoltSpeed, float Seconds, float HitDistance)
+	{
+		float Length = FMath::Max(FMath::Max(Gap, 0.f), FMath::Max(BoltSpeed, 0.f) * FMath::Max(Seconds, 0.f));
+		if (HitDistance > 0.f)
+		{
+			Length = FMath::Min(Length, HitDistance);
+		}
+		return Length;
+	}
+
 	bool IsInCone(const FVector& Origin, const FVector& Direction, float HalfAngleDeg, float Range, const FVector& Point)
 	{
 		const FVector Delta = Point - Origin;

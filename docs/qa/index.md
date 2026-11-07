@@ -40,4 +40,3 @@ powershell -File Scripts\Perf\measure.ps1 -Label <이름>   # 성능(약 7분)
 | [QA-CRE-026](./creatures) | 가방(L) 안 보관함 탭 — 여는 콘솔 명령이 없음 |
 | [QA-APP-009 · 010](./customization) | 생성 화면 버튼(확인 · 취소), 접속 직후 외형 |
 | [QA-CHT-015](./cheats) | Shipping 빌드에 치트가 없는지(쿡 빌드 필요) |
-| [QA-FX-005 · 008](./fx) | Q85 · Q86 결정 뒤 |

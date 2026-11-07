@@ -166,7 +166,7 @@ GPU 에서는 **그림자 깊이(가상 섀도 맵) 2.0 ~ 2.7 ms** 가 가장 �
 2. **늘 로드 그레이박스 826개 → 인스턴스 · 공간 로드** — 기본 도형 StaticMeshActor 하나하나가 프리미티브 · 그림자 캐스터라 렌더 스레드(가시성 · RDG)를 키운다.
    같은 메시 · 머티리얼끼리 ISM 으로 묶거나(`landmark_greybox.py`), 랜드마크만 늘 로드 + 나머지 공간 로드 + HLOD. 지형 · 레벨 디자인 갈래와 함께.
 3. **확장성 프로필 검증** — `sg.*` 를 High(2) · TSR 67 % 로 두고 권장 사양 흉내 측정, Low 에서 Lumen 끔 확인. 필요하면 `Config/DefaultScalability.ini`(아직 없음) 를 만든다(규칙 26).
-4. **Niagara Effect Type** — 아직 하나도 없다. `EFT_Grim_Spell` · `EFT_Grim_Weather` · `EFT_Grim_Ambient` 를 만들고 마법 · 날씨 이펙트에 붙인다(마법 연출 갈래와 함께).
+4. **Niagara Effect Type** — 마법은 됐다(2026-11-07, `EFT_Grim_Spell` — `Scripts/MagicFX/make_spell_fx.py`, [마법 이펙트 자체 제작](./magic-fx-authoring#사양-파일로-만들기-2026-11-07)). 남은 것: `EFT_Grim_Weather` · `EFT_Grim_Ambient` 를 만들어 날씨 · 환경 이펙트에(환경 갈래, [BUG-006](../qa/bugs)).
 5. **생물 거리별 갱신** — 플레이어에게서 50 m 밖 생물은 CharacterMovement 틱 간격 0.1 초 · `NetUpdateFrequency` 10, 스켈레탈 메시가 붙으면 URO · `OnlyTickPoseWhenRendered`(규칙 15).
 6. **끊김** — 순간이동 · 첫 이펙트 사용 때 30 ~ 230 ms 멈춤(셰이더 컴파일 · 스트리밍). 출시 전 PSO 프리캐시 · 셰이더 예열 목록.
 7. **HUD 게임 스레드 0.7 ~ 0.9 ms** — UMG 바인딩 · 매 틱 갱신을 이벤트로(UI 갈래와 함께).

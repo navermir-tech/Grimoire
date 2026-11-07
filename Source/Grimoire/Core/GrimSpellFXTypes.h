@@ -50,6 +50,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
 	bool bHideProjectileMesh = false;
 
+	/**
+	 * 볼트 발사 빛줄기(Q85): 볼트가 보이기 시작할 때 완드 끝부터 한 번 긋는 빛줄기(연출만, 판정 없음).
+	 * 가까운 표적은 비행이 몇 프레임이라 꼬리가 거의 안 보이고, 원격 시전자의 볼트는 지연만큼 앞에서 나타난다 — 그 구간을 잇는다.
+	 * 시스템 +Z = 날아가는 쪽, 사용자 변수 Length(cm) · DrawTime(초) · Color 를 투사체가 넣는다. 비우면 긋지 않는다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	TObjectPtr<UFXSystemAsset> LaunchStreak;
+
+	/** 발사 빛줄기 길이 = 볼트 속력 × 이 시간(맞을 곳이 더 가까우면 거기까지) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX", meta = (ClampMin = "0", Units = "s"))
+	float LaunchStreakSeconds = 0.1f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> CastSound;
 

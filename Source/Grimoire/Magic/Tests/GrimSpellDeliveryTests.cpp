@@ -124,6 +124,24 @@ bool FGrimDeliveryStreamArcTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("닿지 않으면 45°"), static_cast<float>(Direction.Z), FMath::Sin(UE_PI / 4.f), 1e-3f);
 
 	TestTrue(TEXT("중력 0 = 직선"), SolveLaunchDirection(Start, Target, Speed, 0.f, Direction) && Direction.Equals((Target - Start).GetSafeNormal(), 1e-4f));
+
+	// 줄기 연출: 호 위의 점까지 걸린 시간(수평 거리 ÷ 수평 속력), 수직이면 Fallback, 상한 Fallback.
+	TestEqual(TEXT("호 시간 0.5초"), CalcArcTimeToPoint(Start, FVector(Speed, 0.f, 0.f), Points[4], 2.f), 0.5f, 1e-4f);
+	TestEqual(TEXT("수직이면 Fallback"), CalcArcTimeToPoint(Start, FVector(0.f, 0.f, Speed), Target, 0.7f), 0.7f, 1e-4f);
+	TestEqual(TEXT("Fallback 이 상한"), CalcArcTimeToPoint(Start, FVector(Speed, 0.f, 0.f), Points.Last(), 0.6f), 0.6f, 1e-4f);
+	return true;
+}
+
+// 볼트 발사 빛줄기(Q85): 완드 끝부터 볼트 속력 × 시간, 당긴 만큼은 다 덮고, 맞을 곳에서 멈춘다.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDeliveryLaunchStreakTest, "Grimoire.Magic.Delivery.LaunchStreak", GrimDeliveryTestFlags)
+bool FGrimDeliveryLaunchStreakTest::RunTest(const FString& Parameters)
+{
+	using namespace GrimSpellDelivery;
+	TestEqual(TEXT("먼 표적: 7500 × 0.1 = 750"), CalcLaunchStreakLength(0.f, 7500.f, 0.1f, 0.f), 750.f, 1e-3f);
+	TestEqual(TEXT("가까운 표적(4 m)에서 멈춤"), CalcLaunchStreakLength(0.f, 7500.f, 0.1f, 400.f), 400.f, 1e-3f);
+	TestEqual(TEXT("원격 지연으로 당긴 11 m 는 다 덮는다"), CalcLaunchStreakLength(1100.f, 7500.f, 0.1f, 0.f), 1100.f, 1e-3f);
+	TestEqual(TEXT("당겼어도 맞은 곳까지만"), CalcLaunchStreakLength(1100.f, 7500.f, 0.1f, 600.f), 600.f, 1e-3f);
+	TestEqual(TEXT("시간 0 · 당김 0 = 긋지 않음"), CalcLaunchStreakLength(0.f, 7500.f, 0.f, 0.f), 0.f, 1e-6f);
 	return true;
 }
 

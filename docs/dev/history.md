@@ -29,6 +29,7 @@
 | 11-06 | 목록 · 제안 (문서) | 생물 명단 61종, 스킬북 89권, 인챈트 35종, 1번 지역 콘셉트 40장 | `1a5129c` `31aa6d7` `f8c1e7d` `142afdf` |
 | 11-06 | 생물 보관함 (R38) | 데리고 다니기 · 쿠스토디아 · 거점 생물 상자 | `68650ec` |
 | 11-06 | 커스터마이징 · 성능 · 이펙트 | 외형 조립, 성능 예산 · 첫 최적화, 이펙트 자체 제작 · 볼트 | `7800e3d` `9b815cf` `1f51324` `a6da3f7` |
+| 11-07 | 이펙트 다시 (Q85 · Q86) | 볼트 발사 빛줄기, 물줄기 · 미풍을 볼트 빛 언어로, 사양 파일 조립 · `EFT_Grim_Spell` | 브랜치 `claude/fx-rework-1a2d5c` |
 
 ## M0 · 셋업 (2026-11-04 ~ 05)
 
@@ -130,6 +131,12 @@
 - **길**: GPT 시안 → 파이썬 사양 → NiagaraToolsets(`unreal.ToolsetRegistry.execute_tool`, 헤드리스 커맨드렛)로 Niagara 조립 → 캡처 `Scripts/MagicFX/capture_spell.ps1` → 시안과 비교 `compare_fx.py`([이펙트 자체 제작](../systems/magic-fx-authoring)).
 - **볼트**(사용자 참고 그림): 속성 7종 GPT 시안 · 레이어 분해 → GPT 텍스처 → `NS_Bolt_Cast/Trail/Impact` + 가산 머티리얼, 색은 `User.Color` 하나로 속성마다([투사체 · 시전 감각 — 볼트 이펙트](../systems/spell-feel)). 원본 `art/fx/`.
 - **함정**: 같은 세션에서 Niagara 시스템을 지우고 같은 이름으로 만들면 저장 때 크래시 → 지우지 말고 비워 다시 채움. 컴파일 중 저장도 위험 → 기다리는 C++ 도우미. 자동 노출이 발광을 하얗게 민다 → 발광에 `EyeAdaptationInverse`. 볼트 앞당김은 원격 시전자의 지연이 시전 대기(`CastWindup`)를 넘을 때 넘은 만큼만(상한 0.15초, `Source/Grimoire/Magic/GrimSpellDelivery.cpp`) — 호스트 · 단독은 기다렸다 완드 끝에서 쏜다(Q110). `SpawnSystemAtLocation` 컴포넌트는 붙여도 안 따라온다.
+
+## 이펙트 다시 — 발사 빛줄기 · 물줄기 · 미풍 (2026-11-07, Q85 · Q86)
+
+- **무엇을**: 사용자가 Q85 · Q86 을 「제안대로」로 정했다. ① 볼트는 75~90 m/s 라 가까운 표적에서 꼬리가 거의 안 보였다 → 판정은 그대로, 보이는 볼트가 시작할 때 완드 끝부터 첫 0.1초 길(맞을 곳이 가까우면 거기까지, 원격 지연으로 당긴 틈은 다 덮음)을 한 번 긋는 `NS_Bolt_Launch`(`AGrimSpellProjectile::SpawnLaunchStreak`, 연출 묶음 칸 `LaunchStreak`). ② 물줄기 · 미풍을 볼트와 같은 빛 언어로 — 이어진 바늘 빛줄기 + 물방울 불티(`NS_Stream_*`, 줄기 큐가 판정 호의 발사 방향 · 속도 · 중력 · 막힌 곳을 넣음), 깃털 빛줄기 부채꼴(`NS_Cone_*`, 시전 큐가 원뿔 사거리 · 반각을 넣음). 구 펄스 · 구슬 · 원뿔 껍질은 껐다([투사체 · 시전 감각](../systems/spell-feel)).
+- **어떻게**: `make_bolt_fx.py` 의 조립 방식을 **JSON 사양 파일**(`art/fx/specs/spell/*.json`) + 실행기 `Scripts/MagicFX/make_spell_fx.py`(`spell_fx_spec.py`)로 꺼내 다시 돌릴 수 있게 했다. 같은 실행기가 Effect Type `EFT_Grim_Spell` 을 만들어 마법 Niagara 14개에 붙인다(성능 규칙 24, BUG-006 마법 몫). 순수 계산 `GrimSpellDelivery::CalcLaunchStreakLength` · `CalcArcTimeToPoint` 는 자동화 테스트. 화면 QA 는 실제 시전 + 연출만 띄우는 새 개발 명령 `Grim.FX.Spawn`([QA — 이펙트](../qa/fx) 005 · 008 ~ 011).
+- **함정**: Niagara 식에 난수가 없다 → 수명 난수를 0~1 로 펴서 각도 · 속력에 씀. `Particles.Position` 은 position 타입. Effect Type 중요도 처리기 클래스가 파이썬에 없다 → C++ 도우미. **`Grim.Cam` 고정 카메라는 조준도 바꾼다**(폰의 조준 = 카메라 시선) — 줄기 · 부채가 카메라 쪽으로만 나가 짧아 보였다 → 옆 · 위 시점은 `Grim.FX.Spawn` 으로. `capture_spell.ps1` 은 누름 시간(`-Hold`)이 없어 줄기를 못 찍었다 → 더함.
 
 ## 문서 맞추기 (2026-11-06)
 

@@ -11,7 +11,9 @@ param(
 	# 자리 잡기 명령들(Start 초부터 1초 간격). 기본: 초원 해 질 녘, 8m 앞에 재칼로프 한 마리를 표적으로.
 	# 기본 공격은 시작 마법에 없다 — 앞에 「;Grim.Magic.SpawnSkillbook BasicAttack 100;Grim.Magic.ReadSkillbook」 를 더한다.
 	[string]$SetupList = "Grim.Go Jackalope;Grim.Creature.Time 0.8;Grim.Spawn Jack 1 8",
-	[string]$TargetClass = "Jackalope"
+	[string]$TargetClass = "Jackalope",
+	# 누르고 있는 실제 초(줄기 같은 지속 마법). 0 = 한 번 누름
+	[double]$Hold = 0
 )
 $Moments = $MomentList.Split(",") | ForEach-Object { [double]$_ }
 $Setup = $SetupList.Split(";")
@@ -23,9 +25,9 @@ if (Test-Path $ShotDir) { Remove-Item "$ShotDir\*.png" -Force }
 $cmds = @()
 for ($i = 0; $i -lt $Setup.Count; $i++) { $cmds += "Grim.At $($Start + $i) $($Setup[$i])" }
 $cast = $Start + $Setup.Count + 2
-# Grim.Magic.Cast 는 대상을 본 뒤 0.5초(게임 시간) 있다 누른다 — 그 직전에 느리게 하고, 순간은 누른 때부터 잰다.
+# Grim.Magic.Cast 는 대상을 본 뒤 실제 0.5초(코어 티커 — slomo 와 무관) 있다 누른다 — 그 직전에 느리게 하고, 순간은 누른 때부터 잰다.
 $press = $cast + 0.5
-$cmds += "Grim.At $cast Grim.Magic.Cast $Spell $TargetClass"
+$cmds += "Grim.At $cast Grim.Magic.Cast $Spell $TargetClass $Hold"
 $cmds += "Grim.At $($cast + 0.45) slomo $Slomo"
 foreach ($m in $Moments) { $cmds += "Grim.At $([math]::Round($press + $m / $Slomo, 2)) HighResShot 1280x720" }
 $last = $press + ($Moments | Measure-Object -Maximum).Maximum / $Slomo + 4
