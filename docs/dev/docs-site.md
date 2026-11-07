@@ -37,5 +37,6 @@ npm run docs:dev
 ### 확인 · 문제
 
 - Actions 탭의 docs 실행 로그를 본다. 로컬에서 `npm run docs:build` 가 되면 워크플로에서도 된다.
+- **파일 300개가 넘게 바뀐 푸시**(맵 다시 만들기 · 에셋 합치기)는 GitHub 이 경로 필터를 처음 300개로만 보므로 docs 가 안 돌 수 있다. 그때는 `gh workflow run docs.yml --ref main` 으로 손으로 돌린다.
 - 저장소가 공개라 무료 · 횟수 제한 없음. 저장소를 비공개로 바꾸면 무료 플랜에서는 Pages 가 꺼진다.
 - 예전 Netlify(grimoire2026.netlify.app)는 무료 크레딧 소진으로 2026-11-05 18:10 이후 배포가 멈춰 그만 썼다([결정 기록](../spec/decisions#결정-기록)).
