@@ -30,7 +30,7 @@ $UE = "C:\Program Files\Epic Games\UE_5.8"
 ## 구조
 
 - `Source/Grimoire/` 단일 게임 모듈. 시스템별 하위 폴더(Core · Magic · Survival · Environment · Creatures · Base · Factions · World · Save · UI)는 `docs/systems/index.md` 대로. 클래스 접두 `Grim`.
-- `Content/Grimoire/<시스템>/` 에만 우리 에셋. 마켓 에셋은 `Content/<팩>/`.
+- `Content/Grimoire/<시스템>/` 에만 우리 에셋. 마켓 · Fab 팩은 `Content/<팩>/` 에 **로컬로만** 두고(`.gitignore`), 레벨에서 쓰는 에셋만 `git add -f` 로 올린다 — `docs/dev/market-assets.md`. 팩은 메인 체크아웃에만 있어 워크트리는 정션을 건다.
 - `Config/Default*.ini` 가 설정의 정본. 수치는 데이터(DataAsset · DataTable · ini)에 두고 코드에 적지 않는다.
 - 문서: 새 페이지는 `docs/.vitepress/config.mts` 의 sidebar 에 등록한다. 링크는 확장자 없는 상대 경로. `docs/` 아래 그림은 LFS 가 아니다.
 

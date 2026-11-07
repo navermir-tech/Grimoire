@@ -66,3 +66,17 @@ art/**/logs/
 art/fx/ingame/
 *.blend1
 __pycache__/
+
+# ===== 마켓 · Fab 에셋 팩 (로컬에만 둔다 — docs/dev/market-assets.md) =====
+# 팩은 각자 받는다. 레벨에서 실제로 쓰는 에셋만 `git add -f` 로 올린다.
+/Content/*
+!/Content/Grimoire/
+!/Content/Characters/
+!/Content/Input/
+!/Content/NiagaraExamples/
+!/Content/__ExternalActors__/
+!/Content/__ExternalObjects__/
+/Content/__ExternalActors__/*
+!/Content/__ExternalActors__/Grimoire/
+/Content/__ExternalObjects__/*
+!/Content/__ExternalObjects__/Grimoire/

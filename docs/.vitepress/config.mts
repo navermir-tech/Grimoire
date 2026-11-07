@@ -92,6 +92,7 @@ export default defineConfig({
             { text: '시작하기', link: '/dev/setup' },
             { text: '규칙 · 명명', link: '/dev/conventions' },
             { text: '문서 사이트 · 배포', link: '/dev/docs-site' },
+            { text: '마켓 · Fab 에셋 팩', link: '/dev/market-assets' },
             { text: '성능 측정 방법', link: '/dev/perf-measure' },
             { text: 'QA 절차', link: '/dev/qa' },
             { text: '테스트 치트', link: '/dev/cheats' },
