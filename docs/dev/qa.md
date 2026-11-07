@@ -38,6 +38,7 @@
 | 치트 · 개발 명령 · 에디터 | CHT | [cheats](../qa/cheats) |
 | 이펙트 · 화면 | FX | [fx](../qa/fx) |
 | 성능 예산 | PRF | [perf](../qa/perf) |
+| 레벨 아트(지형 재질 · 식생 · 소품) | LVL | [level-art](../qa/level-art) |
 
 ## 검증 수단 (이 순서로)
 

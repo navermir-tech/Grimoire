@@ -167,3 +167,16 @@
 - **미연결**: 각인 최고 단계 · 동시 유지 · 출입 ID · 4서클 이상 시험 과제는 그 시스템이 없어 표 · 조회 함수만. 생물 · 성장 트리 큰 노드 서클 값은 원래 표가 정본이라 다시 적지 않았다.
 - **확인**: 자동화(새 `Grimoire.Magic.Circle.*` 다섯), 2인 `Scripts/Magic/net_check_circle.ps1`(봉인 · 거절 까닭 · 승급 · 격 차이를 서버가 정함), 튜토리얼 `check_tutorial.ps1`(자격 모자람 → 숙련도 채움 → 시험), 화면 `shoot_qa.ps1 -Set Circle` — [QA — 마법](../qa/magic#서클-보상-·-승급-자격-q122) · [QA — 튜토리얼](../qa/tutorial).
 - **함정**: 1서클 슬롯 세트가 하나가 되면서 「세트 2」를 쓰던 테스트 · 2서클 책 알림을 보던 2인 스크립트(`net_check_castfail.ps1` — 이제 `Sealed`)를 함께 고쳐야 했다. 새 파일로 유니티 묶음이 바뀌자 `GrimPlayerSaveParticipants.h` 의 전방 선언만 있던 `APlayerState` 가 `TWeakObjectPtr` 대입에서 깨졌다 → 헤더에 include.
+
+## 레벨 아트 1차 — Fab 팩 시험 적용 (2026-11-08)
+
+- **무엇을**: 2026-11-07 받은 Fab 무료 팩으로 `L_OpenBeta` 시작 구역(마탑 구간 약 1 km²)을 입혔다 — 지형 재질(StyleHex 지형 텍스처, 맵 전체) · 랜드스케이프 풀 · 꽃(StyleHex) · 생성기 나무 · 덤불 · 바위 자리를 StyleHex 메시로 · 길가 돌 · 쓰러진 나무 · 큰 바위 · 먼 하늘 손그림 구름 카드. 저장소에 올린 팩 파일 116 개 202 MB(StyleHex 127.5 · BlackCherry 71.6 · 구름 3.2). 무엇을 어디에는 [레벨 디자인 노트 「8」](./level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08).
+- **어떻게**: `Scripts/Terrain/dress_openbeta.py`(+ `dress_assets.py`) — 만든 맵 위에 덧입히는 헤드리스 스크립트. World Partition 액터를 모두 올리고, 지난번 것(태그 `LevelDress` · `FT_Dress_*`)을 걷고, 생성기 식생 자리를 그대로 써서(같은 시드 = 같은 자리) 구역 안만 팩 메시로 바꾼다. 우리 에셋은 `Content/Grimoire/Terrain/Dress/` 에만 만들고 팩은 참조만. 쓰는 팩 파일만 올리는 `Scripts/Terrain/add_pack_assets.ps1`(+ `collect_pack_deps.py` — 에셋 레지스트리 의존을 끝까지 따라감) — [마켓 · Fab 에셋 팩](./market-assets#스크립트로-2026-11-08).
+- **확인**: 전 · 후 스크린숏(측정 자리 가운데 시작 구역 5 + Q124 · Q125 비교 3) · 다시 돌려도 같은 결과(외부 액터 수) · 성능 전체 측정 · 자동화 · 맵 점검 — [QA — 레벨 아트](../qa/level-art).
+- **함정**:
+  - 커맨드렛 저장은 **지운 액터의 외부 패키지 파일을 지우지 않는다** — 다시 돌릴 때마다 손 소품이 쌓였다(1519 → 1557 → 1595). 스크립트가 저장 뒤 그 파일을 직접 지운다.
+  - **연 맵의 랜드스케이프 재질을 바꿔 저장하면 풀 지도 높이가 틀어진다**(탑 평지 · 언덕 꼭대기 풀이 묻히고 골 위 하늘에 풀이 뜸). 저장(`PreSave`)이 늘 풀 지도를 굽기 때문 — 텍스처 밉 강제 · 스트리밍 끄기 · 에디터 창 저장 · 재질 상태 바꾸기 · 시작 때 `EvictAll` 모두 안 됐다. 처음부터 새 재질로 만든 랜드스케이프는 맞다 → `build_openbeta.py` 가 `M_Terrain_Dress` 로 만들고 `dress_openbeta.py` 는 랜드스케이프를 건드리지 않는다. 쿡 빌드는 `grass.GrassMap.UseRuntimeGeneration=1`(`Config/DefaultEngine.ini`)로 런타임에 만든다. 그래서 이 브랜치는 맵을 다시 만들어 외부 액터 파일 이름이 모두 바뀌었다.
+  - `GrassDensity` 단위는 **10 m × 10 m(100 m²) 당** 개수다 — 1 m² 당으로 넣었다가 풀이 100 배 성겼다.
+  - 쓰는 팩 파일 모으기는 머티리얼 부모까지 따라가야 한다 — 스캔 그루터기 하나가 부모 `Universal_Mat` 의 기본 텍스처(다른 스캔 4K) 때문에 134 MB 가 되어 뺐다.
+  - Megaplants 나무는 스켈레탈 메시 + Nanite 어셈블리라 `r.Nanite.Foliage`(읽기 전용 프로젝트 설정)가 꺼져 있으면 줄기만 보인다 — 놓지 않았다(Q125).
+  - 이 PC 의 Bash 도구는 히어독 안 `\\` 를 하나로 줄인다 — 백슬래시가 든 문서 편집은 Write 도구로 만든 파이썬 파일로.
