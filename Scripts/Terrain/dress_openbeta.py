@@ -31,17 +31,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import dress_assets  # noqa: E402
 import landmark_greybox  # noqa: E402
+import section_dress  # noqa: E402
 
 MAP_PATH = "/Game/Grimoire/Maps/L_OpenBeta"
 LAYOUT_PATH = os.path.join(HERE, "openbeta_layout.json")
 TAG = "LevelDress"
 SEED = 20261107
 
-# build_openbeta.py 의 FOLIAGE_PARTS 와 같아야 한다(구역 밖에 그레이박스로 다시 놓는다)
+# build_openbeta.py 의 FOLIAGE_PARTS 와 같아야 한다(레벨 디자인 2차부터 맵 전체를 StyleHex 로 바꾸므로 모두 걷는다)
 GREYBOX_PARTS = {
     "Tree": [("FT_Terrain_TreeTrunk", (0, 0, 150), (0.4, 0.4, 3.0)), ("FT_Terrain_TreeCrown", (0, 0, 500), (2.6, 2.6, 4.0))],
     "Bush": [("FT_Terrain_Bush", (0, 0, 40), (1.6, 1.6, 1.1))],
     "Rock": [("FT_Terrain_Rock", (0, 0, 10), (1.6, 1.2, 0.9))],
+    "DarkTree": [("FT_Terrain_DarkTrunk", (0, 0, 200), (0.45, 0.45, 4.0)), ("FT_Terrain_DarkCrown", (0, 0, 650), (2.2, 2.2, 7.0))],
 }
 
 # 측정 · 스크린숏 자리(Scripts/Perf/measure.ps1 · shoot_openbeta.ps1, 월드 cm) — 손 소품을 이 둘레 12 m 안에 두지 않는다
@@ -75,7 +77,7 @@ if "-nullrhi" in unreal.SystemLibrary.get_command_line().lower():
 
 # ───── 1. 레이아웃 · 생성기(땅 높이 · 식생 자리) ─────
 layout = first_out(lib.load_layout_from_json(LAYOUT_PATH))
-first_out(lib.generate_terrain(layout))
+summary = first_out(lib.generate_terrain(layout))
 with open(LAYOUT_PATH, encoding="utf-8") as f:
     raw = json.load(f)
 origin = raw["WorldOrigin"]
@@ -103,7 +105,26 @@ def _polyline_distance(u, v, points):
     return best
 
 
-def clear_of(u, v, margin=0.0):
+def near_water(u, v, margin):
+    """연못 · 개울 · 큰 강 물가에서 margin(m) 안인가"""
+    for creek in raw["Creeks"]:
+        if _polyline_distance(u, v, creek["Points"]) < creek["Width"] / 2 + creek.get("BankWidth", 4) + margin:
+            return True
+    for pond in raw["Ponds"]:
+        if math.hypot(u - pond["Center"]["X"], v - pond["Center"]["Y"]) < pond["Radius"] + pond.get("ShoreWidth", 10) + margin:
+            return True
+    river = raw["River"]
+    return _polyline_distance(u, v, river["Points"]) < river["Width"] / 2 + river.get("BankWidth", 20) + margin
+
+
+def water_level(name):
+    for body in summary.water:
+        if str(body.name) == name and body.points:
+            return body.points[0].z / 100.0
+    return None
+
+
+def clear_of(u, v, margin=0.0, ignore_pois=False):
     """손 소품을 놓아도 되는 자리인가(지도 m) — 길 · 물 · 탑 · 랜드마크 · POI · 거점 터 · 측정 자리를 비운다"""
     if not landmark_greybox.point_in_polygon(u, v, sector):
         return False
@@ -123,7 +144,7 @@ def clear_of(u, v, margin=0.0):
         if math.hypot(u - spec["Center"]["X"], v - spec["Center"]["Y"]) < 30 + margin:
             return False
     for spec in raw.get("Pois", []):
-        if math.hypot(u - spec["Center"]["X"], v - spec["Center"]["Y"]) < spec.get("Radius", 12) + 8 + margin:
+        if not ignore_pois and math.hypot(u - spec["Center"]["X"], v - spec["Center"]["Y"]) < spec.get("Radius", 12) + 8 + margin:
             return False
     for site in raw.get("BaseSites", []):
         if math.hypot(u - site["Center"]["X"], v - site["Center"]["Y"]) < site["Radius"] + 5 + margin:
@@ -192,31 +213,52 @@ if rebuild_landscape:
                        "build_openbeta.py 로 맵을 다시 만든 뒤(새 재질로 처음부터) 이 스크립트를 한 번 더 돌린다")
 log(f"랜드스케이프 재질 {'→ 바꿈' if rebuild_landscape else '그대로'}: {assets['landscape'].get_name()} (프록시 {len(proxies)}개)")
 
-# ───── 6. 식생: 시작 구역 안은 StyleHex, 밖은 그레이박스 그대로 ─────
+# ───── 6. 식생: 맵 전체 StyleHex(레벨 디자인 2차) — 자리 · 크기 · 기울기는 생성기(포아송 원판 · 숲 무늬 · 무리 · 등성이 / 골),
+# 종은 생성기 Variant(같은 종끼리 무리 짓는 노이즈)로 고른다. 그레이박스 도형(FT_Terrain_*)은 모두 걷는다 ─────
 for rule, parts in GREYBOX_PARTS.items():
     for type_name, offset, scale in parts:
         unreal.InstancedFoliageActor.remove_all_instances(world, unreal.load_asset(f"/Game/Grimoire/Terrain/{type_name}"))
+# 구간 구도 자리(section_dress.py)와 랜드마크 둘레는 식생을 비운다 — 풍차 · 고목 실루엣이 나무에 묻히지 않게, 밭 · 곳간 · 봉화대 속에 나무가 나지 않게
+# (지도 u, v, 반지름 m, 비울 규칙)
+_lm = {l["Kind"]: l["Center"] for l in raw["Landmarks"]}
+_poi = {p["Name"]: p["Center"] for p in raw["Pois"]}
+ALL_RULES = ("Tree", "DarkTree", "Bush", "Rock")
+CLEAR_ZONES = [
+    (_lm["Windmill"]["X"], _lm["Windmill"]["Y"], 42, ("Tree", "DarkTree")),
+    (_lm["GiantTree"]["X"], _lm["GiantTree"]["Y"], 48, ("Tree", "DarkTree")),
+    (_lm["GiantTree"]["X"], _lm["GiantTree"]["Y"], 24, ALL_RULES),
+    (_poi["Poi_Windmill_Field"]["X"], _poi["Poi_Windmill_Field"]["Y"], 36, ALL_RULES),
+    (_poi["Poi_Windmill_Field"]["X"] + 28, _poi["Poi_Windmill_Field"]["Y"] + 22, 12, ALL_RULES),
+    (_poi["Poi_Beacon_Top"]["X"] - 7, _poi["Poi_Beacon_Top"]["Y"] + 4, 10, ALL_RULES),
+    (_poi["Poi_Meadow_Bees"]["X"] + 4, _poi["Poi_Meadow_Bees"]["Y"] - 3, 7, ALL_RULES),
+]
+# 측정 · 스크린숏 자리 둘레 14 m 는 나무 · 덤불을 비운다(카메라 바로 앞을 나무가 막지 않게 — 같은 자리 전 · 후 비교)
+CLEAR_ZONES += [(*world_to_map(sx, sy), 14, ("Tree", "DarkTree", "Bush")) for sx, sy in VIEW_SPOTS]
 
-for rule, parts in GREYBOX_PARTS.items():
-    for type_name, offset, scale in parts:
-        part = unreal.Transform(unreal.Vector(*offset), unreal.Rotator(0, 0, 0), unreal.Vector(*scale))
-        outside = [t for t in lib.get_foliage_transforms(rule, part) if not in_sector_world(t.translation.x, t.translation.y)]
-        if outside:
-            unreal.InstancedFoliageActor.add_instances(world, unreal.load_asset(f"/Game/Grimoire/Terrain/{type_name}"), outside)
-        count(f"Greybox.{type_name}", len(outside))
-    choices, part_scale = dress_assets.RULE_SWAP[rule]
+
+def cleared(rule, x, y):
+    u, v = world_to_map(x, y)
+    return any(rule in rules and math.hypot(u - cu, v - cv) < r for cu, cv, r, rules in CLEAR_ZONES)
+
+
+for rule in [r["Name"] for r in raw["Foliage"]]:
+    if rule not in dress_assets.RULE_SWAP:
+        continue
+    pick, part_scale = dress_assets.RULE_SWAP[rule]
     part = unreal.Transform(unreal.Vector(0, 0, 0), unreal.Rotator(0, 0, 0), unreal.Vector(part_scale, part_scale, part_scale))
+    result = lib.get_foliage_instances(rule, part)
+    transforms, variants = (result[1], result[2]) if isinstance(result, tuple) and len(result) == 3 else result
     buckets = {}
-    for t in lib.get_foliage_transforms(rule, part):
-        x, y = t.translation.x, t.translation.y
-        if not in_sector_world(x, y):
+    for t, var in zip(transforms, variants):
+        if cleared(rule, t.translation.x, t.translation.y):
+            count(f"Cleared.{rule}")
             continue
-        pick = choices[int(abs(x * 0.013 + y * 0.007)) % len(choices)]
-        buckets.setdefault(pick, []).append(t)
-    for name, transforms in buckets.items():
-        unreal.InstancedFoliageActor.add_instances(world, assets["foliage"][name], transforms)
-        count(f"Dress.{name}", len(transforms))
-    log(f"식생 {rule}: 시작 구역 {sum(len(v) for v in buckets.values())}개 → " + ", ".join(f"{k}={len(v)}" for k, v in sorted(buckets.items())))
+        name = pick(var, t.translation.x, t.translation.y)
+        buckets.setdefault(name, []).append(t)
+    for name, ts in buckets.items():
+        unreal.InstancedFoliageActor.add_instances(world, assets["foliage"][name], ts)
+        count(f"Dress.{name}", len(ts))
+    log(f"식생 {rule}: {sum(len(v) for v in buckets.values())}개 → " + ", ".join(f"{k}={len(v)}" for k, v in sorted(buckets.items())))
 
 rng = random.Random(SEED)
 
@@ -253,7 +295,7 @@ for path in raw["Paths"]:
             off = path["Width"] / 2 + rng.uniform(3.5, 7.0)
             u = a["X"] + (b["X"] - a["X"]) * t + nx * off * side
             v = a["Y"] + (b["Y"] - a["Y"]) * t + ny * off * side
-            if not landmark_greybox.point_in_polygon(u, v, sector):
+            if near_water(u, v, 1.0):
                 continue
             if any(_polyline_distance(u, v, p["Points"]) < p["Width"] / 2 + 3.0 for p in raw["Paths"]):
                 continue
@@ -340,6 +382,20 @@ for kind, (n, margin, max_slope) in PROP_COUNTS.items():
             t = ground_transform(x, y, yaw, rng.uniform(0.9, 1.1), sink_cm=10.0)
             place_prop(kind, i, mesh_path, mesh_kind, t, "Oaks", block=False, shadow=True)
     log(f"손 소품 {kind}: {counts.get('Prop.' + kind, 0)}개")
+
+# ───── 8b. 구간 구도(콘셉트 아트) · 하늘 구역 이름 — section_dress.py ─────
+dresser = section_dress.SectionDresser({
+    "raw": raw, "lib": lib, "actors": actor_subsystem, "world": world, "foliage": assets["foliage"], "map_to_world": map_to_world,
+    "clear_of": clear_of, "in_sector": lambda u, v: landmark_greybox.point_in_polygon(u, v, sector), "near_water": near_water,
+    "water_level": water_level, "count": count,
+})
+walls, posts, lamps = dresser.approach_road()
+log(f"큰길: 돌담 돌 {walls} · 돌 표지 {posts} · 등불 {lamps}")
+crest_rocks, crest_trees = dresser.ridge_crests()
+log(f"능선 꼭대기: 바위 {crest_rocks} · 외딴 나무 {crest_trees}")
+log(f"풍차 마당 {dresser.windmill_farm()} · 봉화대 {dresser.beacon()} · 연못 징검돌 {dresser.pond_stones()} · 부유석 디딤돌 {dresser.floating_steps()} · 둥치 {dresser.meadow_stump()}")
+log(f"구간 폴리지 인스턴스 {dresser.flush_instances()}")
+log(f"하늘 구역 이름 {dresser.section_labels()}")
 
 # 먼 하늘 손그림 구름 카드 — 늘 로드(하늘 몫, 성능 규칙 6). 탑에서 4 ~ 6.5 km 둘레, 탑을 본다
 for i in range(12):

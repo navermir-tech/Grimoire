@@ -87,6 +87,13 @@ public:
 	static TArray<FTransform> GetFoliageTransforms(FName RuleName, const FTransform& PartOffset);
 
 	/**
+	 * GetFoliageTransforms + 자리마다 종 고르기 값(0~1, 레이아웃 VariantScale 의 노이즈 — 같은 종끼리 무리 지어 섞인다).
+	 * 레벨 아트(dress_openbeta.py)가 메시를 고를 때 쓴다. 파이썬에서는 (성공, 변환들, 값들) 로 돌아온다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
+	static bool GetFoliageInstances(FName RuleName, const FTransform& PartOffset, TArray<FTransform>& OutTransforms, TArray<float>& OutVariants);
+
+	/**
 	 * World Partition 런타임 격자(셀 크기 · 스트리밍 거리, cm)를 바꾼다. 해시 종류(RuntimeHashSet · RuntimeSpatialHash)에 맞춰
 	 * 리플렉션으로 첫 격자(메인 파티션)를 고친다. 바꾼 결과를 사람이 읽는 글로 돌려준다(못 바꾸면 빈 글).
 	 */

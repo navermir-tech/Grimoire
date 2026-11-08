@@ -86,8 +86,14 @@ public:
 	static FVector2D WorldToMap(const FGrimTerrainLayout& Layout, const FVector2D& WorldCm);
 	static FVector MapToWorld(const FGrimTerrainLayout& Layout, double U, double V, double HeightM);
 
-	/** 식생 규칙 하나를 뿌린 결과(월드 cm 변환). 지터 격자 + 칸마다 고정 시드 — 다시 돌려도 같다 */
-	static void ScatterFoliage(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps, const FGrimTerrainFoliageRule& Rule, TArray<FTransform>& OutWorld);
+	/**
+	 * 식생 규칙 하나를 뿌린 결과(월드 cm 변환). 레벨 디자인 2차: 고정 시드 후보 → 밀도(숲 무늬 · 무리 · 경사 · 등성이 / 골 · 길 가장자리)로 고르기 →
+	 * 포아송 원판(MinSpacing)으로 격자 느낌을 없앤다. 다시 돌려도 같다. OutVariant(있으면) = 자리마다 0~1 종 고르기 값(같은 종끼리 무리 짓게).
+	 */
+	static void ScatterFoliage(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps, const FGrimTerrainFoliageRule& Rule, TArray<FTransform>& OutWorld, TArray<float>* OutVariant = nullptr);
+
+	/** 숲 무늬 무게(0~1) — 뒤틀고 경계를 부드럽게 섞은 숲 노이즈. 식생 · 분석이 같이 쓴다 */
+	static float ForestWeight(const FGrimTerrainLayout& Layout, double U, double V);
 
 	static FGrimTerrainSummary MakeSummary(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps);
 };

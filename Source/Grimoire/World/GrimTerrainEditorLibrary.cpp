@@ -641,6 +641,29 @@ TArray<FTransform> UGrimTerrainEditorLibrary::GetFoliageTransforms(FName RuleNam
 	return Transforms;
 }
 
+bool UGrimTerrainEditorLibrary::GetFoliageInstances(FName RuleName, const FTransform& PartOffset, TArray<FTransform>& OutTransforms, TArray<float>& OutVariants)
+{
+	OutTransforms.Reset();
+	OutVariants.Reset();
+	if (!GrimTerrainEditorLocal::RequireCache(TEXT("GetFoliageInstances")))
+	{
+		return false;
+	}
+	const GrimTerrainEditorLocal::FCache& Cache = GrimTerrainEditorLocal::Cache();
+	const FGrimTerrainFoliageRule* Rule = Cache.Layout.Foliage.FindByPredicate([RuleName](const FGrimTerrainFoliageRule& Each) { return Each.Name == RuleName; });
+	if (!Rule)
+	{
+		UE_LOG(LogGrimTerrain, Error, TEXT("GetFoliageInstances: 레이아웃에 식생 규칙 %s 가 없다"), *RuleName.ToString());
+		return false;
+	}
+	FGrimTerrainGenerator::ScatterFoliage(Cache.Layout, Cache.Maps, *Rule, OutTransforms, &OutVariants);
+	for (FTransform& Each : OutTransforms)
+	{
+		Each = PartOffset * Each;
+	}
+	return true;
+}
+
 FString UGrimTerrainEditorLibrary::ConfigureWorldPartition(const UObject* WorldContextObject, int32 CellSizeCm, int32 LoadingRangeCm)
 {
 #if WITH_EDITOR

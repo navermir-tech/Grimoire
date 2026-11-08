@@ -94,18 +94,144 @@ def map_to_world_safe(fn, u, v):
 
 # ───────────── 랜드마크 ─────────────
 
+GIANT_TREE_SCALE = 1.28
+
+
+def _beam(p, material, name, a, b, width, depth, roll=0.0, block=True, shadow=True, extend=0.6):
+    """두 점(로컬 m: 앞 lx, 왼쪽 ly, 땅 위 z) 사이를 잇는 각진 상자 — 뿌리 · 줄기 마디 · 가지. extend = 양 끝을 더 늘려 마디 사이 틈을 메운다"""
+    dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+    flat = math.hypot(dx, dy)
+    length = math.hypot(flat, dz) + extend
+    heading = math.degrees(math.atan2(dy, dx)) if flat > 1e-3 else 0.0
+    pitch = math.degrees(math.atan2(dz, max(flat, 1e-3)))
+    return p.shape(CUBE, material, name, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 0, length, width, depth,
+                   yaw=heading, pitch=pitch, roll=roll, block=block, shadow=shadow, z_center=(a[2] + b[2]) / 2)
+
+
+class _Scaled:
+    """Placer 를 감싸 로컬 길이(자리 · 크기 · 높이)를 모두 S 배 — 모양은 그대로 크기만 키운다"""
+
+    def __init__(self, p, scale):
+        self.p, self.s = p, scale
+
+    def shape(self, mesh, material, name, lx, ly, z0, sx, sy, sz, z_center=None, **kw):
+        s = self.s
+        return self.p.shape(mesh, material, name, lx * s, ly * s, z0 * s, sx * s, sy * s, sz * s,
+                            z_center=None if z_center is None else z_center * s, **kw)
+
+
 def giant_tree(p):
-    """거대 고목 — 굵은 줄기 + 뿌리 둔덕 + 둥근 잎 덩어리 여럿(꼭대기 약 47 m)"""
-    p.shape(SPHERE, "Bark", "RootMound", 0, 0, 0, 16, 16, 5, z_center=0.3)
-    for i in range(5):
-        a = i * 72.0 + 15.0
-        p.shape(CYLINDER, "Bark", f"Root_{i}", 5.5 * math.cos(math.radians(a)), 5.5 * math.sin(math.radians(a)), 0, 2.2, 2.2, 9, yaw=a, pitch=-62, z_center=1.2)
-    p.shape(CYLINDER, "Bark", "Trunk", 0, 0, -1, 7, 7, 27)
-    p.shape(CYLINDER, "Bark", "Branch_0", 3.5, 2, 0, 2, 2, 14, yaw=30, pitch=-40, z_center=22)
-    p.shape(CYLINDER, "Bark", "Branch_1", -3, -2.5, 0, 2, 2, 13, yaw=210, pitch=-42, z_center=21)
-    p.shape(SPHERE, "GiantCrown", "Crown", 0, 0, 0, 32, 30, 24, z_center=33)
-    for i, (lx, ly, z, d) in enumerate([(10, 7, 27, 20), (-9, 8, 28, 19), (2, -11, 29, 21), (-7, -6, 36, 17), (4, 3, 41, 15)]):
-        p.shape(SPHERE, "GiantCrown", f"Crown_{i}", lx, ly, 0, d, d, d * 0.8, z_center=z)
+    """거대 고목 — 큐브 목업(레벨 디자인 2차, docs/dev/level-design.md 「9」). 원기둥 하나가 아니라 덩어리를 쪼개 실루엣을 만든다:
+    판뿌리(버팀뿌리) 9 갈래가 계단처럼 퍼지고(동쪽 한 갈래는 전망 길), 마디마다 비틀리며 기우는 줄기 5 마디 + 세로 골 덩이,
+    줄기 14 ~ 19 m 에서 바깥 · 위로 갈라지는 큰 가지 6(마디 3 + 잔가지), 가지 끝 · 가운데 · 꼭대기 · 아래 가장자리(치마)에 잎 덩어리 묶음(큰 상자 + 둘레 작은 상자).
+    아래 치수(꼭대기 약 47 m, 잎 지름 약 58 m)를 GIANT_TREE_SCALE 배 — 꼭대기 약 60 m, 잎 지름 약 75 m(콘셉트 lm-giant-tree — 넓고 낮게 퍼진 참나무형,
+    500 m 언덕 위에서 멀리서도 덩어리가 읽히게). 레이아웃 Landmark_GiantTree 의 Height 와 맞춘다. 시드 고정이라 다시 지어도 같다."""
+    rng = random.Random("GiantTreeBlockout")
+    p = _Scaled(p, GIANT_TREE_SCALE)
+
+    # ── 판뿌리: 줄기 밑에서 바깥으로 낮아지며 퍼진다. 마디 3~4, 마디마다 조금씩 휜다 ──
+    root_dirs = [8, 47, 88, 128, 170, 208, 247, 290, 330]
+    for i, a0 in enumerate(root_dirs):
+        reach = rng.uniform(11.0, 16.0) if i != 0 else 21.0   # 0 번(동쪽 앞) = 뿌리를 딛고 오르는 전망 길
+        pts = []
+        heading = a0 + rng.uniform(-6, 6)
+        for k, (t, z) in enumerate([(0.0, 5.0), (0.28, 2.6), (0.58, 1.1), (1.0, -0.2)]):
+            r = 2.8 + (reach - 2.8) * t
+            heading += rng.uniform(-7, 7) if k else 0.0
+            pts.append((r * math.cos(math.radians(heading)), r * math.sin(math.radians(heading)), z))
+        for k in range(len(pts) - 1):
+            w = (3.4 - k * 0.8) * (1.15 if i == 0 else 1.0)
+            h = max(3.4 - k * 1.05, 0.9)
+            _beam(p, "Bark", f"Root_{i}_{k}", pts[k], pts[k + 1], w, h, roll=rng.uniform(-8, 8), extend=1.2)
+        # 뿌리 사이 흙 · 이끼 덩이(판뿌리 밑동을 땅에 묻는다)
+        r = reach * 0.45
+        p.shape(CUBE, "Dirt", f"RootSoil_{i}", r * math.cos(math.radians(a0 + 20)), r * math.sin(math.radians(a0 + 20)), -0.6,
+                rng.uniform(3.5, 5.0), rng.uniform(2.5, 3.5), 1.2, yaw=a0 + rng.uniform(-20, 20), roll=rng.uniform(-6, 6), shadow=False)
+
+    # ── 줄기: 7 마디, 위로 갈수록 가늘고 마디마다 비틀리며 살짝 기운다 ──
+    widths = [10.5, 9.2, 8.0, 7.0, 6.2]
+    seg_h = 3.9
+    centers = []
+    twist = 0.0
+    for k, w in enumerate(widths):
+        z = k * seg_h + seg_h / 2
+        cx = 1.6 * math.sin(z / 9.0) - 0.6
+        cy = 1.1 * math.sin(z / 6.5 + 0.8)
+        centers.append((cx, cy, z))
+        twist += rng.uniform(8, 15)
+        p.shape(CUBE, "Bark", f"Trunk_{k}", cx, cy, 0, w, w * rng.uniform(0.82, 0.95), seg_h + 0.9,
+                yaw=twist, pitch=rng.uniform(-3, 3), roll=rng.uniform(-3, 3), z_center=z)
+        if k <= 3:   # 아래 네 마디: 모서리에 세로 골 덩이(버팀벽처럼 — 네모 실루엣을 깬다)
+            for j in range(4):
+                a = twist + 45 + j * 90 + rng.uniform(-12, 12)
+                r = w * 0.52
+                p.shape(CUBE, "Bark", f"Flute_{k}_{j}", cx + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a)), 0,
+                        w * 0.32, w * 0.26, seg_h + 1.2, yaw=a, pitch=rng.uniform(-4, 4), z_center=z - 0.4)
+    top = centers[-1]
+
+    # ── 큰 가지 6: 줄기 위쪽(17~24 m)에서 바깥 · 위로, 끝으로 갈수록 눕는다(참나무형). 끝에 잔가지 2 ──
+    limb_specs = [(18, 18.5, 19.0), (80, 15.5, 21.0), (135, 19.0, 17.5), (195, 16.5, 20.5), (250, 14.0, 19.0), (310, 17.5, 18.0)]
+    tips = []
+    mids = []
+    for i, (heading, z0, reach) in enumerate(limb_specs):
+        base = min(centers, key=lambda c: abs(c[2] - z0))
+        pos = (base[0], base[1], z0)
+        pitches = [rng.uniform(36, 44), rng.uniform(22, 30), rng.uniform(8, 16)]
+        lengths = [reach * 0.42, reach * 0.34, reach * 0.30]
+        thick = [3.4, 2.5, 1.7]
+        h = heading + rng.uniform(-6, 6)
+        for k in range(3):
+            h += rng.uniform(-10, 10)
+            dz = lengths[k] * math.sin(math.radians(pitches[k]))
+            dr = lengths[k] * math.cos(math.radians(pitches[k]))
+            nxt = (pos[0] + dr * math.cos(math.radians(h)), pos[1] + dr * math.sin(math.radians(h)), pos[2] + dz)
+            _beam(p, "Bark", f"Limb_{i}_{k}", pos, nxt, thick[k], thick[k] * 0.9, roll=rng.uniform(0, 30), extend=1.0)
+            pos = nxt
+            if k == 1:
+                mids.append(pos)
+        for f in range(2):   # 잔가지
+            fh = h + (35 if f else -35) + rng.uniform(-10, 10)
+            end = (pos[0] + 6 * math.cos(math.radians(fh)), pos[1] + 6 * math.sin(math.radians(fh)), pos[2] + rng.uniform(1.0, 3.0))
+            _beam(p, "Bark", f"Twig_{i}_{f}", pos, end, 1.1, 1.0, extend=0.6)
+        tips.append(pos)
+    leader = (top[0] + 1.0, top[1] - 0.5, 31.0)
+    _beam(p, "Bark", "Leader", (top[0], top[1], top[2]), leader, 3.0, 2.8)
+    tips.append(leader)
+
+    # ── 잎 덩어리: 가지 끝마다 큰 묶음(큰 상자 + 둘레 작은 상자 8, 아래가 평평한 구름처럼) + 가지 가운데 작은 묶음 + 꼭대기 둥근 지붕 묶음 3.
+    # 위쪽 상자는 밝은 잎 색(빛 받는 면 흉내). 잎 덩어리 높이 약 22 ~ 48 m(× 배율) — 멀리서 우산이 아니라 둥근 덩어리로 읽히게 위아래로 두껍게 ──
+    def cluster(tag, cx, cy, cz, core, sats, spread, size):
+        p.shape(CUBE, "GiantCrown", f"Crown_{tag}_Core", cx, cy, 0, *core, yaw=rng.uniform(0, 90), roll=rng.uniform(-6, 6), pitch=rng.uniform(-5, 5), z_center=cz)
+        for j in range(sats):
+            a = j * (360.0 / sats) + rng.uniform(-20, 20)
+            r = rng.uniform(*spread)
+            sz = rng.uniform(*size)
+            dz = rng.uniform(-3.5, 5.0)
+            material = "Herb" if dz > 2.5 else "GiantCrown"
+            p.shape(CUBE, material, f"Crown_{tag}_{j}", cx + r * math.cos(math.radians(a)), cy + r * math.sin(math.radians(a)), 0,
+                    sz, sz * rng.uniform(0.8, 1.1), sz * rng.uniform(0.6, 0.85),
+                    yaw=rng.uniform(0, 90), pitch=rng.uniform(-14, 14), roll=rng.uniform(-14, 14), z_center=cz + dz, block=(sz > 6.5))
+
+    for i, (tx, ty, tz) in enumerate(tips[:-1]):
+        cluster(f"Tip{i}", tx, ty, tz + 2.5, (rng.uniform(13, 16), rng.uniform(11, 14), rng.uniform(8, 10)), 8, (5.0, 9.0), (5.0, 9.0))
+    for i, (mx, my, mz) in enumerate(mids):
+        cluster(f"Mid{i}", mx, my, mz + 1.5, (rng.uniform(8, 10), rng.uniform(7, 9), rng.uniform(5, 6.5)), 4, (3.5, 6.0), (4.0, 6.5))
+    lx, ly, lz = tips[-1]
+    cluster("Top", lx, ly, lz + 6.0, (18.0, 16.0, 10.0), 8, (6.0, 10.0), (6.0, 9.5))
+    for k in range(3):   # 꼭대기 둘레 둥근 지붕
+        a = k * 120 + rng.uniform(-20, 20)
+        cluster(f"Dome{k}", lx + 11 * math.cos(math.radians(a)), ly + 11 * math.sin(math.radians(a)), lz + 2.0,
+                (12.0, 11.0, 8.0), 5, (4.0, 7.0), (4.5, 7.5))
+    # 아래 가장자리 치마 묶음 6 — 잎 덩어리 아래 모서리가 둥글게 처져 우산 · 버섯이 아니라 둥근 덩어리로 읽히게
+    for k in range(6):
+        a = k * 60 + 30 + rng.uniform(-15, 15)
+        r = rng.uniform(19.0, 23.0)
+        cluster(f"Skirt{k}", r * math.cos(math.radians(a)), r * math.sin(math.radians(a)), rng.uniform(20.5, 23.0),
+                (rng.uniform(9, 11), rng.uniform(8, 10), rng.uniform(5.5, 7.0)), 3, (3.5, 6.0), (4.0, 6.5))
+    # 가지 사이 빈 곳을 메우는 가운데 덩이 — 층마다 크기 · 방향을 달리해 밑면이 평평한 천장이 되지 않게
+    p.shape(CUBE, "GiantCrown", "Crown_Fill_Low", 0.5, 0, 0, 22, 20, 6.0, yaw=20, z_center=25.0)
+    p.shape(CUBE, "GiantCrown", "Crown_Fill_Mid", -1.0, 1.0, 0, 30, 26, 8.0, yaw=55, z_center=30.5)
+    p.shape(CUBE, "Herb", "Crown_Fill_Top", 0.5, -0.5, 0, 22, 20, 7.0, yaw=35, z_center=38.5)
 
 
 def rock_gate(p):
