@@ -32,6 +32,14 @@ Git LFS 가 설치돼 있으면 `.uasset` 등 바이너리 에셋도 함께 내�
 - 엔진 위치: `HKCU\Software\Epic Games\Unreal Engine\Builds` 의 값 `5.8` = `C:/Program Files/Epic Games/UE_5.8`
 - 파일 연결: `HKCU\Software\Classes\.uproject` → `Unreal.ProjectFile`. 우클릭 메뉴(열기 · 게임 실행 · Visual Studio 프로젝트 생성 · 엔진 버전 바꾸기)는 `C:\Program Files\Epic Games\Launcher\Engine\Binaries\Win64\UnrealVersionSelector.exe` 를 부른다.
 
+> **함정 (2026-11-08)**: 11-05 에 이 등록을 **Claude 앱 안에서** 했더니, 값이 앱의 가상 레지스트리에만 들어갔다. 앱 안에서는 보이고 앱에서 띄운 에디터도 열리지만, 탐색기에서 더블클릭하면 「No Unreal Engine installations found」가 뜬다. 엔진 위치는 **앱 밖의 보통 PowerShell** 에서 등록한다:
+>
+> ```powershell
+> New-Item -Path "HKCU:\Software\Epic Games\Unreal Engine\Builds" -Force | Out-Null; Set-ItemProperty -Path "HKCU:\Software\Epic Games\Unreal Engine\Builds" -Name "5.8" -Value "C:/Program Files/Epic Games/UE_5.8"
+> ```
+>
+> 엔진을 못 찾는다는 창이 뜨면 「Yes」로 엔진 폴더를 고르지 않는다. 그러면 `Grimoire.uproject` 의 `EngineAssociation` 이 이 PC 전용 GUID 로 바뀌어 다른 PC 에서 안 열린다.
+
 선택기의 `/fileassociations` 는 관리자 권한이 없으면 조용히 실패한다(종료 코드 1). Git Bash 에서 `reg add /v …` 를 부르면 `/v` 가 경로로 바뀌어 실패하므로 PowerShell 로 한다.
 
 ## 플레이(PIE) 단축키
