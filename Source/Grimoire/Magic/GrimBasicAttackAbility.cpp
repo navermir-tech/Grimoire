@@ -49,6 +49,22 @@ int32 UGrimBasicAttackAbility::GetVisibleComboStep(const UAbilitySystemComponent
 	return 0;
 }
 
+void UGrimBasicAttackAbility::KeepComboAlive(const UAbilitySystemComponent* ASC)
+{
+	if (!ASC || !ASC->GetWorld())
+	{
+		return;
+	}
+	for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+	{
+		if (UGrimBasicAttackAbility* Instance = Cast<UGrimBasicAttackAbility>(Spec.GetPrimaryInstance()))
+		{
+			FGrimBasicAttackMath::KeepAlive(Instance->Combo, ASC->GetWorld()->GetTimeSeconds(), UGrimBasicAttackSettings::Get()->ComboWindow);
+			return;
+		}
+	}
+}
+
 bool UGrimBasicAttackAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
 {
 	using namespace GrimBasicAttackLocal;

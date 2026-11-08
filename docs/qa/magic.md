@@ -1,6 +1,6 @@
 # QA — 마법 · 완드 · 속성 상호작용
 
-[QA 절차](../dev/qa) · 스펙 [마법](../spec/magic), 설계 [마법 · 상호작용](../systems/magic) · [투사체 · 시전 감각](../systems/spell-feel). 마지막 실행 **2026-11-07**(서클 Q122 — 브랜치 `claude/zen-goldwasser-c0e153`), 그 밖은 2026-11-06(main `a6da3f7` 기준).
+[QA 절차](../dev/qa) · 스펙 [마법](../spec/magic), 설계 [마법 · 상호작용](../systems/magic) · [투사체 · 시전 감각](../systems/spell-feel). 마지막 실행 **2026-11-08**(브랜치 `claude/answers-q116-032c8c` — Q102 · Q116~Q120 항목만, 나머지 행은 적힌 날짜 그대로)(서클 Q122 — 브랜치 `claude/zen-goldwasser-c0e153`), 그 밖은 2026-11-06(main `a6da3f7` 기준).
 
 다시 돌리기: `powershell -File Scripts\QA\run_all.ps1 -Only automation,net_check,delivery,controls,growth,weather`.
 
@@ -31,7 +31,8 @@
 
 | ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
 |---|---|---|---|---|---|---|
-| QA-MAG-020 | R26 | 기본 공격: 무속성 · 비용 0 · 쿨 0 · 숙련도 안 쌓임, 연타 리듬, 4연타째 강타 | ① `Grimoire.Magic.BasicAttack.Definition` · `.Rhythm` · `.Combo` + ④ `controls` | 통과 + `기본 공격 1/4 … 4/4 강타` 서버 · 클라이언트 같음 | ✅ 11-06 | 자동화 · `controls.txt` |
+| QA-MAG-020 | R26 · Q120 | 기본 공격: 무속성 · 비용 0 · 쿨 0 · 숙련도 안 쌓임, 연타 리듬, 4연타째 강타. 연타 창 = **마지막 발부터 1초**, 사이의 슬롯 마법 · 방패는 끊지도 세지도 않음, 창 밖 행동은 되살리지 않음 | ① `Grimoire.Magic.BasicAttack.Definition` · `.Rhythm` · `.Combo` + ④ `controls` | 통과 + `기본 공격 1/4 … 4/4 강타` 서버 · 클라이언트 같음 | ✅ 11-08(브랜치 `claude/answers-q116-032c8c`) — `.Combo` 에 0.9초 간격 4발 = 강타(옛 규칙이면 끊김) · 정확히 1초 이어짐 · 1.01초 끊김 · 슬롯 마법 · 방패 사이 3번째 · 끊긴 뒤 행동은 못 살림, `controls` 양쪽 `기본 공격 1/4 … 4/4 강타` | 자동화 · `controls.txt` |
+| QA-MAG-062 | Q120 | 실제 입력으로 「기본 공격 2발 → 슬롯 마법 → 기본 공격」이 3번째가 되는가(2인) | ④ `net_check_controls.ps1` 에 시간표 더하기 | 서버 · 클라이언트 `기본 공격 3/4` | ⏸ 시간표를 아직 더하지 않음 — 순수 규칙은 `.Combo`, 슬롯 마법이 부르는 자리는 `UGrimSpellAbility::ActivateAbility` · `EndAbility` | — |
 | QA-MAG-021 | Q26 | 숙련도 D~S 등급 · 배수 · 반복 감쇠 · 표 편집 | ① `Grimoire.Magic.Proficiency.*`(7) | 통과 | ✅ 11-06 | 자동화 |
 | QA-MAG-022 | R05 · R27 · Q122 | 스킬북: 서클이 낮으면 **봉인된 책**(`Sealed`, 책 사라짐), 승급하면 저절로 `Learned`, 이미 아는 책은 숙련도 +80(C 구간 200 × 0.4), S 면 `AlreadyMastered` | ② `Scripts\Integration\check_growth.ps1` | 그 차례대로 | ✅ 11-07 (Q122 뒤 다시) | `growth.txt` — `스킬북 GrimSkillbook_0 집기(DA_Spell_Fireball) → Sealed` · 덤프 `봉인=1` → 승급 뒤 `봉인 풀림(2서클): DA_Spell_Fireball → Learned`, `이미 앎, 숙련도 +80.0` → `ProficiencyGained`, `AlreadyMastered` |
 | QA-MAG-023 | R06 · Q122 | 서클 승급 1 → 2(자격: 숙련도 C 이상 2 · 그중 1서클 마법), 최대 마나 100 → 108(레벨 몫 — 서클은 마나를 바꾸지 않음) | ② 같은 스크립트 + ① `Grimoire.Magic.Proficiency.CircleUp` | `서클 1 → 2`, `마나=108/108` | ✅ 11-07 (Q122 뒤 다시) | `growth.txt` — 승급 전 `C이상 0/2 지금서클마법 0/1 충족=0 슬롯세트=1`, `서클 1 → 2`, 뒤 `서클=2 마나=108/108 … 슬롯세트=2 봉인=0` |
@@ -48,6 +49,7 @@
 | QA-MAG-044 | Q64 | 2인: 실패 연출 큐 `GameplayCue.Magic.Fizzle` 이 모두에게(다른 플레이어 것도 보임) | ④ 같은 스크립트 | `[Client] 마법 실패 연출` · `[Server] 마법 실패 연출` 각 5번 이상(자기 것 + 상대 것) | ✅ 11-07 | 클라이언트 · 서버 각 6줄(자기 3 + 상대 3) `마법 실패 연출 GrimPlayerCharacter_0|1 …` — 헤드리스는 `이펙트=0`(nullrhi), ③ 에서 `이펙트=1` |
 | QA-MAG-045 | Q64 · Q122 | 2인: 서클이 모자란 스킬북(이그니스 2서클)을 가방에서 읽으면 까닭 알림 — Q122 부터는 「봉인된 책」 알림 | ④ 같은 스크립트 | `가방 알림 Sealed Skillbook_Fireball 필요 서클 2` (호스트 · 클라이언트) | ✅ 11-07 (Q122 뒤 다시) | `[Server] 가방 알림 Sealed Skillbook_Fireball 필요 서클 2` · `[Client] 같은 줄`, 스크립트 전체 `NETCHECK_RESULT fail=0` |
 | QA-MAG-046 | Q64 | 까닭 고르기 순서(완드 → 서클 → 쿨타임 → 마나) · 기본 공격의 완드 없음은 알리지 않음(주먹질) · 같은 까닭 0.75초에 한 번 | ① `Grimoire.Magic.CastFailure.Classify` · `.BasicWand` | 통과 | ✅ 11-07 | 자동화 171/171 |
+| QA-MAG-063 | Q116 | 탈진(`MagicBlockingTags`)은 완드 · 서클보다 먼저 「Exhausted」, 기본 공격이면 알리지 않음(주먹질), 잠까지 겹치면 알리지 않음 · ini 에 기절 차단 태그 없음 | ① `Grimoire.Magic.CastFailure.Classify` · `Grimoire.Magic.Proficiency.Spellbook` + ④ `net_check_survival.ps1` | 통과 + 서버 `마법 실패 … Exhausted` · `주먹질` | ✅ 11-08 | 자동화 · `survival.txt` |
 | QA-MAG-047 | Q64 | 화면: HUD 위쪽 실패 알림 한 줄(색 · 글) · 피식 파티클 | ③ `Scripts\QA\shoot_qa.ps1 -Set Fizzle`(느린 시간 1/10 에서 누르고 1초 뒤) | 붉은빛 한 줄, 완드 끝 · 손에서 작은 터짐 | ✅ 11-07 — 「마나가 모자라다 (필요 10)」 · 「완드가 없다 — 주먹만 나간다 …」 위쪽 한 줄, 완드 끝(완드 없으면 빈손 앞)에 작은 터짐 · 완드 없을 때 손의 완드 숨김. 임시 템플릿이라 터짐이 회색보다 하얗다(이펙트 갈래 몫) — [그림](#그림-완드-·-실패-알림) | `qa-castfail-mana.jpg` · `qa-castfail-nowand.jpg`, 로그 `이펙트=1 몽타주=0` |
 | QA-MAG-048 | Q64 | 마법 실패 **몸짓**(호그와트 레거시처럼 완드 털기) | ③ 사람 눈 | 몽타주가 재생된다 | ⏸ 11-07 — 애니메이션 에셋이 없어 `FizzleMontage` 가 비어 있다(자리만 — 넣으면 `몽타주=1` 로그). 지금은 파티클만 | — |
 

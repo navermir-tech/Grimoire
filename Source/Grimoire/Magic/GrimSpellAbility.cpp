@@ -1,4 +1,5 @@
 #include "Magic/GrimSpellAbility.h"
+#include "Magic/GrimBasicAttackAbility.h"
 #include "Magic/GrimSpellDefinition.h"
 #include "Magic/GrimSpellDelivery.h"
 #include "Magic/GrimSpellProjectile.h"
@@ -184,22 +185,35 @@ float UGrimSpellAbility::GetCircleManaMultiplier(const UGrimSpellDefinition* Def
 	return Definition && Circle > 0 ? FGrimCircleMath::GetManaMultiplier(UGrimProgressionSettings::GetCircleTable(), Circle, Definition->Circle) : 1.f;
 }
 
-bool UGrimSpellAbility::HasCastBlockingTag(const UAbilitySystemComponent* ASC)
+namespace GrimSpellAbilityLocal // 유니티 빌드 이름 충돌 방지
 {
-	if (!ASC)
+	bool HasAnyNamedTag(const UAbilitySystemComponent* ASC, const TArray<FName>& TagNames)
 	{
+		if (!ASC)
+		{
+			return false;
+		}
+		for (const FName& TagName : TagNames)
+		{
+			// 태그가 아직 없으면(그 갈래 전) 건너뛴다.
+			const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TagName, false);
+			if (Tag.IsValid() && ASC->HasMatchingGameplayTag(Tag))
+			{
+				return true;
+			}
+		}
 		return false;
 	}
-	for (const FName& TagName : UGrimSpellbookSettings::Get()->CastBlockingTags)
-	{
-		// 태그가 아직 없으면(생존 갈래 전) 건너뛴다.
-		const FGameplayTag Tag = FGameplayTag::RequestGameplayTag(TagName, false);
-		if (Tag.IsValid() && ASC->HasMatchingGameplayTag(Tag))
-		{
-			return true;
-		}
-	}
-	return false;
+}
+
+bool UGrimSpellAbility::HasMagicBlockingTag(const UAbilitySystemComponent* ASC)
+{
+	return GrimSpellAbilityLocal::HasAnyNamedTag(ASC, UGrimSpellbookSettings::Get()->MagicBlockingTags);
+}
+
+bool UGrimSpellAbility::HasCastBlockingTag(const UAbilitySystemComponent* ASC)
+{
+	return GrimSpellAbilityLocal::HasAnyNamedTag(ASC, UGrimSpellbookSettings::Get()->CastBlockingTags);
 }
 
 FVector UGrimSpellAbility::GetTargetPointOf(const AActor* Actor)
@@ -308,8 +322,8 @@ bool UGrimSpellAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Hand
 		return false;
 	}
 
-	// 잠 · 쓰러짐 · 기절 중에는 시전하지 않는다(생존 갈래의 상태 태그). TODO(통합): 감기(Status.Sick.Cold)의 「가끔 끊김」.
-	if (HasCastBlockingTag(ASC))
+	// 잠 · 쓰러짐 · 건축 모드 · 탈진(R29 — 마법만) 중에는 시전하지 않는다(생존 갈래의 상태 태그). TODO(통합): 감기(Status.Sick.Cold)의 「가끔 끊김」.
+	if (HasCastBlockingTag(ASC) || HasMagicBlockingTag(ASC))
 	{
 		return false;
 	}
@@ -434,6 +448,11 @@ void UGrimSpellAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
+	}
+	// Q120: 사이에 쓴 슬롯 마법(스쿠툼 포함)은 기본 공격 연타를 끊지도 세지도 않는다 — 창만 다시 잰다(끝날 때 한 번 더).
+	if (!IsA<UGrimBasicAttackAbility>())
+	{
+		UGrimBasicAttackAbility::KeepComboAlive(ActorInfo->AbilitySystemComponent.Get());
 	}
 
 	const UGrimSpellDefinition* Definition = GetSpellDefinition(Handle, ActorInfo);
@@ -642,6 +661,11 @@ void UGrimSpellAbility::InputReleased(const FGameplayAbilitySpecHandle Handle, c
 
 void UGrimSpellAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
+	if (IsActive() && !bEndingAbility && ActorInfo && !IsA<UGrimBasicAttackAbility>())
+	{
+		// Q120: 누르는 마법(물줄기 · 방패)을 오래 쥐었다 놓아도 연타 창은 놓은 때부터.
+		UGrimBasicAttackAbility::KeepComboAlive(ActorInfo->AbilitySystemComponent.Get());
+	}
 	if (IsActive() && !bEndingAbility && ActorInfo)
 	{
 		bEndingAbility = true;

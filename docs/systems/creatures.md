@@ -151,7 +151,8 @@
 | 정의(DA_Spell_…) | 이름 | 속성 | 서클 | 스킬북 아이템 |
 |---|---|---|---|---|
 | `Pactum` | 파크툼 | 무속성(`Element.None`) | 1 | `Skillbook_Pactum`(튜토리얼 12단계 `Skillbook:Pactum`) |
-| `Pactum_Ignis` · `Pactum_Aqua` · `Pactum_Ventus` · `Pactum_Terra` | 파크툼 이그니스 · 아쿠아 · 벤투스 · 테라 | 불 · 물 · 바람 · 땅 | 2 | `Skillbook_Pactum_<속성>` |
+| `Pactum_Ventus` | 파크툼 벤투스 | 바람 | 1(Q118 — 1서클 종 재칼로프에 맞춤, 탑 서고 60 솔) | `Skillbook_Pactum_Ventus` |
+| `Pactum_Ignis` · `Pactum_Aqua` · `Pactum_Terra` | 파크툼 이그니스 · 아쿠아 · 테라 | 불 · 물 · 땅 | 2 | `Skillbook_Pactum_<속성>` |
 | `Pactum_Umbra` | 파크툼 움브라 | 그림자술(`Element.Dark.Shadow`) | 3 | `Skillbook_Pactum_Umbra` |
 | `Pactum_Glacies` · `Flora` · `Sanctus` · `Lux` · `Maledicta` | (얼음 · 풀 · 신성 · 빛 · 흑마법) | — | — | 표(`PactumSpells.csv`)에 행만 — `bImplemented=False` |
 
@@ -161,20 +162,27 @@
 
 ### 포획 확률 `GrimTamingMath::CalcCaptureChance`
 
+Q118(2026-11-08)부터 **조건은 더하고 등급 · 거대 · 서클은 곱한다** — 팰월드 포획 곡선을 빌렸다. 스펙과 예시 표: [마법 생물 — 포획 확률 곡선](../spec/creatures#포획-확률-곡선-q118-확정-—-팰월드-포획-곡선-참고).
+
 ```
-확률 = 기본 0.30
+조건(Ease) = 기본 0.30
      + 약해짐(체력 ≤ 30%) 0.20 + 약한 정도 0.15 × (1 − 체력 ÷ 0.3)
      + 잠듦(AI Sleep) 0.15 + 지침(Creature.State.Exhausted) 0.10
      + 먹이(FedMemorySeconds 120초 안에 이 플레이어가 줌) 0.10 — 좋아하는 먹이면 0.20
      + 속성 일치(파크툼 속성이 잘 듣는 파크툼 · 주 · 부속성과 맞음) 0.25
      + 완드 친화 min((완드의 그 생물 주속성 위력 − 1) × 0.5, 0.15)
-     + 서클 차 min((내 서클 − 요구 서클) × 0.05, 0.15)
      + 숙련도 추가 효과 + 장신구(M4 자리)
-     − 등급(소형 0 · 중형 0.10 · 대형 0.25 · 전설 0.45, 거대 개체 +0.10)
-→ 0.02 ~ 0.95 로 자른다. 요구 서클 미만(MaxCircleDeficit 0)이면 시도할 수 없다(CircleTooLow).
+등급(GradeScale) = (1 − SizeClassPenalty[소형 0 · 중형 0.15 · 대형 0.35 · 전설 0.7]) × (거대면 1 − GiantPenalty 0.3)
+서클(CircleScale) = CalcCircleScale(내 서클 − 요구 서클)
+     차 ≥ 0 : min(1 + 차 × CircleSurplusScalePerCircle 0.1, CircleSurplusMaxScale 1.3)
+     차 < 0 : (1 + 차 ÷ CircleDeficitWindow 4) ^ CircleDeficitExponent 9, 0 아래면 0
+확률 = clamp(조건 × 등급 × 서클, 0, MaxChance 0.95)   — 하한 없음(옛 MinChance 0.02 는 지웠다)
+서클 배율이 0 이면 bCircleTooLow: 굴리지 않고 TameCircleTooLow(값 = 요구 서클) 알림, 생물도 화내지 않는다.
 ```
 
-- 예: 1서클 플레이어가 체력 20% 재칼로프에 파크툼 → 0.30 + 0.20 + 0.05 = **55%**, 파크툼 벤투스면 80%, 좋아하는 먹이(허브 · 곡물)까지 주면 95%.
+- 예: 1서클 플레이어가 체력 20% 재칼로프(소형 · 요구 1)에 파크툼 → (0.30 + 0.20 + 0.05) × 1 × 1 = **55%**, 파크툼 벤투스면 80%, 좋아하는 먹이(허브 · 곡물)까지 주면 95%.
+- 예: 6서클이 체력 15% 전설(요구 7)에 속성 맞는 파크툼 → 0.825 × 0.3 × 0.075 = **1.9%**, 1서클이면 차 −6 → **0**(시도 불가).
+- 로그 `[Server] 계약 … 확률 1.86% (조건 0.83 = …) × 등급 0.30 × 서클 0.0751`. 알림의 확률 글은 `GrimTamingMath::FormatChancePercent`(10% 이상 정수, 1~10% 소수 한 자리, 1% 아래 소수 두 자리).
 - **성공**: 개체 기록 `OwnerId` = 그 플레이어 PlayerId(`UGrimSaveSubsystem::GetPlayerId` — 세이브 파일 이름과 같은 값), 충성도 50, 까닭 「계약」, 체력 50% 까지, 개체군에서 빼기(`UGrimEcosystemSubsystem::HandleCreatureTamed` — 회복이 시작된다), 주인 기록에 넣기, 퀘스트 이벤트 `Creature.Tamed.<분류>`(소형 = 튜토리얼 14단계 `Creature.Tamed.Small`).
 - **실패 = 저항**: `EnrageSeconds`(6초) 동안 `Creature.State.Enraged` — AI 판단 1-1 순위로 **겁 많은 종도 시전자에게 덤빈다**(공격이 없으면 도망).
 - 먹이 주기: 야생에게도 F(먹일 것이 가방에 있을 때만 안내) — 좋아하는 먹이(`FoodRules.FavoriteItems`) 먼저, 없으면 먹는 묶음(`AcceptedGroups` → 없으면 먹이 습성 기본 `DietGroups`) 중 하나를 가방에서 하나 빼고 기록한다. 재칼로프 = 허브 · 곡물(풀 · 요리 재료), 켈피 = 수초(풀), 검은 개 = 재칼로프 고기(고기).
@@ -231,7 +239,7 @@
 ### 새로 길들일 때 (`UGrimTamingSubsystem::TryTame`)
 
 - 굴림 **전에** `DecideNewTame()`: 데리고 다님 자리 → `Party` / 보관함(자리 — 안 배워도 기본 10칸) → `Storage` / 세계의 자리 있는 상자(`bSendOverflowToBox`, 주인에게 가장 가까운 것) → `Box` / 없으면 `Refused` → 결과 `EGrimTamingResult::NoRoom`, 굴리지 않아 생물이 화내지 않는다(Q64 순서 그대로).
-- 계약이 걸리지 않으면 **왜 안 됐는지** 알린다(Q64 답) — 서버가 [마법 실패 알림](./magic#마법-실패-알림-q64)으로: 갈 곳 없음 `TameNoRoom` 「데리고 다님 · 보관함 · 생물 상자가 모두 가득 — 계약이 걸리지 않는다」, 계약 서클 모자람 `TameCircleTooLow`, 받지 않는 생물 `TameRefused`. 소유 클라이언트 HUD 위쪽 한 줄 + 생물 자리에서 `GameplayCue.Magic.Fizzle`(모두에게).
+- 계약이 걸리지 않으면 **왜 안 됐는지** 알린다(Q64 답) — 서버가 [마법 실패 알림](./magic#마법-실패-알림-q64)으로: 갈 곳 없음 `TameNoRoom` 「데리고 다님 · 보관함 · 생물 상자가 모두 가득 — 계약이 걸리지 않는다」, 계약 서클이 너무 모자람(확률 0 — Q118 창 밖) `TameCircleTooLow` 「N서클 생물이다 — 서클이 너무 모자라 계약이 걸리지 않는다」, 받지 않는 생물 `TameRefused`. 소유 클라이언트 HUD 위쪽 한 줄 + 생물 자리에서 `GameplayCue.Magic.Fizzle`(모두에게).
 - 성공 뒤 `Party` 가 아니면 `PlaceNewlyTamed` 가 **다음 틱**(파크툼 명중 처리 도중에 액터를 지우지 않게) 보관함 · 상자로 보낸다. 퀘스트 이벤트 `Creature.Tamed.<분류>` 는 그대로 나간다.
 
 ### 생물 보관함 = 노말 스킬
@@ -340,7 +348,7 @@
 
 | 묶음 | 값(기본) |
 |---|---|
-| `Capture` | 위 「포획 확률」 + `FedMemorySeconds` 120 · `EnrageSeconds` 6 · `TamedHealToRatio` 0.5 |
+| `Capture` | 위 「포획 확률」(조건 몫 · `CircleSurplusScalePerCircle` · `CircleSurplusMaxScale` · `CircleDeficitWindow` · `CircleDeficitExponent` · `SizeClassPenalty` · `GiantPenalty` · `MaxChance`) + `FedMemorySeconds` 120 · `EnrageSeconds` 6 · `TamedHealToRatio` 0.5 |
 | `Loyalty` | `InitialLoyalty` 50 · `EventDeltas[]` · `Stages[]` · `TickSeconds` 5 · 굶김 900/180 · 쉼 120 · 다친 채 0.5/180 · `HealMinRatio` 0.1 · 고단함 1/0.5/90 · 혹사 30 · 함께 이김 25m · 탐험 60m · 환경 240/60 · 날 1440 · 다툼 60 · 부재 80m/300/300 · 접속 안 함 최대 5 · 기절 20초/0.2 · 떨어뜨림 8초 · 까닭 3줄 |
 | `Personalities[]` | 성격 6(None 포함) |
 | `Behavior` | 따라오기 3.5m · 달림 9m · 옮김 50m · 부르기 3m · F 거리 4m · 서버 여유 2.5m · `MenuKey` F · 이름 16자 |
@@ -361,7 +369,7 @@
 | `Grim.Taming.ForceRoll <0~1>` (콘솔 변수) | 포획 굴림 고정, 음수 = 끔 |
 
 - `Scripts/Creatures/net_check_taming.ps1` — 리슨 서버 + 클라이언트 헤드리스: 클라이언트가 물줄기 · 플라미스로 재칼로프를 약하게 → 파크툼 → 따라오기 → 켈피 파크툼 아쿠아 → 이름 → 타기 → 타고 달리기 → 탄 채 플라미스 → 내리기 → 기다리기. 덤프 여섯 번을 서버 · 클라이언트끼리 비교하고 꼭 있어야 할 줄(길들임 · 퀘스트 이벤트 · 탔다 · 내렸다 · 탄 채 발동)을 본다(`NETCHECK_RESULT fail=0`).
-- 테스트 `Grimoire.Taming.*`: `Chance`(몫 · 자르기 · 서클) · `Loyalty`(사건 · 자르기 · 단계 · 까닭 · ini 표) · `Personality`(배율 · ini 성격) · `Commands`(길들인 AI 판단 · 화난 야생 · 순종 · 거부 · 떨어뜨림 · 이름) · `SaveRoundTrip`(기록 왕복 · 깨진 데이터) · `Assets`(파크툼 6 · 스킬북 · 켈피 · 먹이 표) · `Actor`(길들임 → 태그 → 기절 → 떠남).
+- 테스트 `Grimoire.Taming.*`: `Chance`(몫 · 곱하는 등급 · 거대 · 창 밖 0) · `CircleCurve`(Q118 곡선 모서리 — 차 0 · ±1 · −3 · −4(정확히 0) · 상한, 단조 증가, 사용자 목표: 1서클 전설 0 · 6서클 전설 0~3% · 7~10서클 오름, 보통 생물 넉넉함 · 가파름, 0~상한, 알림 글, ini) · `Loyalty`(사건 · 자르기 · 단계 · 까닭 · ini 표) · `Personality`(배율 · ini 성격) · `Commands`(길들인 AI 판단 · 화난 야생 · 순종 · 거부 · 떨어뜨림 · 이름) · `SaveRoundTrip`(기록 왕복 · 깨진 데이터) · `Assets`(파크툼 6 · 스킬북 · 켈피 · 먹이 표) · `Actor`(길들임 → 태그 → 기절 → 떠남).
 
 ## 설정 `[/Script/Grimoire.GrimCreatureSettings]`
 

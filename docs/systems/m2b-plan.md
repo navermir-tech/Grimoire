@@ -37,7 +37,7 @@ L(`5b63272`) → V(`76ae11d`) → K(`9c27b38`) → T(`5ee83ed`, 중간에 main �
 
 ## 통합 뒤 생존 조정 (R29 — 2026-11-05 스펙 변경)
 
-> 상태: **아직 안 함**(2026-11-06 코드 기준). `Source/Grimoire/Survival/` 에는 옛 동작이 남아 있다 — 체온 수렴(`BodyTemperatureTimeConstantSeconds`), 피곤함 바닥 기절(`Status.Collapsed` 강제 수면), 밤 건너뛰기 비율 `SleepSkipRatio`(기본 1 = 전원이라 동작은 스펙과 같다), 열병 없음.
+> 상태: **일부**(2026-11-08 코드 기준). 피곤함은 Q116 으로 고쳤다 — 탈진 = 달리기 불가 · 지친 걸음 · 마법 시전 불가, 강제 기절 삭제([생존 설계 — 피곤함](./survival#피곤함)). 남은 옛 동작: 체온 수렴(`BodyTemperatureTimeConstantSeconds`), 밤 건너뛰기 비율 `SleepSkipRatio`(기본 1 = 전원이라 동작은 스펙과 같다), 열병 없음, 탈진 전 시전 저하(Q129).
 
 갈래 V 가 생존 컴포넌트에 세이브 줄을 더하는 중이라, 이 조정은 네 갈래를 합친 뒤 한 번에 한다.
 

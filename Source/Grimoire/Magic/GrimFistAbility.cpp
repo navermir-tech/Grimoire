@@ -60,7 +60,8 @@ bool UGrimFistAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handl
 {
 	using namespace GrimFistLocal;
 	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
-	if (!ASC || UGrimSpellAbility::HasCastBlockingTag(ASC) || CanUseBasicAttackSpell(ActorInfo))
+	// 탈진(마법만 막힘 — R29)이면 기본 공격 마법 대신 주먹질이 나간다.
+	if (!ASC || UGrimSpellAbility::HasCastBlockingTag(ASC) || (CanUseBasicAttackSpell(ActorInfo) && !UGrimSpellAbility::HasMagicBlockingTag(ASC)))
 	{
 		return false;
 	}

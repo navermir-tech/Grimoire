@@ -174,40 +174,143 @@ bool FGrimTamingChanceTest::RunTest(const FString& Parameters)
 	B.bExhausted = true;
 	C = GrimTamingMath::CalcCaptureChance(B, Tuning, 0.3f);
 	TestEqual(TEXT("완드 친화 (1.2 − 1) × 0.5"), C.Wand, 0.1f, 1e-4f);
-	TestEqual(TEXT("서클 차 상한 0.15"), C.Circle, 0.15f, 1e-4f);
+	TestEqual(TEXT("서클 넉넉함 상한 ×1.3"), C.CircleScale, 1.3f, 1e-4f);
 	TestEqual(TEXT("숙련도 추가 효과"), C.Proficiency, 0.07f, 1e-5f);
 	TestEqual(TEXT("잠듦"), C.Asleep, 0.15f, 1e-5f);
 	TestEqual(TEXT("지침"), C.Exhausted, 0.1f, 1e-5f);
 	B.WandElementPower = 3.f;
 	TestEqual(TEXT("완드 친화 상한"), GrimTamingMath::CalcCaptureChance(B, Tuning, 0.3f).Wand, 0.15f, 1e-4f);
 
-	// 등급
+	// 등급 · 거대는 곱(Q118 · Q119)
 	FGrimCaptureInput D;
 	D.SizeClass = EGrimCreatureSizeClass::Medium;
 	D.CasterCircle = 2;
 	D.RequiredCircle = 2;
-	TestEqual(TEXT("중형 −0.10"), GrimTamingMath::CalcCaptureChance(D, Tuning, 0.3f).Total, 0.2f, 1e-4f);
+	TestEqual(TEXT("중형 ×0.85"), GrimTamingMath::CalcCaptureChance(D, Tuning, 0.3f).Total, 0.3f * 0.85f, 1e-4f);
 	D.bGiant = true;
-	TestEqual(TEXT("거대 −0.10 더"), GrimTamingMath::CalcCaptureChance(D, Tuning, 0.3f).Total, 0.1f, 1e-4f);
+	TestEqual(TEXT("거대 ×0.7 더"), GrimTamingMath::CalcCaptureChance(D, Tuning, 0.3f).Total, 0.3f * 0.85f * 0.7f, 1e-4f);
 	D.SizeClass = EGrimCreatureSizeClass::Legendary;
-	TestEqual(TEXT("하한 0.02"), GrimTamingMath::CalcCaptureChance(D, Tuning, 0.3f).Total, 0.02f, 1e-4f);
+	TestEqual(TEXT("전설 거대 — 하한 없이 곱"), GrimTamingMath::CalcCaptureChance(D, Tuning, 0.3f).Total, 0.3f * 0.3f * 0.7f, 1e-4f);
 
-	// 서클 모자람
+	// 서클이 너무 모자람(창 4 — 요구 5 에 1서클) → 정확히 0, 굴리지 않는다
 	FGrimCaptureInput E;
 	E.CasterCircle = 1;
-	E.RequiredCircle = 3;
+	E.RequiredCircle = 5;
 	C = GrimTamingMath::CalcCaptureChance(E, Tuning, 0.3f);
-	TestTrue(TEXT("요구 서클 미만 → 시도 불가"), C.bCircleTooLow);
-	TestEqual(TEXT("확률 0"), C.Total, 0.f, 1e-5f);
-	FGrimCaptureTuning Lenient = Tuning;
-	Lenient.MaxCircleDeficit = 2;
-	C = GrimTamingMath::CalcCaptureChance(E, Lenient, 0.3f);
-	TestFalse(TEXT("여유 2단계면 시도할 수 있다"), C.bCircleTooLow);
-	TestEqual(TEXT("모자란 단계마다 −0.2"), C.Circle, -0.4f, 1e-4f);
+	TestTrue(TEXT("창 밖 → 시도 불가"), C.bCircleTooLow);
+	TestEqual(TEXT("확률 정확히 0"), C.Total, 0.f);
+	E.RequiredCircle = 2;
+	C = GrimTamingMath::CalcCaptureChance(E, Tuning, 0.3f);
+	TestFalse(TEXT("한 단계 모자람은 시도할 수 있다(Q118)"), C.bCircleTooLow);
+	TestEqual(TEXT("한 단계 모자람 = (3/4)^9"), C.CircleScale, FMath::Pow(0.75f, 9.f), 1e-6f);
 
 	TestTrue(TEXT("굴림 < 확률 = 성공"), GrimTamingMath::RollCapture(0.55f, 0.54f));
 	TestFalse(TEXT("굴림 ≥ 확률 = 실패"), GrimTamingMath::RollCapture(0.55f, 0.55f));
 	TestFalse(TEXT("확률 0 은 굴림 0 이어도 실패"), GrimTamingMath::RollCapture(0.f, 0.f));
+	return true;
+}
+
+// Q118: 서클 곡선(팰월드 포획 곡선의 아래 반쪽 9제곱) — 모서리 · 사용자 목표(1서클 전설 0, 6서클 아주 낮음, 점점 오름) · ini.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingCircleCurveTest, "Grimoire.Taming.CircleCurve", TamingPureFlags)
+bool FGrimTamingCircleCurveTest::RunTest(const FString& Parameters)
+{
+	const FGrimCaptureTuning Tuning = MakeCaptureTuning();
+
+	// 곡선 모서리
+	TestEqual(TEXT("차 0 = ×1"), GrimTamingMath::CalcCircleScale(0, Tuning), 1.f, 1e-6f);
+	TestEqual(TEXT("차 +1 = ×1.1"), GrimTamingMath::CalcCircleScale(1, Tuning), 1.1f, 1e-5f);
+	TestEqual(TEXT("차 +3 = 상한 ×1.3"), GrimTamingMath::CalcCircleScale(3, Tuning), 1.3f, 1e-5f);
+	TestEqual(TEXT("차 +9 도 상한"), GrimTamingMath::CalcCircleScale(9, Tuning), 1.3f, 1e-5f);
+	TestEqual(TEXT("차 −1 = 0.75^9"), GrimTamingMath::CalcCircleScale(-1, Tuning), FMath::Pow(0.75f, 9.f), 1e-6f);
+	TestEqual(TEXT("차 −2 = 0.5^9"), GrimTamingMath::CalcCircleScale(-2, Tuning), FMath::Pow(0.5f, 9.f), 1e-7f);
+	TestTrue(TEXT("차 −3 은 아주 작지만 0 아님"), GrimTamingMath::CalcCircleScale(-3, Tuning) > 0.f && GrimTamingMath::CalcCircleScale(-3, Tuning) < 1e-5f);
+	TestEqual(TEXT("차 −4(창) = 정확히 0"), GrimTamingMath::CalcCircleScale(-4, Tuning), 0.f);
+	TestEqual(TEXT("차 −9 = 0"), GrimTamingMath::CalcCircleScale(-9, Tuning), 0.f);
+	for (int32 Gap = -9; Gap < 9; ++Gap)
+	{
+		const float Lo = GrimTamingMath::CalcCircleScale(Gap, Tuning);
+		const float Hi = GrimTamingMath::CalcCircleScale(Gap + 1, Tuning);
+		TestTrue(*FString::Printf(TEXT("서클이 오르면 줄지 않는다(%d → %d)"), Gap, Gap + 1), Hi >= Lo);
+		if (Gap >= -4 && Gap < 3)
+		{
+			TestTrue(*FString::Printf(TEXT("창 안에서는 꼭 오른다(%d → %d)"), Gap, Gap + 1), Hi > Lo);
+		}
+	}
+	FGrimCaptureTuning Half = Tuning;
+	Half.CircleDeficitWindow = 3.5f;
+	TestTrue(TEXT("창 3.5: 차 −3 은 0 아님"), GrimTamingMath::CalcCircleScale(-3, Half) > 0.f);
+	TestEqual(TEXT("창 3.5: 차 −4 는 0"), GrimTamingMath::CalcCircleScale(-4, Half), 0.f);
+
+	// 사용자 목표(Q118): 전설(요구 7서클) — 약하게 만들고 속성 일치 파크툼(좋은 시도)과 맨 시도
+	auto Chance = [&Tuning](EGrimCreatureSizeClass Size, int32 Required, int32 Circle, bool bGood)
+	{
+		FGrimCaptureInput In;
+		In.SizeClass = Size;
+		In.RequiredCircle = Required;
+		In.CasterCircle = Circle;
+		if (bGood)
+		{
+			In.HealthRatio = 0.15f;
+			In.bElementMatch = true;
+		}
+		return GrimTamingMath::CalcCaptureChance(In, Tuning, 0.3f);
+	};
+	const EGrimCreatureSizeClass Legend = EGrimCreatureSizeClass::Legendary;
+	TestEqual(TEXT("1서클 → 전설 = 정확히 0"), Chance(Legend, 7, 1, true).Total, 0.f);
+	TestTrue(TEXT("1서클 → 전설 = 시도 불가 알림"), Chance(Legend, 7, 1, true).bCircleTooLow);
+	TestEqual(TEXT("3서클 → 전설 = 정확히 0"), Chance(Legend, 7, 3, true).Total, 0.f);
+	const float Six = Chance(Legend, 7, 6, true).Total;
+	TestTrue(TEXT("6서클 → 전설 = 아주 낮지만 0 아님(좋은 시도 < 3%)"), Six > 0.f && Six < 0.03f);
+	TestTrue(TEXT("6서클 → 전설 맨 시도 < 1%"), Chance(Legend, 7, 6, false).Total > 0.f && Chance(Legend, 7, 6, false).Total < 0.01f);
+	TestTrue(TEXT("5서클 → 전설 < 0.1%"), Chance(Legend, 7, 5, true).Total < 0.001f);
+	float Prev = 0.f;
+	for (int32 Circle = 4; Circle <= 10; ++Circle)
+	{
+		const float Now = Chance(Legend, 7, Circle, true).Total;
+		TestTrue(*FString::Printf(TEXT("전설: %d서클이 %d서클보다 높다"), Circle, Circle - 1), Now > Prev);
+		Prev = Now;
+	}
+	TestTrue(TEXT("전설 7서클 = 6서클의 10배 넘게"), Chance(Legend, 7, 7, true).Total > Six * 10.f);
+	TestTrue(TEXT("전설은 10서클이어도 절반 아래(좋은 시도)"), Chance(Legend, 7, 10, true).Total < 0.5f);
+
+	// 보통 생물: 요구 서클 이상이면 넉넉하고, 모자라면 가파르게
+	TestTrue(TEXT("소형(요구 1) 좋은 시도 > 80%"), Chance(EGrimCreatureSizeClass::Small, 1, 1, true).Total > 0.8f);
+	TestTrue(TEXT("중형(요구 2) 2서클 좋은 시도 > 65%"), Chance(EGrimCreatureSizeClass::Medium, 2, 2, true).Total > 0.65f);
+	TestTrue(TEXT("중형(요구 2) 1서클 좋은 시도 < 10%"), Chance(EGrimCreatureSizeClass::Medium, 2, 1, true).Total < 0.1f);
+	TestTrue(TEXT("대형(요구 4) 2서클 < 1%"), Chance(EGrimCreatureSizeClass::Large, 4, 2, true).Total < 0.01f);
+
+	// 어디서든 0 ~ 상한
+	for (int32 Size = 0; Size <= static_cast<int32>(EGrimCreatureSizeClass::Legendary); ++Size)
+	{
+		for (int32 Circle = 1; Circle <= 10; ++Circle)
+		{
+			FGrimCaptureInput Max;
+			Max.SizeClass = static_cast<EGrimCreatureSizeClass>(Size);
+			Max.RequiredCircle = 1;
+			Max.CasterCircle = Circle;
+			Max.HealthRatio = 0.f;
+			Max.bAsleep = Max.bExhausted = Max.bFed = Max.bFedFavorite = Max.bElementMatch = true;
+			Max.WandElementPower = 5.f;
+			Max.ProficiencyBonus = 0.5f;
+			const float Total = GrimTamingMath::CalcCaptureChance(Max, Tuning, 0.3f).Total;
+			TestTrue(*FString::Printf(TEXT("상한 안(등급 %d · %d서클)"), Size, Circle), Total >= 0.f && Total <= Tuning.MaxChance + 1e-6f);
+		}
+	}
+
+	// 알림 글: 아주 낮은 확률이 0% 로 보이지 않게
+	TestEqual(TEXT("37%"), GrimTamingMath::FormatChancePercent(0.372f), FString(TEXT("37%")));
+	TestEqual(TEXT("2.5%"), GrimTamingMath::FormatChancePercent(0.025f), FString(TEXT("2.5%")));
+	TestEqual(TEXT("0.07%"), GrimTamingMath::FormatChancePercent(0.0007f), FString(TEXT("0.07%")));
+	TestEqual(TEXT("0%"), GrimTamingMath::FormatChancePercent(0.f), FString(TEXT("0%")));
+
+	// ini 가 새 이름으로 읽혔다(옛 MaxCircleDeficit · MinChance 가 남지 않음)
+	const FGrimCaptureTuning& Ini = UGrimTamingSettings::Get()->Capture;
+	TestEqual(TEXT("ini 창 4"), Ini.CircleDeficitWindow, 4.f, 1e-4f);
+	TestEqual(TEXT("ini 지수 9"), Ini.CircleDeficitExponent, 9.f, 1e-4f);
+	TestEqual(TEXT("ini 넉넉함 0.1"), Ini.CircleSurplusScalePerCircle, 0.1f, 1e-4f);
+	TestEqual(TEXT("ini 넉넉함 상한 1.3"), Ini.CircleSurplusMaxScale, 1.3f, 1e-4f);
+	TestEqual(TEXT("ini 거대 깎기 0.3"), Ini.GiantPenalty, 0.3f, 1e-4f);
+	TestTrue(TEXT("ini 등급 깎기 넷"), Ini.SizeClassPenalty.Num() == 4 && FMath::IsNearlyEqual(Ini.SizeClassPenalty[3], 0.7f));
 	return true;
 }
 
@@ -464,7 +567,7 @@ bool FGrimTamingAssetsTest::RunTest(const FString& Parameters)
 		{ TEXT("Pactum"), TEXT("Element.None"), 1 },
 		{ TEXT("Pactum_Ignis"), TEXT("Element.Fire"), 2 },
 		{ TEXT("Pactum_Aqua"), TEXT("Element.Water"), 2 },
-		{ TEXT("Pactum_Ventus"), TEXT("Element.Wind"), 2 },
+		{ TEXT("Pactum_Ventus"), TEXT("Element.Wind"), 1 }, // Q118: 재칼로프(1서클 종)에 맞춰 1서클로
 		{ TEXT("Pactum_Terra"), TEXT("Element.Earth"), 2 },
 		{ TEXT("Pactum_Umbra"), TEXT("Element.Dark.Shadow"), 3 },
 	};

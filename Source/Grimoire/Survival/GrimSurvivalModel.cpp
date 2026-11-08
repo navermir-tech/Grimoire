@@ -81,7 +81,6 @@ FGrimSurvivalStatus FGrimSurvivalModel::EvaluateStatus(float Hunger, const FGrim
 	Status.bHyperthermiaSevere = Status.HeatGrade >= Severe;
 
 	Status.bExhausted = Fatigue >= Rules.Fatigue.ExhaustedThreshold;
-	Status.bCollapse = Fatigue >= Rules.Fatigue.CollapseThreshold;
 	return Status;
 }
 
@@ -112,7 +111,8 @@ FGrimSurvivalModifiers FGrimSurvivalModel::ComputeModifiers(const FGrimSurvivalS
 
 	if (Status.bExhausted)
 	{
-		Modifiers.CastSpeed *= Rules.Fatigue.ExhaustedCastSpeedScale;
+		// 지친 걸음. 시전은 속도가 아니라 차단(마법 쪽 MagicBlockingTags 의 Status.Exhausted).
+		Modifiers.MoveSpeed *= Rules.Fatigue.ExhaustedMoveSpeedScale;
 	}
 	if (bSleeping)
 	{

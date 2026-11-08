@@ -275,6 +275,21 @@ bool FGrimProficiencySpellbookTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("시전자 마나 배율"), UGrimSpellAbility::GetCasterMultipliers(Ember, ASC).ManaCost, 0.95f, 0.001f);
 	TestEqual(TEXT("시전자 쿨 배율"), UGrimSpellAbility::GetCasterMultipliers(Ember, ASC).Cooldown, 0.95f, 0.001f);
 	TestFalse(TEXT("차단 태그 없음"), UGrimSpellAbility::HasCastBlockingTag(ASC));
+	// 탈진(R29 · Q116): ini 의 MagicBlockingTags — 마법만 막고(주먹질은 됨) 기절(Status.Collapsed)은 더 없다.
+	TestTrue(TEXT("ini: 탈진은 마법 차단"), UGrimSpellbookSettings::Get()->MagicBlockingTags.Contains(FName(TEXT("Status.Exhausted"))));
+	TestFalse(TEXT("ini: 탈진은 주먹질까지 막지 않음"), UGrimSpellbookSettings::Get()->CastBlockingTags.Contains(FName(TEXT("Status.Exhausted"))));
+	TestFalse(TEXT("ini: 기절 차단 태그 없음"), UGrimSpellbookSettings::Get()->CastBlockingTags.Contains(FName(TEXT("Status.Collapsed"))));
+	{
+		const FGameplayTag ExhaustedTag = FGameplayTag::RequestGameplayTag(TEXT("Status.Exhausted"), false);
+		if (TestTrue(TEXT("Status.Exhausted 태그 등록"), ExhaustedTag.IsValid()))
+		{
+			ASC->AddLooseGameplayTag(ExhaustedTag);
+			TestTrue(TEXT("탈진 → 마법 막힘"), UGrimSpellAbility::HasMagicBlockingTag(ASC));
+			TestFalse(TEXT("탈진 → 주먹질 · 기본 차단은 아님"), UGrimSpellAbility::HasCastBlockingTag(ASC));
+			ASC->RemoveLooseGameplayTag(ExhaustedTag);
+			TestFalse(TEXT("탈진 풀림"), UGrimSpellAbility::HasMagicBlockingTag(ASC));
+		}
+	}
 	Spellbook->AddProficiencyXP(Basic, 100.f);
 	TestEqual(TEXT("숙련도 없는 항목은 안 쌓임"), Spellbook->GetProficiencyXP(Basic), 0.f);
 

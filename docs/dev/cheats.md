@@ -223,6 +223,8 @@
 | `Grim.Appearance.Randomize [씨앗]` | 서버 | 모든 플레이어 외형을 무작위로(씨앗 + 순번) |
 | `Grim.Appearance.Dump` | 아무 데나 | 외형마다 열쇠(플레이어 이름 · 규칙#씨앗) · 해시 · 조각 수 · 고리 수를 로그(`LogGrimAppearance`)에 |
 | `Grim.Appearance.Reload` | 아무 데나 | 외형 CSV 를 다시 읽고 월드의 외형을 다시 조립한다 — 자리 표시 오프셋을 고치며 볼 때 |
+| `Grim.Appearance.CreatorFocus <Face\|Body>` | 자기 화면 | 열린 생성 화면의 카메라를 얼굴 가까이 · 전신으로(칸을 누른 것과 같다 — Q102) |
+| `Grim.Appearance.CreatorOrbit <도> [내려다보는 도]` | 자기 화면 | 열린 생성 화면의 카메라를 정면에서 돌린다(마우스 끌기와 같다). 예: `Grim.Appearance.CreatorOrbit 45 -5` |
 
 - 규칙: `Player_Start`(플레이어 시작) · `Tower_Apprentice` · `Tower_Instructor` · `Tower_Librarian` · `Tower_Examiner`.
 - 지금 옷 · 머리는 엔진 기본 도형 자리 표시다. 서클 고리는 스톨 오른쪽 띠의 작은 원판 — 서클이 오르면 하나씩 는다.

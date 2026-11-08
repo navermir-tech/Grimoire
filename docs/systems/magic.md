@@ -150,7 +150,7 @@ Magic 은 그리지 않고 `GrimCueTags`(`Source/Grimoire/Core/GrimSpellFXTypes.
 - **정의**: 표시 이름 「기본 공격」(데이터), `Spell.BasicAttack`, 무속성 `Element.None`(자극도 무속성 — 반응 규칙표 · 상성표에 행이 없어 사물엔 「충격」만, 속성 상태는 그대로), 1서클, Bolt(반지름 8 · 사거리 25m · 9000cm/s · 유도 60°/s), 마나 0 · 쿨다운 0(쿨다운 태그 없음), `CastWindup` 0, 피해 5, `bTracksProficiency = false`(그리모어 맨 앞 「기본」, 슬롯에 안 들어감, 숙련도 없음), 연출 `VS_BasicAttack`(옅은 하늘빛 `#CFE3FF`, 책장 0.15초).
 - **스킬북으로 배운다**(사용자 스펙 변경, 2026-11-05): 시작 지급이 아니라 튜토리얼 첫 단계의 「기본 공격 스킬북」(가방 아이템 `Skillbook_BasicAttack`, `TeachesSpell = BasicAttack` — 월드 책 `AGrimSkillbook` 으로도 된다) — 보통 스킬북과 같은 `UseSkillbook` 길(1서클, 숙련도 없음 → 배우면 끝, 다시 읽으면 「이미 앎」). `UGrimBasicAttackSettings::BasicAttackSpell` 은 그 정의가 무엇인지 알려 주는 자리(튜토리얼 · 테스트가 읽는다).
 - **연타 리듬**: 한 발 사이 `AttackInterval`(0.3초). 쿨다운이 아니라 `CanActivateAbility` 가 인스턴스의 마지막 발 시각으로 막는다 — 시전자는 그대로, 서버는 원격 시전자에게 `ServerIntervalTolerance`(0.08초)를 봐준다(거절되면 `[Server] 기본 공격 거절` 로그).
-- **4연타 강타**: 첫 발부터 `ComboWindow`(1.5초) 안에 이어 친 `ComboLength`(4) 번째가 강타 — 피해 × `HeavyDamageMultiplier`(3), 볼트 크기 × `HeavyBoltScale`(1.6, 모두에게), 맞은 대상 밀어냄(캐릭터 `LaunchCharacter` 수평 900 · 위 250cm/s, 물리 사물 속도 변화 600cm/s, 플레이어끼리는 아군 피해 설정을 따름). 창을 넘기거나 강타 뒤면 1번째부터. 서버와 시전자가 **각자 시계로 같은 규칙**을 센다 — 판정 · 피해는 서버 값, 시전자 값은 가짜 볼트 크기 · HUD 「n/4」에만(`FGrimBasicAttackMath`).
+- **4연타 강타**(Q120): **마지막 발부터** `ComboWindow`(1초) 안에 이어 친 `ComboLength`(4) 번째가 강타 — 피해 × `HeavyDamageMultiplier`(3), 볼트 크기 × `HeavyBoltScale`(1.6, 모두에게), 맞은 대상 밀어냄(캐릭터 `LaunchCharacter` 수평 900 · 위 250cm/s, 물리 사물 속도 변화 600cm/s, 플레이어끼리는 아군 피해 설정을 따름). 창을 넘기거나 강타 뒤면 1번째부터. **사이에 쓴 슬롯 마법(스쿠툼 · 누르는 마법 포함)은 끊지도 세지도 않는다** — `UGrimSpellAbility` 가 기본 공격이 아니면 시작 · 끝에 `UGrimBasicAttackAbility::KeepComboAlive` 로 창만 다시 잰다(`FGrimBasicAttackMath::KeepAlive` — 이미 끊긴 연타는 되살리지 않음). 회피 어빌리티는 아직 없고(입력 자리만), 생기면 같은 함수를 부른다. 서버와 시전자가 **각자 시계로 같은 규칙**을 센다 — 판정 · 피해는 서버 값, 시전자 값은 가짜 볼트 크기 · HUD 「n/4」에만(`FGrimBasicAttackMath`).
 - **조준 · 책**: 부모 그대로(소프트 락온 쪽으로 휨, 줌인 조준이면 곧게, Cast 큐 → 책장 한 장 · 무속성 문양 · 튕기기 동작).
 - **주먹질 `UGrimFistAbility`(Q4 · Q71)**: 기본 공격을 **아직 배우지 않았거나 완드가 없을 때**(장비 완드 칸이 비었거나 부러진 완드 — `Status.WandMissing` · `Status.WandBroken`) 같은 입력(`Input.Spell.BasicAttack`)이 주먹질이 된다. 마법 정의가 없는 어빌리티라 캐릭터가 서버에서 한 번 준다(`EnsureGranted`, 태그 관리 밖). 기본 공격 Spec(그 입력 태그를 가진 마법)이 있고 완드가 있으면 `CanActivate` 가 물러나고, 기본 공격은 완드가 없으면 부모 검사로 막힌다 — 둘 중 하나만 나간다. 서버가 앞쪽 `FistRange`(130cm) · 반지름 `FistRadius`(35cm) 구 스윕, 받는 쪽 · ASC 가 있는 첫 대상에 피해 `FistDamage`(3, 플레이어끼리는 아군 피해 설정) · 무속성 자극 `FistStimulusIntensity`(0.5). 리듬은 같은 `AttackInterval`, 강타 · 동작 · 책장 · 이펙트 없음.
 - 부모에 더한 고리(최소): `UGrimSpellAbility::MakeDamageSpec` 을 virtual 로, `OnSpellProjectileSpawning`(FinishSpawning 직전 — 진짜 · 가짜), `AGrimSpellProjectile::HandleHit` 을 virtual 로.
@@ -212,7 +212,7 @@ S,마스터,1500,0.75,0.80,1.0
   - **의미 있는 명중** — `ApplySpellHit` 에서 `IsMeaningfulHit` 이면 `AwardHitXP(정의, 맞은 액터)`. 의미 있음 = 조준 종류 적 · 생물(`IGrimTargetable`), 플레이어가 아닌 ASC(협동 플레이어는 아님 — `bFriendlyFire` 면 예외), **이 마법 자극에 맞는 규칙이 있는 속성 사물**(반응 규칙표를 조회만 — 자극을 주기 **전에** 본다. 젖은 양초에 불씨처럼 반응이 없으면 아님).
   - 같은 (마법, 대상) 쌍은 `RepeatWindowSeconds` 안에서 이어 쓸수록 줄어든다(시전 대상 없음 = 「허공」도 한 대상으로 센다). 시전 경험과 명중 경험은 따로 센다(한 번 쏘아 맞히면 둘 다 온전히). 창이 지나면 다시 처음 값.
 - 마나: 비용 = `ManaCost × (1 − 완드 ManaEfficiency) × ManaCostMultiplier × 생존 ManaCostScale`. 누르는 마법의 초당 마나에도 곱한다. 쿨타임 = `Cooldown × CooldownMultiplier ÷ 생존 CastSpeedScale ÷ 완드 CastSpeed`. `UGrimSpellAbility::GetEffectiveManaCost/Cooldown(정의, 완드, 배율)` · `GetCasterMultipliers(정의, ASC)`(숙련도 × 생존) — `CheckCost` · `ApplyCost` · `ApplyCooldown` · `StreamTick` 의 비용 자리에서만 곱한다(전달 방식 코드는 그대로). 클라이언트 예측도 복제된 XP 로 같은 값을 쓴다.
-- 생존 쪽 연결(이름으로 — 없으면 1 · 무시, `[/Script/Grimoire.GrimSpellbookSettings]`): 어트리뷰트 `ManaCostScale`(더위) · `CastSpeedScale`(추위 · 피곤함), 시전 차단 태그 `Status.Sleeping` · `Status.Downed` · `Status.Collapsed`(`CanActivateAbility`). 감기(`Status.Sick.Cold`)의 「가끔 끊김」은 통합 뒤.
+- 생존 쪽 연결(이름으로 — 없으면 1 · 무시, `[/Script/Grimoire.GrimSpellbookSettings]`): 어트리뷰트 `ManaCostScale`(더위) · `CastSpeedScale`(추위 · 피곤함), 시전 차단 태그 `CastBlockingTags` = `Status.Sleeping` · `Status.Downed` · `State.BuildMode`(마법 · 주먹질 모두), 마법만 막는 `MagicBlockingTags` = `Status.Exhausted`(탈진 — Q116, 기본 공격 입력은 주먹질이 대신 나간다)(`CanActivateAbility`). 감기(`Status.Sick.Cold`)의 「가끔 끊김」은 통합 뒤.
 - 추가 효과: `GetProficiencyExtraEffect(정의)` = `ProficiencyExtraEffect.MaxValue × ExtraEffectScale`.
 - 등급이 오르면 `OnProficiencyGradeUp(마법서, 정의, 등급 번호)` — 서버는 계산 직후, 소유 클라이언트는 FastArray 복제 콜백(처음 받은 값은 기준으로만 삼고 알리지 않는다). HUD 가 알림을 띄운다. 등급은 내려가지 않는다(XP 는 줄지 않는다).
 
@@ -249,7 +249,8 @@ S,마스터,1500,0.75,0.80,1.0
 
 | 까닭 | 언제 | HUD 글(값) |
 |---|---|---|
-| (알리지 않음) | 잠 · 기절 · 쓰러짐(`CastBlockingTags`), 기본 공격의 완드 없음(주먹질이 대신 나감), 기본 공격 연타 간격 | — |
+| `Exhausted` | 탈진(`MagicBlockingTags` — Q116): 「너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다」. 기본 공격은 주먹질이 나가므로 알리지 않음 | 피식 |
+| (알리지 않음) | 잠 · 쓰러짐 · 건축 모드(`CastBlockingTags`), 기본 공격의 완드 없음 · 탈진(주먹질이 대신 나감), 기본 공격 연타 간격 | — |
 | `NoWand` · `WandBroken` | 완드 칸 빔(Q71) · 부러짐(Q22) | 「완드가 없다 — 주먹만 나간다. 마법탑에서 기본 완드를 살 수 있다」 · 「완드가 부러졌다 — 「수리」로 고치거나 …」 |
 | `CircleTooLow` | 서클 < 정의의 서클 | 「n서클 마법이다 — 아직 다룰 수 없다」 |
 | `Cooldown` | 쿨다운 태그 | 「아직 다시 쓸 수 없다 — n초」(남은 초 올림) |

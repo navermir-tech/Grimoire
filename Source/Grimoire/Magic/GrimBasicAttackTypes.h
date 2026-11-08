@@ -35,9 +35,12 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Rhythm", meta = (ClampMin = "0", Units = "s"))
 	float ServerIntervalTolerance = 0.08f;
 
-	/** 연타 창: 첫 발부터 이 시간 안에 이어 친 마지막(ComboLength 번째) 발이 강타. 넘기면 처음부터 */
+	/**
+	 * 연타 창(Q120): **마지막 발(또는 사이에 쓴 슬롯 마법 · 회피 · 방패)부터** 이 시간 안에 다시 쏘면 이어진다 — 쏘는 동안은 끊기지 않는다.
+	 * 넘기면 1부터(전투를 벗어나면 자연히 처음으로). ComboLength 번째가 강타.
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Combo", meta = (ClampMin = "0", Units = "s"))
-	float ComboWindow = 1.5f;
+	float ComboWindow = 1.f;
 
 	/** 몇 번째가 강타인가(호그와트 = 4) */
 	UPROPERTY(Config, EditAnywhere, Category = "Combo", meta = (ClampMin = "1"))
@@ -80,10 +83,10 @@ public:
 /** 연타 상태(기기마다 — 서버는 서버 시계, 시전자는 자기 시계로 같은 규칙을 센다) */
 struct FGrimBasicAttackCombo
 {
-	/** 마지막으로 친 시각 */
+	/** 마지막으로 친 시각(연타 리듬 — AttackInterval) */
 	double LastAttackTime = -1.0e9;
-	/** 이번 연타를 시작한 시각 */
-	double ChainStartTime = -1.0e9;
+	/** 연타 창을 잰 마지막 시각 = 마지막 발, 또는 그 뒤 창 안에서 쓴 슬롯 마법 · 회피 · 방패(Q120 — 끊지도 세지도 않는다) */
+	double LastActivityTime = -1.0e9;
 	/** 마지막으로 친 것이 몇 번째였나(0 = 아직 없음) */
 	int32 Step = 0;
 };
@@ -94,8 +97,17 @@ struct GRIMOIRE_API FGrimBasicAttackMath
 	/** 연타 리듬: 마지막 발에서 Interval(− Tolerance) 이 지났나 */
 	static bool IsReady(double Now, double LastAttackTime, float Interval, float Tolerance = 0.f);
 
-	/** 이번 발이 몇 번째인가(1..Length): 처음 · 앞이 강타였음 · 창(첫 발부터 Window)이 지났음 → 1, 아니면 앞 + 1 */
+	/** 이번 발이 몇 번째인가(1..Length): 처음 · 앞이 강타였음 · 창(마지막 발 · 활동부터 Window)이 지났음 → 1, 아니면 앞 + 1 */
 	static int32 NextStep(const FGrimBasicAttackCombo& Combo, double Now, float Window, int32 Length);
+
+	/** 연타 중인가(이어 친 발이 있고 창이 아직 안 지났다) */
+	static bool IsChainAlive(const FGrimBasicAttackCombo& Combo, double Now, float Window);
+
+	/**
+	 * 사이에 다른 행동(슬롯 마법 · 회피 · 방패)을 했다 — 연타가 살아 있으면 창만 다시 잰다(번째는 그대로).
+	 * 이미 끊긴 연타는 되살리지 않는다. 살렸으면 true.
+	 */
+	static bool KeepAlive(FGrimBasicAttackCombo& Combo, double Now, float Window);
 
 	/** 친다: 상태를 고치고 이번 번째를 돌려준다 */
 	static int32 Register(FGrimBasicAttackCombo& Combo, double Now, float Window, int32 Length);
@@ -103,7 +115,7 @@ struct GRIMOIRE_API FGrimBasicAttackMath
 	/** 강타인가(Length 번째) */
 	static bool IsHeavy(int32 Step, int32 Length);
 
-	/** HUD 에 보일 번째: 창 안이면 마지막 번째, 지났으면 0 */
+	/** HUD 에 보일 번째: 창 안이면 마지막 번째, 지났으면 0(강타 뒤는 그대로 보였다가 창이 지나면 0) */
 	static int32 VisibleStep(const FGrimBasicAttackCombo& Combo, double Now, float Window);
 
 	/** 피해 배율: 강타면 HeavyMultiplier, 아니면 1 */

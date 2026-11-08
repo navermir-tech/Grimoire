@@ -6,6 +6,7 @@
 #include "Appearance/GrimAppearanceDummy.h"
 #include "Appearance/GrimAppearanceSettings.h"
 #include "Appearance/GrimAppearanceTypes.h"
+#include "Appearance/GrimCharacterCreatorWidget.h"
 #include "AnimationRuntime.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/Engine.h"
@@ -375,6 +376,49 @@ bool FGrimAppearanceAssembleTest::RunTest(const FString& Parameters)
 		}
 	}
 	Dummy->Destroy();
+	return true;
+}
+
+// Q102: 생성 화면 · 거울 카메라 — 캐릭터 정면에서 보고, 얼굴 칸은 얼굴 가까이 · 옷 칸은 전신, 돌려도 같은 거리.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimAppearanceCreatorCameraTest, "Grimoire.Appearance.CreatorCamera", GrimAppearanceTestsLocal::PureFlags)
+bool FGrimAppearanceCreatorCameraTest::RunTest(const FString& Parameters)
+{
+	TestEqual(TEXT("얼굴 칸 → 얼굴"), FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot::Face), EGrimCreatorFocus::Face);
+	TestEqual(TEXT("머리 칸 → 얼굴"), FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot::Hair), EGrimCreatorFocus::Face);
+	TestEqual(TEXT("수염 칸 → 얼굴"), FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot::Beard), EGrimCreatorFocus::Face);
+	TestEqual(TEXT("로브 칸 → 전신"), FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot::Robe), EGrimCreatorFocus::Body);
+	TestEqual(TEXT("신발 칸 → 전신"), FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot::Boots), EGrimCreatorFocus::Body);
+	TestEqual(TEXT("모자 칸 → 전신(옷)"), FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot::Hat), EGrimCreatorFocus::Body);
+
+	// 캐릭터가 +X 를 본다(FrontYaw 0) → 카메라는 +X 쪽 앞에 서서 −X 를 본다(정면).
+	const FVector Pivot(100.f, 200.f, 300.f);
+	const FTransform Front = FGrimCreatorCameraMath::ComputePose(Pivot, 0.f, 0.f, 0.f, 90.f, 0.f);
+	TestTrue(TEXT("정면: 캐릭터 앞(+X)에 선다"), Front.GetLocation().X > Pivot.X + 89.f);
+	TestTrue(TEXT("정면: 캐릭터 쪽(−X)을 본다"), FVector::DotProduct(Front.GetRotation().Vector(), FVector(-1.f, 0.f, 0.f)) > 0.999f);
+	TestEqual(TEXT("정면: 거리"), FVector::Dist(Front.GetLocation(), Pivot), 90.0, 0.01);
+
+	// 돌려도(끌기) 같은 거리, 90° 돌면 옆에 선다.
+	const FTransform Side = FGrimCreatorCameraMath::ComputePose(Pivot, 0.f, 90.f, 0.f, 90.f, 0.f);
+	TestEqual(TEXT("돌려도 같은 거리"), FVector::Dist(Side.GetLocation(), Pivot), 90.0, 0.01);
+	TestTrue(TEXT("90° → 옆"), FMath::Abs(Side.GetLocation().X - Pivot.X) < 0.1 && FMath::Abs(Side.GetLocation().Y - Pivot.Y) > 89.0);
+
+	// 위에서 내려다보면(Pitch −) 카메라가 위에 있다.
+	TestTrue(TEXT("내려다보기 → 위"), FGrimCreatorCameraMath::ComputePose(Pivot, 0.f, 0.f, -20.f, 90.f, 0.f).GetLocation().Z > Pivot.Z);
+
+	// 왼쪽 판에 가리지 않게: 캐릭터(Pivot)가 카메라 기준 오른쪽(+Y 축)에 있다.
+	const FTransform Shifted = FGrimCreatorCameraMath::ComputePose(Pivot, 0.f, 0.f, 0.f, 400.f, 70.f);
+	const FVector Local = Shifted.InverseTransformPosition(Pivot);
+	TestTrue(TEXT("캐릭터는 화면 오른쪽"), Local.Y > 69.f && Local.X > 399.f);
+
+	// 캐릭터가 다른 쪽을 보고 있어도 정면(FrontYaw 따라감).
+	const FTransform Turned = FGrimCreatorCameraMath::ComputePose(Pivot, 90.f, 0.f, 0.f, 90.f, 0.f);
+	TestTrue(TEXT("캐릭터가 +Y 를 보면 카메라는 +Y 쪽"), Turned.GetLocation().Y > Pivot.Y + 89.f);
+
+	// ini: 얼굴은 가깝고 전신은 멀다
+	const FGrimCreatorCameraTuning& Tuning = UGrimAppearanceSettings::Get()->CreatorCamera;
+	TestTrue(TEXT("ini: 얼굴 < 전신 거리"), Tuning.FaceDistance < Tuning.BodyDistance);
+	TestTrue(TEXT("ini: 끌기 감도"), Tuning.DragYawPerPixel > 0.f);
+	TestTrue(TEXT("ini: 각 범위"), Tuning.MinPitch < Tuning.DefaultPitch && Tuning.DefaultPitch < Tuning.MaxPitch);
 	return true;
 }
 

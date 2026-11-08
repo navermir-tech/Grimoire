@@ -9,6 +9,73 @@ class UAnimationAsset;
 class USkeletalMesh;
 
 /**
+ * 캐릭터 생성 화면 · 마법탑 거울의 카메라(Q102) — 캐릭터 앞 정면. 얼굴 칸을 고르면 얼굴 가까이, 옷 · 몸 칸이면 전신. 마우스 끌기로 돌려 본다.
+ * 거리 · 높이는 cm, 화면 왼쪽 판에 가리지 않게 캐릭터를 화면 오른쪽으로 비키는 몫이 LateralOffset(카메라 기준 왼쪽으로 겨눔).
+ */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimCreatorCameraTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Camera", meta = (ClampMin = "10", ClampMax = "120"))
+	float FieldOfView = 50.f;
+
+	/** 얼굴: 머리 뼈(HeadBone)에서 이만큼 떨어져 본다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Face", meta = (ClampMin = "10", Units = "cm"))
+	float FaceDistance = 120.f;
+
+	/** 머리 뼈 높이에 더한다 — 마네킹의 head 뼈는 두개골 아래(목 위)라 눈 높이로 올린다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Face", meta = (Units = "cm"))
+	float FaceHeightOffset = 14.f;
+
+	/** 머리 뼈가 없으면 액터 중심에서 이 높이를 얼굴로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Face", meta = (Units = "cm"))
+	float FaceFallbackHeight = 75.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Face", meta = (Units = "cm"))
+	float FaceLateralOffset = 20.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Face")
+	FName HeadBone = TEXT("head");
+
+	/** 전신: 액터 중심(허리쯤)에서 이만큼 떨어져 본다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body", meta = (ClampMin = "10", Units = "cm"))
+	float BodyDistance = 430.f;
+
+	/** 전신을 겨누는 높이(액터 중심 기준) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body", meta = (Units = "cm"))
+	float BodyHeight = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Body", meta = (Units = "cm"))
+	float BodyLateralOffset = 70.f;
+
+	/** 처음 · 기본으로 내려다보는 각(도, 음수 = 위에서) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Orbit", meta = (ClampMin = "-60", ClampMax = "60"))
+	float DefaultPitch = -5.f;
+
+	/** 마우스 끌기: 화면 1픽셀에 도는 각(도) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Orbit", meta = (ClampMin = "0"))
+	float DragYawPerPixel = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Orbit", meta = (ClampMin = "0"))
+	float DragPitchPerPixel = 0.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Orbit", meta = (ClampMin = "-89", ClampMax = "0"))
+	float MinPitch = -35.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Orbit", meta = (ClampMin = "0", ClampMax = "89"))
+	float MaxPitch = 25.f;
+
+	/** 얼굴 ↔ 전신으로 옮겨 가는 빠르기(VInterpTo 속도 — 클수록 빠름) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blend", meta = (ClampMin = "0"))
+	float InterpSpeed = 8.f;
+
+	/** 열고 닫을 때 평소 카메라와 섞는 시간 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blend", meta = (ClampMin = "0", Units = "s"))
+	float ViewBlendSeconds = 0.35f;
+};
+
+/**
  * 외형(커스터마이징) 설정 — 정본은 Config/DefaultGame.ini 의 [/Script/Grimoire.GrimAppearanceSettings].
  * 카탈로그 표는 Content/Grimoire/Data/Appearance 의 CSV(런타임에 읽는다). CatalogAsset 을 넣으면 그 DataAsset 을 쓴다.
  */
@@ -103,4 +170,8 @@ public:
 	/** 세이브에 외형이 없는 새 캐릭터면 들어오자마자 생성 화면을 연다(개발 중엔 꺼 둠 — 치트 GrimCreator) */
 	UPROPERTY(Config, EditAnywhere, Category = "Player")
 	bool bOpenCreatorForNewCharacter = false;
+
+	/** 생성 화면 · 거울 카메라(Q102) */
+	UPROPERTY(Config, EditAnywhere, Category = "Creator")
+	FGrimCreatorCameraTuning CreatorCamera;
 };

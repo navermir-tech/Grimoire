@@ -4,6 +4,7 @@
 #include "Appearance/GrimAppearanceComponent.h"
 #include "Appearance/GrimAppearanceDummy.h"
 #include "Appearance/GrimAppearanceSettings.h"
+#include "Appearance/GrimCharacterCreatorWidget.h"
 #include "Appearance/GrimPlayerAppearanceComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -166,6 +167,34 @@ namespace GrimAppearanceDebugLocal // 유니티 빌드에서 이름이 부딪히
 					}
 				}
 			});
+		}));
+
+	// 생성 화면 카메라(Q102) — 화면 확인(shoot_qa -Set Creator)에서 칸 클릭 · 마우스 끌기 대신
+	FAutoConsoleCommand GCreatorFocusCommand(
+		TEXT("Grim.Appearance.CreatorFocus"),
+		TEXT("열린 생성 화면의 카메라를 얼굴 · 전신으로. 예: Grim.Appearance.CreatorFocus Face / Body"),
+		FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
+		{
+			if (UGrimCharacterCreatorWidget* Creator = UGrimCharacterCreatorWidget::GetOpen())
+			{
+				const bool bFace = Args.Num() > 0 && Args[0].Equals(TEXT("Face"), ESearchCase::IgnoreCase);
+				Creator->SetFocus(bFace ? EGrimCreatorFocus::Face : EGrimCreatorFocus::Body);
+				UE_LOG(LogGrimAppearance, Display, TEXT("[Appearance] 생성 화면 카메라 → %s"), bFace ? TEXT("얼굴") : TEXT("전신"));
+			}
+		}));
+
+	FAutoConsoleCommand GCreatorOrbitCommand(
+		TEXT("Grim.Appearance.CreatorOrbit"),
+		TEXT("열린 생성 화면의 카메라를 정면에서 돌린다(마우스 끌기와 같다). 예: Grim.Appearance.CreatorOrbit 35 -5"),
+		FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
+		{
+			if (UGrimCharacterCreatorWidget* Creator = UGrimCharacterCreatorWidget::GetOpen())
+			{
+				const float Yaw = Args.Num() > 0 ? FCString::Atof(*Args[0]) : 0.f;
+				const float Pitch = Args.Num() > 1 ? FCString::Atof(*Args[1]) : UGrimAppearanceSettings::Get()->CreatorCamera.DefaultPitch;
+				Creator->SetOrbit(Yaw, Pitch);
+				UE_LOG(LogGrimAppearance, Display, TEXT("[Appearance] 생성 화면 카메라 돌림 %.0f° · %.0f°"), Yaw, Pitch);
+			}
 		}));
 
 	FAutoConsoleCommand GReloadCommand(

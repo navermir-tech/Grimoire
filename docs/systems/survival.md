@@ -45,9 +45,8 @@
 | `Climate.WarmManaCostScale` · `HyperthermiaManaCostScale` | 1.15 · 1.35 | 더위 1 · 2단계 마나 소모 배율 |
 | `Climate.ModerateFatigueRateScale` | 1.5 | 2단계 이상이면 피곤함이 빨리 쌓인다 |
 | `Fatigue.GainPerMinute` · `NightGainScale` | 1.5 · 1.5 | 하루(낮 30분 + 밤 18분)를 꼬박 새면 약 85 |
-| `Fatigue.ExhaustedThreshold` · `ExhaustedCastSpeedScale` | 80 · 0.7 | `Status.Exhausted` 시전 −30% |
-| `Fatigue.CollapseThreshold` · `CollapseSleepSeconds` | 100 · 10 | 기절(강제 수면) |
-| `Fatigue.SleepRecoveryPerSecond` | 5 | 자는 동안(낮잠 · 기절) 회복 |
+| `Fatigue.ExhaustedThreshold` · `ExhaustedMoveSpeedScale` | 80 · 0.7 | `Status.Exhausted`(탈진) — 지친 걸음 이동 ×0.7. 시전 차단은 마법 쪽 `MagicBlockingTags`(Q116) |
+| `Fatigue.SleepRecoveryPerSecond` | 5 | 자는 동안 회복 |
 | `Disease.RawFoodStomachChance` · `StomachDurationSeconds` · `StomachHungerDrainScale` | 0.3 · 180 · 2 | 배탈 |
 | `Disease.WetColdSecondsPerRoll` · `WetColdChance` · `ColdDurationSeconds` · `ColdManaRegenPenaltyPerSecond` | 60 · 0.35 · 300 · 1 | 감기 |
 | `Sleep.SleepSkipRatio` | 1.0 | 서버 옵션 — 잠든 비율(1 = 전원) |
@@ -74,7 +73,7 @@
 | `Status.Chilly` · `Status.Warm` | 추위 · 더위 모자람 1 |
 | `Status.Hypothermia` · `Status.Hyperthermia` | 모자람 2 이상 |
 | `Status.Hypothermia.Severe` · `Status.Hyperthermia.Severe` | 모자람 3 이상(위 태그와 함께) |
-| `Status.Exhausted` · `Status.Collapsed` | 피곤함 ≥ 80 · 기절 중 |
+| `Status.Exhausted` | 피곤함 ≥ 80 — 탈진(달리기 · 마법 시전 불가, 지친 걸음). 기절 태그 `Status.Collapsed` 는 Q116 에서 지웠다 |
 | `Status.Sleeping` · `Status.Downed` | 자는 중 · 쓰러짐 |
 | `Status.Sick.Stomach` · `Status.Sick.Cold` | 질병 GE 가 준다(상위 `Status.Sick`) |
 
@@ -108,9 +107,10 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 
 ## 피곤함
 
-- 깨어 있으면 분당 `GainPerMinute`, 밤 ×`NightGainScale`, 체온 2단계 이상 ×`ModerateFatigueRateScale`. 자는 동안(낮잠 · 기절 포함) 초당 `SleepRecoveryPerSecond` 회복, 쓰러져 있으면 그대로.
-- `≥ 80 → Status.Exhausted`(시전 −30%, 달리기 막힘 — `AGrimPlayerCharacter::IsSprintBlocked`), `≥ 100 → Status.Collapsed` + 그 자리에서 강제 수면 10초(일어날 수 없다) → 깬다.
-- 시전 막힘: `Status.Sleeping` · `Status.Downed` · `Status.Collapsed` 는 마법 쪽 `CastBlockingTags`(`[/Script/Grimoire.GrimSpellbookSettings]`)로 시전을 막는다. `Status.Exhausted` 는 막지 않는다.
+- 깨어 있으면 분당 `GainPerMinute`, 밤 ×`NightGainScale`, 체온 2단계 이상 ×`ModerateFatigueRateScale`. 자는 동안 초당 `SleepRecoveryPerSecond` 회복, 쓰러져 있으면 그대로.
+- `≥ 80 → Status.Exhausted` = **탈진**(R29 · Q116 확정 2026-11-08): 달리기 막힘(`AGrimPlayerCharacter::IsSprintBlocked`), 지친 걸음(이동 ×`ExhaustedMoveSpeedScale` 0.7 — 패널티 GE 의 `MoveSpeedScale`), **마법 시전 불가**. 100 이 되어도 **기절(강제 수면)은 없다** — 탈진 그대로 걷는다. 잠(침대 · 밤)만이 푼다.
+- 시전 막힘(`[/Script/Grimoire.GrimSpellbookSettings]`): `Status.Sleeping` · `Status.Downed`(+ 건축 모드)는 `CastBlockingTags` — 마법 · 기본 공격 · 주먹질을 모두 막고 알리지 않는다. `Status.Exhausted` 는 `MagicBlockingTags` — **마법만** 막는다: 슬롯 마법은 실패 알림 「너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다」(`EGrimCastFailReason::Exhausted`), 기본 공격 입력은 주먹질이 대신 나간다(마법이 아니므로 — 구현에서 정한 것).
+- 탈진 전 구간의 「시전 속도 · 명중 크게 저하」(R29)는 아직 없다 — 문턱 · 수치는 미결 Q129. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
 - 명중 저하 · 바람 마법 「각성」은 나중.
 
 ## 질병

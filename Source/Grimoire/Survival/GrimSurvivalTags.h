@@ -18,7 +18,6 @@ namespace GrimSurvivalTags
 
 	// 피곤함 · 잠
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Exhausted);
-	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Collapsed);
 	GRIMOIRE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Sleeping);
 
 	// 쓰러짐

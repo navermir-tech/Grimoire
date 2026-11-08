@@ -165,15 +165,19 @@ struct GRIMOIRE_API FGrimCaptureChance
 	float Food = 0.f;
 	float Element = 0.f;
 	float Wand = 0.f;
-	float Circle = 0.f;
 	float Proficiency = 0.f;
 	float Accessory = 0.f;
-	/** 등급(크기 분류 · 거대) 빼기 — 양수로 담는다 */
-	float GradePenalty = 0.f;
-	/** 자르기 전 합 */
+	/** 조건 몫의 합(기본 + 약해짐 + … + 장신구) */
+	float Ease = 0.f;
+	/** 등급(크기 분류) × 거대 곱 배율(1 = 깎이지 않음) */
+	float GradeScale = 1.f;
+	/** 서클 배율(Q118 곡선 — 0 이면 시도 불가) */
+	float CircleScale = 1.f;
+	/** 자르기 전 = Ease × GradeScale × CircleScale */
 	float Raw = 0.f;
-	/** 최종(Min~Max) */
+	/** 최종(0~MaxChance) */
 	float Total = 0.f;
+	/** 서클 배율이 0 — 굴리지 않고 알린다 */
 	bool bCircleTooLow = false;
 
 	FString ToString() const;

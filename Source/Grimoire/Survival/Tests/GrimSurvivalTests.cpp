@@ -283,18 +283,17 @@ bool FGrimSurvivalFatigueTest::RunTest(const FString& Parameters)
 	Inputs.bNight = true;
 	TestEqual(TEXT("틱의 피곤함"), FGrimSurvivalModel::ComputeTick(Inputs, 60.f, Rules).Fatigue, Fatigue.GainPerMinute * Fatigue.NightGainScale, 1e-4f);
 
-	// 임계값: 80 이상 Exhausted, 100 기절.
+	// 임계값: 80 이상 Exhausted(탈진). 100 이 되어도 기절(강제 수면)은 없다(R29 · Q116) — 탈진 그대로.
 	TestFalse(TEXT("79 는 멀쩡"), FGrimSurvivalModel::EvaluateStatus(100.f, MakeExposure(0, 0), Fatigue.ExhaustedThreshold - 1.f, Rules).bExhausted);
 	TestTrue(TEXT("80 Exhausted"), FGrimSurvivalModel::EvaluateStatus(100.f, MakeExposure(0, 0), Fatigue.ExhaustedThreshold, Rules).bExhausted);
-	const FGrimSurvivalStatus Collapse = FGrimSurvivalModel::EvaluateStatus(100.f, MakeExposure(0, 0), Fatigue.CollapseThreshold, Rules);
-	TestTrue(TEXT("100 기절"), Collapse.bCollapse && Collapse.bExhausted);
+	TestTrue(TEXT("최대도 탈진일 뿐"), FGrimSurvivalModel::EvaluateStatus(100.f, MakeExposure(0, 0), Fatigue.MaxFatigue, Rules).bExhausted);
 
-	// 기본값으로 하루(낮 30분 · 밤 18분)를 꼬박 새면 Exhausted 근처, 기절은 아니다.
+	// 기본값으로 하루(낮 30분 · 밤 18분)를 꼬박 새면 탈진, 최대까지는 아니다.
 	const float Day = 48.f * 0.625f;
 	const float Night = 48.f - Day;
 	const float OneDay = FGrimSurvivalModel::ComputeFatigueDelta(0.f, Day * 60.f, false, false, false, false, Rules)
 		+ FGrimSurvivalModel::ComputeFatigueDelta(0.f, Night * 60.f, false, false, true, false, Rules);
-	TestTrue(TEXT("하루 새면 지침, 기절은 아님"), OneDay >= Fatigue.ExhaustedThreshold && OneDay < Fatigue.CollapseThreshold);
+	TestTrue(TEXT("하루 새면 탈진, 최대는 아님"), OneDay >= Fatigue.ExhaustedThreshold && OneDay < Fatigue.MaxFatigue);
 	return true;
 }
 
@@ -326,10 +325,12 @@ bool FGrimSurvivalPenaltyTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("과열 마나 소모"), Mods(2, 0, 0.f).ManaCost, Climate.HyperthermiaManaCostScale, 1e-4f);
 	TestEqual(TEXT("더위는 이동 그대로"), Mods(2, 0, 0.f).MoveSpeed, 1.f, 1e-4f);
 
-	// 피곤함 −30% 는 추위와 곱해진다.
-	TestEqual(TEXT("지침 시전 −30%"), Mods(0, 0, Rules.Fatigue.ExhaustedThreshold).CastSpeed, Rules.Fatigue.ExhaustedCastSpeedScale, 1e-4f);
-	TestEqual(TEXT("지침 × 쌀쌀함"), Mods(0, 1, Rules.Fatigue.ExhaustedThreshold).CastSpeed,
-		Rules.Fatigue.ExhaustedCastSpeedScale * Climate.ChillyCastSpeedScale, 1e-4f);
+	// 탈진(R29 · Q116) = 지친 걸음(이동 배율, 추위와 곱해짐). 시전은 배율이 아니라 차단(마법 쪽 MagicBlockingTags).
+	TestEqual(TEXT("탈진 지친 걸음"), Mods(0, 0, Rules.Fatigue.ExhaustedThreshold).MoveSpeed, Rules.Fatigue.ExhaustedMoveSpeedScale, 1e-4f);
+	TestTrue(TEXT("지친 걸음은 느리다"), Rules.Fatigue.ExhaustedMoveSpeedScale < 1.f);
+	TestEqual(TEXT("탈진 × 쌀쌀함"), Mods(0, 1, Rules.Fatigue.ExhaustedThreshold).MoveSpeed,
+		Rules.Fatigue.ExhaustedMoveSpeedScale * Climate.ChillyMoveSpeedScale, 1e-4f);
+	TestEqual(TEXT("탈진은 시전 속도 배율 없음"), Mods(0, 0, Rules.Fatigue.ExhaustedThreshold).CastSpeed, 1.f, 1e-4f);
 
 	TestEqual(TEXT("자는 중 이동"), Mods(0, 0, 0.f, true).MoveSpeed, Rules.Sleep.SleepingMoveSpeedScale, 1e-4f);
 	TestEqual(TEXT("쓰러짐 이동"), Mods(0, 0, 0.f, false, true).MoveSpeed, Rules.Downed.DownedMoveSpeedScale, 1e-4f);
