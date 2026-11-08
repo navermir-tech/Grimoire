@@ -117,6 +117,10 @@ for sub in ("__ExternalActors__", "__ExternalObjects__"):
         shutil.rmtree(disk)
 unreal.AssetRegistryHelpers.get_asset_registry().scan_paths_synchronous(
     ["/Game/Grimoire/Maps", "/Game/__ExternalActors__/Grimoire/Maps", "/Game/__ExternalObjects__/Grimoire/Maps"], True)
+# 지운 맵이 레지스트리에 남아 있으면 new_level 이 「이미 있다」로 실패한다 — 파일이 없는데 있다고 하면 한 번 더 지우고 다시 훑는다
+if eal.does_asset_exist(MAP_PATH):
+    eal.delete_asset(MAP_PATH)
+    unreal.AssetRegistryHelpers.get_asset_registry().scan_paths_synchronous(["/Game/Grimoire/Maps"], True)
 if not level_subsystem.new_level(MAP_PATH, True):
     raise RuntimeError(f"new_level 실패: {MAP_PATH}")
 world = unreal.get_editor_subsystem(unreal.UnrealEditorSubsystem).get_editor_world()
@@ -209,6 +213,14 @@ for body in summary.water:
     if kind == "Pond":
         p = body.points[0]
         radius = body.size
+        if body.surface_mesh:
+            # 자연 연못 — 물 표면은 아래 물 메시(개울과 한 메시), 헤엄 볼륨만 여기서
+            depth = body.depth + 100.0
+            volume = box_volume(unreal.PhysicsVolume, f"WaterVolume_{name}", unreal.Vector(p.x, p.y, p.z - depth / 2),
+                                unreal.Vector(radius, radius, depth / 2), folder="Water/Ponds", tags=["Water", "Water.Pond", name])
+            volume.set_editor_property("water_volume", True)
+            count("WaterVolume")
+            continue
         disk = mesh_actor(CYLINDER, water_mi, f"Water_{name}", p.x, p.y, p.z - 5.0, radius * 2 / 100.0, radius * 2 / 100.0, 0.1, "Water/Ponds", tags=["Water", "Water.Pond", name])
         count("WaterPlane")
         depth = body.depth + 100.0
@@ -217,6 +229,8 @@ for body in summary.water:
         volume.set_editor_property("water_volume", True)
         count("WaterVolume")
     elif kind == "Creek":
+        if body.surface_mesh:
+            continue   # 자연 개울은 아래 물 메시
         points = list(body.points)
         for i in range(len(points) - 1):
             a, b = points[i], points[i + 1]
@@ -230,6 +244,25 @@ for body in summary.water:
             mesh_actor(PLANE, water_mi, f"Water_{name}_{i:03d}", (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2,
                        length / 100.0, body.size / 100.0, 1.0, f"Water/{name}", yaw=yaw, pitch=pitch, tags=["Water", "Water.Creek", name])
             count("WaterPlane")
+
+# ───── 5b. 자연 개울 · 연못 물 표면 메시(레벨 디자인 3차) — 합류하는 물은 한 메시로(틈 · 겹침 없음), 물가선 = 땅과의 교선 ─────
+natural_water_mat = unreal.load_asset("/Game/Grimoire/Terrain/Dress/M_Dress_Water") if eal.does_asset_exist("/Game/Grimoire/Terrain/Dress/M_Dress_Water") else water_mi
+for creek in raw["Creeks"]:
+    if not creek.get("bNatural"):
+        continue
+    bodies = [creek["Name"]] + ([creek["JoinPond"]] if creek.get("JoinPond") else [])
+    water_path = f"/Game/Grimoire/Terrain/Water/SM_Water_{creek['Name']}"
+    if eal.does_asset_exist(water_path):   # 있는 메시를 다시 빌드하면 ensure — 지우고 새로
+        eal.delete_asset(water_path)
+    result = lib.build_water_surface_mesh(water_path, bodies, natural_water_mat, 1.0)
+    mesh, pivot = result if isinstance(result, tuple) else (result, None)
+    if mesh is None:
+        raise RuntimeError(f"물 표면 메시 실패: {creek['Name']}")
+    if pivot is None:
+        raise RuntimeError("BuildWaterSurfaceMesh 가 원점을 돌려주지 않았다")
+    actor = mesh_actor(mesh, natural_water_mat, f"Water_{creek['Name']}_Surface", pivot.x, pivot.y, pivot.z, 1.0, 1.0, 1.0, "Water/Natural", tags=["Water", "Water.Creek", creek["Name"]])
+    count("WaterSurfaceMesh")
+    log(f"물 표면 메시 {creek['Name']} {bodies}")
 
 # ───── 6. 식생(인스턴스드 폴리지 — 규칙은 C++ 생성기, 밀도는 레이아웃) ─────
 FOLIAGE_PARTS = {
@@ -303,6 +336,7 @@ log(f"랜드마크 그레이박스: {', '.join(built)} (마법탑은 tower_greyb
 poi_kinds = landmark_greybox.build_pois(placer, raw)
 log("POI 소품: " + ", ".join(f"{k}={v}" for k, v in sorted(poi_kinds.items())))
 count("Bridge", landmark_greybox.build_bridges(placer, raw, None))
+count("Bridge", landmark_greybox.build_natural_bridges(placer, raw, summary, map_to_world))
 
 # ───── 7c. 마탑 구간(docs/dev/level-design.md 「7」): 떠 있는 글씨(랜드마크 · 구간 POI) + 종류 블록 · 공사 중 경계 ─────
 labels = landmark_greybox.build_dev_labels(placer, raw)

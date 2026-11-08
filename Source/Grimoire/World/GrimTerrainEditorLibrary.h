@@ -100,6 +100,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain", meta = (WorldContext = "WorldContextObject"))
 	static FString ConfigureWorldPartition(const UObject* WorldContextObject, int32 CellSizeCm, int32 LoadingRangeCm);
 
+	/**
+	 * 레벨 디자인 3차: 캐시한 지형에서 자연 개울 · 연못(Bodies)을 하나로 이은 물 표면 스태틱 메시를 만든다 — 격자 칸마다 물 높이를 재고 땅보다 낮은 칸만 남겨,
+	 * 물가선은 땅과의 교선이 되고 합류부에 틈 · 겹침이 없다. UV0 = 흐름 방향(호 길이 · 옆 거리, m) · 연못은 지도 좌표, 정점 색 R = 흐름(0 고인 물 ~ 1 개울).
+	 * 메시 원점 = OutPivot(월드 cm). 저장은 파이썬이 한다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain")
+	static UStaticMesh* BuildWaterSurfaceMesh(const FString& PackagePath, const TArray<FName>& Bodies, UMaterialInterface* Material, float GridStep, FVector& OutPivot);
+
 	/** 상자 브러시 볼륨(물리 볼륨 · 막는 볼륨 등)을 놓는다. Extent = 반 크기(cm) */
 	UFUNCTION(BlueprintCallable, Category = "Grimoire|Terrain", meta = (WorldContext = "WorldContextObject"))
 	static AActor* SpawnBoxVolume(const UObject* WorldContextObject, TSubclassOf<AActor> VolumeClass, FVector Center, FVector Extent, float Yaw);

@@ -32,6 +32,7 @@ sys.path.insert(0, HERE)
 import dress_assets  # noqa: E402
 import landmark_greybox  # noqa: E402
 import section_dress  # noqa: E402
+import ld3_dress  # noqa: E402
 
 MAP_PATH = "/Game/Grimoire/Maps/L_OpenBeta"
 LAYOUT_PATH = os.path.join(HERE, "openbeta_layout.json")
@@ -387,13 +388,15 @@ for kind, (n, margin, max_slope) in PROP_COUNTS.items():
 dresser = section_dress.SectionDresser({
     "raw": raw, "lib": lib, "actors": actor_subsystem, "world": world, "foliage": assets["foliage"], "map_to_world": map_to_world,
     "clear_of": clear_of, "in_sector": lambda u, v: landmark_greybox.point_in_polygon(u, v, sector), "near_water": near_water,
-    "water_level": water_level, "count": count,
+    "water_level": water_level, "count": count, "summary": summary, "world_to_map": world_to_map,
 })
 walls, posts, lamps = dresser.approach_road()
 log(f"큰길: 돌담 돌 {walls} · 돌 표지 {posts} · 등불 {lamps}")
 crest_rocks, crest_trees = dresser.ridge_crests()
 log(f"능선 꼭대기: 바위 {crest_rocks} · 외딴 나무 {crest_trees}")
 log(f"풍차 마당 {dresser.windmill_farm()} · 봉화대 {dresser.beacon()} · 연못 징검돌 {dresser.pond_stones()} · 부유석 디딤돌 {dresser.floating_steps()} · 둥치 {dresser.meadow_stump()}")
+# 레벨 디자인 3차: 돌담 · 개울 · 샘 · 짐수레 · 능선 바위 · 빈 곳 채우기 — ld3_dress.py
+ld3_dress.Level3(dresser, dresser.c).all(assets["ripple"], ROOT)
 log(f"구간 폴리지 인스턴스 {dresser.flush_instances()}")
 log(f"하늘 구역 이름 {dresser.section_labels()}")
 

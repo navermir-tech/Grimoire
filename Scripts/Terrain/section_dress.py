@@ -128,7 +128,7 @@ class SectionDresser:
         sector = self.c["in_sector"]
         stones = ["FT_Dress_RockSmall1", "FT_Dress_RockSmall3", "FT_Dress_RockSmall5", "FT_Dress_RockSmall2", "FT_Dress_RockSmall4"]
         # 담 구간(호 길이 m, 쪽 +1 = 진행 방향 왼쪽) — 탑 앞 구간은 비우고, 굽이 바깥쪽에 담을 둔다
-        walls = [(95, 150, -1), (120, 190, 1), (230, 300, -1), (330, 375, 1), (395, 470, -1), (520, 585, 1), (600, 660, -1), (690, 740, 1)]
+        walls = []   # 레벨 디자인 3차: 돌담은 ld3_dress.Level3.dry_stone_walls(돌마다 땅에 앉히고 쌓는다)
         placed = 0
         for a0, a1, side in walls:
             arc = a0
@@ -166,7 +166,8 @@ class SectionDresser:
             u, v, (dx, dy) = main.at(arc)
             nx, ny = -dy * side, dx * side
             pu, pv = u + nx * 3.6, v + ny * 3.6
-            if sector(pu, pv) and not self.c["near_water"](pu, pv, 3.0):
+            near_story = any(p.get("bNoGreybox") and math.hypot(p["Center"]["X"] - pu, p["Center"]["Y"] - pv) < 16 for p in self.raw["Pois"])
+            if sector(pu, pv) and not self.c["near_water"](pu, pv, 3.0) and not near_story:
                 heading = math.degrees(math.atan2(dy, dx))
                 p = self.placer.at(pu, pv, heading, "Waystones", f"Waystone_{posts:02d}")
                 p.shape(landmark_greybox.CUBE, "Stone", "Post", 0, 0, -0.4, 0.75, 0.6, 2.6, roll=self.rng.uniform(-3, 3))
@@ -191,6 +192,10 @@ class SectionDresser:
 
     # ── 능선 꼭대기: 바위 무더기 · 외딴 큰 나무(삼각형 꼭대기에 시선이 걸리게) ──
     def ridge_crests(self):
+        """레벨 디자인 2차 — 3차부터는 ld3_dress.Level3.ridge_rocks 가 대신한다(봉우리 표식만 남긴다)"""
+        return 0, 0
+
+    def _ridge_crests_v2(self):
         rocks = ["FT_Dress_RockLarge", "FT_Dress_RockCluster1", "FT_Dress_RockCluster2", "FT_Dress_Boulder1", "FT_Dress_Boulder2"]
         trees = ["FT_Dress_Broadleaf1", "FT_Dress_Broadleaf2"]
         n_rocks = n_trees = 0

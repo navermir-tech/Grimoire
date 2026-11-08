@@ -7,10 +7,11 @@
 # 자리(월드 cm, X = 북 = (지도 Y − 380) × 100, Y = 동 = (지도 X − 1000) × 100). Z 가 + 면 땅 위 cm(Grim.Terrain.ViewFrom).
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag before   # 레벨 아트 비교 — 측정 자리(Scripts/Perf/measure.ps1) 중 시작 구역
 #                                                                               → docs/public/qa/level-dress-<자리>-<Tag>.jpg
+#   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld3 -RunSeconds 1200  # 레벨 디자인 3차(「10」) — 고친 곳마다 눈높이 · 하늘, 2차와 같은 자리는 전 · 후 → docs/public/qa/ld3-<자리>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld2 -RunSeconds 900   # 레벨 디자인 2차(docs/dev/level-design.md 「9」) — 구간마다 눈높이 · 하늘
 #                                                                               → docs/public/qa/ld2-<자리>.jpg(앞 다섯은 level-dress-*-after 와 같은 자리 = 전 · 후)
 param(
-	[ValidateSet("v3", "v2", "dress", "ld2")]
+	[ValidateSet("v3", "v2", "dress", "ld2", "ld3")]
 	[string]$Set = "v3",
 	[string]$Tag = "after",
 	[int]$RunSeconds = 200,
@@ -85,19 +86,55 @@ $ShotsLd2 = @(
 	@("ld2-aerial-tree", 130000, 10000, "+22000", 0, -32, $false),      # 고목 남쪽 하늘 220 m — 중부 구릉 · 고목 실루엣
 	@("ld2-sector-aerial", 21000, 9000, "125000", 0, -89.9, $false)     # 하늘 1.25 km 에서 마탑 구간(openbeta-sector-aerial-v3 와 같은 자리)
 )
-$Shots = if ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
-if ($Set -eq "dress" -or $Set -eq "ld2") { $ArtDir = Join-Path $Root "docs\public\qa" }
+# ld3 — 레벨 디자인 3차: 능선 · 개울 · 다리 · 연못 어귀 · 샘 · 짐수레 · 돌담 · 채움. 앞 여덟은 ld2 와 같은 자리(전 · 후)
+$ShotsLd3 = @(
+	@("ld3-door", 4000, 0, "+180", 0, -2, $false),
+	@("ld3-path100", 13776, 3029, "+180", 25, -2, $false),
+	@("ld3-path200", 23246, 2090, "+180", -26, -2, $false),
+	@("ld3-pond", 12500, -30000, "+180", -5, -3, $false),
+	@("ld3-hilltop", 56800, -11000, "+180", 140, -4, $false),
+	@("ld3-path400", 41318, -1871, "+180", 32, -2, $false),
+	@("ld3-eastsaddle", 22000, 36000, "+180", 0, 2, $false),
+	@("ld3-hiddenvale", 6000, 42000, "+180", 35, -3, $false),
+	@("ld3-ridge-west", 24500, 1500, "+180", 285, 4, $false),           # 큰길에서 서쪽 등줄기 급사면
+	@("ld3-ridge-north", 36000, -6000, "+180", 340, 6, $false),         # 큰길에서 봉화 언덕 쪽 능선
+	@("ld3-ridge-east", 24500, 1500, "+180", 75, 4, $false),            # 큰길에서 동쪽 등줄기 급사면
+	@("ld3-ridge-crest", 57800, -12000, "+180", 250, -2, $false),        # 봉화 언덕 등성이에서 서쪽으로 — 이어지는 등줄기 · 안부
+	@("ld3-spring", 49000, -13500, "+650", 18, -18, $false),             # 샘 — 물머리와 상류 물길(바위 틈 · 내민 바위 · 웅덩이)
+	@("ld3-spring-near", 50400, -13200, "+230", 22, -10, $false),         # 샘 — 바위 틈 · 웅덩이 가까이
+	@("ld3-creek-upper", 45500, -14200, "+200", 200, -8, $false),        # V 자 상류
+	@("ld3-creek-mid", 39400, -16800, "+180", 211, -5, $false),          # 개울 가운데 — 굽이 · 소
+	@("ld3-bridge", 32200, -18800, "+180", 270, -4, $false),             # 다리 — 길에서 바로
+	@("ld3-bridge-side", 28600, -20600, "+150", 12, 6, $false),          # 다리 — 하류 물가에서 올려봄
+	@("ld3-bridge-top", 32000, -20100, "+1500", 0, -62, $false),         # 다리 — 위에서(직각 · 둑 얹힘 확인)
+	@("ld3-pond-junction", 23200, -25000, "+180", 217, -4, $false),      # 개울이 연못에 드는 어귀
+	@("ld3-pond-aerial", 21500, -28500, "+4500", 40, -60, $false),       # 연못 · 어귀 하늘에서
+	@("ld3-creek-aerial", 34000, -20500, "+17000", 0, -89.9, $false),    # 개울 전체 하늘에서
+	@("ld3-cart", 48050, 7350, "+180", 62, -7, $false),                  # 부서진 짐수레 — 길 굽이 길섶
+	@("ld3-wall-a", 13375, 3146, "+180", 42, -3, $false),                # 돌담 가까이
+	@("ld3-wall-b", 26325, 909, "+180", -24, -3, $false),
+	@("ld3-wall-c", 33830, -3941, "+180", -13, -3, $false),
+	@("ld3-wall-d", 41255, -1455, "+180", 46, -3, $false),
+	@("ld3-wall-e", 49388, 7230, "+180", 48, -3, $false),
+	@("ld3-fill-road520", 47323, 5075, "+180", 56, -2, $false),          # 길가 채움
+	@("ld3-fill-road640", 56272, 10872, "+180", -9, -2, $false),
+	@("ld3-fill-road780", 69000, 13000, "+180", 5, -2, $false),          # 북쪽 다리 앞
+	@("ld3-aerial-south", -26000, 0, "28000", 0, -20, $false),           # 바다 위 — 능선 실루엣(ld2-aerial-south 와 같은 자리)
+	@("ld3-sector-aerial", 21000, 9000, "125000", 0, -89.9, $false)
+)
+$Shots = if ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
+if ($Set -eq "dress" -or $Set -eq "ld2" -or $Set -eq "ld3") { $ArtDir = Join-Path $Root "docs\public\qa" }
 
 $Cmds = @()
 $Delay = 25
 foreach ($Shot in $Shots) {
-	if ($Set -eq "dress" -or $Set -eq "ld2") {
+	if ($Set -eq "dress" -or $Set -eq "ld2" -or $Set -eq "ld3") {
 		# 랜드스케이프 풀은 카메라 둘레에서 비동기로 자란다 — 먼저 옮겨 두고 25 초 뒤에 찍는다
 		$Cmds += "Grim.Terrain.ViewFrom $($Shot[1]) $($Shot[2]) $($Shot[3]) $($Shot[4]) $($Shot[5]) $Delay"
 		$Delay += 25
 	}
 	$Cmds += "Grim.Terrain.ViewFrom $($Shot[1]) $($Shot[2]) $($Shot[3]) $($Shot[4]) $($Shot[5]) $Delay $($Shot[0])"
-	$Delay += $(if ($Set -eq "dress" -or $Set -eq "ld2") { 5 } else { 12 })
+	$Delay += $(if ($Set -eq "dress" -or $Set -eq "ld2" -or $Set -eq "ld3") { 5 } else { 12 })
 }
 $Cmds = $Cmds -join ","
 foreach ($Shot in $Shots) { Remove-Item (Join-Path $ShotDir "$($Shot[0]).png") -ErrorAction SilentlyContinue }

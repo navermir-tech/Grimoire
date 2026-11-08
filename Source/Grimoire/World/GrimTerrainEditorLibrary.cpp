@@ -25,6 +25,8 @@
 #include "LandscapeStreamingProxy.h"
 #include "LandscapeSubsystem.h"
 #include "Materials/MaterialInterface.h"
+#include "MeshDescription.h"
+#include "StaticMeshAttributes.h"
 #include "UObject/Package.h"
 #include "WorldPartition/WorldPartition.h"
 #include "WorldPartition/WorldPartitionRuntimeHash.h"
@@ -128,6 +130,160 @@ bool UGrimTerrainEditorLibrary::LoadLayoutFromJson(const FString& JsonPath, FGri
 		return false;
 	}
 	return true;
+}
+
+UStaticMesh* UGrimTerrainEditorLibrary::BuildWaterSurfaceMesh(const FString& PackagePath, const TArray<FName>& Bodies, UMaterialInterface* Material, float GridStep, FVector& OutPivot)
+{
+#if WITH_EDITOR
+	if (!GrimTerrainEditorLocal::RequireCache(TEXT("BuildWaterSurfaceMesh")))
+	{
+		return nullptr;
+	}
+	const FGrimTerrainLayout& L = GrimTerrainEditorLocal::Cache().Layout;
+	const FGrimTerrainMaps& Maps = GrimTerrainEditorLocal::Cache().Maps;
+	const double Margin = 3.5;
+	const double Step = FMath::Max(GridStep, 0.25f);
+	FBox2D Box(ForceInit);
+	for (const FGrimNaturalCreekData& Creek : Maps.NaturalCreeks)
+	{
+		if (Bodies.Contains(Creek.Name))
+		{
+			for (int32 Index = 0; Index < Creek.Points.Num(); ++Index)
+			{
+				Box += Creek.Points[Index] - FVector2D(Creek.Halves[Index] + Margin);
+				Box += Creek.Points[Index] + FVector2D(Creek.Halves[Index] + Margin);
+			}
+		}
+	}
+	for (const FGrimNaturalPondData& Pond : Maps.NaturalPonds)
+	{
+		if (Bodies.Contains(Pond.Name))
+		{
+			const double R = FMath::Max(Pond.Radii) + Margin;
+			Box += Pond.Center - FVector2D(R);
+			Box += Pond.Center + FVector2D(R);
+		}
+	}
+	if (!Box.bIsValid)
+	{
+		UE_LOG(LogGrimTerrain, Error, TEXT("BuildWaterSurfaceMesh: 해당하는 자연 물이 없다"));
+		return nullptr;
+	}
+	const int32 NX = FMath::CeilToInt32((Box.Max.X - Box.Min.X) / Step) + 1;
+	const int32 NY = FMath::CeilToInt32((Box.Max.Y - Box.Min.Y) / Step) + 1;
+	struct FCell { bool bHas = false; bool bWet = false; double Level = 0.0, Arc = 0.0, Signed = 0.0, Flow = 0.0; };
+	TArray<FCell> Grid;
+	Grid.SetNum(NX * NY);
+	ParallelFor(NY, [&](int32 Y)
+	{
+		for (int32 X = 0; X < NX; ++X)
+		{
+			FCell& C = Grid[Y * NX + X];
+			const double U = Box.Min.X + X * Step, V = Box.Min.Y + Y * Step;
+			C.bHas = FGrimTerrainGenerator::SampleNaturalWater(Maps, Bodies, U, V, Margin, C.Level, C.Arc, C.Signed, C.Flow);
+			C.bWet = C.bHas && FGrimTerrainGenerator::SampleHeight(Maps, U, V) < C.Level + 0.2;
+			if (C.bWet && C.Flow > 0.5)
+			{
+				// 개울은 물길 옆 1 m 까지만 — 물길 밖 낮은 땅에 물 조각이 뜨지 않게
+				double L2 = 0.0, A2 = 0.0, S2 = 0.0, F2 = 0.0;
+				C.bWet = FGrimTerrainGenerator::SampleNaturalWater(Maps, Bodies, U, V, 1.0, L2, A2, S2, F2);
+			}
+		}
+	});
+
+	OutPivot = FGrimTerrainGenerator::MapToWorld(L, Box.GetCenter().X, Box.GetCenter().Y, 0.0);
+	FMeshDescription Description;
+	FStaticMeshAttributes Attributes(Description);
+	Attributes.Register();
+	TVertexAttributesRef<FVector3f> Positions = Attributes.GetVertexPositions();
+	TVertexInstanceAttributesRef<FVector3f> Normals = Attributes.GetVertexInstanceNormals();
+	TVertexInstanceAttributesRef<FVector3f> Tangents = Attributes.GetVertexInstanceTangents();
+	TVertexInstanceAttributesRef<float> Signs = Attributes.GetVertexInstanceBinormalSigns();
+	TVertexInstanceAttributesRef<FVector4f> Colors = Attributes.GetVertexInstanceColors();
+	TVertexInstanceAttributesRef<FVector2f> UVs = Attributes.GetVertexInstanceUVs();
+	UVs.SetNumChannels(1);
+	const FPolygonGroupID Group = Description.CreatePolygonGroup();
+	Attributes.GetPolygonGroupMaterialSlotNames()[Group] = TEXT("Water");
+	TArray<FVertexID> VertexIds;
+	VertexIds.Init(FVertexID(INDEX_NONE), NX * NY);
+	auto GetVertex = [&](int32 X, int32 Y)
+	{
+		const int32 I = Y * NX + X;
+		if (VertexIds[I] == FVertexID(INDEX_NONE))
+		{
+			const FVector World = FGrimTerrainGenerator::MapToWorld(L, Box.Min.X + X * Step, Box.Min.Y + Y * Step, Grid[I].Level) - OutPivot;
+			VertexIds[I] = Description.CreateVertex();
+			Positions[VertexIds[I]] = FVector3f(World);
+		}
+		return VertexIds[I];
+	};
+	int32 Quads = 0;
+	const int32 CornerX[4] = { 0, 0, 1, 1 };
+	const int32 CornerY[4] = { 0, 1, 1, 0 };
+	for (int32 Y = 0; Y + 1 < NY; ++Y)
+	{
+		for (int32 X = 0; X + 1 < NX; ++X)
+		{
+			bool bAllHave = true, bAnyWet = false;
+			for (int32 C = 0; C < 4; ++C)
+			{
+				const FCell& Cell = Grid[(Y + CornerY[C]) * NX + X + CornerX[C]];
+				bAllHave &= Cell.bHas;
+				bAnyWet |= Cell.bWet;
+			}
+			if (!bAllHave || !bAnyWet)
+			{
+				continue;
+			}
+			TArray<FVertexInstanceID, TInlineAllocator<4>> Instances;
+			for (int32 C = 0; C < 4; ++C)
+			{
+				const FCell& Cell = Grid[(Y + CornerY[C]) * NX + X + CornerX[C]];
+				const FVertexInstanceID Instance = Description.CreateVertexInstance(GetVertex(X + CornerX[C], Y + CornerY[C]));
+				Normals[Instance] = FVector3f::UpVector;
+				Tangents[Instance] = FVector3f::ForwardVector;
+				Signs[Instance] = 1.f;
+				Colors[Instance] = FVector4f(static_cast<float>(Cell.Flow), 0.f, 0.f, 1.f);
+				UVs.Set(Instance, 0, FVector2f(static_cast<float>(Cell.Arc), static_cast<float>(Cell.Signed)));
+				Instances.Add(Instance);
+			}
+			Description.CreatePolygon(Group, Instances);
+			++Quads;
+		}
+	}
+	if (Quads == 0)
+	{
+		UE_LOG(LogGrimTerrain, Error, TEXT("BuildWaterSurfaceMesh: 물 칸이 없다"));
+		return nullptr;
+	}
+	const FString AssetName = FPackageName::GetLongPackageAssetName(PackagePath);
+	UPackage* Package = CreatePackage(*PackagePath);
+	UStaticMesh* Mesh = FindObject<UStaticMesh>(Package, *AssetName);
+	if (!Mesh)
+	{
+		Mesh = NewObject<UStaticMesh>(Package, *AssetName, RF_Public | RF_Standalone);
+		FAssetRegistryModule::AssetCreated(Mesh);
+	}
+	Mesh->PreEditChange(nullptr);
+	Mesh->GetStaticMaterials().Reset();
+	Mesh->GetStaticMaterials().Add(FStaticMaterial(Material, TEXT("Water"), TEXT("Water")));
+	Mesh->SetNumSourceModels(1);
+	FStaticMeshSourceModel& Source = Mesh->GetSourceModel(0);
+	Source.BuildSettings.bRecomputeNormals = false;
+	Source.BuildSettings.bRecomputeTangents = true;
+	Source.BuildSettings.bRemoveDegenerates = true;
+	Source.BuildSettings.bGenerateLightmapUVs = false;
+	FMeshDescription* Stored = Mesh->CreateMeshDescription(0);
+	*Stored = MoveTemp(Description);
+	Mesh->CommitMeshDescription(0);
+	Mesh->Build(true);
+	Mesh->PostEditChange();
+	Mesh->MarkPackageDirty();
+	UE_LOG(LogGrimTerrain, Display, TEXT("물 표면 메시 %s: 칸 %d, %d × %d m"), *AssetName, Quads, FMath::RoundToInt32(Box.GetSize().X), FMath::RoundToInt32(Box.GetSize().Y));
+	return Mesh;
+#else
+	return nullptr;
+#endif
 }
 
 bool UGrimTerrainEditorLibrary::GenerateTerrain(const FGrimTerrainLayout& Layout, FGrimTerrainSummary& OutSummary)

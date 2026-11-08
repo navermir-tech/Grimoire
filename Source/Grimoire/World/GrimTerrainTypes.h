@@ -82,6 +82,28 @@ struct GRIMOIRE_API FGrimTerrainRidgeline
 	/** 등성이 높이 · 폭이 길이를 따라 들쭉날쭉한 정도(±비율) · 마디 길이(m) — 곧은 둑이 되지 않게 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Variation = 0.25f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float VariationScale = 70.f;
+
+	/** 레벨 디자인 3차: 날카로운 능선 단면(꼭대기 기울기가 0 이 아니다 — 둥근 돔 = 「고분」을 피한다). 거짓이면 2차 언덕 단면 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") bool bSharpCrest = false;
+	/** 단면 지수 (1 − t)^p — 왼쪽 · 오른쪽. 1 에 가까우면 곧은 급사면, 클수록 밑이 오목하게 퍼지는 완사면 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float LeftPower = 1.3f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float RightPower = 1.3f;
+	/** 등성이 꼭대기를 둥글리는 반지름(m) — 칼날이 메시에서 깨지지 않을 만큼만 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float CrestRound = 2.5f;
+	/** 등성이 선이 좌우로 흔들리는 크기(m) · 파장(m) — 자로 그은 둑이 되지 않게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float CrestWobble = 6.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float CrestWobbleScale = 45.f;
+	/** 등성이 높이의 작은 톱니(±비율) · 파장(m) — 이어진 선 위의 작은 봉우리 · 안부 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float CrestJag = 0.08f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float CrestJagScale = 32.f;
+	/** 바위 띠가 나는 급사면 쪽: 1 = 왼쪽, −1 = 오른쪽, 0 = 없음 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 ScarpSide = 0;
+	/** 바위 띠 높이(m) · 세기(0~1) — 급사면의 지층 턱 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ScarpBandHeight = 6.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ScarpBandStrength = 0.6f;
+	/** 비탈의 골짜기 세기(0~1) · 간격(m) — 등성이에서 내려오는 지맥과 골이 번갈아 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float GullyStrength = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float GullySpacing = 60.f;
 };
 
 /** 손으로 놓는 언덕 하나(중간 모양) — 둥근 삼각형 실루엣 */
@@ -216,6 +238,8 @@ struct GRIMOIRE_API FGrimTerrainPond
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ShoreWidth = 14.f;
 	/** 둘레 땅보다 물이 얼마나 낮은가 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float WaterBelowGround = 0.8f;
+	/** 레벨 디자인 3차: 물가선이 둥글지 않게 흔들리는 정도(±비율). 0 보다 크면 원판 대신 물 표면 메시(BuildWaterSurfaceMesh)를 쓴다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Irregularity = 0.f;
 };
 
 /** 강 · 개울 · 길처럼 꺾은선을 따라가는 지형 */
@@ -235,6 +259,29 @@ struct GRIMOIRE_API FGrimTerrainChannel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float BankWidth = 8.f;
 	/** 개울: 둘레 땅보다 물이 얼마나 낮은가. 강은 해수면을 쓴다 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float WaterBelowGround = 1.f;
+
+	/** 레벨 디자인 3차: 자연 개울 — 지형이 판 V 자 골(상류) → 넓은 바닥(하류), 폭이 변하고 소 · 여울 · 물 표면 메시. 거짓이면 2차 도랑 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") bool bNatural = false;
+	/** 하류 끝 물 폭(0 이면 Width 그대로). Width 는 상류 물 폭 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float WidthEnd = 0.f;
+	/** 골 바닥 반폭(m) — 상류 · 하류 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleyHalfStart = 1.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleyHalfEnd = 10.f;
+	/** 골 옆면 경사(도) — 상류(V 자) · 하류(완만) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleySlopeStart = 38.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleySlopeEnd = 14.f;
+	/** 물머리(샘) 웅덩이 반지름(m). 0 이면 없음 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float HeadPoolRadius = 0.f;
+	/** 소 깊이(m) · 간격(물 폭의 배수 — 실제 하천 5~7) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PoolDepth = 1.1f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PoolSpacingWidths = 6.f;
+	/** 종단 곡선 지수 — 1 보다 크면 위가 가파르고 아래가 완만(오목), 1 보다 작으면 물이 높이 머물다 끝에서 떨어진다(길이 깊은 협곡에 빠지지 않게) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float LongProfilePower = 1.5f;
+	/** 물이 둘레 땅보다 몇 m 아래로 파여 흐르나 — 상류 · 하류(이것이 V 자 골의 깊이가 된다) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleyDepthStart = 0.4f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleyDepthEnd = 0.4f;
+	/** 이 연못으로 흘러든다 — 끝 물 높이 = 연못 물 높이(틈 없이 이어짐) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName JoinPond;
 };
 
 /** 거점 세울 만한 평지 — 둘레를 평평하게 고른다 */
@@ -625,6 +672,34 @@ struct GRIMOIRE_API FGrimTerrainWaterBody
 	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float Size = 0.f;
 	/** 물 높이 아래 가장 깊은 곳까지(cm). 폭포는 떨어지는 높이 */
 	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float Depth = 0.f;
+	/** 레벨 디자인 3차 자연 개울: 점마다 물 폭(cm) — Points 와 같은 수. 그 밖은 비어 있다 */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") TArray<float> Widths;
+	/** 점마다 소인 정도(0 = 여울, 1 = 소) — 돌 · 물풀 놓기에 쓴다 */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") TArray<float> Pools;
+	/** 물 표면 메시(BuildWaterSurfaceMesh)로 그린다 — 평면 조각 · 원판을 놓지 않는다 */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") bool bSurfaceMesh = false;
+};
+
+/** 길이 자연 개울을 건너는 자리(생성 결과) — 다리는 실제 곡선에서 계산한 이 값대로 놓는다 */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimTerrainBridge
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") FName Name;
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") FName PathName;
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") FName CreekName;
+	/** 다리 가운데(월드 cm), Z = 상판 윗면 */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") FVector Center = FVector::ZeroVector;
+	/** 길 방향(월드 Yaw, 도) */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float Yaw = 0.f;
+	/** 양쪽 둑 사이 길이 · 길 폭(cm) */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float Span = 0.f;
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float Width = 0.f;
+	/** 물 높이(월드 cm) */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float WaterZ = 0.f;
+	/** 길과 개울이 만나는 각(도, 90 = 직각) */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") float CrossingAngle = 90.f;
 };
 
 /** 생성 결과 요약(파이썬 · 로그용) */
@@ -645,6 +720,8 @@ struct GRIMOIRE_API FGrimTerrainSummary
 	/** 지도 크기(m) */
 	UPROPERTY(BlueprintReadOnly, Category = "Terrain") FVector2D MapSize = FVector2D::ZeroVector;
 	UPROPERTY(BlueprintReadOnly, Category = "Terrain") TArray<FGrimTerrainWaterBody> Water;
+	/** 길이 자연 개울을 건너는 자리 */
+	UPROPERTY(BlueprintReadOnly, Category = "Terrain") TArray<FGrimTerrainBridge> Bridges;
 	/** 놓인 언덕 수(손 + 시드, 작은 모양 빼고) · 바위 노두 수 */
 	UPROPERTY(BlueprintReadOnly, Category = "Terrain") int32 HillCount = 0;
 	UPROPERTY(BlueprintReadOnly, Category = "Terrain") int32 OutcropCount = 0;
