@@ -96,8 +96,11 @@ public:
 	/** 격 차이 마나 배율(Q122): 1 − min(차이 × GapManaPerCircle, GapManaCap). GetCasterMultipliers 의 ManaCost 에 들어 있다 */
 	static float GetCircleManaMultiplier(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
 
-	/** 시전을 막는 상태 태그(잠 · 쓰러짐 · 기절 — 이름은 UGrimSpellbookSettings::CastBlockingTags)가 붙어 있는가 */
+	/** 시전 · 주먹질을 모두 막는 상태 태그(잠 · 쓰러짐 · 건축 모드 — 이름은 UGrimSpellbookSettings::CastBlockingTags)가 붙어 있는가 */
 	static bool HasCastBlockingTag(const UAbilitySystemComponent* ASC);
+
+	/** 마법만 막는 상태 태그(탈진 — UGrimSpellbookSettings::MagicBlockingTags)가 붙어 있는가. 주먹질은 된다 */
+	static bool HasMagicBlockingTag(const UAbilitySystemComponent* ASC);
 
 #if !UE_BUILD_SHIPPING
 	/** 디버그(Grim.Magic.Cast): 이 폰의 다음 로컬 조준을 이 대상으로 고정한다. */

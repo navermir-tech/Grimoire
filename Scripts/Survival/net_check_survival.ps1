@@ -10,7 +10,8 @@
 #   37 덤프   기대: 양쪽 time≈0.19 day=1, Fatigue 0, 아무도 Sleeping 아님, 클라이언트 Cold 등급 있어도 태그 없음(저항 3)
 #   39 클라이언트 쓰러짐 → 41 덤프   기대: 클라이언트 Status.Downed, HP 0, Walk 줄어듦(양쪽 같은 태그)
 #   42 클라이언트 일으킴 → 44 호스트 사망 → 46 덤프   기대: 클라이언트 HP 30, 호스트 침대 옆에서 부활(HP 50)
-#   47 클라이언트 피곤함 85 → 49 덤프   기대: 클라이언트 Status.Exhausted, Cast 0.70
+#   47 클라이언트 피곤함 85 → 49 덤프   기대: 클라이언트 Status.Exhausted, Move 0.70(지친 걸음), Cast 1.00(시전은 차단 태그로 — Q116)
+#   50 클라이언트 탈진 중 슬롯 1 → 서버 「마법 실패 … Exhausted」(Q116), 51.5 기본 공격 → 주먹질(마법이 아니라 됨)
 param(
 	[int]$Port = 17779,
 	[int]$RunSeconds = 60
@@ -26,7 +27,7 @@ $ServerLog = Join-Path $OutDir "survival_server.log"
 $ClientLog = Join-Path $OutDir "survival_client.log"
 Remove-Item $ServerLog, $ClientLog -ErrorAction SilentlyContinue
 
-$Common = @("-game", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
+$Common = @("-game", "-GrimStartingSpells", "-nullrhi", "-nosound", "-unattended", "-nosplash", "-nop4", "-log", "-windowed", "-ResX=320", "-ResY=240")
 
 $ServerCmds = @(
 	"grim.Time.Set 22",
@@ -49,7 +50,9 @@ $ClientCmds = @(
 	"grim.Survival.At 30 Revive",
 	"grim.Survival.At 34 Dump",
 	"grim.Survival.At 35 Fatigue 85",
-	"grim.Survival.At 37 Dump"
+	"grim.Survival.At 37 Dump",
+	"Grim.At 38 Grim.Input.Press Slot1 None",
+	"Grim.At 39.5 Grim.Input.Press Basic None"
 ) -join ","
 
 $Server = Start-Process -FilePath $Exe -PassThru -ArgumentList (@("`"$Project`"", "/Game/Grimoire/Maps/L_M1_Sandbox?listen", "-port=$Port", "-abslog=`"$ServerLog`"", "-ExecCmds=`"$ServerCmds`"") + $Common)
@@ -61,5 +64,5 @@ foreach ($P in @($Client, $Server)) { if (-not $P.HasExited) { Stop-Process -Id 
 
 foreach ($Log in @($ServerLog, $ClientLog)) {
 	"===== $(Split-Path -Leaf $Log)"
-	Select-String -Path $Log -Pattern "LogGrimSurvival|Welcomed by server|Error: " | ForEach-Object { $_.Line -replace '^\[[^\]]*\]\[[^\]]*\]', '' }
+	Select-String -Path $Log -Pattern "LogGrimSurvival|Welcomed by server|Error: |LogGrimMagic" | ForEach-Object { $_.Line -replace '^\[[^\]]*\]\[[^\]]*\]', '' }
 }

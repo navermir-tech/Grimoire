@@ -8,22 +8,34 @@ bool FGrimBasicAttackMath::IsReady(double Now, double LastAttackTime, float Inte
 int32 FGrimBasicAttackMath::NextStep(const FGrimBasicAttackCombo& Combo, double Now, float Window, int32 Length)
 {
 	const int32 SafeLength = FMath::Max(Length, 1);
-	if (Combo.Step <= 0 || Combo.Step >= SafeLength || Now - Combo.ChainStartTime > static_cast<double>(Window))
+	if (Combo.Step >= SafeLength || !IsChainAlive(Combo, Now, Window))
 	{
 		return 1;
 	}
 	return Combo.Step + 1;
 }
 
+bool FGrimBasicAttackMath::IsChainAlive(const FGrimBasicAttackCombo& Combo, double Now, float Window)
+{
+	return Combo.Step > 0 && Now - Combo.LastActivityTime <= static_cast<double>(FMath::Max(Window, 0.f));
+}
+
+bool FGrimBasicAttackMath::KeepAlive(FGrimBasicAttackCombo& Combo, double Now, float Window)
+{
+	if (!IsChainAlive(Combo, Now, Window))
+	{
+		return false;
+	}
+	Combo.LastActivityTime = FMath::Max(Combo.LastActivityTime, Now);
+	return true;
+}
+
 int32 FGrimBasicAttackMath::Register(FGrimBasicAttackCombo& Combo, double Now, float Window, int32 Length)
 {
 	const int32 Step = NextStep(Combo, Now, Window, Length);
-	if (Step == 1)
-	{
-		Combo.ChainStartTime = Now;
-	}
 	Combo.Step = Step;
 	Combo.LastAttackTime = Now;
+	Combo.LastActivityTime = Now;
 	return Step;
 }
 
@@ -34,7 +46,7 @@ bool FGrimBasicAttackMath::IsHeavy(int32 Step, int32 Length)
 
 int32 FGrimBasicAttackMath::VisibleStep(const FGrimBasicAttackCombo& Combo, double Now, float Window)
 {
-	return Combo.Step > 0 && Now - Combo.ChainStartTime <= static_cast<double>(Window) ? Combo.Step : 0;
+	return IsChainAlive(Combo, Now, Window) ? Combo.Step : 0;
 }
 
 float FGrimBasicAttackMath::DamageMultiplier(int32 Step, int32 Length, float HeavyMultiplier)

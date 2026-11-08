@@ -66,9 +66,8 @@ struct FGrimSurvivalStatus
 	bool bHyperthermia = false;
 	bool bHyperthermiaSevere = false;
 
+	/** 탈진 — 달리기 · 마법 시전 불가, 지친 걸음(R29 · Q116). 강제 기절은 없다. */
 	bool bExhausted = false;
-	/** 피곤함이 바닥 — 강제 수면을 시작해야 한다. */
-	bool bCollapse = false;
 
 	bool IsModerateExposure() const { return bHypothermia || bHyperthermia; }
 	bool IsSevereExposure() const { return bHypothermiaSevere || bHyperthermiaSevere; }

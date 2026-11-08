@@ -24,10 +24,15 @@ namespace GrimCastFailureTags
 EGrimCastFailReason GrimCastFailure::Classify(const FGrimCastFailInputs& Inputs, int32& OutParam)
 {
 	OutParam = 0;
-	// 잠 · 기절 · 쓰러짐은 화면이 이미 말해 준다.
+	// 잠 · 쓰러짐 · 건축 모드는 화면이 이미 말해 준다.
 	if (Inputs.bBlocked)
 	{
 		return EGrimCastFailReason::None;
+	}
+	// 탈진(R29 · Q116): 마법을 쓸 수 없다. 기본 공격 입력은 주먹질이 대신 나간다(실패가 아니다).
+	if (Inputs.bMagicBlocked)
+	{
+		return Inputs.bBasicAttack ? EGrimCastFailReason::None : EGrimCastFailReason::Exhausted;
 	}
 	if (Inputs.bWandMissing || Inputs.bWandBroken)
 	{
@@ -67,7 +72,7 @@ FText GrimCastFailure::GetMessage(EGrimCastFailReason Reason, int32 Param)
 	case EGrimCastFailReason::Cooldown: return FText::Format(LOCTEXT("Cooldown", "아직 다시 쓸 수 없다 — {0}초"), Param);
 	case EGrimCastFailReason::NotEnoughMana: return FText::Format(LOCTEXT("NotEnoughMana", "마나가 모자라다 (필요 {0})"), Param);
 	case EGrimCastFailReason::TameNoRoom: return LOCTEXT("TameNoRoom", "데리고 다님 · 보관함 · 생물 상자가 모두 가득 — 계약이 걸리지 않는다");
-	case EGrimCastFailReason::TameCircleTooLow: return FText::Format(LOCTEXT("TameCircleTooLow", "이 생물과 계약하려면 {0}서클이 필요하다"), Param);
+	case EGrimCastFailReason::TameCircleTooLow: return FText::Format(LOCTEXT("TameCircleTooLow", "{0}서클 생물이다 — 서클이 너무 모자라 계약이 걸리지 않는다"), Param);
 	case EGrimCastFailReason::TameRefused: return LOCTEXT("TameRefused", "이 생물은 계약을 받지 않는다");
 	case EGrimCastFailReason::RepairLocked: return LOCTEXT("RepairLocked", "수리는 「레스티투오」를 배워야 할 수 있다 — 그전엔 마법탑 스승에게 솔을 내고 맡긴다");
 	case EGrimCastFailReason::BaseRepairLocked: return LOCTEXT("BaseRepairLocked", "거점 전체 수리는 「레스티투오 막시마」를 배워야 열린다");
@@ -86,6 +91,7 @@ FText GrimCastFailure::GetMessage(EGrimCastFailReason Reason, int32 Param)
 		return FText::Format(LOCTEXT("PromotionCurrentCircle", "승급 자격이 모자라다 — 숙련도를 채운 마법 가운데 하나는 지금 {0}서클의 마법이어야 한다"), Param);
 	case EGrimCastFailReason::PromotionAtMax: return LOCTEXT("PromotionAtMax", "더 오를 서클이 없다");
 	case EGrimCastFailReason::EquipTierTooLow: return FText::Format(LOCTEXT("EquipTierTooLow", "이 장비는 {0}서클이 되어야 입을 수 있다"), Param);
+	case EGrimCastFailReason::Exhausted: return LOCTEXT("Exhausted", "너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다");
 	default: return FText::GetEmpty();
 	}
 }
@@ -127,6 +133,7 @@ const TCHAR* GrimCastFailure::ReasonName(EGrimCastFailReason Reason)
 	case EGrimCastFailReason::PromotionCurrentCircle: return TEXT("PromotionCurrentCircle");
 	case EGrimCastFailReason::PromotionAtMax: return TEXT("PromotionAtMax");
 	case EGrimCastFailReason::EquipTierTooLow: return TEXT("EquipTierTooLow");
+	case EGrimCastFailReason::Exhausted: return TEXT("Exhausted");
 	default: return TEXT("?");
 	}
 }
@@ -145,6 +152,7 @@ EGrimCastFailReason GrimCastFailure::Judge(UAbilitySystemComponent* ASC, FGamepl
 
 	FGrimCastFailInputs Inputs;
 	Inputs.bBlocked = UGrimSpellAbility::HasCastBlockingTag(ASC);
+	Inputs.bMagicBlocked = UGrimSpellAbility::HasMagicBlockingTag(ASC);
 	Inputs.bBasicAttack = Ability->IsA<UGrimBasicAttackAbility>();
 	Inputs.bWandBroken = UGrimSpellAbility::IsWandBroken(ASC);
 	Inputs.bWandMissing = !Inputs.bWandBroken && !UGrimSpellAbility::GetWand(ActorInfo);

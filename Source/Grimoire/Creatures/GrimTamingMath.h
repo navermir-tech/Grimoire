@@ -32,11 +32,21 @@ struct FGrimTamedSenses
 namespace GrimTamingMath
 {
 	/**
-	 * 포획 확률 = 기본 + 약해짐(+ 약한 정도) + 잠듦 + 지침 + 먹이(좋아하는 먹이면 더 큰 몫) + 속성 일치 + 완드 친화 + 서클 차
-	 *           + 숙련도 추가 효과 + 장신구 − 등급(크기 분류 · 거대), Min~Max 로 자른다. 요구 서클보다 MaxCircleDeficit 넘게 낮으면 bCircleTooLow.
+	 * 포획 확률(Q118) = 조건 × 등급 × 서클, 0~MaxChance.
+	 *   조건 = 기본 + 약해짐(+ 약한 정도) + 잠듦 + 지침 + 먹이(좋아하는 먹이면 더 큰 몫) + 속성 일치 + 완드 친화 + 숙련도 추가 효과 + 장신구
+	 *   등급 = (1 − 크기 등급 깎기) × (거대면 1 − GiantPenalty)
+	 *   서클 = CalcCircleScale(내 서클 − 요구 서클) — 0 이면 bCircleTooLow(굴리지 않는다)
 	 * WeakenedRatio = 생물 설정 WeakenedHealthRatio(0.3).
 	 */
 	GRIMOIRE_API FGrimCaptureChance CalcCaptureChance(const FGrimCaptureInput& Input, const FGrimCaptureTuning& Tuning, float WeakenedRatio);
+
+	/**
+	 * 서클 배율(팰월드 포획 곡선을 빌림): 차 ≥ 0 이면 1 + 차 × 넉넉함(상한), 모자라면 (1 + 차 / 창)^지수, 창만큼 모자라면 정확히 0.
+	 */
+	GRIMOIRE_API float CalcCircleScale(int32 CircleGap, const FGrimCaptureTuning& Tuning);
+
+	/** 알림용 확률 글: 10% 이상 「37%」, 1% 이상 「2.5%」, 그 아래 「0.07%」(아주 낮은 확률이 0% 로 보이지 않게) */
+	GRIMOIRE_API FString FormatChancePercent(float Chance);
 
 	/** 굴림(0~1)이 확률보다 작으면 성공 */
 	GRIMOIRE_API bool RollCapture(float Chance, float Roll);

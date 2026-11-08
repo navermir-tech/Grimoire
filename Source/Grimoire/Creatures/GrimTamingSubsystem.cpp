@@ -267,7 +267,7 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 	const FString SpellName = Spell ? Spell->GetName() : FString(TEXT("?"));
 	if (Chance.bCircleTooLow)
 	{
-		UE_LOG(LogGrimTaming, Display, TEXT("[Server] 계약 %s → %s seed=%d: 서클 모자람(%d < %d)"), *SpellName, *Species->SpeciesId.ToString(), Creature->GetInstance().Seed, Input.CasterCircle, Input.RequiredCircle);
+		UE_LOG(LogGrimTaming, Display, TEXT("[Server] 계약 %s → %s seed=%d: 서클이 너무 모자람(%d, 요구 %d — 확률 0)"), *SpellName, *Species->SpeciesId.ToString(), Creature->GetInstance().Seed, Input.CasterCircle, Input.RequiredCircle);
 		const FVector At = Creature->GetActorLocation();
 		GrimCastFailure::Report(CasterASC, EGrimCastFailReason::TameCircleTooLow, Input.RequiredCircle, &At);
 		return EGrimTamingResult::CircleTooLow;
@@ -283,7 +283,7 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 	{
 		// 저항: 화내 덤빈다(겁 많은 종도).
 		Taming->Enrage(Caster->GetPawn());
-		Tamer->SendNotice(FString::Printf(TEXT("%s 이(가) 계약에 저항했다! (확률 %.0f%%)"), *Taming->GetDisplayName(), Chance.Total * 100.f));
+		Tamer->SendNotice(FString::Printf(TEXT("%s 이(가) 계약에 저항했다! (확률 %s)"), *Taming->GetDisplayName(), *GrimTamingMath::FormatChancePercent(Chance.Total)));
 		return EGrimTamingResult::Failed;
 	}
 
@@ -294,7 +294,7 @@ EGrimTamingResult UGrimTamingSubsystem::TryTame(const UGrimSpellDefinition* Spel
 		Ecosystem->HandleCreatureTamed(Creature);
 	}
 	Tamer->AddOrUpdateRecord(Taming->MakeRecord());
-	Tamer->SendNotice(FString::Printf(TEXT("%s 을(를) 길들였다! (확률 %.0f%%)%s"), *Taming->GetDisplayName(), Chance.Total * 100.f,
+	Tamer->SendNotice(FString::Printf(TEXT("%s 을(를) 길들였다! (확률 %s)%s"), *Taming->GetDisplayName(), *GrimTamingMath::FormatChancePercent(Chance.Total),
 		Destination == EGrimNewTameDestination::Party ? TEXT(" — 가까이 가서 [F]") : TEXT("")));
 	if (Storage && Destination != EGrimNewTameDestination::Party)
 	{

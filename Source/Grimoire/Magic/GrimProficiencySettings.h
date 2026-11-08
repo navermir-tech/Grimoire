@@ -141,7 +141,11 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Caster")
 	FName CastSpeedScaleAttribute = TEXT("CastSpeedScale");
 
-	/** 붙어 있으면 시전할 수 없는 태그 이름(아직 등록되지 않은 태그는 건너뛴다) */
+	/** 붙어 있으면 마법 · 기본 공격 · 주먹질을 모두 할 수 없는 태그 이름(잠 · 쓰러짐 · 건축 모드 — 알리지 않음, 아직 등록되지 않은 태그는 건너뛴다) */
 	UPROPERTY(Config, EditAnywhere, Category = "Caster")
 	TArray<FName> CastBlockingTags;
+
+	/** 붙어 있으면 마법만 막는 태그 이름(탈진 — R29 · Q116). 슬롯 마법은 실패 알림(Exhausted), 기본 공격 입력은 주먹질이 대신 나간다 */
+	UPROPERTY(Config, EditAnywhere, Category = "Caster")
+	TArray<FName> MagicBlockingTags;
 };

@@ -166,18 +166,11 @@ struct GRIMOIRE_API FGrimFatigueTuning
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue")
 	float ExhaustedThreshold = 80.f;
 
-	/** Exhausted 시전 속도 배율(−30%). */
+	/** Exhausted(탈진) 이동 속도 배율 — 지친 걸음(R29 · Q116). 탈진은 달리기 불가 · 마법 시전 불가(시전 차단은 마법 쪽 MagicBlockingTags). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0"))
-	float ExhaustedCastSpeedScale = 0.7f;
+	float ExhaustedMoveSpeedScale = 0.7f;
 
-	/** 이 값 이상이면 Status.Collapsed — 강제 수면. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue")
-	float CollapseThreshold = 100.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0"))
-	float CollapseSleepSeconds = 10.f;
-
-	/** 자는 동안(낮잠 · 기절 포함) 초당 회복. 밤 건너뛰기는 한 번에 0 으로. */
+	/** 자는 동안 초당 회복. 밤 건너뛰기는 한 번에 0 으로. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0"))
 	float SleepRecoveryPerSecond = 5.f;
 };

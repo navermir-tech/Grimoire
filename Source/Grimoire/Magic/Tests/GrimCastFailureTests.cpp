@@ -115,7 +115,17 @@ bool FGrimCastFailureClassifyTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("기본 공격 + 완드 없음 → 주먹질이 나가니 알리지 않음(Q71)"), GrimCastFailure::Classify(Basic, Param), ER::None);
 	FGrimCastFailInputs Blocked = NoWand;
 	Blocked.bBlocked = true;
-	TestEqual(TEXT("잠 · 기절은 알리지 않음"), GrimCastFailure::Classify(Blocked, Param), ER::None);
+	TestEqual(TEXT("잠 · 쓰러짐은 알리지 않음"), GrimCastFailure::Classify(Blocked, Param), ER::None);
+
+	// 탈진(R29 · Q116): 마법만 막힘 — 슬롯 마법은 알리고, 기본 공격은 주먹질이 나가니 알리지 않는다. 완드 · 서클보다 먼저.
+	FGrimCastFailInputs Exhausted = NoWand;
+	Exhausted.bMagicBlocked = true;
+	TestEqual(TEXT("탈진은 완드 없음보다 먼저"), GrimCastFailure::Classify(Exhausted, Param), ER::Exhausted);
+	Exhausted.bBasicAttack = true;
+	TestEqual(TEXT("탈진 + 기본 공격 → 주먹질(알리지 않음)"), GrimCastFailure::Classify(Exhausted, Param), ER::None);
+	Exhausted.bBasicAttack = false;
+	Exhausted.bBlocked = true;
+	TestEqual(TEXT("탈진하고 잠들었으면 잠이 먼저(알리지 않음)"), GrimCastFailure::Classify(Exhausted, Param), ER::None);
 
 	FGrimCastFailInputs Circle;
 	Circle.Circle = 1;
@@ -137,7 +147,7 @@ bool FGrimCastFailureClassifyTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("마나 부족"), GrimCastFailure::Classify(Mana, Param), ER::NotEnoughMana);
 	TestEqual(TEXT("필요 마나 올림"), Param, 15);
 
-	for (const ER Reason : { ER::NoWand, ER::WandBroken, ER::CircleTooLow, ER::Cooldown, ER::NotEnoughMana, ER::TameNoRoom, ER::TameCircleTooLow, ER::TameRefused })
+	for (const ER Reason : { ER::NoWand, ER::WandBroken, ER::CircleTooLow, ER::Cooldown, ER::NotEnoughMana, ER::TameNoRoom, ER::TameCircleTooLow, ER::TameRefused, ER::Exhausted })
 	{
 		TestFalse(FString::Printf(TEXT("글 있음 %s"), GrimCastFailure::ReasonName(Reason)), GrimCastFailure::GetMessage(Reason, 3).IsEmpty());
 		TestTrue(FString::Printf(TEXT("연출 %s"), GrimCastFailure::ReasonName(Reason)), GrimCastFailure::ShouldFizzle(Reason));

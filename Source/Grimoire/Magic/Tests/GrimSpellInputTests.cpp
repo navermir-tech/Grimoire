@@ -203,34 +203,70 @@ bool FGrimBasicAttackRhythmTest::RunTest(const FString& Parameters)
 	// ini 값(스펙 R26: 0.3초 · 1.5초 · 4연타)
 	const UGrimBasicAttackSettings* Settings = UGrimBasicAttackSettings::Get();
 	TestEqual(TEXT("ini 리듬 0.3"), Settings->AttackInterval, 0.3f, 0.001f);
-	TestEqual(TEXT("ini 연타 창 1.5"), Settings->ComboWindow, 1.5f, 0.001f);
+	TestEqual(TEXT("ini 연타 창 1.0(마지막 발부터 — Q120)"), Settings->ComboWindow, 1.f, 0.001f);
 	TestEqual(TEXT("ini 4연타"), Settings->ComboLength, 4);
 	return true;
 }
 
-// 연타 · 강타: 1.5초 안에 이어 친 4번째가 강타, 창을 넘기거나 강타 뒤면 처음부터.
+// 연타 · 강타(Q120): 마지막 발부터 1초 안에 이어 쏘면 이어지고 4번째가 강타, 창을 넘기거나 강타 뒤면 처음부터.
+// 사이에 쓴 슬롯 마법 · 회피 · 방패(KeepAlive)는 끊지도 세지도 않는다.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimBasicAttackComboTest, "Grimoire.Magic.BasicAttack.Combo", GrimSpellInputTestsLocal::InputTestFlags)
 bool FGrimBasicAttackComboTest::RunTest(const FString& Parameters)
 {
+	constexpr float W = 1.f;
 	FGrimBasicAttackCombo Combo;
-	TestEqual(TEXT("1번째"), FGrimBasicAttackMath::Register(Combo, 0.0, 1.5f, 4), 1);
-	TestEqual(TEXT("2번째"), FGrimBasicAttackMath::Register(Combo, 0.3, 1.5f, 4), 2);
-	TestEqual(TEXT("3번째"), FGrimBasicAttackMath::Register(Combo, 0.6, 1.5f, 4), 3);
-	TestEqual(TEXT("보이는 번째 3"), FGrimBasicAttackMath::VisibleStep(Combo, 0.7, 1.5f), 3);
-	const int32 Fourth = FGrimBasicAttackMath::Register(Combo, 0.9, 1.5f, 4);
+	TestFalse(TEXT("처음엔 연타 아님"), FGrimBasicAttackMath::IsChainAlive(Combo, 0.0, W));
+	TestEqual(TEXT("1번째"), FGrimBasicAttackMath::Register(Combo, 0.0, W, 4), 1);
+	TestEqual(TEXT("2번째"), FGrimBasicAttackMath::Register(Combo, 0.3, W, 4), 2);
+	TestEqual(TEXT("3번째"), FGrimBasicAttackMath::Register(Combo, 0.6, W, 4), 3);
+	TestEqual(TEXT("보이는 번째 3"), FGrimBasicAttackMath::VisibleStep(Combo, 0.7, W), 3);
+	const int32 Fourth = FGrimBasicAttackMath::Register(Combo, 0.9, W, 4);
 	TestEqual(TEXT("4번째"), Fourth, 4);
 	TestTrue(TEXT("4번째 = 강타"), FGrimBasicAttackMath::IsHeavy(Fourth, 4));
 	TestFalse(TEXT("3번째는 강타 아님"), FGrimBasicAttackMath::IsHeavy(3, 4));
-	TestEqual(TEXT("강타 뒤는 처음부터"), FGrimBasicAttackMath::Register(Combo, 1.2, 1.5f, 4), 1);
+	TestEqual(TEXT("강타 뒤는 처음부터"), FGrimBasicAttackMath::Register(Combo, 1.2, W, 4), 1);
 
-	// 창(첫 발부터 1.5초)을 넘긴 4번째 → 강타가 아니라 새 연타의 1번째
-	FGrimBasicAttackCombo Slow;
-	FGrimBasicAttackMath::Register(Slow, 0.0, 1.5f, 4);
-	FGrimBasicAttackMath::Register(Slow, 0.5, 1.5f, 4);
-	FGrimBasicAttackMath::Register(Slow, 1.0, 1.5f, 4);
-	TestEqual(TEXT("1.6초의 4번째는 새 연타"), FGrimBasicAttackMath::Register(Slow, 1.6, 1.5f, 4), 1);
-	TestEqual(TEXT("새 연타의 2번째"), FGrimBasicAttackMath::Register(Slow, 1.9, 1.5f, 4), 2);
-	TestEqual(TEXT("창이 지나면 보이는 번째 0"), FGrimBasicAttackMath::VisibleStep(Slow, 3.5, 1.5f), 0);
+	// 창은 「마지막 발부터」: 0.9초 간격으로 계속 쏘면 첫 발부터 1초가 훨씬 지나도 이어진다(옛 규칙 — 첫 발부터 1.5초 — 이면 끊겼다).
+	FGrimBasicAttackCombo Steady;
+	FGrimBasicAttackMath::Register(Steady, 0.0, W, 4);
+	FGrimBasicAttackMath::Register(Steady, 0.9, W, 4);
+	TestEqual(TEXT("1.8초의 3번째"), FGrimBasicAttackMath::Register(Steady, 1.8, W, 4), 3);
+	TestEqual(TEXT("2.7초의 4번째 = 강타"), FGrimBasicAttackMath::Register(Steady, 2.7, W, 4), 4);
+
+	// 경계: 마지막 발부터 정확히 1초는 이어지고, 1초를 넘기면 1부터.
+	FGrimBasicAttackCombo Edge;
+	FGrimBasicAttackMath::Register(Edge, 0.0, W, 4);
+	TestEqual(TEXT("정확히 1초 = 이어짐"), FGrimBasicAttackMath::Register(Edge, 1.0, W, 4), 2);
+	TestEqual(TEXT("1.01초 = 처음부터"), FGrimBasicAttackMath::Register(Edge, 2.01, W, 4), 1);
+	TestEqual(TEXT("창이 지나면 보이는 번째 0"), FGrimBasicAttackMath::VisibleStep(Edge, 3.5, W), 0);
+
+	// 사이의 슬롯 마법 · 회피 · 방패: 2번째 뒤 0.8초에 슬롯 마법, 다시 0.8초 뒤 기본 공격 → 3번째(끊기지도, 세지도 않음).
+	FGrimBasicAttackCombo Weave;
+	FGrimBasicAttackMath::Register(Weave, 0.0, W, 4);
+	FGrimBasicAttackMath::Register(Weave, 0.3, W, 4);
+	TestTrue(TEXT("창 안의 다른 행동은 연타를 살린다"), FGrimBasicAttackMath::KeepAlive(Weave, 1.1, W));
+	TestEqual(TEXT("번째는 그대로(세지 않음)"), FGrimBasicAttackMath::VisibleStep(Weave, 1.1, W), 2);
+	TestTrue(TEXT("방패를 쥔 동안 · 놓을 때도 살린다"), FGrimBasicAttackMath::KeepAlive(Weave, 1.9, W));
+	TestEqual(TEXT("슬롯 마법 · 방패 뒤 3번째"), FGrimBasicAttackMath::Register(Weave, 2.7, W, 4), 3);
+	TestEqual(TEXT("리듬은 기본 공격만 본다"), Weave.LastAttackTime, 2.7, 1e-9);
+
+	// 이미 끊긴 연타는 다른 행동이 되살리지 않는다(전투를 벗어나면 자연히 처음으로).
+	FGrimBasicAttackCombo Dead;
+	FGrimBasicAttackMath::Register(Dead, 0.0, W, 4);
+	TestFalse(TEXT("창 밖 행동은 살리지 않는다"), FGrimBasicAttackMath::KeepAlive(Dead, 1.5, W));
+	TestEqual(TEXT("끊긴 뒤 기본 공격은 1번째"), FGrimBasicAttackMath::Register(Dead, 1.7, W, 4), 1);
+	FGrimBasicAttackCombo Fresh;
+	TestFalse(TEXT("연타가 없으면 살릴 것도 없다"), FGrimBasicAttackMath::KeepAlive(Fresh, 0.0, W));
+	TestEqual(TEXT("슬롯 마법만 쓴 뒤 기본 공격은 1번째"), FGrimBasicAttackMath::Register(Fresh, 0.2, W, 4), 1);
+
+	// 강타 뒤에 다른 행동이 있어도 다음 발은 1번째.
+	FGrimBasicAttackCombo AfterHeavy;
+	for (int32 i = 0; i < 4; ++i)
+	{
+		FGrimBasicAttackMath::Register(AfterHeavy, 0.3 * i, W, 4);
+	}
+	FGrimBasicAttackMath::KeepAlive(AfterHeavy, 1.2, W);
+	TestEqual(TEXT("강타 + 다른 행동 뒤 1번째"), FGrimBasicAttackMath::Register(AfterHeavy, 1.5, W, 4), 1);
 
 	// 피해 배율 · 밀어냄
 	TestEqual(TEXT("강타 배율"), FGrimBasicAttackMath::DamageMultiplier(4, 4, 3.f), 3.f, 0.001f);

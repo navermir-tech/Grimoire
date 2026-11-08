@@ -2,7 +2,7 @@ Name,DisplayName,Description,Element,Circle,Color,bImplemented
 Pactum,"파크툼","무속성 기본 계약. 맞은 생물을 길들이려 한다 — 약하게 만들수록(체력 30% 이하 · 잠 · 지침) · 먹이를 미리 줄수록 잘 된다.",Element.None,1,"(R=0.85,G=0.78,B=0.55,A=1.0)",True
 Pactum_Ignis,"파크툼 이그니스","불 생물과의 계약. 불 생물을 길들일 확률이 크게 오른다. 다른 생물에게는 파크툼과 같다.",Element.Fire,2,"(R=0.9,G=0.45,B=0.25,A=1.0)",True
 Pactum_Aqua,"파크툼 아쿠아","물 생물과의 계약. 물 생물(켈피)을 길들일 확률이 크게 오른다.",Element.Water,2,"(R=0.3,G=0.55,B=0.9,A=1.0)",True
-Pactum_Ventus,"파크툼 벤투스","바람 생물과의 계약. 바람 생물(재칼로프)을 길들일 확률이 크게 오른다.",Element.Wind,2,"(R=0.55,G=0.85,B=0.7,A=1.0)",True
+Pactum_Ventus,"파크툼 벤투스","바람 생물과의 계약. 바람 생물(재칼로프)을 길들일 확률이 크게 오른다.",Element.Wind,1,"(R=0.55,G=0.85,B=0.7,A=1.0)",True
 Pactum_Terra,"파크툼 테라","땅 생물과의 계약. 땅 생물을 길들일 확률이 크게 오른다.",Element.Earth,2,"(R=0.6,G=0.45,B=0.25,A=1.0)",True
 Pactum_Umbra,"파크툼 움브라","그림자술 생물과의 계약. 그림자 생물(검은 개)을 길들일 확률이 크게 오른다.",Element.Dark.Shadow,3,"(R=0.35,G=0.28,B=0.5,A=1.0)",True
 Pactum_Glacies,"파크툼 글라키에스","얼음 생물과의 계약(자리 — 얼음 속성 태그 · 생물이 들어오면 만든다).",Element.Water.Ice,3,"(R=0.7,G=0.9,B=1.0,A=1.0)",False

@@ -6,7 +6,7 @@
 #include "Creatures/GrimTamingTypes.h"
 #include "GrimTamingSettings.generated.h"
 
-/** 포획 확률 수치(스펙 「길들이기」 — 더해지는 것) */
+/** 포획 확률 수치(스펙 「길들이기」 — 조건 몫은 더하고, 등급 · 거대 · 서클은 곱한다(Q118)) */
 USTRUCT(BlueprintType)
 struct GRIMOIRE_API FGrimCaptureTuning
 {
@@ -55,32 +55,35 @@ struct GRIMOIRE_API FGrimCaptureTuning
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
 	float WandAffinityMaxBonus = 0.15f;
 
-	/** 서클 차: 내 서클이 요구 서클보다 높은 한 단계마다 · 상한 */
+	/**
+	 * 서클 배율(Q118 — 팰월드 포획 곡선을 빌림). 차 = 내 서클 − 종의 요구 서클.
+	 * 차 ≥ 0: min(1 + 차 × CircleSurplusScalePerCircle, CircleSurplusMaxScale) — 요구 서클 이상이면 넉넉하고 조금씩 더 오른다.
+	 * −CircleDeficitWindow < 차 < 0: (1 + 차 / CircleDeficitWindow) ^ CircleDeficitExponent — 팰월드 곡선의 아래 반쪽(9제곱)처럼 가파르게 떨어진다.
+	 * 차 ≤ −CircleDeficitWindow: 0(정확히) — 시도 불가(CircleTooLow 알림, 굴리지 않는다).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture|Circle", meta = (ClampMin = "0"))
+	float CircleSurplusScalePerCircle = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture|Circle", meta = (ClampMin = "1"))
+	float CircleSurplusMaxScale = 1.3f;
+
+	/** 이만큼 모자라면 확률이 정확히 0. 4 면 요구 7서클 전설은 6서클 아주 낮음 · 5서클 거의 0 · 3서클 이하 0 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture|Circle", meta = (ClampMin = "1"))
+	float CircleDeficitWindow = 4.f;
+
+	/** 모자란 쪽 곡선의 지수(팰월드 9). 클수록 한 단계만 모자라도 크게 떨어진다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture|Circle", meta = (ClampMin = "1"))
+	float CircleDeficitExponent = 9.f;
+
+	/** 등급 깎기(곱): 확률 × (1 − 값). 소형 · 중형 · 대형 · 전설 — 팰월드의 종별 포획 배율 자리 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
-	float CircleSurplusBonusPerCircle = 0.05f;
+	TArray<float> SizeClassPenalty = { 0.f, 0.15f, 0.35f, 0.7f };
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
-	float CircleSurplusMaxBonus = 0.15f;
-
-	/** 요구 서클보다 이만큼까지 낮아도 시도할 수 있다(0 = 요구 서클 이상만). 넘으면 CircleTooLow */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture", meta = (ClampMin = "0"))
-	int32 MaxCircleDeficit = 0;
-
-	/** 모자란 한 단계마다 빼기(MaxCircleDeficit > 0 일 때) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
-	float CircleDeficitPenaltyPerCircle = 0.2f;
-
-	/** 등급 빼기: 소형 · 중형 · 대형 · 전설 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
-	TArray<float> SizeClassPenalty = { 0.f, 0.1f, 0.25f, 0.45f };
-
-	/** 거대 개체(우두머리) 빼기 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
-	float GiantPenalty = 0.1f;
-
+	/** 거대 개체(우두머리) 깎기(곱 — Q119): 확률 × (1 − 값). 팰월드 우두머리 ×0.7 과 같다. 파크툼 막시마(뒤)가 잘 듣는다 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture", meta = (ClampMin = "0", ClampMax = "1"))
-	float MinChance = 0.02f;
+	float GiantPenalty = 0.3f;
 
+	/** 최종 상한(하한은 없다 — 서클이 너무 모자라면 정확히 0) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture", meta = (ClampMin = "0", ClampMax = "1"))
 	float MaxChance = 0.95f;
 

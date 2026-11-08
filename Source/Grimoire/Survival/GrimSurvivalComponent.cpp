@@ -115,7 +115,6 @@ void UGrimSurvivalComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		World->GetTimerManager().ClearTimer(SurvivalTickTimer);
 		World->GetTimerManager().ClearTimer(DownedTimer);
-		World->GetTimerManager().ClearTimer(CollapseTimer);
 	}
 	if (UAbilitySystemComponent* ASC = GetASC())
 	{
@@ -356,17 +355,8 @@ void UGrimSurvivalComponent::SurvivalTick()
 		}
 	}
 
-	// 피곤함 바닥 → 기절(강제 수면).
-	const bool bCollapsed = ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Collapsed);
-	if (LastStatus.bCollapse && !bCollapsed && !bCheat && !IsDowned())
-	{
-		StopSleeping();
-		SetLooseTag(ASC, GrimSurvivalTags::Status_Collapsed, true);
-		StartSleeping(nullptr, true);
-		World->GetTimerManager().SetTimer(CollapseTimer, this, &ThisClass::HandleCollapseFinished, FMath::Max(0.1f, Rules.Fatigue.CollapseSleepSeconds), false);
-		UE_LOG(LogGrimSurvival, Log, TEXT("%s 기절 — %.0f초 강제 수면"), *GetNameSafe(GetOwner()), Rules.Fatigue.CollapseSleepSeconds);
-	}
-	else if (IsSleeping() && !bCollapsed)
+	// 피곤함이 바닥나도 기절(강제 수면)은 없다(R29 · Q116) — 탈진(Status.Exhausted)으로 걸음이 느려지고 시전이 막힌다.
+	if (IsSleeping())
 	{
 		if (HasHostileNearby(Pawn))
 		{
@@ -607,7 +597,7 @@ void UGrimSurvivalComponent::NotifySleepSubsystem()
 	}
 }
 
-EGrimSleepResult UGrimSurvivalComponent::StartSleeping(AGrimBed* Bed, bool bForced)
+EGrimSleepResult UGrimSurvivalComponent::StartSleeping(AGrimBed* Bed)
 {
 	UAbilitySystemComponent* ASC = GetASC();
 	APawn* Pawn = GetAvatarPawn();
@@ -623,16 +613,13 @@ EGrimSleepResult UGrimSurvivalComponent::StartSleeping(AGrimBed* Bed, bool bForc
 	{
 		return EGrimSleepResult::AlreadySleeping;
 	}
-	if (!bForced)
+	if (Bed && !Bed->IsWithinReach(Pawn, GrimSurvivalComponentPrivate::BedReachSlack))
 	{
-		if (Bed && !Bed->IsWithinReach(Pawn, GrimSurvivalComponentPrivate::BedReachSlack))
-		{
-			return EGrimSleepResult::TooFar;
-		}
-		if (HasHostileNearby(Pawn))
-		{
-			return EGrimSleepResult::HostileNearby;
-		}
+		return EGrimSleepResult::TooFar;
+	}
+	if (HasHostileNearby(Pawn))
+	{
+		return EGrimSleepResult::HostileNearby;
 	}
 
 	SetLooseTag(ASC, GrimSurvivalTags::Status_Sleeping, true);
@@ -658,19 +645,11 @@ void UGrimSurvivalComponent::StopSleeping()
 		return;
 	}
 	SetLooseTag(ASC, GrimSurvivalTags::Status_Sleeping, false);
-	SetLooseTag(ASC, GrimSurvivalTags::Status_Collapsed, false);
-	GetWorld()->GetTimerManager().ClearTimer(CollapseTimer);
 	CurrentBed.Reset();
 	UE_LOG(LogGrimSurvival, Log, TEXT("%s 일어남"), *GetNameSafe(GetOwner()));
 
 	RefreshPenalty();
 	NotifySleepSubsystem();
-}
-
-void UGrimSurvivalComponent::HandleCollapseFinished()
-{
-	StopSleeping();
-	SetLooseTag(GetASC(), GrimSurvivalTags::Status_Collapsed, false);
 }
 
 void UGrimSurvivalComponent::ApplyNightSkip(float SkippedDays, float DayLengthSeconds)
@@ -729,11 +708,6 @@ void UGrimSurvivalComponent::ServerRequestSleep_Implementation(AGrimBed* Bed)
 
 void UGrimSurvivalComponent::ServerRequestWake_Implementation()
 {
-	if (const UAbilitySystemComponent* ASC = GetASC(); ASC && ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Collapsed))
-	{
-		SendSleepResult(EGrimSleepResult::NotAllowed);
-		return;
-	}
 	if (IsSleeping())
 	{
 		StopSleeping();
@@ -1164,7 +1138,6 @@ void UGrimSurvivalComponent::DrawDebug(UCanvas* Canvas, APlayerController* Playe
 		{ GrimSurvivalTags::Status_Hyperthermia, TEXT("Hyperthermia") },
 		{ GrimSurvivalTags::Status_Hyperthermia_Severe, TEXT("Heatstroke") },
 		{ GrimSurvivalTags::Status_Exhausted, TEXT("Exhausted") },
-		{ GrimSurvivalTags::Status_Collapsed, TEXT("Collapsed") },
 		{ GrimSurvivalTags::Status_Sleeping, TEXT("Sleeping") },
 		{ GrimSurvivalTags::Status_Downed, TEXT("Downed") },
 		{ GrimSurvivalTags::Status_Sick_Stomach, TEXT("Stomachache") },

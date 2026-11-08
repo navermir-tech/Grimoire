@@ -5,8 +5,8 @@ DEFINE_LOG_CATEGORY(LogGrimTaming);
 
 FString FGrimCaptureChance::ToString() const
 {
-	return FString::Printf(TEXT("%.0f%% (기본 %.2f 약함 %.2f 잠 %.2f 지침 %.2f 먹이 %.2f 속성 %.2f 완드 %.2f 서클 %+.2f 숙련 %.2f 장신구 %.2f 등급 -%.2f%s)"),
-		Total * 100.f, Base, Weakened, Asleep, Exhausted, Food, Element, Wand, Circle, Proficiency, Accessory, GradePenalty, bCircleTooLow ? TEXT(" 서클 모자람") : TEXT(""));
+	return FString::Printf(TEXT("%.2f%% (조건 %.2f = 기본 %.2f 약함 %.2f 잠 %.2f 지침 %.2f 먹이 %.2f 속성 %.2f 완드 %.2f 숙련 %.2f 장신구 %.2f) × 등급 %.2f × 서클 %.4f%s"),
+		Total * 100.f, Ease, Base, Weakened, Asleep, Exhausted, Food, Element, Wand, Proficiency, Accessory, GradeScale, CircleScale, bCircleTooLow ? TEXT(" 서클 모자람") : TEXT(""));
 }
 
 namespace GrimTamingMathLocal // 유니티 빌드에서 다른 파일과 부딪히지 않게
@@ -44,25 +44,43 @@ FGrimCaptureChance GrimTamingMath::CalcCaptureChance(const FGrimCaptureInput& In
 	Out.Element = Input.bElementMatch ? Tuning.ElementMatchBonus : 0.f;
 	Out.Wand = FMath::Clamp((Input.WandElementPower - 1.f) * Tuning.WandAffinityScale, 0.f, Tuning.WandAffinityMaxBonus);
 
-	const int32 CircleDiff = Input.CasterCircle - Input.RequiredCircle;
-	if (CircleDiff >= 0)
-	{
-		Out.Circle = FMath::Min(CircleDiff * Tuning.CircleSurplusBonusPerCircle, Tuning.CircleSurplusMaxBonus);
-	}
-	else
-	{
-		Out.bCircleTooLow = -CircleDiff > Tuning.MaxCircleDeficit;
-		Out.Circle = CircleDiff * Tuning.CircleDeficitPenaltyPerCircle;
-	}
 	Out.Proficiency = FMath::Max(0.f, Input.ProficiencyBonus);
 	Out.Accessory = FMath::Max(0.f, Input.AccessoryBonus);
+	Out.Ease = Out.Base + Out.Weakened + Out.Asleep + Out.Exhausted + Out.Food + Out.Element + Out.Wand + Out.Proficiency + Out.Accessory;
 
+	// 등급 · 거대는 곱(팰월드 종별 배율 · 우두머리 ×0.7 처럼) — 낮은 확률을 음수로 밀어내지 않는다.
 	const int32 SizeIndex = static_cast<int32>(Input.SizeClass);
-	Out.GradePenalty = (Tuning.SizeClassPenalty.IsValidIndex(SizeIndex) ? Tuning.SizeClassPenalty[SizeIndex] : 0.f) + (Input.bGiant ? Tuning.GiantPenalty : 0.f);
+	const float SizePenalty = Tuning.SizeClassPenalty.IsValidIndex(SizeIndex) ? Tuning.SizeClassPenalty[SizeIndex] : 0.f;
+	Out.GradeScale = FMath::Clamp(1.f - SizePenalty, 0.f, 1.f) * (Input.bGiant ? FMath::Clamp(1.f - Tuning.GiantPenalty, 0.f, 1.f) : 1.f);
 
-	Out.Raw = Out.Base + Out.Weakened + Out.Asleep + Out.Exhausted + Out.Food + Out.Element + Out.Wand + Out.Circle + Out.Proficiency + Out.Accessory - Out.GradePenalty;
-	Out.Total = Out.bCircleTooLow ? 0.f : FMath::Clamp(Out.Raw, Tuning.MinChance, FMath::Max(Tuning.MinChance, Tuning.MaxChance));
+	Out.CircleScale = CalcCircleScale(Input.CasterCircle - Input.RequiredCircle, Tuning);
+	Out.bCircleTooLow = Out.CircleScale <= 0.f;
+
+	Out.Raw = FMath::Max(0.f, Out.Ease) * Out.GradeScale * Out.CircleScale;
+	Out.Total = FMath::Clamp(Out.Raw, 0.f, FMath::Clamp(Tuning.MaxChance, 0.f, 1.f));
 	return Out;
+}
+
+float GrimTamingMath::CalcCircleScale(int32 CircleGap, const FGrimCaptureTuning& Tuning)
+{
+	if (CircleGap >= 0)
+	{
+		return FMath::Min(1.f + CircleGap * Tuning.CircleSurplusScalePerCircle, FMath::Max(1.f, Tuning.CircleSurplusMaxScale));
+	}
+	// 팰월드 곡선의 아래 반쪽: 256·A^9(A = 0~0.5) = (2A)^9 — 창 끝에서 정확히 0.
+	const float Window = FMath::Max(1.f, Tuning.CircleDeficitWindow);
+	const float Closeness = 1.f + static_cast<float>(CircleGap) / Window;
+	return Closeness <= 0.f ? 0.f : FMath::Pow(Closeness, FMath::Max(1.f, Tuning.CircleDeficitExponent));
+}
+
+FString GrimTamingMath::FormatChancePercent(float Chance)
+{
+	const float Percent = FMath::Max(0.f, Chance) * 100.f;
+	if (Percent >= 10.f || Percent <= 0.f)
+	{
+		return FString::Printf(TEXT("%.0f%%"), Percent);
+	}
+	return Percent >= 1.f ? FString::Printf(TEXT("%.1f%%"), Percent) : FString::Printf(TEXT("%.2f%%"), Percent);
 }
 
 bool GrimTamingMath::RollCapture(float Chance, float Roll)

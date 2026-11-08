@@ -86,7 +86,7 @@
 | `UGrimAppearanceComponent` (`GrimAppearanceComponent.h`) | 플레이어 폰(`AGrimPlayerCharacter`) · 마법탑 NPC(`AGrimTowerNPC`) · 더미 | 복제되는 외형 하나 → 몸 메시 · 조각 컴포넌트 · 소품 · 색 · 모프 · 고리 조립. 생성 화면 미리보기(로컬만) |
 | `UGrimPlayerAppearanceComponent` (`GrimPlayerAppearanceComponent.h`) | `AGrimPlayerState`(하위 객체 `Appearance`) | 플레이어 외형의 정본. 세이브 「Player.Appearance」, 서버 RPC(생성 화면 결과 · 무작위), 서클이 바뀌면 고리 수 갱신, 폰이 바뀌면 새 폰에 넣기 |
 | `AGrimAppearanceDummy` (`GrimAppearanceDummy.h`) | 치트 줄 세우기 · 나중의 군중 NPC 바탕 | 마네킹 메시 + 기본 애님 + 외형 컴포넌트 |
-| `UGrimCharacterCreatorWidget` (`GrimCharacterCreatorWidget.h`) | 화면 | C++ 로 짠 최소 생성 화면(칸마다 ◀ ▶ · 슬라이더 · 무작위 · 확인 · 취소) |
+| `UGrimCharacterCreatorWidget` (`GrimCharacterCreatorWidget.h`) | 화면 | C++ 로 짠 최소 생성 화면(칸마다 ◀ ▶ · 슬라이더 · 무작위 · 확인 · 취소). 정면 카메라(Q102): 열면 이 기기만의 `ACameraActor` 로 시점을 옮기고(`SetViewTargetWithBlend`), 칸을 만지면 얼굴 · 전신(`EGrimCreatorFocus`, `FGrimCreatorCameraMath::FocusForSlot`), 빈 곳 끌기로 돌림(`NativeOnMouseMove`), 닫으면 폰으로 돌아간다. 얼굴은 메시의 `head` 뼈를 따라간다. 수치 `CreatorCamera`(아래) |
 
 ### 흐름
 
@@ -142,7 +142,7 @@ NPC(맵에 놓인 마법탑 NPC) 시작(서버)
 | C5 | 마법탑 NPC · 줄 세우기 더미에 외형 | S | ✅ |
 | C6 | 최소 생성 화면(◀ ▶ · 슬라이더 · 무작위 · 확인 · 취소) | M | ✅ |
 | C7 | 치트 · 콘솔 · 2인 넷 확인 스크립트 · 자동화 테스트 | S | ✅ |
-| C8 | 생성 화면 다듬기: 카메라 클로즈업 · 회전 · 탭 · 패드 조작 · 팔레트 칸 그림 | L | |
+| C8 | 생성 화면 다듬기: 카메라 클로즈업 · 회전(✅ 2026-11-08, Q102) · 탭 · 패드 조작(패드 회전 포함) · 팔레트 칸 그림 · 벽에 붙은 카메라 피하기 | L | 일부 |
 | C9 | 새 캐릭터면 첫 접속에 생성 화면(코드는 있고 설정 `bOpenCreatorForNewCharacter=False` 로 꺼 둠) · 마법탑 「거울」 상호작용(미구현) | S | |
 | C10 | 장비 외형 연결(장착 장비 → 외형 칸, 외형 칸 · 도감) — M4 장비와 함께 | M | |
 | C11 | 군중 NPC 용 Skeletal Mesh Merge 길 · 거리별 조각 줄이기 | M | |
@@ -176,6 +176,8 @@ NPC(맵에 놓인 마법탑 NPC) 시작(서버)
 ## 콘솔 · 치트 · 테스트
 
 - 치트(개발 빌드, `UGrimCheatManager` — `Source/Grimoire/Core/Cheats/GrimCheatManager.h`): `GrimCreator` · `GrimAppearanceRandom [씨앗]` — [테스트 치트](../dev/cheats#캐릭터-외형).
-- 콘솔(`Source/Grimoire/Appearance/GrimAppearanceDebug.cpp`): `Grim.Appearance.Dump` · `Grim.Appearance.Randomize [씨앗]`(서버, 모든 플레이어) · `Grim.Appearance.Lineup <규칙> [수] [씨앗]`(서버) · `Grim.Appearance.Reload`.
-- 자동화(`Source/Grimoire/Appearance/Tests/`): `Grimoire.Appearance.Catalog` · `.Serialization` · `.NetSerialize` · `.NpcDeterminism` · `.Sanitize` · `.Assemble`.
+- 콘솔(`Source/Grimoire/Appearance/GrimAppearanceDebug.cpp`): `Grim.Appearance.Dump` · `Grim.Appearance.Randomize [씨앗]`(서버, 모든 플레이어) · `Grim.Appearance.Lineup <규칙> [수] [씨앗]`(서버) · `Grim.Appearance.Reload` · `Grim.Appearance.CreatorFocus <Face|Body>` · `Grim.Appearance.CreatorOrbit <도> [내려다보는 도]`(열린 생성 화면 카메라 — 화면 확인용).
+- 생성 화면 카메라 설정 `[/Script/Grimoire.GrimAppearanceSettings] CreatorCamera`: `FieldOfView` 50 · 얼굴 `FaceDistance` 120 cm(머리 뼈 `HeadBone` = head + `FaceHeightOffset` 14 — 마네킹 head 뼈는 두개골 아래, 뼈가 없으면 `FaceFallbackHeight` 75) · `FaceLateralOffset` 20 · 전신 `BodyDistance` 430 · `BodyLateralOffset` 70 · `DefaultPitch` −5° · 끌기 `DragYawPerPixel` 0.4 · `DragPitchPerPixel` 0.2(−35°~25°) · `InterpSpeed` 8 · `ViewBlendSeconds` 0.35.
+- 화면 확인: `powershell -File Scripts\QA\shoot_qa.ps1 -Set Creator` — 정면 전신 · 얼굴 · 45° 돌림 · 다시 전신 네 장(`docs/public/qa/qa-creator*.jpg`).
+- 자동화(`Source/Grimoire/Appearance/Tests/`): `Grimoire.Appearance.Catalog` · `.Serialization` · `.NetSerialize` · `.NpcDeterminism` · `.Sanitize` · `.Assemble` · `.CreatorCamera`(칸 → 얼굴 · 전신, 정면 자리 · 거리 · 돌림 · 화면 오른쪽, ini).
 - 2인 헤드리스: `powershell -File Scripts\Character\net_check_appearance.ps1` — 서버가 외형을 바꾸고 더미를 세운 뒤 양쪽 `Grim.Appearance.Dump` 의 해시를 비교해 `PASS` / `FAIL`.

@@ -13,6 +13,11 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
 #include "InputCoreTypes.h"
@@ -72,6 +77,35 @@ namespace GrimCharacterCreatorLocal // 유니티 빌드에서 이름이 부딪�
 	}
 }
 
+EGrimCreatorFocus FGrimCreatorCameraMath::FocusForSlot(EGrimAppearanceSlot Slot)
+{
+	switch (Slot)
+	{
+	case EGrimAppearanceSlot::Face:
+	case EGrimAppearanceSlot::Hair:
+	case EGrimAppearanceSlot::Beard:
+		return EGrimCreatorFocus::Face;
+	default:
+		return EGrimCreatorFocus::Body;
+	}
+}
+
+FTransform FGrimCreatorCameraMath::ComputePose(const FVector& Pivot, float FrontYaw, float OrbitYaw, float Pitch, float Distance, float Lateral)
+{
+	// 카메라가 캐릭터를 보는 방향 = 캐릭터 정면의 반대. 정면(FrontYaw)에서 OrbitYaw 만큼 돈 자리에 선다.
+	const FRotator View(Pitch, FrontYaw + 180.f + OrbitYaw, 0.f);
+	const FVector Forward = View.Vector();
+	const FVector Right = FRotationMatrix(View).GetUnitAxis(EAxis::Y);
+	const FVector Aim = Pivot - Right * Lateral;
+	return FTransform(View, Aim - Forward * FMath::Max(Distance, 1.f));
+}
+
+UGrimCharacterCreatorWidget* UGrimCharacterCreatorWidget::GetOpen()
+{
+	using namespace GrimCharacterCreatorLocal;
+	return GOpenWidget.IsValid() && GOpenWidget->IsInViewport() ? GOpenWidget.Get() : nullptr;
+}
+
 UGrimCharacterCreatorWidget* UGrimCharacterCreatorWidget::Open(APlayerController* Controller)
 {
 	using namespace GrimCharacterCreatorLocal;
@@ -127,6 +161,7 @@ void UGrimCharacterCreatorWidget::Close(bool bConfirm)
 	{
 		Pawn->ClearPreview();
 	}
+	EndCreatorCamera();
 	if (Controller)
 	{
 		Controller->SetInputMode(FInputModeGameOnly());
@@ -165,6 +200,9 @@ void UGrimCharacterCreatorWidget::NativeConstruct()
 		FGrimAppearanceMath::ApplyFaceDefaults(Working, Catalog);
 	}
 	ApplyWorking();
+	// 판 밖 빈 곳도 마우스를 받아야 끌어서 돌릴 수 있다(판의 버튼 · 슬라이더가 먼저 받는다).
+	SetVisibility(ESlateVisibility::Visible);
+	BeginCreatorCamera();
 }
 
 void UGrimCharacterCreatorWidget::NativeDestruct()
@@ -176,8 +214,164 @@ void UGrimCharacterCreatorWidget::NativeDestruct()
 			Pawn->ClearPreview();
 		}
 	}
+	EndCreatorCamera();
 	Super::NativeDestruct();
 }
+
+// ───── 카메라(Q102) ─────
+
+void UGrimCharacterCreatorWidget::BeginCreatorCamera()
+{
+	APlayerController* Controller = GetOwningPlayer();
+	APawn* Pawn = Controller ? Controller->GetPawn() : nullptr;
+	UWorld* World = GetWorld();
+	if (!Controller || !Pawn || !World || CreatorCamera)
+	{
+		return;
+	}
+	const FGrimCreatorCameraTuning& Tuning = UGrimAppearanceSettings::Get()->CreatorCamera;
+	FrontYaw = Pawn->GetActorRotation().Yaw;
+	OrbitYaw = 0.f;
+	OrbitPitch = Tuning.DefaultPitch;
+	Focus = EGrimCreatorFocus::Body;
+
+	FActorSpawnParameters Params;
+	Params.ObjectFlags |= RF_Transient;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	FTransform Pose;
+	ComputeDesiredPose(Pose);
+	CreatorCamera = World->SpawnActor<ACameraActor>(ACameraActor::StaticClass(), Pose, Params);
+	if (!CreatorCamera)
+	{
+		return;
+	}
+	CreatorCamera->SetReplicates(false);
+	if (UCameraComponent* Camera = CreatorCamera->GetCameraComponent())
+	{
+		Camera->SetFieldOfView(Tuning.FieldOfView);
+		Camera->SetConstraintAspectRatio(false);
+	}
+	bCameraSnapped = true;
+	Controller->SetViewTargetWithBlend(CreatorCamera, Tuning.ViewBlendSeconds, VTBlend_Cubic);
+}
+
+void UGrimCharacterCreatorWidget::EndCreatorCamera()
+{
+	if (!CreatorCamera)
+	{
+		return;
+	}
+	const float Blend = UGrimAppearanceSettings::Get()->CreatorCamera.ViewBlendSeconds;
+	if (APlayerController* Controller = GetOwningPlayer())
+	{
+		if (APawn* Pawn = Controller->GetPawn())
+		{
+			Controller->SetViewTargetWithBlend(Pawn, Blend, VTBlend_Cubic);
+		}
+	}
+	// 섞는 동안은 남아 있어야 한다.
+	CreatorCamera->SetLifeSpan(FMath::Max(0.1f, Blend + 0.1f));
+	CreatorCamera = nullptr;
+	bDragging = false;
+}
+
+bool UGrimCharacterCreatorWidget::ComputeDesiredPose(FTransform& OutPose) const
+{
+	const APlayerController* Controller = GetOwningPlayer();
+	const APawn* Pawn = Controller ? Controller->GetPawn() : nullptr;
+	if (!Pawn)
+	{
+		return false;
+	}
+	const FGrimCreatorCameraTuning& Tuning = UGrimAppearanceSettings::Get()->CreatorCamera;
+	FVector Pivot = Pawn->GetActorLocation();
+	float Distance = Tuning.BodyDistance;
+	float Lateral = Tuning.BodyLateralOffset;
+	if (Focus == EGrimCreatorFocus::Face)
+	{
+		// 머리 뼈를 따라간다 — 체형 · 키가 바뀌어도 얼굴이 가운데.
+		const ACharacter* Character = Cast<ACharacter>(Pawn);
+		const USkeletalMeshComponent* Mesh = Character ? Character->GetMesh() : nullptr;
+		const bool bHasHead = Mesh && !Tuning.HeadBone.IsNone() && Mesh->GetBoneIndex(Tuning.HeadBone) != INDEX_NONE;
+		Pivot = bHasHead ? Mesh->GetBoneLocation(Tuning.HeadBone) : Pivot + FVector(0.f, 0.f, Tuning.FaceFallbackHeight);
+		Pivot.Z += Tuning.FaceHeightOffset;
+		Distance = Tuning.FaceDistance;
+		Lateral = Tuning.FaceLateralOffset;
+	}
+	else
+	{
+		Pivot.Z += Tuning.BodyHeight;
+	}
+	OutPose = FGrimCreatorCameraMath::ComputePose(Pivot, FrontYaw, OrbitYaw, OrbitPitch, Distance, Lateral);
+	return true;
+}
+
+void UGrimCharacterCreatorWidget::SetFocus(EGrimCreatorFocus NewFocus)
+{
+	Focus = NewFocus;
+}
+
+void UGrimCharacterCreatorWidget::SetOrbit(float Yaw, float Pitch)
+{
+	const FGrimCreatorCameraTuning& Tuning = UGrimAppearanceSettings::Get()->CreatorCamera;
+	OrbitYaw = FRotator::NormalizeAxis(Yaw);
+	OrbitPitch = FMath::Clamp(Pitch, Tuning.MinPitch, Tuning.MaxPitch);
+}
+
+void UGrimCharacterCreatorWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	FTransform Desired;
+	if (!CreatorCamera || !ComputeDesiredPose(Desired))
+	{
+		return;
+	}
+	const float Speed = UGrimAppearanceSettings::Get()->CreatorCamera.InterpSpeed;
+	if (bCameraSnapped || Speed <= 0.f)
+	{
+		bCameraSnapped = false;
+		CreatorCamera->SetActorTransform(Desired);
+		return;
+	}
+	const FVector Location = FMath::VInterpTo(CreatorCamera->GetActorLocation(), Desired.GetLocation(), InDeltaTime, Speed);
+	const FRotator Rotation = FMath::RInterpTo(CreatorCamera->GetActorRotation(), Desired.Rotator(), InDeltaTime, Speed);
+	CreatorCamera->SetActorLocationAndRotation(Location, Rotation);
+}
+
+FReply UGrimCharacterCreatorWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	// 판의 버튼 · 슬라이더가 받지 않은 클릭 = 빈 곳 → 끌어서 돌리기 시작.
+	if (InMouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		bDragging = true;
+		return FReply::Handled().CaptureMouse(TakeWidget());
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+FReply UGrimCharacterCreatorWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bDragging)
+	{
+		const FGrimCreatorCameraTuning& Tuning = UGrimAppearanceSettings::Get()->CreatorCamera;
+		const FVector2D Delta = InMouseEvent.GetCursorDelta();
+		// 오른쪽으로 끌면 캐릭터가 오른쪽으로 돈다(카메라는 반대로 돈다). 위로 끌면 아래에서 올려다본다.
+		SetOrbit(OrbitYaw - Delta.X * Tuning.DragYawPerPixel, OrbitPitch + Delta.Y * Tuning.DragPitchPerPixel);
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+FReply UGrimCharacterCreatorWidget::NativeOnMouseButtonUp(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (bDragging)
+	{
+		bDragging = false;
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	return Super::NativeOnMouseButtonUp(InGeometry, InMouseEvent);
+}
+
 
 FReply UGrimCharacterCreatorWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
@@ -204,7 +398,7 @@ void UGrimCharacterCreatorWidget::BuildTree()
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Panel->SetContent(Column);
 	AddRow(Column, GrimUIData::MakeText(WidgetTree, LOCTEXT("Title", "캐릭터 만들기"), 20, Gold, true), 0.f);
-	AddRow(Column, GrimUIData::MakeText(WidgetTree, LOCTEXT("Hint", "고르는 동안은 내 화면에만 보인다. 확인하면 모두에게. 서클 고리는 서클을 따라 저절로 붙는다."), 11, Faint));
+	AddRow(Column, GrimUIData::MakeText(WidgetTree, LOCTEXT("Hint", "고르는 동안은 내 화면에만 보인다. 확인하면 모두에게. 서클 고리는 서클을 따라 저절로 붙는다. 빈 곳을 끌면 돌려 본다."), 11, Faint));
 
 	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
 	UVerticalBoxSlot* ScrollSlot = Column->AddChildToVerticalBox(Scroll);
@@ -318,6 +512,15 @@ void UGrimCharacterCreatorWidget::Cycle(int32 RowIndex, int32 Step)
 	}
 	const FGrimAppearanceCatalog& Catalog = UGrimAppearanceSettings::GetCatalog();
 	const FCycleRow& Row = Rows[RowIndex];
+	// 카메라(Q102): 얼굴 · 머리 · 피부 · 눈 칸은 얼굴 가까이, 몸 · 옷 칸은 전신.
+	switch (Row.Kind)
+	{
+	case ERow::Slot: SetFocus(FGrimCreatorCameraMath::FocusForSlot(Row.Slot)); break;
+	case ERow::Skin:
+	case ERow::Eye:
+	case ERow::HairColor: SetFocus(EGrimCreatorFocus::Face); break;
+	default: SetFocus(EGrimCreatorFocus::Body); break;
+	}
 	auto Wrap = [Step](int32 Current, int32 Count) { return Count <= 0 ? 0 : ((Current + Step) % Count + Count) % Count; };
 	auto CycleColor = [&Catalog, &Wrap](uint8& Value, FName Palette)
 	{
@@ -398,10 +601,19 @@ void UGrimCharacterCreatorWidget::HandleSliderChanged(float Value)
 	}
 	if (HeightSlider)
 	{
-		Working.Height = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(HeightSlider->GetValue() * 255.f), 0, 255));
+		const uint8 NewHeight = static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(HeightSlider->GetValue() * 255.f), 0, 255));
+		if (NewHeight != Working.Height)
+		{
+			SetFocus(EGrimCreatorFocus::Body); // 키 = 전신
+		}
+		Working.Height = NewHeight;
 	}
 	for (int32 Index = 0; Index < MorphSliders.Num(); ++Index)
 	{
+		if (!FMath::IsNearlyEqual(Working.GetMorph(Index), MorphSliders[Index]->GetValue(), 0.005f))
+		{
+			SetFocus(EGrimCreatorFocus::Face); // 얼굴 슬라이더 = 얼굴 가까이
+		}
 		Working.SetMorph(Index, MorphSliders[Index]->GetValue());
 	}
 	if (UGrimAppearanceComponent* Pawn = GetPawnAppearance())

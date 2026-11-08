@@ -32,7 +32,7 @@ enum class EGrimCastFailReason : uint8
 	NotEnoughMana,
 	/** 계약(파크툼): 데리고 다님 · 보관함 · 거점 생물 상자가 모두 가득 */
 	TameNoRoom,
-	/** 계약(파크툼): 그 생물과 계약할 서클이 모자라다 — Param = 필요한 서클 */
+	/** 계약(파크툼): 서클이 너무 모자라 확률이 0 이다(Q118 곡선의 창 밖) — Param = 그 종의 요구 서클 */
 	TameCircleTooLow,
 	/** 계약(파크툼): 계약을 받지 않는 생물(길들일 수 없음 · 이미 주인 있음 · 죽음) */
 	TameRefused,
@@ -48,12 +48,16 @@ enum class EGrimCastFailReason : uint8
 	PromotionAtMax,
 	/** 장비 재료 등급이 서클보다 높아 입을 수 없다(Q122 해금) — Param = 입을 수 있게 되는 서클. 연출 없음 */
 	EquipTierTooLow,
+	/** 탈진(R29 · Q116) — 마법을 쓸 수 없다. 잠을 자야 풀린다. 기본 공격 입력은 주먹질이 대신 나가므로 알리지 않는다 */
+	Exhausted,
 };
 
 /** 서버 판정이 보는 값(순수 분류 — 테스트가 직접 채운다) */
 struct FGrimCastFailInputs
 {
 	bool bBlocked = false;
+	/** 마법만 막는 상태(탈진 — MagicBlockingTags) */
+	bool bMagicBlocked = false;
 	/** 기본 공격 — 완드가 없으면 같은 입력의 주먹질이 나가므로 알리지 않는다 */
 	bool bBasicAttack = false;
 	bool bWandMissing = false;
@@ -122,7 +126,7 @@ public:
 /** 마법 실패(Q64) — 서버가 까닭을 정하고 소유 클라이언트에 알린다(HUD 글) · 모두에게 연출 큐. */
 namespace GrimCastFailure
 {
-	/** 순수 분류: 막힘(잠 · 기절) → 기본 공격의 완드 없음(주먹질) → 완드 없음 · 부러짐 → 서클 → 쿨타임 → 마나 */
+	/** 순수 분류: 막힘(잠 · 쓰러짐 — 알리지 않음) → 탈진(기본 공격은 주먹질) → 기본 공격의 완드 없음(주먹질) → 완드 없음 · 부러짐 → 서클 → 쿨타임 → 마나 */
 	GRIMOIRE_API EGrimCastFailReason Classify(const FGrimCastFailInputs& Inputs, int32& OutParam);
 
 	/** HUD 알림 글(한국어 게임 문구) */

@@ -12,9 +12,8 @@ namespace GrimSurvivalTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Hyperthermia, "Status.Hyperthermia", "더위 모자람 2 이상 — 과열. 마나 소모 늘어남, 피곤함 가속");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Hyperthermia_Severe, "Status.Hyperthermia.Severe", "더위 모자람 3 이상 — 열사병. HP 감소");
 
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Exhausted, "Status.Exhausted", "피곤함 80 이상. 시전 속도 −30%");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Collapsed, "Status.Collapsed", "피곤함 100 — 기절(강제 수면)");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sleeping, "Status.Sleeping", "자는 중(침대 · 침낭 · 기절). 움직이지 못한다");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Exhausted, "Status.Exhausted", "피곤함 80 이상 — 탈진. 달리기 · 마법 시전 불가, 지친 걸음(R29)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sleeping, "Status.Sleeping", "자는 중(침대 · 침낭). 움직이지 못한다");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Downed, "Status.Downed", "HP 0 — 쓰러짐. 동료가 일으키지 않으면 사망 후 부활");
 

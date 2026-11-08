@@ -7,7 +7,7 @@
 # 장면 = 이름, 찍는 초, 앞서 칠 명령(쉼표 없이 ; 로 — 1초 간격으로 차례로). 맵 로드(10~40초)를 넉넉히 둔다.
 param(
 	# Main = 기본 장면들, Pose = 시작 자리 앞 고정 카메라로 완드 · 그리모어 앞모습과 시전 순간(R21)
-	[ValidateSet("Main", "Pose", "Fizzle", "Circle")]
+	[ValidateSet("Main", "Pose", "Fizzle", "Circle", "Creator")]
 	[string]$Set = "Main",
 	[int]$Start = 45,
 	[int]$ResX = 1600,
@@ -65,6 +65,14 @@ $CircleScenes = @(
 	@("qa-grimoire-circle2", "Grim.Magic.AddXP Ember 100000;Grim.Magic.AddXP WaterJet 100000;Grim.Magic.CircleUp 0;Grim.UI.GrimoireTab 3", 2)
 )
 if ($Set -eq "Circle") { $Scenes = $CircleScenes }
+# 생성 화면 카메라(Q102) — 정면 전신 · 얼굴 칸(얼굴 가까이) · 마우스 끌기 대신 돌림(옆 45°) · 닫으면 평소 카메라
+$CreatorScenes = @(
+	@("qa-creator", "Grim.Weather.Set All Clear 0;Grim.Creature.Time 0.45;GrimCreator", 4),
+	@("qa-creator-face", "Grim.Appearance.CreatorFocus Face", 3),
+	@("qa-creator-orbit", "Grim.Appearance.CreatorOrbit 45 -5", 3),
+	@("qa-creator-body-orbit", "Grim.Appearance.CreatorFocus Body", 3)
+)
+if ($Set -eq "Creator") { $Scenes = $CreatorScenes }
 
 $Cmds = @("r.ScreenPercentage 100")
 $T = $Start

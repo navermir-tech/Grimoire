@@ -97,8 +97,8 @@ public:
 
 	// ── 서버 전용 ──
 
-	/** 눕는다. Bed 가 없으면 그 자리(콘솔 · 기절). bForced = 기절(적 · 거리 검사 없음). */
-	EGrimSleepResult StartSleeping(AGrimBed* Bed, bool bForced = false);
+	/** 눕는다. Bed 가 없으면 그 자리(개발 콘솔). */
+	EGrimSleepResult StartSleeping(AGrimBed* Bed);
 	void StopSleeping();
 
 	/** UGrimSleepSubsystem 이 밤을 건너뛸 때: 피곤함 0, 건너뛴 시간 × 배고픔, 깨운다. */
@@ -195,7 +195,6 @@ private:
 	void EnterDowned();
 	void HandleDownedExpired();
 	void DieAndRespawn();
-	void HandleCollapseFinished();
 
 	void SetLooseTag(UAbilitySystemComponent* ASC, const FGameplayTag& Tag, bool bOn);
 	void NotifySleepSubsystem();
@@ -216,7 +215,6 @@ private:
 
 	FTimerHandle SurvivalTickTimer;
 	FTimerHandle DownedTimer;
-	FTimerHandle CollapseTimer;
 	FDelegateHandle ActorInfoReadyHandle;
 	FDelegateHandle DebugDrawHandle;
 	FDelegateHandle HealthChangedHandle;
