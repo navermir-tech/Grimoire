@@ -160,3 +160,44 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld3 -RunSeconds 1300
 | ![](/qa/ld3-cart.jpg) | ![](/qa/ld3-wall-c.jpg) | ![](/qa/ld3-wall-b.jpg) |
 | **서쪽 등줄기** | **봉화 언덕 쪽** | **동쪽 등줄기** |
 | ![](/qa/ld3-ridge-west.jpg) | ![](/qa/ld3-ridge-north.jpg) | ![](/qa/ld3-ridge-east.jpg) |
+
+## 물 재질 (Q126) (2026-11-09)
+
+무엇을 왜 [지형 「물 재질」](../systems/terrain#물-재질) · 결정 [Q126](../spec/decisions#미결-질문) · 표기 [크레딧](../art/credits). 마지막 실행 **2026-11-09**(`claude/serene-stonebraker-d7fe81`).
+
+```powershell
+# 재질만 다시 입히기(메시 다시 굽기 포함) — dress_assets.py 의 WATER_SCALARS · WATER_COLORS 를 고친 뒤
+& "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\apply_water_material.py" -unattended -nop4 -nosplash -nullrhi
+# 스크린숏(낮 · 황혼, 약 6 분씩)
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag day -RunSeconds 700
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag dusk -TimeOfDay 0.74 -RunSeconds 700
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-031 | — | 물 표면이 팩 재질이고 물로 읽힌다 | ③ `water-*-day` · `water-pond-aerial-day` | 연못에 하늘 · 나무가 비치고, 위에서 봐도 흙길로 보이지 않는다 | ✅ 11-09 — `M_River` 인스턴스 `MI_Dress_Water`. 첫 시도 `M_River_Cheaper` 는 볼륨 라이팅이라 하늘을 반사하지 못해 흙길처럼 보여 뺐다 | 아래 표 |
+| QA-LVL-032 | — | 물결이 개울을 따라 흐르고 격자무늬가 없다 | ③ `water-creek-mid-day` · `water-creek-aerial-day` · `water-mouth-top-day` | 물길 방향 물결, 연못 어귀에 UV 경계가 튀지 않는다 | ✅ 11-09 — 호 길이 UV 가 1 m 칸마다 끊겨 격자무늬가 보이던 것을 연속값으로 고쳤다(`SampleNaturalWater`). 어귀 매끄러움 | 아래 표 |
+| QA-LVL-033 | — | 황혼 · 밤에도 어울리고 스스로 빛나지 않는다 · 샘 동심원이 그대로 | ③ `water-*-dusk`(`Grim.Creature.Time 0.74`) · `water-*-night`(0.96) · `water-spring-top-day` | 황혼 하늘 색을 비춘다. 밤에 물이 빛나지 않는다. 물머리에 동심원 | ✅ 11-09 — 황혼에 하늘 · 언덕이 비치고 밤에는 어둡게 잦아든다. `Spring_Ripple` 동심원이 물 위에 또렷하다 | 아래 표 |
+| QA-LVL-034 | R16 | 성능 예산 안 — 반투명 물 비용 | ① `measure.ps1 -Label water-q126 -Only Render -Settle 25` | 연못 · 계곡 자리가 `merge-ld3` 와 비슷하고 예산 안 | ✅ 11-09 — 연못 GPU 4.28 ms(`merge-ld3` 4.45) · 계곡 4.18(같음), 전체 GPU 4.18 ~ 4.86 · 게임 2.57 ~ 3.17 · 렌더 5.10 ~ 5.87 · p95 6.1 ~ 6.9 · 33 ms 초과 1번(탑 문 앞 첫 자리 37 ms) · 드로 콜 534 ~ 1,110 · 메모리 2.99 ~ 3.08 GB. 생물 자리 GPU 4.86 은 그림자 깊이 1.24 ms 탓(물 없는 자리) | `Saved\Perf\water-q126\summary.md`([QA — 성능](./perf)) |
+| QA-LVL-035 | — | 자동화 · 맵 점검 | ① `Automation RunTests Grimoire` ② `check_openbeta.ps1` · `check_tutorial.ps1` | 모두 통과 | ✅ 11-09 — 자동화 187/187, `openbeta` · `tutorial` PASS | 로그 |
+| QA-LVL-036 | — | 쓰는 팩 파일만 저장소에 · 크레딧 | `add_pack_assets.ps1 -DryRun` · [크레딧](../art/credits) | `WaterMaterials` 는 쓰는 파일만, CC BY 표기 있음 | ✅ 11-09 — `WaterMaterials` 16 개 11.7 MB(재질 · 함수 · 물결 텍스처), 팩 합계 162 개 248.1 MB. 크레딧에 저작자 · 라이선스 · 고친 점 | `Saved\PackDeps\summary.txt` |
+
+알려진 한계: 연못 어귀 자리처럼 아주 낮은 각도로 먼 연못을 보면 물이 모래빛으로 옅게 보인다(반사가 땅 쪽을 비추는 각도). 게임 안 크레딧 화면은 아직 없다([Q137](../spec/decisions#미결-질문)).
+
+### 전 · 후 (3차 그대로 → 팩 재질)
+
+| 자리 | 전 — 낮(3차) | 후 — 낮 | 전 — 황혼 | 후 — 황혼 |
+|---|---|---|---|---|
+| 개울 가운데 | ![](/qa/ld3-creek-mid.jpg) | ![](/qa/water-creek-mid-day.jpg) | ![](/qa/water-creek-mid-dusk-before.jpg) | ![](/qa/water-creek-mid-dusk.jpg) |
+| 상류 | ![](/qa/ld3-creek-upper.jpg) | ![](/qa/water-creek-upper-day.jpg) | ![](/qa/water-creek-upper-dusk-before.jpg) | ![](/qa/water-creek-upper-dusk.jpg) |
+| 다리(길) | ![](/qa/ld3-bridge.jpg) | ![](/qa/water-bridge-day.jpg) | ![](/qa/water-bridge-dusk-before.jpg) | ![](/qa/water-bridge-dusk.jpg) |
+| 다리(물가) | ![](/qa/ld3-bridge-side.jpg) | ![](/qa/water-bridge-side-day.jpg) | ![](/qa/water-bridge-side-dusk-before.jpg) | ![](/qa/water-bridge-side-dusk.jpg) |
+| 연못 어귀 | ![](/qa/ld3-pond-junction.jpg) | ![](/qa/water-pond-junction-day.jpg) | ![](/qa/water-pond-junction-dusk-before.jpg) | ![](/qa/water-pond-junction-dusk.jpg) |
+| 연못 | ![](/qa/ld3-pond.jpg) | ![](/qa/water-pond-day.jpg) | ![](/qa/water-pond-dusk-before.jpg) | ![](/qa/water-pond-dusk.jpg) |
+| 샘(가까이) | ![](/qa/ld3-spring-near.jpg) | ![](/qa/water-spring-near-day.jpg) | ![](/qa/water-spring-near-dusk-before.jpg) | ![](/qa/water-spring-near-dusk.jpg) |
+| 연못 · 어귀 하늘 | ![](/qa/ld3-pond-aerial.jpg) | ![](/qa/water-pond-aerial-day.jpg) | ![](/qa/water-pond-aerial-dusk-before.jpg) | ![](/qa/water-pond-aerial-dusk.jpg) |
+| 개울 전체 하늘 | ![](/qa/ld3-creek-aerial.jpg) | ![](/qa/water-creek-aerial-day.jpg) | ![](/qa/water-creek-aerial-dusk-before.jpg) | ![](/qa/water-creek-aerial-dusk.jpg) |
+
+| 샘 동심원 | 어귀(위에서) | 밤 |
+|---|---|---|
+| ![](/qa/water-spring-top-day.jpg) | ![](/qa/water-mouth-top-day.jpg) | ![](/qa/water-creek-mid-night.jpg) |

@@ -8,6 +8,7 @@
 - 팩은 들어온 폴더 그대로 둔다(`Content/<팩 이름>/`, Megascans 는 `Content/Fab/Megascans/`). `Content/Grimoire/` 로 옮기지 않는다.
 - `.gitignore` 가 `Content/` 아래를 기본으로 뺀다. 저장소에 들어가는 폴더는 `Content/Grimoire/`, 엔진 샘플(`Characters` · `Input` · `NiagaraExamples`), 우리 맵의 `__ExternalActors__/Grimoire/` · `__ExternalObjects__/Grimoire/` 뿐이다.
 - 그래서 새 팩을 받아도 `git status` 에 뜨지 않는다. 받은 팩은 아래 「받은 팩」 표에 한 줄 더한다.
+- **CC BY 팩을 게임에 넣으면 같은 커밋에서 [크레딧](../art/credits)에 한 줄 더한다**(저작자 · 에셋 · 라이선스 링크 · 쓰는 곳 · 고친 점). 작가와 라이선스는 Fab 목록 페이지에서 직접 확인한다. 받아만 둔 CC BY 팩(`Medieval_Room_Kit` 등)은 쓰기로 정하기 전에는 레벨에 놓지 않는다([Q126](../spec/decisions#미결-질문)).
 
 ## 쓰는 에셋만 올리기
 
@@ -59,7 +60,7 @@ powershell -File Scripts\Terrain\add_pack_assets.ps1           # 그 파일만 g
 | `Megaplant_Library` | 0.2 GB | Megaplants — `Tree_English_Oak`. 플러그인 `ProceduralVegetationEditor` 필요(`Grimoire.uproject` 에 켬) | — (`r.Nanite.Foliage` 가 꺼져 있으면 줄기만 보인다 — [Q125](../spec/decisions#미결-질문)) |
 | `StyleHex_Studio` | 0.2 GB | StyleHex 무료 팩 셋 — Stylized Forest Sample · Grass Flowers Foliage · Rocks and Stones | **L_OpenBeta** 지형 재질 텍스처 · 풀 · 꽃 · 나무 · 덤불 · 바위(맵 전체 — 레벨 디자인 2차부터) · 돌담 돌 · 잎 재질 부모 — [레벨 아트 1차](./level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) · [레벨 디자인 2차](./level-design#_9-레벨-디자인-2차-—-능선-·-자연-분포-·-구간-구도-2026-11-08). 올린 파일 137 개 161.6 MB(레벨 디자인 3차) |
 | `Fab` | 0.1 GB | Quixel Megascans 개별 에셋(`Megascans/3D` — 중세 서고 책 · 의자 · 샹들리에 · 두루마리, 농가 통 · 바구니 · 솥 · 맷돌, 교회 폐허 벽 · 아치, 깔개 등) | — |
-| `WaterMaterials` | 0.1 GB | [Water Materials](https://www.fab.com/listings/063155ea-d9d2-4f29-b09f-33270b0bc861) — CC BY(크레딧 필요, [Q126](../spec/decisions#미결-질문)) | — |
+| `WaterMaterials` | 0.1 GB | [Water Materials](https://www.fab.com/listings/063155ea-d9d2-4f29-b09f-33270b0bc861)(tharlevfx) — **CC BY 4.0**, [크레딧](../art/credits)에 적었다 | **L_OpenBeta** 개울 · 합류 연못 물 표면(`M_River` 인스턴스 `MI_Dress_Water`, 2026-11-09 — [Q126](../spec/decisions#미결-질문)). 올린 파일 16 개 11.7 MB(재질 · 재질 함수 · 물결 텍스처) |
 | `EnchantedPotionRoom` | 41 MB | [EnchantedPotionRoom_Free](https://www.fab.com/listings/6bee477a-f8a8-42d5-b987-c6937305ab58) — 물약 방(실내) | — |
 | `GoodSkyV3` | 18 MB | 하늘 | — (해 · 달 · 하늘 돔을 스스로 돌려 `GrimSkyController` 와 부딪힌다) |
 | `HandPaintedClouds` | 5 MB | 손그림 구름 | **L_OpenBeta** 구름 카드 12(텍스처 3장만, 머티리얼은 우리 것) — [레벨 아트 1차](./level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) |

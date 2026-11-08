@@ -87,6 +87,7 @@ export default defineConfig({
             { text: '1번 지역 콘셉트 아트', link: '/art/region1-concepts' },
             { text: '1번 지역 — 필요한 3D 모델', link: '/art/region1-assets' },
             { text: 'Fab 무료 에셋 후보', link: '/art/fab-free-assets' },
+            { text: '크레딧 — 출처 표기', link: '/art/credits' },
           ],
         },
       ],

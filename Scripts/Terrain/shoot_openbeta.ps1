@@ -8,12 +8,18 @@
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag before   # 레벨 아트 비교 — 측정 자리(Scripts/Perf/measure.ps1) 중 시작 구역
 #                                                                               → docs/public/qa/level-dress-<자리>-<Tag>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld3 -RunSeconds 1200  # 레벨 디자인 3차(「10」) — 고친 곳마다 눈높이 · 하늘, 2차와 같은 자리는 전 · 후 → docs/public/qa/ld3-<자리>.jpg
+#   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag day -RunSeconds 700                 # 물 재질(Q126) — docs/public/qa/water-<자리>-<Tag>.jpg
+#   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag dusk -TimeOfDay 0.74 -RunSeconds 700 # 같은 자리 황혼
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld2 -RunSeconds 900   # 레벨 디자인 2차(docs/dev/level-design.md 「9」) — 구간마다 눈높이 · 하늘
 #                                                                               → docs/public/qa/ld2-<자리>.jpg(앞 다섯은 level-dress-*-after 와 같은 자리 = 전 · 후)
 param(
-	[ValidateSet("v3", "v2", "dress", "ld2", "ld3")]
+	[ValidateSet("v3", "v2", "dress", "ld2", "ld3", "water")]
 	[string]$Set = "v3",
 	[string]$Tag = "after",
+	# 시각 고정(0 자정 · 0.5 정오, Grim.Creature.Time) — 음수면 건드리지 않는다(시작 시각대로)
+	[double]$TimeOfDay = -1,
+	# 이 정규식에 맞는 이름만 찍는다(예: "creek-mid|pond$")
+	[string]$Only = "",
 	[int]$RunSeconds = 200,
 	[int]$ResX = 1600,
 	[int]$ResY = 900
@@ -122,19 +128,40 @@ $ShotsLd3 = @(
 	@("ld3-aerial-south", -26000, 0, "28000", 0, -20, $false),           # 바다 위 — 능선 실루엣(ld2-aerial-south 와 같은 자리)
 	@("ld3-sector-aerial", 21000, 9000, "125000", 0, -89.9, $false)
 )
-$Shots = if ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
-if ($Set -eq "dress" -or $Set -eq "ld2" -or $Set -eq "ld3") { $ArtDir = Join-Path $Root "docs\public\qa" }
+# water — 물 재질(Q126 Water Materials): ld3 와 같은 자리에서 낮 · 황혼 → docs/public/qa/water-<자리>-<Tag>.jpg
+$ShotsWater = @(
+	@("water-creek-mid-$Tag", 39400, -16800, "+180", 211, -5, $false),     # 개울 가운데(눈높이)
+	@("water-creek-upper-$Tag", 45500, -14200, "+200", 200, -8, $false),   # V 자 상류
+	@("water-bridge-$Tag", 32200, -18800, "+180", 270, -4, $false),        # 다리 — 길에서
+	@("water-bridge-side-$Tag", 28600, -20600, "+150", 12, 6, $false),     # 다리 — 하류 물가에서
+	@("water-pond-junction-$Tag", 23200, -25000, "+180", 217, -4, $false), # 연못 어귀
+	@("water-pond-$Tag", 12500, -30000, "+180", -5, -3, $false),           # 연못 남쪽 물가
+	@("water-spring-near-$Tag", 50400, -13200, "+230", 22, -10, $false),   # 샘 — 물머리 동심원
+	@("water-spring-top-$Tag", 50850, -12950, "+380", 20, -62, $false),    # 샘 — 바로 위에서(Spring_Ripple 동심원)
+	@("water-mouth-top-$Tag", 22000, -26500, "+500", 225, -40, $false),    # 어귀 — 위에서(개울 UV → 연못 UV 경계)
+	@("water-pond-aerial-$Tag", 21500, -28500, "+4500", 40, -60, $false),  # 연못 · 어귀 하늘에서
+	@("water-creek-aerial-$Tag", 34000, -20500, "+17000", 0, -89.9, $false) # 개울 전체 하늘에서
+)
+$Shots = if ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "water") { $ShotsWater } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
+if ($Only) { $Shots = @($Shots | Where-Object { $_[0] -match $Only }) }   # 다듬는 중에는 몇 장만
+$Settled = @("dress", "ld2", "ld3", "water") -contains $Set   # 풀이 자랄 시간을 두고 docs/public/qa 에 두는 세트
+if ($Settled) { $ArtDir = Join-Path $Root "docs\public\qa" }
 
 $Cmds = @()
+if ($TimeOfDay -ge 0) {
+	# 시각은 시간이 흐르니 자리마다 다시 맞춘다 — 찍는 사이 해가 움직이지 않게
+	$Cmds += "Grim.Creature.Time $TimeOfDay 2"
+}
 $Delay = 25
 foreach ($Shot in $Shots) {
-	if ($Set -eq "dress" -or $Set -eq "ld2" -or $Set -eq "ld3") {
+	if ($TimeOfDay -ge 0) { $Cmds += "Grim.Creature.Time $TimeOfDay $Delay" }
+	if ($Settled) {
 		# 랜드스케이프 풀은 카메라 둘레에서 비동기로 자란다 — 먼저 옮겨 두고 25 초 뒤에 찍는다
 		$Cmds += "Grim.Terrain.ViewFrom $($Shot[1]) $($Shot[2]) $($Shot[3]) $($Shot[4]) $($Shot[5]) $Delay"
 		$Delay += 25
 	}
 	$Cmds += "Grim.Terrain.ViewFrom $($Shot[1]) $($Shot[2]) $($Shot[3]) $($Shot[4]) $($Shot[5]) $Delay $($Shot[0])"
-	$Delay += $(if ($Set -eq "dress" -or $Set -eq "ld2" -or $Set -eq "ld3") { 5 } else { 12 })
+	$Delay += $(if ($Settled) { 5 } else { 12 })
 }
 $Cmds = $Cmds -join ","
 foreach ($Shot in $Shots) { Remove-Item (Join-Path $ShotDir "$($Shot[0]).png") -ErrorAction SilentlyContinue }

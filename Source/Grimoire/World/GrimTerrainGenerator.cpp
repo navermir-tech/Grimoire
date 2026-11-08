@@ -2314,9 +2314,10 @@ bool FGrimTerrainGenerator::SampleNaturalWater(const FGrimTerrainMaps& Maps, con
 			{
 				Best = D2;
 				OutLevel = Creek.Levels[Index];
-				OutArc = Index;
 				const FVector2D Dir = (Creek.Points[FMath::Min(Index + 1, Creek.Points.Num() - 1)] - Creek.Points[FMath::Max(Index - 1, 0)]).GetSafeNormal();
 				const FVector2D Q = P - Creek.Points[Index];
+				// 꺾은점은 1 m 간격 — 번호에 앞뒤 거리를 더해 호 길이를 잇는다(정수로 두면 물결 UV 가 1 m 칸마다 끊겨 격자무늬가 보인다)
+				OutArc = Index + FVector2D::DotProduct(Q, Dir);
 				OutSigned = Dir.X * Q.Y - Dir.Y * Q.X;
 				OutFlow = 1.0;
 				bFound = true;

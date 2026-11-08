@@ -246,7 +246,7 @@ for body in summary.water:
             count("WaterPlane")
 
 # ───── 5b. 자연 개울 · 연못 물 표면 메시(레벨 디자인 3차) — 합류하는 물은 한 메시로(틈 · 겹침 없음), 물가선 = 땅과의 교선 ─────
-natural_water_mat = unreal.load_asset("/Game/Grimoire/Terrain/Dress/M_Dress_Water") if eal.does_asset_exist("/Game/Grimoire/Terrain/Dress/M_Dress_Water") else water_mi
+natural_water_mat = unreal.load_asset("/Game/Grimoire/Terrain/Dress/MI_Dress_Water") if eal.does_asset_exist("/Game/Grimoire/Terrain/Dress/MI_Dress_Water") else water_mi   # 없으면(첫 빌드, dress_openbeta 전) 그레이박스 물
 for creek in raw["Creeks"]:
     if not creek.get("bNatural"):
         continue
