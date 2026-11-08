@@ -39,6 +39,7 @@
 | 이펙트 · 화면 | FX | [fx](../qa/fx) |
 | 성능 예산 | PRF | [perf](../qa/perf) |
 | 레벨 아트(지형 재질 · 식생 · 소품) | LVL | [level-art](../qa/level-art) |
+| 문서 사이트 | DOC | [docs-site](../qa/docs-site) |
 
 ## 검증 수단 (이 순서로)
 

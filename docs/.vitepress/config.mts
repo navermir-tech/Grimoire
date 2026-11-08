@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { questionCards } from './questionCards'
 
 // 그리모리 문서 사이트 설정. 문서를 추가하면 아래 sidebar 에 한 줄 더한다.
 export default defineConfig({
@@ -9,6 +10,10 @@ export default defineConfig({
   description: '마법세계 오픈월드 생존 게임 「그리모리」의 스펙 · 시스템 · 개발 문서',
   cleanUrls: true,
   lastUpdated: true,
+
+  markdown: {
+    config: (md) => md.use(questionCards),
+  },
 
   themeConfig: {
     siteTitle: '그리모리 문서',
@@ -118,6 +123,7 @@ export default defineConfig({
             { text: '이펙트', link: '/qa/fx' },
             { text: '성능 예산', link: '/qa/perf' },
             { text: '레벨 아트', link: '/qa/level-art' },
+            { text: '문서 사이트', link: '/qa/docs-site' },
             { text: 'M4 거점 + 생물 보관 통합', link: '/qa/m4-base' },
             { text: 'QA 절차', link: '/dev/qa' },
           ],
