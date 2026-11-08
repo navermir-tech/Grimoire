@@ -116,6 +116,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "UI", meta = (ClampMin = "0", Units = "s"))
 	float NoticeSeconds = 3.f;
 
+	/** 가방 칸을 이 시간 안에 두 번 누르면 더블클릭(바로 사용). 기본값은 Windows 기본 더블클릭 시간 */
+	UPROPERTY(Config, EditAnywhere, Category = "UI", meta = (ClampMin = "0.05", Units = "s"))
+	float SlotDoubleClickSeconds = 0.5f;
+
 	/** 묶음(#Meat) 의 화면 이름 — 냄비 안내 「고기 1/1」. 없으면 묶음 ID 그대로 */
 	UPROPERTY(Config, EditAnywhere, Category = "UI")
 	TMap<FName, FString> GroupDisplayNames;

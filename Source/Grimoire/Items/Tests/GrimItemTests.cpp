@@ -8,8 +8,10 @@
 #include "Items/GrimItemTags.h"
 #include "Items/GrimItemTypes.h"
 #include "Core/GrimElementalTypes.h"
+#include "Core/GrimPlayerState.h"
 #include "Core/GrimGameplayTags.h"
 #include "Creatures/GrimCreatureStorageMath.h"
+#include "Base/GrimEquipmentComponent.h"
 #include "Interaction/GrimElementalObject.h"
 #include "Magic/GrimMagicAttributeSet.h"
 #include "Quest/GrimQuestSettings.h"
@@ -403,6 +405,134 @@ bool FGrimItemsEatTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("스튜: 추위 저항 + 표의 값"), ColdResist, Stew->Row.BuffColdResist);
 	UGrimItemStatics::ApplyFoodEffects(ASC, *Stew);
 	TestEqual(TEXT("다시 먹어도 겹치지 않는다"), ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetColdResistAttribute()), ColdResist);
+	return true;
+}
+
+// ───── 가방 화면: 더블클릭 사용 ─────
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimItemsBagDoubleClickWindowTest, "Grimoire.Items.BagDoubleClick.Window", PureFlags)
+bool FGrimItemsBagDoubleClickWindowTest::RunTest(const FString& Parameters)
+{
+	FGrimSlotDoubleClick Clicks;
+	TestFalse(TEXT("첫 누름"), Clicks.RegisterClick(3, 10.0, 0.5));
+	TestTrue(TEXT("창 안의 같은 칸 = 더블클릭"), Clicks.RegisterClick(3, 10.3, 0.5));
+	TestFalse(TEXT("세 번째 누름은 새 첫 누름"), Clicks.RegisterClick(3, 10.4, 0.5));
+	TestTrue(TEXT("네 번째는 다시 더블클릭"), Clicks.RegisterClick(3, 10.5, 0.5));
+
+	FGrimSlotDoubleClick Slow;
+	TestFalse(TEXT("첫 누름"), Slow.RegisterClick(1, 0.0, 0.5));
+	TestFalse(TEXT("창 밖은 더블클릭이 아니다"), Slow.RegisterClick(1, 0.8, 0.5));
+	TestTrue(TEXT("늦은 누름이 새 시작"), Slow.RegisterClick(1, 1.0, 0.5));
+
+	FGrimSlotDoubleClick Other;
+	TestFalse(TEXT("칸 1"), Other.RegisterClick(1, 0.0, 0.5));
+	TestFalse(TEXT("다른 칸은 더블클릭이 아니다"), Other.RegisterClick(2, 0.1, 0.5));
+
+	FGrimSlotDoubleClick Canceled;
+	TestFalse(TEXT("칸 1"), Canceled.RegisterClick(1, 0.0, 0.5));
+	Canceled.Reset();
+	TestFalse(TEXT("Reset 뒤에는 첫 누름"), Canceled.RegisterClick(1, 0.1, 0.5));
+
+	FGrimItemDefinition Def;
+	const TPair<EGrimItemKind, bool> Kinds[] = {
+		{ EGrimItemKind::Food, true }, { EGrimItemKind::Skillbook, true }, { EGrimItemKind::Equipment, true },
+		{ EGrimItemKind::Material, false }, { EGrimItemKind::Tool, false }, { EGrimItemKind::Seed, false },
+	};
+	for (const TPair<EGrimItemKind, bool>& Kind : Kinds)
+	{
+		Def.Row.Kind = Kind.Key;
+		TestEqual(*FString::Printf(TEXT("종류 %d 사용 가능"), static_cast<int32>(Kind.Key)), Def.IsUsable(), Kind.Value);
+	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimItemsBagDoubleClickUseTest, "Grimoire.Items.BagDoubleClick.Use", WorldFlags)
+bool FGrimItemsBagDoubleClickUseTest::RunTest(const FString& Parameters)
+{
+	FItemTestWorld TestWorld;
+	AGrimPlayerState* Player = TestWorld.World->SpawnActor<AGrimPlayerState>();
+	if (!TestNotNull(TEXT("플레이어"), Player))
+	{
+		return false;
+	}
+	UAbilitySystemComponent* ASC = Player->GetAbilitySystemComponent();
+	ASC->InitAbilityActorInfo(Player, Player);
+	if (!ASC->GetSet<UGrimVitalAttributeSet>())
+	{
+		ASC->AddSpawnedAttribute(Player->GetVitalSet());
+	}
+	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetHungerAttribute(), 20.f);
+	UGrimInventoryComponent* Bag = UGrimInventoryComponent::FindForActor(Player);
+	if (!TestNotNull(TEXT("가방(서브시스템이 붙임)"), Bag))
+	{
+		return false;
+	}
+	const FName MeatId(TEXT("RoastedJackalopeMeat"));
+	const FName FurId(TEXT("JackalopeFur"));
+	const FName HoodId(TEXT("FurHood"));
+	Bag->AddItem(FGrimItemInstance(MeatId, 3), false);
+	Bag->AddItem(FGrimItemInstance(FurId, 3), false);
+	Bag->AddItem(FGrimItemInstance(HoodId, 1), false);
+	const auto SlotOf = [Bag](FName ItemId) { return Bag->GetSlots().IndexOfByPredicate([ItemId](const FGrimItemInstance& Slot) { return Slot.ItemId == ItemId; }); };
+	const auto FirstEmpty = [Bag]() { return Bag->GetSlots().IndexOfByPredicate([](const FGrimItemInstance& Slot) { return Slot.IsEmpty(); }); };
+	const int32 Meat = SlotOf(MeatId);
+	const int32 Fur = SlotOf(FurId);
+	const int32 Hood = SlotOf(HoodId);
+	const int32 Empty = FirstEmpty();
+
+	UGrimInventoryWidget* Widget = NewObject<UGrimInventoryWidget>(TestWorld.World);
+	Widget->SetInventory(Bag);
+	TArray<EGrimItemNotice> Notices;
+	const FDelegateHandle NoticeHandle = Bag->OnNotice.AddLambda([&Notices](UGrimInventoryComponent*, EGrimItemNotice Notice, FName, int32) { Notices.Add(Notice); });
+	const double Window = UGrimItemSettings::Get()->SlotDoubleClickSeconds;
+
+	// 한 번 누름 = 고르기만
+	Widget->NotifySlotClicked(Meat, 100.0);
+	TestEqual(TEXT("한 번 누르면 고른다"), Widget->GetSelectedSlot(), Meat);
+	TestEqual(TEXT("한 번 누르면 쓰지 않는다"), Bag->CountOf(MeatId), 3);
+
+	// 창 안에 또 누름 = 사용(서버 경로) + 알림
+	Widget->NotifySlotClicked(Meat, 100.0 + Window * 0.5);
+	TestEqual(TEXT("더블클릭으로 하나 먹는다"), Bag->CountOf(MeatId), 2);
+	TestTrue(TEXT("배고픔이 찼다"), ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetHungerAttribute()) > 20.f);
+	TestTrue(TEXT("먹었다 알림"), Notices.Contains(EGrimItemNotice::Eaten));
+	TestEqual(TEXT("쓴 뒤에도 그 칸이 골라져 있다"), Widget->GetSelectedSlot(), Meat);
+
+	// 느린 두 번 = 사용 아님
+	Widget->NotifySlotClicked(Meat, 200.0);
+	Widget->NotifySlotClicked(Meat, 200.0 + Window * 2.0);
+	TestEqual(TEXT("느린 두 번은 쓰지 않는다"), Bag->CountOf(MeatId), 2);
+
+	// 재료 · 빈 칸 = 아무 일 없음(알림도 없다)
+	Notices.Reset();
+	Widget->NotifySlotClicked(Fur, 300.0);
+	Widget->NotifySlotClicked(Fur, 300.1);
+	TestEqual(TEXT("재료는 줄지 않는다"), Bag->CountOf(FurId), 3);
+	TestEqual(TEXT("재료 더블클릭은 알림도 없다"), Notices.Num(), 0);
+	Widget->NotifySlotClicked(Empty, 310.0);
+	Widget->NotifySlotClicked(Empty, 310.1);
+	TestEqual(TEXT("빈 칸 더블클릭은 알림도 없다"), Notices.Num(), 0);
+
+	// 장비 = 입기(기존 사용 경로)
+	if (TestNotNull(TEXT("장비 컴포넌트"), UGrimEquipmentComponent::FindForActor(Player)))
+	{
+		Widget->NotifySlotClicked(Hood, 400.0);
+		Widget->NotifySlotClicked(Hood, 400.1);
+		TestEqual(TEXT("장비는 더블클릭으로 입는다"), Bag->CountOf(HoodId), 0);
+		TestTrue(TEXT("입었다 알림"), Notices.Contains(EGrimItemNotice::Equipped));
+	}
+
+	// 옮기는 중의 누름은 더블클릭이 아니다
+	const int32 Target = FirstEmpty();
+	Widget->NotifySlotClicked(Meat, 500.0);
+	Widget->SetMoveArmed(true);
+	Widget->NotifySlotClicked(Target, 500.1);
+	TestFalse(TEXT("놓으면 옮기기가 끝난다"), Widget->IsMoveArmed());
+	TestEqual(TEXT("놓을 칸으로 옮겼다"), SlotOf(MeatId), Target);
+	Widget->NotifySlotClicked(Target, 500.2);
+	TestEqual(TEXT("옮긴 직후 또 눌러도 쓰지 않는다"), Bag->CountOf(MeatId), 2);
+
+	Bag->OnNotice.Remove(NoticeHandle);
 	return true;
 }
 

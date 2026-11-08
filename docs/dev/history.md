@@ -203,3 +203,10 @@
   - VitePress 검색창 Enter(`router.go`)는 `hashchange` 를 안 내므로 필터를 풀려면 `router.onAfterRouteChange` 도 걸어야 한다.
   - 검색 색인은 `<hN>…<a href="#…"></a></hN>` 이 한 줄일 때만 절로 나눈다 — 카드 제목 줄에 줄바꿈을 넣으면 번호 검색이 페이지 맨 위로 간다.
   - 한글 머리글 `id` 는 NFD(자모 분리)다 — `getElementById('미결-질문')` 처럼 NFC 문자열로는 못 찾는다.
+
+## 가방 칸 더블클릭 사용 (2026-11-08)
+
+- **무엇을**: 소지품(L) 가방 칸을 더블클릭하면 바로 쓴다(음식 먹기 · 스킬북 읽기 · 장비 입기). 재료 · 도구 · 씨앗 · 빈 칸은 아무 일 없다 — [건축 · 인벤토리 「화면」](../systems/building).
+- **어떻게**: 사용 단추와 같은 `Server_UseItem` 을 부른다(새 RPC 없음, 판정 · 알림은 서버). `SButton` 은 더블클릭을 또 한 번의 누름으로 처리해 `OnClicked` 가 두 번 오므로, 칸 단추의 누름 간격을 `FGrimSlotDoubleClick` 이 본다(ini `SlotDoubleClickSeconds`, 기본 0.5초 = Windows 기본). 클라이언트는 `FGrimItemDefinition::IsUsable` 로 쓸 수 있는 종류만 보낸다 — 재료 더블클릭에 「쓸 수 없다」 알림이 뜨지 않게. 옮기기 중의 누름은 세지 않는다. 가방에는 끌어 놓기가 아직 없어(남은 것 「아이콘 · 끌어 놓기 UI」) 드래그와 겹치지 않는다.
+- **확인**: 자동화 `Grimoire.Items.BagDoubleClick.*`(2), 2인 `Scripts/Items/net_check_bag_doubleclick.ps1`, 화면 `Scripts/QA/shoot_qa.ps1 -Set Bag` — [QA — 생존](../qa/survival#먹기-·-요리-r03-·-r16).
+- **함정**: 합성 입력을 `RoutePointerDownEvent` · `RoutePointerMoveEvent` 에 경로와 함께 직접 넣으면 창 없는 실행(`-RenderOffscreen`)에서 엔진 배열 어서트로 죽었다. `ProcessMouseMoveEvent` + `OnMouseDown` · `OnMouseUp` · `OnMouseDoubleClick`(OS 메시지가 들어오는 함수)에 좌표를 주면 창 찾기 · 칸 맞히기까지 실제 입력과 같은 길로 돌고 죽지 않는다(`Grim.Items.BagMouse`). 화면이 그려지기 전이면 칸 크기가 0 이라 못 한다.

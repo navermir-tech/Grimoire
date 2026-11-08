@@ -42,9 +42,13 @@
 
 | ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
 |---|---|---|---|---|---|---|
-| QA-SUR-030 | R03 | 가방 칸 · 쌓기 · 옮기기 · 표 · 먹기 · 요리 레시피 | ① `Grimoire.Items.*`(7) | 통과 | ✅ 11-06 | 자동화 |
+| QA-SUR-030 | R03 | 가방 칸 · 쌓기 · 옮기기 · 표 · 먹기 · 요리 레시피 | ① `Grimoire.Items.*`(9) | 통과 | ✅ 11-06 | 자동화 |
 | QA-SUR-031 | R16 · R13 | 2인: 날고기 줍기(소유자 복제) → 냄비 스튜(재료 넣기 · 끓는 중 막기 · 완성 픽업) → 먹기(배고픔 30 → 85 · 음식 버프 · 추위 저항 1) → 직접 불로 굽기 | ④ `Scripts\Items\net_check_items.ps1` | 스크립트 머리말의 기대 줄 | ❌ [BUG-007](./bugs)(스크립트 시간표) — 두 번 돌려 둘 다: 냄비 레시피 `MeatStew` · 끓는 중 · `Stew` 픽업 · 직접 불 `RoastedJackalopeMeat cooked=1` · 날고기 먹으면 `Status.Sick.Stomach` 는 **호스트 쪽에서 됨**, 클라이언트 넣기 · 먹기(배고픔 85 · 음식 버프 · 추위 저항 1)는 못 봄 | `items.txt` · `items-run1.txt` |
 | QA-SUR-032 | R03 | 화면: HUD 의 HP · 마나 · 배고픔 · 체온 막대 | ① `Grimoire.UI.BarFraction` · `.AttributeName` + ③ `qa-start-hud` | 통과 + 막대가 보인다 | ✅ 11-06 (로직) · [그림](./character#그림) | 자동화 |
+| QA-SUR-033 | R03 | 가방 칸 더블클릭 판정: 같은 칸 · `SlotDoubleClickSeconds` 안 두 번만 사용, 세 번째는 새 첫 누름, 느린 두 번 · 다른 칸은 아님. 사용 가능 = 음식 · 스킬북 · 장비 | ① `Grimoire.Items.BagDoubleClick.Window` | 통과 | ✅ 11-08 | 자동화 |
+| QA-SUR-034 | R03 | 더블클릭 사용: 한 번 = 고르기만, 두 번 = 음식 하나 먹음(배고픔 · 「먹었다」 알림), 재료 · 빈 칸 = 줄지 않고 알림도 없음, 장비 = 입기(「입었다」 알림), 옮기기 중의 누름은 쓰지 않음 | ① `Grimoire.Items.BagDoubleClick.Use` | 통과 | ✅ 11-08 | 자동화 |
+| QA-SUR-035 | R03 · R13 | 2인: 클라이언트 화면의 더블클릭이 `Server_UseItem` 으로 서버에서 처리되고 소유자에게 복제된다(호스트도 같은 입력) | ④ `Scripts\Items\net_check_bag_doubleclick.ps1` | 끝 줄 `NETCHECK_RESULT fail=0` | ✅ 11-08 | PASS 10 · 클라 고기 3 → 3 → 3 → 2 · 배고픔 29.9 → 59.8 · 털 3 그대로 · 두건 입음 · 서버 「먹었다」 2줄(클라 · 호스트) |
+| QA-SUR-036 | R03 | 화면: 실제 칸 단추에 OS 마우스 메시지 경로로 더블클릭 입력 — 개수 ×3 → ×2, 배고픔 막대 30 → 60, 「먹었다」 알림, 재료는 고르기만 | ③ `Scripts\QA\shoot_qa.ps1 -Set Bag`(`Grim.Items.BagMouse`) | 그림과 `shoot.log` 의 덤프 | ✅ 11-08 · [그림](#그림) | `[BagInput] 칸 0 슬레이트 더블클릭 라우팅 됨` → 덤프 `RoastedJackalopeMeat×2` · Hunger 59.9 |
 
 ## 그림
 
@@ -53,3 +57,9 @@
 ![QA-SUR-024 — 같은 밤, 자동 노출을 끔(r.EyeAdaptationQuality 0)](/qa/qa-night-fixed-exposure.jpg)
 
 ![QA-SUR-025 — 비(Grim.Weather.Set All Rain 0)](/qa/qa-rain.jpg)
+
+![QA-SUR-036 — 가방: 칸을 고른 뒤(구운 고기 ×3, 배고픔 30)](/qa/qa-bag-selected.jpg)
+
+![QA-SUR-036 — 음식 칸 더블클릭(×2, 배고픔 60, 「먹었다」 알림)](/qa/qa-bag-doubleclick-food.jpg)
+
+![QA-SUR-036 — 재료 칸 더블클릭(고르기만, 털 ×3 그대로)](/qa/qa-bag-doubleclick-material.jpg)

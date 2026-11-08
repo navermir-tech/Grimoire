@@ -1,5 +1,6 @@
 #include "Items/GrimCookingPot.h"
 #include "Items/GrimInventoryComponent.h"
+#include "Items/GrimInventoryWidget.h"
 #include "Items/GrimItemPickup.h"
 #include "Items/GrimItemTags.h"
 #include "Core/GrimPlayerState.h"
@@ -12,6 +13,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerController.h"
 #include "HAL/IConsoleManager.h"
+#include "HAL/PlatformTime.h"
 
 // 아이템 콘솔 명령(개발 빌드). 콘솔은 로컬에서 돌므로 친 플레이어의 가방 서버 RPC 로 서버에서 적용한다.
 // 이름은 Grim.Items.*(콘솔은 대소문자를 가리지 않는다). 목록은 docs/systems/building 「콘솔」.
@@ -43,12 +45,45 @@ namespace GrimItemConsolePrivate
 		return Command == TEXT("Give") || Command == TEXT("Spawn") || Command == TEXT("Eat") || Command == TEXT("DropId");
 	}
 
+	/** 로컬: 가방 화면의 칸을 누른다(서버로 가는 것은 화면이 부르는 Server_UseItem 뿐). */
+	void RunBagInput(UGrimInventoryComponent* Inventory, const FString& Command, const TArray<FString>& Args)
+	{
+		UGrimInventoryWidget* Widget = Inventory->GetWidget();
+		if (!Widget)
+		{
+			UE_LOG(LogGrimItems, Warning, TEXT("Grim.Items.%s: 가방 화면이 아직 없다"), *Command);
+			return;
+		}
+		Widget->SetBagOpen(true);
+		const int32 SlotIndex = Args.IsValidIndex(0) ? FCString::Atoi(*Args[0]) : 0;
+		if (Command == TEXT("BagMouse"))
+		{
+			const bool bRouted = Widget->DebugRouteDoubleClick(SlotIndex);
+			UE_LOG(LogGrimItems, Display, TEXT("[BagInput] 칸 %d 슬레이트 더블클릭 라우팅 %s"), SlotIndex, bRouted ? TEXT("됨") : TEXT("못함"));
+			return;
+		}
+		const int32 Clicks = Args.IsValidIndex(1) ? FMath::Max(1, FCString::Atoi(*Args[1])) : 1;
+		const double GapSeconds = Args.IsValidIndex(2) ? FCString::Atod(*Args[2]) : 0.1;
+		double Now = FPlatformTime::Seconds();
+		for (int32 Click = 0; Click < Clicks; ++Click)
+		{
+			Widget->NotifySlotClicked(SlotIndex, Now);
+			Now += GapSeconds;
+		}
+		UE_LOG(LogGrimItems, Display, TEXT("[BagInput] 칸 %d 를 %d번 눌렀다(간격 %.2f초) → 고른 칸 %d"), SlotIndex, Clicks, GapSeconds, Widget->GetSelectedSlot());
+	}
+
 	void Run(UWorld* World, const FString& Command, const TArray<FString>& Args)
 	{
 		UGrimInventoryComponent* Inventory = FindLocalInventory(World);
 		if (!Inventory)
 		{
 			UE_LOG(LogGrimItems, Warning, TEXT("Grim.Items.%s: 로컬 플레이어의 가방이 아직 없다"), *Command);
+			return;
+		}
+		if (Command == TEXT("BagClick") || Command == TEXT("BagMouse"))
+		{
+			RunBagInput(Inventory, Command, Args);
 			return;
 		}
 		const int32 First = TakesItemId(Command) ? 1 : 0;
@@ -182,6 +217,10 @@ static FAutoConsoleCommandWithWorldAndArgs GGrimItemsPickUpCommand(TEXT("Grim.It
 	TEXT("곁의 가장 가까운 픽업을 줍는다(F 와 같음)."), GrimItemConsolePrivate::Make(TEXT("PickUp")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimItemsUseCommand(TEXT("Grim.Items.Use"),
 	TEXT("칸을 쓴다(먹기 · 읽기). 예: Grim.Items.Use 0"), GrimItemConsolePrivate::Make(TEXT("Use")));
+static FAutoConsoleCommandWithWorldAndArgs GGrimItemsBagClickCommand(TEXT("Grim.Items.BagClick"),
+	TEXT("로컬: 가방 화면을 열고 칸을 누른다(화면 입력 시험). <칸> [횟수=1] [간격초=0.1]. 예: Grim.Items.BagClick 0 2 0.1"), GrimItemConsolePrivate::Make(TEXT("BagClick")));
+static FAutoConsoleCommandWithWorldAndArgs GGrimItemsBagMouseCommand(TEXT("Grim.Items.BagMouse"),
+	TEXT("로컬: 열린 가방 칸에 슬레이트 더블클릭 입력을 흘린다(화면이 그려진 뒤). 예: Grim.Items.BagMouse 0"), GrimItemConsolePrivate::Make(TEXT("BagMouse")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimItemsEatCommand(TEXT("Grim.Items.Eat"),
 	TEXT("그 아이템이 든 첫 칸을 쓴다. 예: Grim.Items.Eat Stew"), GrimItemConsolePrivate::Make(TEXT("Eat")));
 static FAutoConsoleCommandWithWorldAndArgs GGrimItemsDropCommand(TEXT("Grim.Items.Drop"),

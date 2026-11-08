@@ -157,7 +157,7 @@
 
 ## 아이템 · 요리
 
-코드 `Source/Grimoire/Items/GrimItemDebug.cpp`. 2인 확인 `Scripts/Items/net_check_items.ps1`. 아이템 id 는 `Content/Grimoire/Data/Items.csv`.
+코드 `Source/Grimoire/Items/GrimItemDebug.cpp`. 2인 확인 `Scripts/Items/net_check_items.ps1` · `Scripts/Items/net_check_bag_doubleclick.ps1`(가방 더블클릭). 아이템 id 는 `Content/Grimoire/Data/Items.csv`.
 
 | 명령 | 효과 |
 |---|---|
@@ -166,6 +166,8 @@
 | `Grim.Items.Drop <칸> [수]` · `Grim.Items.DropId <id> [수]` · `Grim.Items.Move <칸> <칸>` · `Grim.Items.Clear` | 버리기 · 옮기기(합치기 · 바꾸기) · 비우기 |
 | `Grim.Items.SpawnFire` · `Grim.Items.SpawnPot` · `Grim.Items.Pot` · `Grim.Items.Fire [세기]` | 모닥불 · 냄비 놓기, 곁 냄비에 재료 넣기(F), 가장 가까운 픽업에 불 자극(요리) |
 | `Grim.Items.Hunger <값>` | 배고픔을 값으로 |
+| `Grim.Items.BagClick <칸> [횟수=1] [간격초=0.1]` | (로컬) 가방 화면을 열고 칸을 누른다 — 두 번 · 짧은 간격이면 더블클릭(바로 사용) |
+| `Grim.Items.BagMouse <칸>` | (로컬) 열린 가방 칸에 슬레이트 더블클릭 입력(이동 · 누름 · 뗌 · 더블클릭 · 뗌)을 흘린다. 화면이 그려진 뒤에만 된다 |
 | `Grim.Items.At <초> <하위 명령 …>` · `Grim.Items.Dump` | 몇 초 뒤 아이템 명령(`Give` · `Dump` …) · 가방 · 픽업 · 냄비 로그 |
 | `Grim.Items.Reload` | 아이템 · 요리 표 다시 읽기 |
 

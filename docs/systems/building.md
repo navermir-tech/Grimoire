@@ -149,18 +149,18 @@ M3 기초(갈래 I)가 들어갔다 — 플레이어 가방(칸 수 고정) · �
 ### 화면 `UGrimInventoryWidget` (C++ 위젯 트리)
 
 - 아래 가운데: 줍기 · 냄비 안내(「[F] 줍기 — 재칼로프 고기(날)」, 「고기 스튜: 고기 1/1 · 허브 0/1 …」, 「익는 중 40%」 · 「불이 필요하다」), 그 위 알림 한 줄(`NoticeSeconds`).
-- **가방 키 L**(`BagKey`): 칸 격자(6열) + 고른 칸 설명 + 사용(먹기 · 읽기) · 하나 버리기 · 모두 버리기 · 옮기기(칸 고르고 [옮기기] → 놓을 칸). 열린 동안 커서 · 시점 고정(그리모어 화면과 같은 방식, 그리모어가 열려 있으면 닫는다).
+- **가방 키 L**(`BagKey`): 칸 격자(6열) + 고른 칸 설명 + 사용(먹기 · 읽기) · 하나 버리기 · 모두 버리기 · 옮기기(칸 고르고 [옮기기] → 놓을 칸). **칸 더블클릭 = 바로 사용**(음식 · 스킬북 · 장비만, 재료 · 도구 · 씨앗 · 빈 칸은 아무 일 없음 — 사용 단추와 같은 `Server_UseItem`, 서버가 판정 · 알림). 같은 칸을 `SlotDoubleClickSeconds` 안에 두 번 누른 것으로 본다(`FGrimSlotDoubleClick` — `SButton` 은 더블클릭을 또 한 번의 누름으로 처리해 `OnClicked` 가 두 번 온다). 옮기는 중의 누름은 세지 않는다. 열린 동안 커서 · 시점 고정(그리모어 화면과 같은 방식, 그리모어가 열려 있으면 닫는다).
 - **탭 「생물」**(R38): 데리고 다니는 생물 · 생물 보관함 목록 — 탭 클래스 `Creatures/UGrimCreatureStorageTab`(순서 15 = 장비 다음, ini 한 줄)이 목록 위젯 `UGrimCreatureStorageWidget` 을 끼운다. [생물 시스템 — 데리고 다니기 · 보관함](./creatures#데리고-다니기-·-보관함-·-거점-상자-r38).
 - 스킬북 아이템의 `TeachesSpell` 이 `Skill:<ID>` 면 마법이 아니라 **노말 스킬** 책이다(예: `Skill:CreatureStorage` — 생물 보관함). 읽으면 그 스킬을 배운다.
 - 키 조사: 호그와트 레거시 PC 기본 배치는 **소지품(Inventory) = L · 장비(Gear) = I** · 지도 = M · 아이템 버리기 = C. 그래서 가방은 L, I 는 장비 화면(M4)에 남긴다. 키는 PlayerController 키 상태로 본다(정식 입력 액션은 조작 갈래 몫).
 
 ### 설정 `UGrimItemSettings` — `[/Script/Grimoire.GrimItemSettings]`
 
-`ItemsCSV · RecipesCSV · PlayerSlotCount(24) · BagKey(L) · InteractKey(F) · PickupRadius(220) · ServerReachSlack(150) · bAutoPickupOnOverlap(False) · DropAutoPickupDelay(2) · DropDistance(120) · CookHeatRadius(170) · CookCheckInterval(0.5) · ExtraCookRatePerIntensity(0.5) · DirectFireHeatSeconds(4) · DirectFireMinIntensity(0.3) · PotInteractRadius(260) · PotHeatRadius(150) · NoticeSeconds(3) · GroupDisplayNames`.
+`ItemsCSV · RecipesCSV · PlayerSlotCount(24) · BagKey(L) · InteractKey(F) · PickupRadius(220) · ServerReachSlack(150) · bAutoPickupOnOverlap(False) · DropAutoPickupDelay(2) · DropDistance(120) · CookHeatRadius(170) · CookCheckInterval(0.5) · ExtraCookRatePerIntensity(0.5) · DirectFireHeatSeconds(4) · DirectFireMinIntensity(0.3) · PotInteractRadius(260) · PotHeatRadius(150) · SlotDoubleClickSeconds(0.5) · NoticeSeconds(3) · GroupDisplayNames`.
 
 ### 콘솔 (개발 빌드, 친 플레이어의 가방 → 서버)
 
-`Grim.Items.Give <ID> [수]` · `Spawn <ID> [수]`(앞 1.5m 픽업) · `PickUp` · `Use <칸>` · `Eat <ID>` · `Drop <칸> [수]` · `DropId <ID> [수]` · `Move <칸> <칸>` · `Fire [세기]`(가까운 픽업에 불 자극) · `SpawnFire`(앞 2m 불붙은 모닥불) · `SpawnPot`(가까운 모닥불 위 냄비) · `Pot` · `Hunger <값>` · `Clear` · `Dump` · `Reload` · `At <초> <명령> [인자…]`. 2인 확인: `Scripts/Items/net_check_items.ps1`(L_Tower, 튜토리얼 11 · 17 · 18 단계까지).
+`Grim.Items.Give <ID> [수]` · `Spawn <ID> [수]`(앞 1.5m 픽업) · `PickUp` · `Use <칸>` · `BagClick <칸> [횟수] [간격초]`(로컬 — 가방 화면 칸 누름) · `BagMouse <칸>`(로컬 — 슬레이트 더블클릭 입력) · `Eat <ID>` · `Drop <칸> [수]` · `DropId <ID> [수]` · `Move <칸> <칸>` · `Fire [세기]`(가까운 픽업에 불 자극) · `SpawnFire`(앞 2m 불붙은 모닥불) · `SpawnPot`(가까운 모닥불 위 냄비) · `Pot` · `Hunger <값>` · `Clear` · `Dump` · `Reload` · `At <초> <명령> [인자…]`. 2인 확인: `Scripts/Items/net_check_items.ps1`(L_Tower, 튜토리얼 11 · 17 · 18 단계까지).
 
 ### 남은 것 (M4)
 

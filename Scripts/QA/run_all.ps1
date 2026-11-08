@@ -36,6 +36,7 @@ $Steps = @(
 	@("save", "Save\check_save.ps1", "-Port {P}", "FAIL\s*0|^PASS", "^FAIL|FAIL [1-9]"),
 	@("join", "Online\check_join.ps1", "-Port {P} -BadPort 18799", "FAIL\s*0|^PASS", "^FAIL|FAIL [1-9]"),
 	@("items", "Items\net_check_items.ps1", "-Port {P}", "", ""),
+	@("bagdouble", "Items\net_check_bag_doubleclick.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
 	@("creatures", "Creatures\net_check_creatures.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
 	@("taming", "Creatures\net_check_taming.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
 	@("storage", "Creatures\net_check_storage.ps1", "-Port {P}", "NETCHECK_RESULT fail=0", "NETCHECK_RESULT fail=[1-9]"),
