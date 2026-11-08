@@ -110,7 +110,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 - 깨어 있으면 분당 `GainPerMinute`, 밤 ×`NightGainScale`, 체온 2단계 이상 ×`ModerateFatigueRateScale`. 자는 동안 초당 `SleepRecoveryPerSecond` 회복, 쓰러져 있으면 그대로.
 - `≥ 80 → Status.Exhausted` = **탈진**(R29 · Q116 확정 2026-11-08): 달리기 막힘(`AGrimPlayerCharacter::IsSprintBlocked`), 지친 걸음(이동 ×`ExhaustedMoveSpeedScale` 0.7 — 패널티 GE 의 `MoveSpeedScale`), **마법 시전 불가**. 100 이 되어도 **기절(강제 수면)은 없다** — 탈진 그대로 걷는다. 잠(침대 · 밤)만이 푼다.
 - 시전 막힘(`[/Script/Grimoire.GrimSpellbookSettings]`): `Status.Sleeping` · `Status.Downed`(+ 건축 모드)는 `CastBlockingTags` — 마법 · 기본 공격 · 주먹질을 모두 막고 알리지 않는다. `Status.Exhausted` 는 `MagicBlockingTags` — **마법만** 막는다: 슬롯 마법은 실패 알림 「너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다」(`EGrimCastFailReason::Exhausted`), 기본 공격 입력은 주먹질이 대신 나간다(마법이 아니므로 — 구현에서 정한 것).
-- 탈진 전 구간의 「시전 속도 · 명중 크게 저하」(R29)는 아직 없다 — 문턱 · 수치는 미결 Q129. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
+- 탈진 전 구간의 「시전 속도 · 명중 크게 저하」(R29)는 아직 없다 — 문턱 · 수치는 미결 Q132. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
 - 명중 저하 · 바람 마법 「각성」은 나중.
 
 ## 질병
