@@ -146,8 +146,34 @@ MOSS_MATERIALS = {   # 이름: 원본 돌 머티리얼 인스턴스(텍스처를
 }
 MOSS_OVERRIDE = {"FT_Dress_MossSmall1": "MI_Dress_Moss_Small1", "FT_Dress_MossSmall3": "MI_Dress_Moss_Small3", "FT_Dress_MossSmall5": "MI_Dress_Moss_Small5",
                  "FT_Dress_MossLarge": "MI_Dress_Moss_Large", "FT_Dress_MossCluster": "MI_Dress_Moss_Cluster", "FT_Dress_MossBoulder": "MI_Dress_Moss_Boulder"}
-# 물결 노멀은 엔진에 들어 있는 것 — WaterMaterials 팩은 CC BY 라 Q126 이 정해지기 전에는 쓰지 않는다
-WATER_NORMALS = ("/Engine/Functions/Engine_MaterialFunctions02/ExampleContent/Textures/water_n", "/Engine/Functions/Engine_MaterialFunctions02/ExampleContent/Textures/water_n")
+# 개울 · 연못 물 표면 = Water Materials 팩(tharlevfx, CC BY 4.0 — docs/art/credits.md, Q126)의 M_River 인스턴스.
+# Cheaper 판(볼륨 라이팅 · 큐브맵 자체 발광)은 하늘을 반사하지 못해 위에서 보면 흙길처럼 보였다 — 표면 조명인 M_River 를 쓴다.
+# 값은 여기에만 둔다 — 부모 기본값은 큰 강 · 큰 메시 기준이라 UV 배율 · 파도 세기 · 색을 숲 개울에 맞춘다.
+WATER_PARENT = "/Game/WaterMaterials/Materials/M_River"
+WATER_INSTANCE = "MI_Dress_Water"
+WATER_SCALARS = {
+    # 메시 UV0 = (물길 호 길이 m, 가로 m) — 부모는 UV 0~1 메시 기준이라 크게 줄인다. 큰 물결 = 약 3 m, 잔물결 = 약 2 m
+    "River_Tiling": 0.04,
+    "River_Speed": 0.8,
+    "NormalIntensity": 1.2,
+    "EdgeNormal_Tiling": 0.3,
+    "EdgeNormal_Speed": 0.5,
+    "EdgeNormal_Intensity": 1.0,
+    # 파도(WPO) · 흐름 모프는 끈다 — 폭 2 ~ 5 m 개울에서 물가와 부딪히고 정점 연산만 든다
+    "Master_Intensity": 0.0,
+    "River1_Intensity": 0.0,
+    "River1_NormalIntensity": 0.0,
+    "River2_Intensity": 0.0,
+    "River2_NormalIntensity": 0.0,
+    # 물가는 깊이 페이드로 스며들게, 얕은 곳은 바닥이 비친다(이전 M_Dress_Water 와 같은 깊이 감각)
+    "FadeDistance": 35.0,
+    "Opacity": 0.72,
+    "OpacityDeep": 0.96,
+}
+WATER_COLORS = {   # 회화풍 팔레트 — 짙은 청록(얕은 곳) → 어두운 청록(깊은 곳). 부모 기본은 회색이다
+    "Colour": (0.10, 0.30, 0.30),
+    "ColourDeep": (0.02, 0.12, 0.16),
+}
 
 # 잎 색(레벨 디자인 2차): 팩 기본 잎은 밝은 연두라 땅보다 떠 보인다 — 팩 잎 머티리얼 인스턴스를 부모로 우리 인스턴스를 만들어
 # 「Color Base」(그늘 쪽) · 「Color Top」(빛 받는 위쪽)을 콘셉트 아트(짙은 초록 그늘 · 따뜻한 황록 윗면)에 맞춘다. 폴리지 타입 덮어쓰기 재질(슬롯 0 = 잎).
@@ -504,62 +530,24 @@ def make_moss_materials():
     return out
 
 
-def make_water_material(name="M_Dress_Water"):
-    """개울 · 연못 물 표면(BuildWaterSurfaceMesh 메시 전용): 정점 색 R = 흐름. 개울은 UV0(호 길이 m)를 따라 물결이 흐르고 연못은 천천히 일렁인다.
-    물가는 깊이 페이드로 투명해져 물가선이 칼로 자른 듯 보이지 않고, 얕은 곳은 바닥이 비친다"""
-    m = _material(name)
-    m.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
-    m.set_editor_property("translucency_lighting_mode", unreal.TranslucencyLightingMode.TLM_SURFACE)
-    m.set_editor_property("two_sided", True)
-    uv0 = _expr(m, unreal.MaterialExpressionTextureCoordinate, -2200, 0)
-    world = _expr(m, unreal.MaterialExpressionWorldPosition, -2200, 300)
-    vertex = _expr(m, unreal.MaterialExpressionVertexColor, -2200, 600)
-    flow_mask = _mask(m, vertex, "r", -2000, 600)
-
-    def sample(tex_path, uv_node, x, y, speed_x, speed_y, scale):
-        scaled = _bin(m, unreal.MaterialExpressionDivide, uv_node, _scalar(m, f"Scale{x}{y}".replace("-", "n"), scale, x - 400, y + 120), x - 400, y)
-        pan = _expr(m, unreal.MaterialExpressionPanner, x - 200, y)
-        pan.set_editor_property("speed_x", speed_x)
-        pan.set_editor_property("speed_y", speed_y)
-        _connect(scaled, "", pan, "Coordinate")
-        node = _expr(m, unreal.MaterialExpressionTextureSample, x, y)
-        node.set_editor_property("texture", _load(tex_path))
-        node.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
-        _connect(pan, "", node, "UVs")
-        return node
-    n_flow_a = sample(WATER_NORMALS[0], uv0, -1200, 0, 0.3, 0.03, 2.6)
-    n_flow_b = sample(WATER_NORMALS[1], uv0, -1200, 300, 0.2, -0.05, 1.5)
-    world_xy = _bin(m, unreal.MaterialExpressionDivide, _mask(m, world, "rg", -1900, 300), _scalar(m, "WorldToM", 100.0, -1900, 420), -1700, 300)
-    n_still_a = sample(WATER_NORMALS[0], world_xy, -1200, 600, 0.015, 0.01, 9.0)
-    n_still_b = sample(WATER_NORMALS[1], world_xy, -1200, 900, -0.012, 0.018, 5.0)
-    n_flow = _bin(m, unreal.MaterialExpressionAdd, n_flow_a, n_flow_b, -900, 150, "RGB", "RGB")
-    n_still = _bin(m, unreal.MaterialExpressionAdd, n_still_a, n_still_b, -900, 750, "RGB", "RGB")
-    mixed = _lerp(m, n_still, n_flow, flow_mask, -700, 450)
-    # XY 세기 조절 뒤 정규화 — 개울 물결은 세게, 연못은 약하게
-    strength = _lerp(m, _scalar(m, "StillNormal", 0.12, -700, 650), _scalar(m, "FlowNormal", 0.3, -700, 730), flow_mask, -500, 650)
-    flat = _expr(m, unreal.MaterialExpressionAppendVector, -300, 450)
-    xy = _bin(m, unreal.MaterialExpressionMultiply, _mask(m, mixed, "rg", -500, 450), strength, -400, 500)
-    one = _expr(m, unreal.MaterialExpressionConstant, -400, 620)
-    one.set_editor_property("r", 1.0)
-    _connect(xy, "", flat, "A")
-    _connect(one, "", flat, "B")
-    norm = _expr(m, unreal.MaterialExpressionNormalize, -150, 450)
-    _connect(flat, "", norm, "VectorInput")
-    mel.connect_material_property(norm, "", unreal.MaterialProperty.MP_NORMAL)
-    # 깊이: 얕으면 투명 · 밝게, 깊으면 짙은 청록
-    fade = _expr(m, unreal.MaterialExpressionDepthFade, -700, 1100)
-    _connect(_scalar(m, "ShoreFadeCm", 35.0, -900, 1180), "", fade, "FadeDistance")
-    depth = _expr(m, unreal.MaterialExpressionDepthFade, -700, 1300)
-    _connect(_scalar(m, "DeepFadeCm", 90.0, -900, 1380), "", depth, "FadeDistance")
-    color = _lerp(m, _vec(m, "ShallowColor", (0.07, 0.24, 0.23), -500, 1000), _vec(m, "DeepColor", (0.008, 0.07, 0.10), -500, 1150), depth, -200, 1050)
-    mel.connect_material_property(color, "", unreal.MaterialProperty.MP_BASE_COLOR)
-    opacity = _bin(m, unreal.MaterialExpressionMultiply, fade, _lerp(m, _scalar(m, "ShallowOpacity", 0.6, -500, 1450), _scalar(m, "DeepOpacity", 0.93, -500, 1520), depth, -300, 1450), -100, 1300)
-    mel.connect_material_property(opacity, "", unreal.MaterialProperty.MP_OPACITY)
-    mel.connect_material_property(_scalar(m, "Roughness", 0.07, -100, 1500), "", unreal.MaterialProperty.MP_ROUGHNESS)
-    mel.connect_material_property(_scalar(m, "Specular", 0.55, -100, 1600), "", unreal.MaterialProperty.MP_SPECULAR)
-    mel.recompile_material(m)
-    eal.save_loaded_asset(m)
-    return m
+def make_water_material(name=WATER_INSTANCE):
+    """개울 · 연못 물 표면(BuildWaterSurfaceMesh 메시 전용) — 팩 재질 M_River 의 인스턴스. 부모의 물결은 UV0 를 따라 흐른다(메시 UV0 = 호 길이 m).
+    정점 색 R = 흐름(개울 1 · 연못 0)이 부모의 잔물결 세기(`SubtleNoise_Variation`)에 더해져 개울은 고르게, 연못은 얼룩지게 일렁인다.
+    부모는 한 면만 그리는데 물속에서 올려다볼 수 있어 양면을 켠다"""
+    mi = _existing_or_new(name, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+    mel.set_material_instance_parent(mi, _load(WATER_PARENT))
+    mel.clear_all_material_instance_parameters(mi)   # 값이 표에 있는 것만 남게
+    for param, value in WATER_SCALARS.items():
+        mel.set_material_instance_scalar_parameter_value(mi, param, value)
+    for param, (r, g, b) in WATER_COLORS.items():
+        mel.set_material_instance_vector_parameter_value(mi, param, unreal.LinearColor(r, g, b, 1.0))
+    overrides = mi.get_editor_property("base_property_overrides")
+    overrides.set_editor_property("override_two_sided", True)
+    overrides.set_editor_property("two_sided", True)
+    mi.set_editor_property("base_property_overrides", overrides)
+    mel.update_material_instance(mi)
+    eal.save_loaded_asset(mi)
+    return mi
 
 
 def make_spring_ripple_material(name="M_Dress_SpringRipple"):

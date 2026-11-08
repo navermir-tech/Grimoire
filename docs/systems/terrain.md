@@ -329,10 +329,25 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 | 바다 + 큰 강 | 해수면(0 m) 평면 하나 | `WaterVolume_SeaRiver` | `Water` · `Water.Sea` · `Water.River` |
 | 연못 5곳 | 원판 | `WaterVolume_Pond_*` | `Water` · `Water.Pond` · 연못 이름 |
 | 개울 2개(계곡 · 폭포) | 12 m 조각 평면(물 높이를 따라 기울임) | 없음(얕다) | `Water` · `Water.Creek` · 개울 이름 |
-| 자연 개울 2개 + 합류 연못(3차) | **물 표면 메시 하나**(`SM_Water_<개울>`, 격자 1 m · `BuildWaterSurfaceMesh`) — 물가선 = 땅과의 교선, 끝 물 높이 = 연못 물 높이, 재질 `M_Dress_Water`(정점 색 R = 흐름) | 연못만 `WaterVolume_*` | 같음 |
+| 자연 개울 2개 + 합류 연못(3차) | **물 표면 메시 하나**(`SM_Water_<개울>`, 격자 1 m · `BuildWaterSurfaceMesh`) — 물가선 = 땅과의 교선, 끝 물 높이 = 연못 물 높이, 재질 `MI_Dress_Water`(Water Materials 팩 `M_River` 인스턴스 — 아래 「물 재질」) | 연못만 `WaterVolume_*` | 같음 |
 | 폭포 | 흰 띠 · 물보라(그레이박스) | `WaterVolume_Landmark_Waterfall`(띠를 따라) | `Water` · `Water.Falls` |
 
 - 엔진 Water 플러그인을 쓰지 않은 까닭은 1차와 같다(프로젝트에 꺼져 있고, 물 몸체가 높이 지도를 두 번 깎는다).
+
+### 물 재질
+
+자연 개울 · 합류 연못의 표면 재질은 `MI_Dress_Water` — [Water Materials](../art/credits) 팩(tharlevfx, CC BY 4.0, [Q126](../spec/decisions#미결-질문))의 `M_River` 인스턴스다. 값은 `Scripts/Terrain/dress_assets.py` 의 `WATER_SCALARS` · `WATER_COLORS` 에만 있고, `Scripts/Terrain/apply_water_material.py` 가 물 표면 메시를 다시 구운 뒤 메시와 액터에 입힌다(맵 전체를 다시 만들지 않는다).
+
+| 메시 데이터 | 값 | 재질에서 |
+|---|---|---|
+| UV0 | 개울 = (호 길이 m, 물길에서 가로 m) · 연못 = (지도 X, 지도 Y m) | 팩 재질의 물결이 UV0 U 쪽으로 흐른다 — 개울의 흐름 방향 그대로. 호 길이는 꺾은점 번호 + 앞뒤 거리로 잇는다(정수로 두면 1 m 칸마다 끊겨 격자무늬가 보였다). 연못의 U 는 지도 X 라 아주 천천히 동쪽으로 흐르는 듯 보인다 — 잔물결이 거의 없어 눈에 띄지 않는다 |
+| 정점 색 R | 개울 1 · 연못 0 | 팩의 잔물결 세기(`SubtleNoise_Variation`)에 더해진다 — 개울은 고르게 일렁이고 연못은 얼룩지게 |
+| 정점 색 B · A | 0 · 1 | 물가 물결 방향 · 흐름 모프 — 모프는 세기 0 으로 끈다 |
+
+- **왜 `M_River`(가벼운 판이 아니라)**: `M_River_Cheaper` 는 볼륨 라이팅이라 하늘을 반사하지 못하고 큐브맵 자체 발광에 기댄다 — 낮에 위에서 보면 흙길처럼 보이고 시각 변화에도 따라가지 않는다. `M_River` 는 표면 조명이라 하늘 · 나무가 물에 비친다(반투명 표면 조명은 3차의 자체 재질과 같다). 성능은 [QA-LVL-034](../qa/level-art#물-재질-q126-2026-11-09).
+- **끈 것**: 파도 정점 이동(`Master_Intensity` · `River1_Intensity` · `River2_Intensity` = 0 — 폭 2 ~ 5 m 개울에서 물가와 부딪힌다), 흐름 모프 노멀. **양면**은 인스턴스 재정의로 켰다 — 연못 속에서 올려다볼 수 있다.
+- **샘의 동심원**(`M_Dress_SpringRipple`)은 그대로 — 물 표면 위에 뜬 작은 판(`Spring_Ripple`)이라 물 재질과 상관없다.
+- 바다 · 원판 연못 5곳 · 계곡 개울은 아직 예전 그레이박스 물(`M_Terrain_Water`)이다 — 자연 개울로 바꿀 때 같은 재질을 쓴다([Q136](../spec/decisions#미결-질문)).
 
 ## 식생 — 생성기 규칙 + 인스턴스드 폴리지 (PCG 아님)
 
