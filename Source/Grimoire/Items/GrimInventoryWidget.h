@@ -28,9 +28,32 @@ public:
 };
 
 /**
+ * 같은 칸을 잇달아 누른 것을 더블클릭으로 센다. SButton 은 더블클릭을 「또 한 번 누름」으로 처리해 OnClicked 가 두 번 오므로 그 간격을 본다.
+ * 더블클릭으로 센 뒤에는 처음으로 돌아간다 — 세 번째 누름은 새 첫 누름이다.
+ */
+struct FGrimSlotDoubleClick
+{
+	/** 이번 누름이 더블클릭의 둘째면 true */
+	bool RegisterClick(int32 SlotIndex, double NowSeconds, double WindowSeconds)
+	{
+		const bool bDouble = SlotIndex != INDEX_NONE && SlotIndex == LastSlot && NowSeconds - LastSeconds <= WindowSeconds;
+		LastSlot = bDouble ? INDEX_NONE : SlotIndex;
+		LastSeconds = NowSeconds;
+		return bDouble;
+	}
+
+	void Reset() { LastSlot = INDEX_NONE; }
+
+private:
+	int32 LastSlot = INDEX_NONE;
+	double LastSeconds = 0.0;
+};
+
+/**
  * 가방 화면 · 줍기 안내(C++ 위젯 트리) — 로컬 플레이어마다 하나(UGrimInventoryComponent 가 띄운다).
  *  - 아래 가운데: 줍기 · 냄비 안내 「[F] 줍기 — 재칼로프 고기(날)」, 그 위에 알림 한 줄(얻음 · 먹음 · 가방 가득 …).
  *  - 가방 키(UGrimItemSettings::BagKey, 기본 L): 가운데에 칸 격자 + 고른 칸 설명 + 사용(먹기 · 읽기) · 버리기 · 옮기기.
+ *    칸을 더블클릭하면 바로 쓴다(음식 · 스킬북 · 장비만 — 사용 단추와 같은 Server_UseItem).
  *    열린 동안 마우스 커서 · 시점 고정(그리모어 화면과 같은 방식 — 그리모어가 열려 있으면 닫는다).
  *  - 키는 침대 · NPC 처럼 PlayerController 키 상태로 본다(정식 입력 액션은 조작 갈래 몫).
  * 값은 소유 클라이언트에 복제된 칸 · 픽업 · 냄비를 읽기만 하고, 바꾸는 것은 서버 RPC.
@@ -75,6 +98,18 @@ public:
 	static FString DescribeItem(const FGrimItemInstance& Item);
 	static FText DescribeNotice(EGrimItemNotice Notice, FName ItemId, int32 Count);
 
+	/** 칸을 눌렀다(단추 · 테스트 · 콘솔). NowSeconds 는 FPlatformTime 초 — 같은 칸을 SlotDoubleClickSeconds 안에 또 누르면 더블클릭 */
+	void NotifySlotClicked(int32 SlotIndex, double NowSeconds);
+
+	int32 GetSelectedSlot() const { return SelectedSlot; }
+	bool IsMoveArmed() const { return bMoveArmed; }
+	void SetMoveArmed(bool bArmed) { bMoveArmed = bArmed; }
+
+#if !UE_BUILD_SHIPPING
+	/** 개발: OS 마우스 메시지 처리 함수로 칸에 더블클릭 입력(이동 · 누름 · 뗌 · 더블클릭 · 뗌)을 넣는다. 칸이 아직 그려지지 않았으면 false */
+	bool DebugRouteDoubleClick(int32 SlotIndex);
+#endif
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -90,6 +125,7 @@ private:
 	void HandleInventoryChanged(UGrimInventoryComponent* InInventory);
 	void HandleNotice(UGrimInventoryComponent* InInventory, EGrimItemNotice Notice, FName ItemId, int32 Count);
 	void HandleSlotClicked(int32 SlotIndex);
+	void UseSlotIfUsable(int32 SlotIndex);
 	void HandleActionClicked(int32 Action);
 
 	void CreateTabs(UVerticalBox* Host);
@@ -153,6 +189,7 @@ private:
 	bool bBagDirty = true;
 	bool bMoveArmed = false;
 	int32 SelectedSlot = INDEX_NONE;
+	FGrimSlotDoubleClick SlotDoubleClick;
 	float NoticeRemaining = 0.f;
 	float PromptAccumulator = 0.f;
 };

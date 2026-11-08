@@ -204,6 +204,8 @@ struct GRIMOIRE_API FGrimItemDefinition
 
 	bool IsInGroup(FName Group) const { return Groups.Contains(Group); }
 	bool IsFood() const { return Row.Kind == EGrimItemKind::Food; }
+	/** 「사용」으로 무언가 일어나는 종류: 음식(먹기) · 스킬북(읽기) · 장비(입기). UGrimInventoryComponent::UseItem 의 분기와 맞춘다. */
+	bool IsUsable() const { return Row.Kind == EGrimItemKind::Food || Row.Kind == EGrimItemKind::Skillbook || Row.Kind == EGrimItemKind::Equipment; }
 	bool IsCookable() const { return !Row.CookResult.IsNone() && Row.CookSeconds > 0.f; }
 	int32 GetMaxStack() const { return FMath::Max(1, Row.MaxStack); }
 	FText GetDisplayName() const;

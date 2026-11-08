@@ -193,3 +193,10 @@
   - 포아송 원판을 고른 밀도에 쓰면 숲이 **과수원처럼** 고른 간격이 된다 — 숲 안에도 덩이 노이즈(`ForestPatchScale`)로 몇 그루씩 모이고 빈터가 생겨야 자연스럽다.
   - 나무 끝 컬 300 m 는 눈높이에서도 먼 언덕을 민둥산으로 만든다 — 480 m(스트리밍 512 m 안). 더 먼 나무는 HLOD 가 필요하다(Q129).
   - 구역 순서: 높이가 같은 두 구역이 겹치면 뒤 구역이 「검사 영역」을 가져간다 — 마탑 구간을 목초지 뒤로 옮겨 목초지 평균 높이에 구간 능선이 섞이지 않게 했다(높이는 그대로).
+
+## 가방 칸 더블클릭 사용 (2026-11-08)
+
+- **무엇을**: 소지품(L) 가방 칸을 더블클릭하면 바로 쓴다(음식 먹기 · 스킬북 읽기 · 장비 입기). 재료 · 도구 · 씨앗 · 빈 칸은 아무 일 없다 — [건축 · 인벤토리 「화면」](../systems/building).
+- **어떻게**: 사용 단추와 같은 `Server_UseItem` 을 부른다(새 RPC 없음, 판정 · 알림은 서버). `SButton` 은 더블클릭을 또 한 번의 누름으로 처리해 `OnClicked` 가 두 번 오므로, 칸 단추의 누름 간격을 `FGrimSlotDoubleClick` 이 본다(ini `SlotDoubleClickSeconds`, 기본 0.5초 = Windows 기본). 클라이언트는 `FGrimItemDefinition::IsUsable` 로 쓸 수 있는 종류만 보낸다 — 재료 더블클릭에 「쓸 수 없다」 알림이 뜨지 않게. 옮기기 중의 누름은 세지 않는다. 가방에는 끌어 놓기가 아직 없어(남은 것 「아이콘 · 끌어 놓기 UI」) 드래그와 겹치지 않는다.
+- **확인**: 자동화 `Grimoire.Items.BagDoubleClick.*`(2), 2인 `Scripts/Items/net_check_bag_doubleclick.ps1`, 화면 `Scripts/QA/shoot_qa.ps1 -Set Bag` — [QA — 생존](../qa/survival#먹기-·-요리-r03-·-r16).
+- **함정**: 합성 입력을 `RoutePointerDownEvent` · `RoutePointerMoveEvent` 에 경로와 함께 직접 넣으면 창 없는 실행(`-RenderOffscreen`)에서 엔진 배열 어서트로 죽었다. `ProcessMouseMoveEvent` + `OnMouseDown` · `OnMouseUp` · `OnMouseDoubleClick`(OS 메시지가 들어오는 함수)에 좌표를 주면 창 찾기 · 칸 맞히기까지 실제 입력과 같은 길로 돌고 죽지 않는다(`Grim.Items.BagMouse`). 화면이 그려지기 전이면 칸 크기가 0 이라 못 한다.

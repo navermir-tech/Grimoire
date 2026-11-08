@@ -19,8 +19,10 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Engine/LocalPlayer.h"
+#include "Framework/Application/SlateApplication.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "HAL/PlatformTime.h"
 
 #define LOCTEXT_NAMESPACE "GrimInventory"
 
@@ -550,6 +552,7 @@ void UGrimInventoryWidget::SetBagOpen(bool bOpen)
 	bBagOpen = bOpen;
 	bMoveArmed = false;
 	bBagDirty = true;
+	SlotDoubleClick.Reset();
 	if (BagRoot)
 	{
 		BagRoot->SetVisibility(bOpen ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
@@ -655,7 +658,7 @@ void UGrimInventoryWidget::RefreshBag()
 	}
 	else
 	{
-		Detail = LOCTEXT("PickSlot", "칸을 골라 쓰거나 버린다. 옮기기: 칸을 고르고 [옮기기] 뒤 놓을 칸을 누른다.").ToString();
+		Detail = LOCTEXT("PickSlot", "칸을 골라 쓰거나 버린다. 음식 · 책 · 장비는 더블클릭하면 바로 쓴다. 옮기기: 칸을 고르고 [옮기기] 뒤 놓을 칸을 누른다.").ToString();
 	}
 	if (bMoveArmed)
 	{
@@ -670,15 +673,70 @@ void UGrimInventoryWidget::RefreshBag()
 
 void UGrimInventoryWidget::HandleSlotClicked(int32 SlotIndex)
 {
+	NotifySlotClicked(SlotIndex, FPlatformTime::Seconds());
+}
+
+void UGrimInventoryWidget::NotifySlotClicked(int32 SlotIndex, double NowSeconds)
+{
 	UGrimInventoryComponent* InventoryComponent = Inventory.Get();
-	if (bMoveArmed && InventoryComponent && SelectedSlot != INDEX_NONE && SelectedSlot != SlotIndex)
+	if (bMoveArmed)
 	{
-		InventoryComponent->Server_MoveItem(SelectedSlot, SlotIndex);
-		bMoveArmed = false;
+		// 옮기는 중의 누름은 놓을 칸 고르기다 — 옮긴 칸을 곧바로 또 눌러도 아이템을 쓰지 않게 더블클릭으로 세지 않는다.
+		SlotDoubleClick.Reset();
+		if (InventoryComponent && SelectedSlot != INDEX_NONE && SelectedSlot != SlotIndex)
+		{
+			InventoryComponent->Server_MoveItem(SelectedSlot, SlotIndex);
+			bMoveArmed = false;
+		}
+	}
+	else if (SlotDoubleClick.RegisterClick(SlotIndex, NowSeconds, UGrimItemSettings::Get()->SlotDoubleClickSeconds))
+	{
+		UseSlotIfUsable(SlotIndex);
 	}
 	SelectedSlot = SlotIndex;
 	bBagDirty = true;
 }
+
+void UGrimInventoryWidget::UseSlotIfUsable(int32 SlotIndex)
+{
+	UGrimInventoryComponent* InventoryComponent = Inventory.Get();
+	if (!InventoryComponent || !InventoryComponent->GetSlots().IsValidIndex(SlotIndex) || InventoryComponent->GetSlots()[SlotIndex].IsEmpty())
+	{
+		return;
+	}
+	const FGrimItemDefinition* Def = UGrimItemSettings::GetDatabase().Find(InventoryComponent->GetSlots()[SlotIndex].ItemId);
+	if (Def && Def->IsUsable())
+	{
+		InventoryComponent->Server_UseItem(SlotIndex); // 사용 단추와 같은 길 — 쓸 수 있는지는 서버가 정한다
+	}
+}
+
+#if !UE_BUILD_SHIPPING
+bool UGrimInventoryWidget::DebugRouteDoubleClick(int32 SlotIndex)
+{
+	if (!bBagOpen || !SlotButtons.IsValidIndex(SlotIndex) || !FSlateApplication::IsInitialized())
+	{
+		return false;
+	}
+	const TSharedPtr<SWidget> SlotWidget = SlotButtons[SlotIndex]->GetCachedWidget();
+	FSlateApplication& Slate = FSlateApplication::Get();
+	const TSharedPtr<SWindow> Window = SlotWidget.IsValid() ? Slate.FindWidgetWindow(SlotWidget.ToSharedRef()) : nullptr;
+	const FGeometry& SlotGeometry = SlotButtons[SlotIndex]->GetCachedGeometry();
+	if (!Window.IsValid() || SlotGeometry.GetLocalSize().IsNearlyZero())
+	{
+		return false; // 아직 그려지지 않았다
+	}
+	// OS 마우스 메시지가 들어오는 함수를 그대로 부른다 — 창을 찾고 칸을 맞히는 것까지 실제 입력과 같은 길이다.
+	const FVector2D Center = FVector2D(SlotGeometry.GetAbsolutePositionAtCoordinates(FVector2f(0.5f, 0.5f)));
+	const TSharedPtr<FGenericWindow> Native = Window->GetNativeWindow();
+	Slate.ProcessMouseMoveEvent(FPointerEvent(FSlateApplication::CursorPointerIndex, Center, Center, TSet<FKey>(), EKeys::Invalid, 0.f, FModifierKeysState()));
+	Slate.OnMouseDown(Native, EMouseButtons::Left, Center);
+	Slate.OnMouseUp(EMouseButtons::Left, Center);
+	Slate.OnMouseDoubleClick(Native, EMouseButtons::Left, Center);
+	Slate.OnMouseUp(EMouseButtons::Left, Center);
+	return true;
+}
+#endif
 
 void UGrimInventoryWidget::HandleActionClicked(int32 Action)
 {
@@ -688,6 +746,7 @@ void UGrimInventoryWidget::HandleActionClicked(int32 Action)
 	{
 		return;
 	}
+	SlotDoubleClick.Reset();
 	switch (Action)
 	{
 	case ActionUse: InventoryComponent->Server_UseItem(SelectedSlot); break;
