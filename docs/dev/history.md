@@ -180,3 +180,15 @@
   - 쓰는 팩 파일 모으기는 머티리얼 부모까지 따라가야 한다 — 스캔 그루터기 하나가 부모 `Universal_Mat` 의 기본 텍스처(다른 스캔 4K) 때문에 134 MB 가 되어 뺐다.
   - Megaplants 나무는 스켈레탈 메시 + Nanite 어셈블리라 `r.Nanite.Foliage`(읽기 전용 프로젝트 설정)가 꺼져 있으면 줄기만 보인다 — 놓지 않았다(Q125).
   - 이 PC 의 Bash 도구는 히어독 안 `\\` 를 하나로 줄인다 — 백슬래시가 든 문서 편집은 Write 도구로 만든 파이썬 파일로.
+
+## 레벨 디자인 2차 — 능선 · 자연 분포 · 구간 구도 (2026-11-08)
+
+- **무엇을**: 사용자 피드백(「너무 규칙적 — 랜덤성 · 구릉과 능선, 콘셉트대로 구간 디테일, 하늘에 섹션 글씨, 큰 나무 자리는 큐브로 쪼갠 목업, 레퍼런스를 많이 보고 차용」)대로 `L_OpenBeta` 를 고쳤다 — 마탑 구간 땅을 **능선 7 줄(안부) + 뒤튼 능선형 노이즈 + 물방울 침식 + 결 맞춘 언덕**으로, 식생을 **포아송 원판 · 숲 무늬 · 무리 · 숲 안 덩이 · 등성이 / 골 · 물가**로(맵 전체 StyleHex, 잎 색 · 나무 끝 컬 480 m), 구간마다 콘셉트 구도(큰길 돌담 · 돌 표지 · 등불, 능선 꼭대기 바위 · 외딴 나무, 풍차 밭 · 곳간, 봉화대, 연못 징검돌 · 섬, 부유석 디딤돌, 고목 둥치), **하늘 구역 이름 20**, 거대 고목 **큐브 목업**.
+- **어떻게**: 생성기 C++(`Source/Grimoire/World/GrimTerrainGenerator.cpp` — `Ridgelines` · 구역 `Ridged*` · `Erosion*` · 언덕 군 방향 · 식생 자연 분포, `GetFoliageInstances` 로 종 값), `AGrimDevLabel` 의 구역 이름 모드(`bSectionLabel`, 콘솔 `Grim.DevLabels.Sections`), 레이아웃 `Scripts/Terrain/openbeta_layout.json`, 새 `Scripts/Terrain/section_dress.py` · `preview_openbeta.py` · `overlay_foliage.py`, 고친 `dress_openbeta.py` · `dress_assets.py` · `landmark_greybox.py` · `shoot_openbeta.ps1`(`-Set ld2`). 레퍼런스 · 차용은 [레벨 디자인 「9」](./level-design#_9-레벨-디자인-2차-—-능선-·-자연-분포-·-구간-구도-2026-11-08).
+- **확인**: [QA — 레벨 아트](../qa/level-art) 「레벨 디자인 2차」 — 스크린숏(눈높이 · 하늘, 같은 자리 전 · 후), 설계 검사, 자동화 테스트, `openbeta` · `tutorial`, 성능 측정.
+- **함정**:
+  - 워크트리의 LFS 파일이 포인터로만 있으면(`Invalid value for PACKAGE_FILE_TAG`) 맵 · 팩 에셋이 안 열린다 — 워크트리에서 `git lfs pull` 먼저.
+  - 파이썬 커맨드렛의 `unreal.log` 는 표준 출력으로 오지 않는다 — `Saved/Logs/Grimoire.log`(지난 실행은 `Grimoire-backup-*.log`)를 본다.
+  - 포아송 원판을 고른 밀도에 쓰면 숲이 **과수원처럼** 고른 간격이 된다 — 숲 안에도 덩이 노이즈(`ForestPatchScale`)로 몇 그루씩 모이고 빈터가 생겨야 자연스럽다.
+  - 나무 끝 컬 300 m 는 눈높이에서도 먼 언덕을 민둥산으로 만든다 — 480 m(스트리밍 512 m 안). 더 먼 나무는 HLOD 가 필요하다(Q129).
+  - 구역 순서: 높이가 같은 두 구역이 겹치면 뒤 구역이 「검사 영역」을 가져간다 — 마탑 구간을 목초지 뒤로 옮겨 목초지 평균 높이에 구간 능선이 섞이지 않게 했다(높이는 그대로).

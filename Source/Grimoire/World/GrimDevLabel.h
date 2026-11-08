@@ -52,8 +52,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel", meta = (ClampMin = "200"))
 	float WrapWidth = 1400.f;
 
+	/**
+	 * 하늘의 구역 이름(레벨 디자인 2차 — 사용자가 구역을 알아보게). 참이면: 콘솔 Grim.DevLabels.Sections 로 따로 끄고 켜며,
+	 * Grim.DevLabels.MaxDistance 덮어쓰기를 받지 않고(늘 MaxVisibleDistance), 어두운 판 없이 테두리 글씨로 그리고, 위아래로도 카메라를 본다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel")
+	bool bSectionLabel = false;
+
+	/** 제목 · 설명 글씨 크기(Slate 포인트). 0 이면 기본(제목 44 · 설명 30). 크게 하면 렌더 타깃 해상도가 올라 멀리서 덜 뭉개진다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel", meta = (ClampMin = "0"))
+	int32 TitleFontSize = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Grimoire|DevLabel", meta = (ClampMin = "0"))
+	int32 BodyFontSize = 0;
+
 	/** 지금 개발 표시를 보여 주는가(출시 빌드 = 늘 거짓, 개발 빌드 = Grim.DevLabels) */
 	static bool AreLabelsEnabled();
+	/** 하늘 구역 이름을 보여 주는가(출시 빌드 = 늘 거짓, 개발 빌드 = Grim.DevLabels && Grim.DevLabels.Sections) */
+	static bool AreSectionLabelsEnabled();
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void Tick(float DeltaSeconds) override;

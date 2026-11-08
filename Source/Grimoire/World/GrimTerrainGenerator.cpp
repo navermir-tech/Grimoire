@@ -56,6 +56,39 @@ namespace GrimTerrainGenLocal
 		return 1.f - FMath::Abs(Fbm(X, Y, 3, Offset));
 	}
 
+	/**
+	 * 뒤튼 능선형 다중 프랙탈(레벨 디자인 2차) — 결과는 대략 −1~1(평균 0 근처).
+	 * 저주파 노이즈 두 장으로 자리를 밀고(domain warp), 옥타브마다 (1 − |펄린|)² 을 앞 옥타브 값으로 가중한다(Musgrave).
+	 * 등성이가 날카롭게 이어지고 골은 넓다 — 둥근 언덕을 흩뿌린 「달걀판」과 달리 결이 생긴다.
+	 */
+	float WarpedRidged(double X, double Y, double Warp, const FVector2D& Offset)
+	{
+		const double WX = X + Warp * Fbm(X * 0.5 + 5.2, Y * 0.5 + 1.3, 3, Offset);
+		const double WY = Y + Warp * Fbm(X * 0.5 + 9.7, Y * 0.5 + 2.8, 3, Offset);
+		double Sum = 0.0, Norm = 0.0, Weight = 1.0, Amplitude = 1.0, Frequency = 1.0;
+		for (int32 Octave = 0; Octave < 4; ++Octave)
+		{
+			double Signal = 1.0 - FMath::Abs(Perlin(WX * Frequency + Octave * 19.1, WY * Frequency + Octave * 7.7, Offset));
+			Signal *= Signal;
+			Signal *= Weight;
+			Weight = FMath::Clamp(Signal * 1.6, 0.0, 1.0);
+			Sum += Signal * Amplitude;
+			Norm += Amplitude;
+			Amplitude *= 0.5;
+			Frequency *= 2.1;
+		}
+		// 능선 노이즈 평균이 0.35~0.45 쯤이라 빼서 바닥 높이를 크게 옮기지 않는다
+		return static_cast<float>((Norm > 0.0 ? Sum / Norm : 0.0) * 2.0 - 0.8);
+	}
+
+	/** 뒤튼 fBm(−1~1) — 숲 무늬 · 무리처럼 둥근 얼룩이 아니라 길쭉하고 불규칙한 무늬 */
+	float WarpedFbm(double X, double Y, double Warp, int32 Octaves, const FVector2D& Offset)
+	{
+		const double WX = X + Warp * Fbm(X * 0.7 + 3.1, Y * 0.7 + 8.4, 2, Offset);
+		const double WY = Y + Warp * Fbm(X * 0.7 + 6.6, Y * 0.7 + 4.2, 2, Offset);
+		return Fbm(WX, WY, Octaves, Offset);
+	}
+
 	/** 꺾은선 — 가장 가까운 점까지 거리와 그 점의 호 길이(상류부터) */
 	struct FPolyline
 	{
@@ -480,6 +513,7 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 	const FVector2D GullyOff = SeedOffset(L.Seed, 10);
 	const FVector2D GullyDepthOff = SeedOffset(L.Seed, 11);
 	const FVector2D ExtraOff = SeedOffset(L.Seed, 12);
+	const FVector2D RidgedOff = SeedOffset(L.Seed, 14);
 
 	FPolyline Valley;
 	Valley.Init(L.Valley.Points);
@@ -612,8 +646,12 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			{
 				const float SizeT = FMath::Pow(Random.FRand(), FMath::Max(Field.SizeBias, 0.1f));
 				const float HeightJitter = Random.FRandRange(0.85f, 1.15f);
-				const float Aspect = FMath::Lerp(1.f, FMath::Max(1.f, Field.MaxAspect), Random.FRand());
-				const float Yaw = Random.FRandRange(0.f, UE_PI);
+				const float Aspect = FMath::Lerp(FMath::Max(1.f, Field.MinAspect), FMath::Max(FMath::Max(1.f, Field.MinAspect), Field.MaxAspect), Random.FRand());
+				// 방향: 흩어짐 90° 이상이면 아무 방향(예전과 같은 난수 하나), 아니면 가운데 ± 흩어짐 — 줄지은 언덕 · 골 결
+				const float YawRand = Random.FRand();
+				const float Yaw = Field.YawSpread >= 90.f
+					? YawRand * UE_PI
+					: FMath::DegreesToRadians(Field.YawCenter + (YawRand * 2.f - 1.f) * Field.YawSpread);
 				const double PU = Random.FRand();
 				const double PV = Random.FRand();
 				const int32 Pick = Random.RandHelper(FMath::Max(BigHills.Num(), 1));
@@ -713,6 +751,81 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 		});
 	}
 
+	// 능선(레벨 디자인 2차) — 언덕과 같은 버퍼에 그린다. 높이는 점마다 준 값을 호 길이로 보간(낮은 점 = 안부), 단면은 언덕 실루엣, 양쪽 폭이 다르다
+	const FVector2D RidgelineOff = SeedOffset(L.Seed, 13);
+	for (int32 RidgeIndex = 0; RidgeIndex < L.Ridgelines.Num(); ++RidgeIndex)
+	{
+		const FGrimTerrainRidgeline& Spec = L.Ridgelines[RidgeIndex];
+		if (Spec.Points.Num() < 2)
+		{
+			continue;
+		}
+		constexpr int32 Subdiv = 8;
+		FPolyline Line;
+		Line.Init(Spec.Points, Subdiv);
+		// 원래 꺾은점 i 의 호 길이 = 부드럽게 한 점 i × Subdiv 의 누적 길이(점이 2 개면 그대로)
+		TArray<double> KnotArc;
+		const bool bSmoothed = Spec.Points.Num() >= 3;
+		for (int32 Index = 0; Index < Spec.Points.Num(); ++Index)
+		{
+			KnotArc.Add(Line.Cumulative[FMath::Min(bSmoothed ? Index * Subdiv : Index, Line.Cumulative.Num() - 1)]);
+		}
+		auto CrestAt = [&](double Arc) -> double
+		{
+			if (Spec.Heights.Num() != Spec.Points.Num())
+			{
+				return Spec.Height;
+			}
+			for (int32 Index = 0; Index + 1 < KnotArc.Num(); ++Index)
+			{
+				if (Arc <= KnotArc[Index + 1] || Index + 2 == KnotArc.Num())
+				{
+					const double Span = KnotArc[Index + 1] - KnotArc[Index];
+					const double T = Span > 0.0 ? FMath::Clamp((Arc - KnotArc[Index]) / Span, 0.0, 1.0) : 0.0;
+					// 점 사이는 부드럽게(안부가 V 자로 꺾이지 않게)
+					return FMath::Lerp(static_cast<double>(Spec.Heights[Index]), static_cast<double>(Spec.Heights[Index + 1]), static_cast<double>(Smooth01(T)));
+				}
+			}
+			return Spec.Heights.Last();
+		};
+		const float K = Spec.Sharpness > 0.f ? Spec.Sharpness : L.HillSharpness;
+		const double Vary = FMath::Clamp(Spec.Variation, 0.f, 0.8f);
+		const double VaryScale = FMath::Max(Spec.VariationScale, 10.f);
+		const FVector2D Off = RidgelineOff + FVector2D(RidgeIndex * 4.31, RidgeIndex * 2.77);
+		const double Reach = FMath::Max(Spec.LeftWidth, Spec.RightWidth) * (1.0 + Vary) + Q;
+		const int32 X0 = FMath::Clamp(FMath::FloorToInt32((Line.Bounds.Min.X - Reach) / Q), 0, Count.X - 1);
+		const int32 X1 = FMath::Clamp(FMath::CeilToInt32((Line.Bounds.Max.X + Reach) / Q), 0, Count.X - 1);
+		const int32 Y0 = FMath::Clamp(FMath::FloorToInt32((Line.Bounds.Min.Y - Reach) / Q), 0, Count.Y - 1);
+		const int32 Y1 = FMath::Clamp(FMath::CeilToInt32((Line.Bounds.Max.Y + Reach) / Q), 0, Count.Y - 1);
+		ParallelFor(Y1 - Y0 + 1, [&, X0, X1, Y0](int32 Row)
+		{
+			const int32 Y = Y0 + Row;
+			for (int32 X = X0; X <= X1; ++X)
+			{
+				const FVector2D P(X * Q, Y * Q);
+				double Distance = 0.0, Arc = 0.0, Signed = 0.0;
+				if (!Line.Closest(P, Reach, Distance, Arc, &Signed))
+				{
+					continue;
+				}
+				const double Side = Signed >= 0.0 ? Spec.LeftWidth : Spec.RightWidth;
+				const double Width = Side * (1.0 + Vary * Perlin(Arc / VaryScale, Signed >= 0.0 ? 3.7 : 8.9, Off));
+				if (Width <= 1.0 || Distance >= Width)
+				{
+					continue;
+				}
+				const double Crest = CrestAt(Arc) * (1.0 + 0.6 * Vary * Perlin(Arc / (VaryScale * 0.6), 13.1, Off));
+				const float Value = static_cast<float>(FMath::Max(Crest, 0.0) * FGrimTerrainGenerator::HillProfile(static_cast<float>(Distance / Width), K));
+				if (Value > 0.f)
+				{
+					const int32 I = Y * Count.X + X;
+					HillMax[I] = FMath::Max(HillMax[I], Value);
+					HillSum[I] += Value;
+				}
+			}
+		});
+	}
+
 	TArray<FZonePrep> Zones;
 	for (const FGrimTerrainZone& Zone : L.Zones)
 	{
@@ -739,6 +852,8 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			// 구역 바닥(뒤가 앞을 덮는다) — 경계는 노이즈로 들쭉날쭉하게. 구역 잔물결(ExtraRolling*)도 같은 무게로 섞는다
 			const double Wobble = Fbm(U / 260.0, V / 260.0, 2, ZoneOff);
 			double ExtraAmplitude = 0.0, ExtraScale = 60.0;
+			double RidgedAmp = 0.0, RidgedScale = 220.0, RidgedWarp = 0.6;
+			double BumpMul = 1.0;
 			for (const FZonePrep& Zone : Zones)
 			{
 				if (U < Zone.Bounds.Min.X - Zone.Reach || U > Zone.Bounds.Max.X + Zone.Reach || V < Zone.Bounds.Min.Y - Zone.Reach || V > Zone.Bounds.Max.Y + Zone.Reach)
@@ -752,11 +867,19 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 				{
 					const double ZoneHeight = Spec.BaseHeight + Spec.NorthRise * Smooth01((V - Zone.Bounds.Min.Y) / FMath::Max(Zone.Bounds.Max.Y - Zone.Bounds.Min.Y, 1.0));
 					H = FMath::Lerp(H, ZoneHeight, Weight);
+					// 둔턱 배수는 곱한다(덮는 순서와 상관없이 — 배수 1 인 뒤 구역이 지우지 않게)
+					BumpMul *= FMath::Lerp(1.0, static_cast<double>(Spec.BumpMultiplier), Weight);
 					// 잔물결은 덮는 순서와 상관없이 가장 센 구역 것 — 높이만 맡는 구역이 뒤에 와도 지워지지 않게
 					if (Weight * Spec.ExtraRollingAmplitude > ExtraAmplitude)
 					{
 						ExtraAmplitude = Weight * Spec.ExtraRollingAmplitude;
 						ExtraScale = FMath::Max(Spec.ExtraRollingScale, 5.f);
+					}
+					if (Weight * Spec.RidgedAmplitude > RidgedAmp)
+					{
+						RidgedAmp = Weight * Spec.RidgedAmplitude;
+						RidgedScale = FMath::Max(Spec.RidgedScale, 10.f);
+						RidgedWarp = Spec.WarpStrength;
 					}
 				}
 			}
@@ -764,11 +887,15 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			{
 				H += ExtraAmplitude * Fbm(U / ExtraScale, V / ExtraScale, 3, ExtraOff);
 			}
+			if (RidgedAmp > 0.0)
+			{
+				H += RidgedAmp * WarpedRidged(U / RidgedScale, V / RidgedScale, RidgedWarp, RidgedOff);
+			}
 
 			H += L.NoiseAmplitude * Fbm(U / L.NoiseScale, V / L.NoiseScale, L.NoiseOctaves, BaseOff)
 				+ L.RollingAmplitude * Fbm(U / L.RollingScale, V / L.RollingScale, 3, RollingOff)
 				+ L.DetailAmplitude * Fbm(U / L.DetailScale, V / L.DetailScale, 3, DetailOff)
-				+ L.BumpAmplitude * Fbm(U / FMath::Max(L.BumpScale, 1.f), V / FMath::Max(L.BumpScale, 1.f), 3, BumpOff);
+				+ BumpMul * L.BumpAmplitude * Fbm(U / FMath::Max(L.BumpScale, 1.f), V / FMath::Max(L.BumpScale, 1.f), 3, BumpOff);
 
 			// 언덕 · 바위 노두
 			H += HillMax[I] + L.HillOverlapBlend * (HillSum[I] - HillMax[I]) + SmallSum[I];
@@ -850,6 +977,117 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 				Out.Heights[Out.Index(X, Y)] -= static_cast<float>(L.GullyDepth * Mask * Groove * FMath::Max(DepthScale, 0.0));
 			}
 		});
+	}
+
+	// ── 1d. 물방울 침식(레벨 디자인 2차) — 사각형 안에 물방울을 떨어뜨려 비탈을 따라 흘리며 깎고, 느려지면 쌓는다(Lague 2019 방식).
+	// 결과: 비탈에 가지 친 물길, 골 바닥 · 언덕 밑동에 쌓인 부드러운 흙. 한 스레드로 고정 시드 — 다시 돌려도 같다.
+	// 계곡 · 길 · 연못 · 탑 · 거점은 이 뒤에 깎고 고르므로 침식이 그 모양을 망치지 않는다.
+	if (L.ErosionDropletsPerCell > 0.f && L.ErosionBoundsMax.X > L.ErosionBoundsMin.X && L.ErosionBoundsMax.Y > L.ErosionBoundsMin.Y)
+	{
+		const int32 R = FMath::Clamp(L.ErosionRadius, 1, 8);
+		const int32 BX0 = FMath::Clamp(FMath::FloorToInt32(L.ErosionBoundsMin.X / Q), R + 1, Count.X - R - 2);
+		const int32 BX1 = FMath::Clamp(FMath::CeilToInt32(L.ErosionBoundsMax.X / Q), R + 1, Count.X - R - 2);
+		const int32 BY0 = FMath::Clamp(FMath::FloorToInt32(L.ErosionBoundsMin.Y / Q), R + 1, Count.Y - R - 2);
+		const int32 BY1 = FMath::Clamp(FMath::CeilToInt32(L.ErosionBoundsMax.Y / Q), R + 1, Count.Y - R - 2);
+		if (BX1 > BX0 + 2 && BY1 > BY0 + 2)
+		{
+			TArray<FIntPoint> BrushOffsets;
+			TArray<float> BrushWeights;
+			float WeightSum = 0.f;
+			for (int32 DY = -R; DY <= R; ++DY)
+			{
+				for (int32 DX = -R; DX <= R; ++DX)
+				{
+					const float D = FMath::Sqrt(static_cast<float>(DX * DX + DY * DY));
+					if (D < R)
+					{
+						BrushOffsets.Add(FIntPoint(DX, DY));
+						BrushWeights.Add(R - D);
+						WeightSum += R - D;
+					}
+				}
+			}
+			for (float& W : BrushWeights)
+			{
+				W /= WeightSum;
+			}
+			TArray<float>& Hm = Out.Heights;
+			const int32 W = Count.X;
+			auto HeightGradient = [&](double PX, double PY, double& OutGX, double& OutGY) -> double
+			{
+				const int32 NX = FMath::FloorToInt32(PX);
+				const int32 NY = FMath::FloorToInt32(PY);
+				const double FX = PX - NX, FY = PY - NY;
+				const int32 I = NY * W + NX;
+				const double HNW = Hm[I], HNE = Hm[I + 1], HSW = Hm[I + W], HSE = Hm[I + W + 1];
+				OutGX = ((HNE - HNW) * (1.0 - FY) + (HSE - HSW) * FY) / Q;
+				OutGY = ((HSW - HNW) * (1.0 - FX) + (HSE - HNE) * FX) / Q;
+				return HNW * (1.0 - FX) * (1.0 - FY) + HNE * FX * (1.0 - FY) + HSW * (1.0 - FX) * FY + HSE * FX * FY;
+			};
+			const int64 Cells = static_cast<int64>(BX1 - BX0) * (BY1 - BY0);
+			const int64 Droplets = static_cast<int64>(Cells * L.ErosionDropletsPerCell);
+			FRandomStream Random(static_cast<int32>(HashCombine(GetTypeHash(L.Seed), 0x5E01u)));
+			const double Inertia = 0.05, MinCapacity = 0.005, Evaporate = 0.025, Gravity = 4.0;
+			const double Erode = FMath::Clamp(L.ErosionErodeSpeed, 0.f, 1.f);
+			const double Deposit = FMath::Clamp(L.ErosionDepositSpeed, 0.f, 1.f);
+			const double MaxStep = FMath::Max(L.ErosionMaxStep, 0.01f);
+			const int32 Life = FMath::Clamp(L.ErosionLifetime, 4, 200);
+			for (int64 Drop = 0; Drop < Droplets; ++Drop)
+			{
+				double PX = BX0 + Random.FRand() * (BX1 - BX0 - 1);
+				double PY = BY0 + Random.FRand() * (BY1 - BY0 - 1);
+				double DirX = 0.0, DirY = 0.0, Speed = 1.0, Water = 1.0, Sediment = 0.0;
+				for (int32 Step = 0; Step < Life; ++Step)
+				{
+					const int32 NX = FMath::FloorToInt32(PX);
+					const int32 NY = FMath::FloorToInt32(PY);
+					const double FX = PX - NX, FY = PY - NY;
+					double GX = 0.0, GY = 0.0;
+					const double H0 = HeightGradient(PX, PY, GX, GY);
+					DirX = DirX * Inertia - GX * (1.0 - Inertia);
+					DirY = DirY * Inertia - GY * (1.0 - Inertia);
+					const double Len = FMath::Sqrt(DirX * DirX + DirY * DirY);
+					if (Len < 1e-6)
+					{
+						break;
+					}
+					DirX /= Len;
+					DirY /= Len;
+					PX += DirX;
+					PY += DirY;
+					if (PX < BX0 || PX >= BX1 - 1 || PY < BY0 || PY >= BY1 - 1)
+					{
+						break;
+					}
+					double Unused0 = 0.0, Unused1 = 0.0;
+					const double DH = HeightGradient(PX, PY, Unused0, Unused1) - H0;
+					const double Capacity = FMath::Max(-DH * Speed * Water * L.ErosionCapacity, MinCapacity);
+					const int32 I = NY * W + NX;
+					if (Sediment > Capacity || DH > 0.0)
+					{
+						// 오르막이면 구덩이를 메울 만큼, 아니면 넘친 만큼 쌓는다 — 지나온 칸 네 정점에 나눠
+						const double Amount = DH > 0.0 ? FMath::Min(DH, Sediment) : (Sediment - Capacity) * Deposit;
+						Sediment -= Amount;
+						Hm[I] += static_cast<float>(Amount * (1.0 - FX) * (1.0 - FY));
+						Hm[I + 1] += static_cast<float>(Amount * FX * (1.0 - FY));
+						Hm[I + W] += static_cast<float>(Amount * (1.0 - FX) * FY);
+						Hm[I + W + 1] += static_cast<float>(Amount * FX * FY);
+					}
+					else
+					{
+						const double Amount = FMath::Min(FMath::Min((Capacity - Sediment) * Erode, -DH), MaxStep);
+						for (int32 B = 0; B < BrushOffsets.Num(); ++B)
+						{
+							Hm[(NY + BrushOffsets[B].Y) * W + NX + BrushOffsets[B].X] -= static_cast<float>(Amount * BrushWeights[B]);
+						}
+						Sediment += Amount;
+					}
+					Speed = FMath::Sqrt(FMath::Max(Speed * Speed - DH * Gravity, 0.0));
+					Water *= 1.0 - Evaporate;
+				}
+			}
+			UE_LOG(LogGrimTerrain, Verbose, TEXT("침식: 물방울 %lld 개, %d × %d 칸"), Droplets, BX1 - BX0, BY1 - BY0);
+		}
 	}
 
 	// ── 1c. 계곡 바닥 높이: 가운데선 땅 − 깊이, 고르고, 하류로 내려가기만 ──
@@ -1328,11 +1566,31 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 	}
 }
 
-void FGrimTerrainGenerator::ScatterFoliage(const FGrimTerrainLayout& L, const FGrimTerrainMaps& Maps, const FGrimTerrainFoliageRule& Rule, TArray<FTransform>& OutWorld)
+float FGrimTerrainGenerator::ForestWeight(const FGrimTerrainLayout& L, double U, double V)
+{
+	using namespace GrimTerrainGenLocal;
+	const FVector2D ForestOff = SeedOffset(L.Seed, 6);
+	const double Scale = FMath::Max(L.ForestNoiseScale, 1.f);
+	// 뒤틀기 0 · 부드러움 0 이면 1 · 2차와 같은 칼 경계(같은 노이즈)
+	const double Noise = L.ForestWarp > 0.f
+		? WarpedFbm(U / Scale, V / Scale, L.ForestWarp, 3, ForestOff)
+		: Perlin(U / Scale, V / Scale, ForestOff);
+	if (L.ForestSoftness <= 0.f)
+	{
+		return Noise > L.ForestThreshold ? 1.f : 0.f;
+	}
+	return SmoothStep(L.ForestThreshold - L.ForestSoftness, L.ForestThreshold + L.ForestSoftness, Noise);
+}
+
+void FGrimTerrainGenerator::ScatterFoliage(const FGrimTerrainLayout& L, const FGrimTerrainMaps& Maps, const FGrimTerrainFoliageRule& Rule, TArray<FTransform>& OutWorld, TArray<float>* OutVariant)
 {
 	using namespace GrimTerrainGenLocal;
 
 	OutWorld.Reset();
+	if (OutVariant)
+	{
+		OutVariant->Reset();
+	}
 	if (!Maps.IsValid())
 	{
 		return;
@@ -1342,14 +1600,82 @@ void FGrimTerrainGenerator::ScatterFoliage(const FGrimTerrainLayout& L, const FG
 	{
 		return;
 	}
-	const double Cell = 100.0 / FMath::Sqrt(MaxDensity);
+	// 배수(무리 · 가장자리 · 등성이 등)가 1 을 넘을 수 있어 후보를 넉넉히(가장 큰 배수만큼) 뽑고 확률로 고른다
+	const double MaxBoost = FMath::Max(1.0, static_cast<double>(FMath::Max3(FMath::Max(Rule.ForestEdgeFactor, Rule.WaterEdgeFactor), FMath::Max(Rule.RidgeFactor, Rule.ValleyFactor), FMath::Max(Rule.SlopeFactor, Rule.PathEdgeFactor))))
+		* (Rule.ForestPatchScale > 0.f ? 1.6 : 1.0);
+	const double Candidates = MaxDensity * MaxBoost;
+	const double Cell = 100.0 / FMath::Sqrt(Candidates);
 	const double MapW = (Maps.SizeX - 1) * Maps.QuadSize;
 	const double MapH = (Maps.SizeY - 1) * Maps.QuadSize;
 	const int32 CellsX = FMath::FloorToInt32(MapW / Cell);
 	const int32 CellsY = FMath::FloorToInt32(MapH / Cell);
 	const FVector2D ForestOff = SeedOffset(L.Seed, 6);
+	const FVector2D ClumpOff = SeedOffset(L.Seed, 20 + Rule.ClumpChannel);
+	const FVector2D PatchOff = SeedOffset(L.Seed, 30 + Rule.ClumpChannel);
 	const uint32 RuleHash = HashCombine(GetTypeHash(L.Seed), GetTypeHash(Rule.Name.ToString()));
+	const FVector2D VariantOff = SeedOffset(L.Seed, 40 + static_cast<int32>(RuleHash % 97u));
+	// 「2차 방식」(새 값이 모두 기본값)이면 예전과 같은 지터 격자 · 칼 경계 그대로 — 테스트용 작은 레이아웃이 그대로 돈다
+	const bool bNatural = Rule.MinSpacing > 0.f || Rule.ClumpScale > 0.f || L.ForestSoftness > 0.f;
+	const double Spacing = Rule.MinSpacing > 0.f ? Rule.MinSpacing : (bNatural ? 45.0 / FMath::Sqrt(MaxDensity) : 0.0);
 
+	// 먼저 뿌린 규칙 자리(바위가 나무 줄기 속에 들지 않게) — 한 단계만(그 규칙의 AvoidRules 는 보지 않는다)
+	TArray<FVector2D> Avoid;
+	for (const FName& Other : Rule.AvoidRules)
+	{
+		const FGrimTerrainFoliageRule* OtherRule = L.Foliage.FindByPredicate([&Other](const FGrimTerrainFoliageRule& Each) { return Each.Name == Other; });
+		if (OtherRule && OtherRule->Name != Rule.Name)
+		{
+			FGrimTerrainFoliageRule Plain = *OtherRule;
+			Plain.AvoidRules.Reset();
+			TArray<FTransform> Placed;
+			ScatterFoliage(L, Maps, Plain, Placed);
+			for (const FTransform& Each : Placed)
+			{
+				Avoid.Add(WorldToMap(L, FVector2D(Each.GetLocation())));
+			}
+		}
+	}
+
+	// 포아송 원판: 받아들인 자리를 격자 칸(간격 크기)에 넣어 둘레만 본다
+	const double HashCell = FMath::Max(Spacing, Rule.AvoidDistance > 0.f ? static_cast<double>(Rule.AvoidDistance) : 0.0);
+	TMap<FIntPoint, TArray<FVector2D>> Accepted;
+	TMap<FIntPoint, TArray<FVector2D>> AvoidGrid;
+	auto CellOf = [HashCell](const FVector2D& P) { return FIntPoint(FMath::FloorToInt32(P.X / HashCell), FMath::FloorToInt32(P.Y / HashCell)); };
+	if (HashCell > 0.0)
+	{
+		for (const FVector2D& P : Avoid)
+		{
+			AvoidGrid.FindOrAdd(CellOf(P)).Add(P);
+		}
+	}
+	auto TooClose = [&](const TMap<FIntPoint, TArray<FVector2D>>& Grid, const FVector2D& P, double Distance)
+	{
+		if (Distance <= 0.0 || Grid.Num() == 0)
+		{
+			return false;
+		}
+		const FIntPoint C = CellOf(P);
+		const int32 Reach = FMath::CeilToInt32(Distance / HashCell);
+		for (int32 DY = -Reach; DY <= Reach; ++DY)
+		{
+			for (int32 DX = -Reach; DX <= Reach; ++DX)
+			{
+				if (const TArray<FVector2D>* Bucket = Grid.Find(C + FIntPoint(DX, DY)))
+				{
+					for (const FVector2D& Q : *Bucket)
+					{
+						if (FVector2D::DistSquared(P, Q) < Distance * Distance)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
+	};
+
+	const double CurvR = FMath::Max(L.CurvatureRadius, 2.f);
 	for (int32 CY = 0; CY < CellsY; ++CY)
 	{
 		for (int32 CX = 0; CX < CellsX; ++CX)
@@ -1360,25 +1686,93 @@ void FGrimTerrainGenerator::ScatterFoliage(const FGrimTerrainLayout& L, const FG
 			const float Pick = Random.FRand();
 			const float ScaleT = Random.FRand();
 			const float Yaw = Random.FRandRange(0.f, 360.f);
+			const float TiltA = Random.FRandRange(-1.f, 1.f);
+			const float TiltB = Random.FRandRange(-1.f, 1.f);
+			const float VariantJitter = Random.FRandRange(-0.12f, 0.12f);
 
 			const int32 I = Maps.NearestIndex(U, V);
 			const double Slope = SampleSlopeDeg(Maps, U, V);
 
+			// 바탕 밀도: 계곡 숲 > 숲 무늬(부드러운 경계) > 초원
 			double Density = Rule.DensityPerHa;
+			double Grove = 0.0;   // 0~1: 숲 · 무리 안쪽일수록 큼(크기 · 가장자리 덤불)
+			double ForestW = 0.0;
 			if (Maps.Forest[I] > 128)
 			{
 				Density = Rule.ValleyDensityPerHa;
+				Grove = 1.0;
+			}
+			else if (bNatural)
+			{
+				ForestW = ForestWeight(L, U, V);
+				Density = FMath::Lerp(static_cast<double>(Rule.DensityPerHa), static_cast<double>(Rule.ForestDensityPerHa), ForestW);
+				Grove = ForestW;
 			}
 			else if (Perlin(U / L.ForestNoiseScale, V / L.ForestNoiseScale, ForestOff) > L.ForestThreshold)
 			{
 				Density = Rule.ForestDensityPerHa;
+			}
+			if (bNatural)
+			{
+				// 초원 무리(숲덩이 · 빈터): 숲 밖에서만 크게 — 숲 안은 이미 빽빽
+				if (Rule.ClumpScale > 0.f)
+				{
+					const double Clump = SmoothStep(Rule.ClumpThreshold - Rule.ClumpSoftness, Rule.ClumpThreshold + Rule.ClumpSoftness,
+						WarpedFbm(U / Rule.ClumpScale, V / Rule.ClumpScale, 0.8, 3, ClumpOff));
+					Density *= FMath::Lerp(FMath::Lerp(static_cast<double>(Rule.ClumpOutside), 1.0, Clump), 1.0, ForestW);
+					Grove = FMath::Max(Grove, Clump);
+				}
+				// 숲 안 덩이: 몇 그루씩 모이고 작은 빈터 — 덩이 쪽이 더 빽빽하고 크다
+				if (Rule.ForestPatchScale > 0.f && ForestW > 0.0)
+				{
+					const double Patch = SmoothStep(-0.2, 0.3, WarpedFbm(U / Rule.ForestPatchScale, V / Rule.ForestPatchScale, 0.7, 2, PatchOff));
+					Density *= FMath::Lerp(1.0, FMath::Lerp(static_cast<double>(Rule.ForestPatchMin), 1.6, Patch), ForestW);
+					Grove = FMath::Lerp(Grove, Grove * (0.35 + 0.65 * Patch), ForestW);
+				}
+				// 숲 가장자리(무게 0.5 언저리)
+				Density *= 1.0 + (Rule.ForestEdgeFactor - 1.0) * 4.0 * ForestW * (1.0 - ForestW);
+				// 등성이 · 골: 둘레(반지름 CurvR) 평균 높이 − 가운데 — 음수면 볼록(등성이), 양수면 오목(골)
+				if (!FMath::IsNearlyEqual(Rule.RidgeFactor, 1.f) || !FMath::IsNearlyEqual(Rule.ValleyFactor, 1.f))
+				{
+					const double Center = ReadHeight(Maps, U, V);
+					double Ring = 0.0;
+					for (int32 K = 0; K < 8; ++K)
+					{
+						const double A = K * UE_DOUBLE_PI / 4.0;
+						Ring += ReadHeight(Maps, U + CurvR * FMath::Cos(A), V + CurvR * FMath::Sin(A));
+					}
+					const double Curv = (Ring / 8.0 - Center) / CurvR;
+					Density *= FMath::Lerp(1.0, static_cast<double>(Rule.RidgeFactor), static_cast<double>(SmoothStep(0.015, 0.08, -Curv)));
+					Density *= FMath::Lerp(1.0, static_cast<double>(Rule.ValleyFactor), static_cast<double>(SmoothStep(0.015, 0.08, Curv)));
+				}
+				// 비탈(SlopeFactorDeg 언저리)
+				if (!FMath::IsNearlyEqual(Rule.SlopeFactor, 1.f))
+				{
+					Density *= FMath::Lerp(1.0, static_cast<double>(Rule.SlopeFactor), static_cast<double>(SmoothStep(Rule.SlopeFactorDeg - 8.0, Rule.SlopeFactorDeg, Slope)));
+				}
+				// 길 가장자리
+				if (!FMath::IsNearlyEqual(Rule.PathEdgeFactor, 1.f))
+				{
+					const double D = Maps.PathDistance[I] - Rule.MinPathDistance;
+					const double Edge = D >= 0.0 && D < Rule.PathEdgeDistance ? FMath::Sin(UE_DOUBLE_PI * D / FMath::Max(Rule.PathEdgeDistance, 1.f)) : 0.0;
+					Density *= 1.0 + (Rule.PathEdgeFactor - 1.0) * Edge;
+				}
+				// 물가
+				if (!FMath::IsNearlyEqual(Rule.WaterEdgeFactor, 1.f))
+				{
+					const double D = Maps.WaterDistance[I] - Rule.MinWaterDistance;
+					const double Edge = D >= 0.0 && D < Rule.WaterEdgeDistance ? 1.0 - SmoothStep(Rule.WaterEdgeDistance * 0.4, Rule.WaterEdgeDistance, D) : 0.0;
+					Density *= 1.0 + (Rule.WaterEdgeFactor - 1.0) * Edge;
+				}
+				// 경사 상한은 부드럽게(상한 6° 앞부터 줄어든다)
+				Density *= 1.0 - SmoothStep(Rule.MaxSlopeDeg - 6.0, Rule.MaxSlopeDeg, Slope);
 			}
 			const bool bSteep = Rule.SteepDensityPerHa > 0.f && Slope >= Rule.SteepSlopeDeg;
 			if (bSteep)
 			{
 				Density = FMath::Max(Density, static_cast<double>(Rule.SteepDensityPerHa));
 			}
-			if (Pick >= Density / MaxDensity)
+			if (Pick >= Density / Candidates)
 			{
 				continue;
 			}
@@ -1413,15 +1807,43 @@ void FGrimTerrainGenerator::ScatterFoliage(const FGrimTerrainLayout& L, const FG
 			{
 				bBlocked |= FVector2D::Distance(P, Poi.Center) < Poi.Radius + 6.0;
 			}
-			if (bBlocked)
+			if (bBlocked || TooClose(Accepted, P, Spacing) || TooClose(AvoidGrid, P, Rule.AvoidDistance))
 			{
 				continue;
 			}
+			if (HashCell > 0.0)
+			{
+				Accepted.FindOrAdd(CellOf(P)).Add(P);
+			}
 
-			const float Scale = FMath::Lerp(Rule.MinScale, Rule.MaxScale, ScaleT);
+			// 크기: 숲 · 무리 가운데일수록 크다
+			const float SizeT = FMath::Clamp(ScaleT + Rule.GroveScaleBoost * static_cast<float>(Grove - 0.5), 0.f, 1.f);
+			const float Scale = FMath::Lerp(Rule.MinScale, Rule.MaxScale, SizeT);
 			FVector Location = MapToWorld(L, U, V, Height);
 			Location.Z -= Rule.SinkCm * Scale;
-			OutWorld.Add(FTransform(FRotator(0.f, Yaw, 0.f), Location, FVector(Scale)));
+
+			// 방향: Yaw + 막 기울임 + 비탈에 맞춤
+			FQuat Rotation = FQuat(FVector::UpVector, FMath::DegreesToRadians(Yaw));
+			if (Rule.MaxTiltDeg > 0.f)
+			{
+				Rotation = FQuat(FRotator(TiltA * Rule.MaxTiltDeg, 0.f, TiltB * Rule.MaxTiltDeg)) * Rotation;
+			}
+			if (Rule.AlignToSlope > 0.f)
+			{
+				const double D = Maps.QuadSize * 1.5;
+				const double GU = (ReadHeight(Maps, U + D, V) - ReadHeight(Maps, U - D, V)) / (2.0 * D);
+				const double GV = (ReadHeight(Maps, U, V + D) - ReadHeight(Maps, U, V - D)) / (2.0 * D);
+				// 지도 (U 동, V 북) → 월드 (X 북, Y 동): 법선 = (−GV, −GU, 1)
+				const FVector Normal = FVector(-GV, -GU, 1.0).GetSafeNormal();
+				const FVector Up = FMath::Lerp(FVector::UpVector, Normal, FMath::Clamp(Rule.AlignToSlope, 0.f, 1.f)).GetSafeNormal();
+				Rotation = FQuat::FindBetweenNormals(FVector::UpVector, Up) * Rotation;
+			}
+			OutWorld.Add(FTransform(Rotation, Location, FVector(Scale)));
+			if (OutVariant)
+			{
+				const float Variant = 0.5f + 0.5f * WarpedFbm(U / FMath::Max(Rule.VariantScale, 5.f), V / FMath::Max(Rule.VariantScale, 5.f), 0.6, 2, VariantOff) * 1.6f;
+				OutVariant->Add(FMath::Clamp(Variant + VariantJitter, 0.f, 0.999f));
+			}
 		}
 	}
 }

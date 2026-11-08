@@ -59,3 +59,55 @@ Megaplants 참나무(`Tree_English_Oak_Forest_01_B`, 탑 서쪽 130 m) — 시�
 | ![](/qa/level-dress-q125-oak-bare.jpg) | ![](/qa/level-dress-q125-oak-nanitefoliage.jpg) |
 
 - 켜면 잎이 나오지만 **어두운 사진 초록**이라 밝은 연두의 StyleHex 나무 옆에서 다른 그림처럼 보인다 — 쓰려면 Q124 의 회화풍 마스터 머티리얼(채도 · 색)이 함께 필요하다. 형태(가지 구조 · 실루엣)는 가장 좋다.
+
+## 레벨 디자인 2차 (2026-11-08)
+
+무엇을 왜 [레벨 디자인 「9」](../dev/level-design#_9-레벨-디자인-2차-—-능선-·-자연-분포-·-구간-구도-2026-11-08). 마지막 실행 **2026-11-08**(`claude/level-design-2-0ec4f5`).
+
+```powershell
+# 레이아웃만(맵 없이, 1 분): 설계 검사 · 등고선 지도 · 식생 점 → Saved/Terrain/preview/
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\preview_openbeta.py" -unattended -nop4 -nosplash -nullrhi
+python Scripts\Terrain\overlay_foliage.py
+# 맵: 위 「다시 돌리기」 2) ~ 4) 그대로(build → gameplay → dress). 스크린숏(눈높이 · 하늘 19 장, 약 12 분)
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld2 -RunSeconds 900
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-010 | — | 마탑 구간 땅에 능선 · 안부 · 골이 있고, 길이 골 · 안부로 지난다 | ③ `ld2-westspine` · `ld2-eastsaddle` · `ld2-hiddenvale` · `ld2-sector-aerial` · 등고선 지도 | 서쪽 등줄기 등성이 위 바위, 동쪽 길이 낮은 고갯마루를 넘고 너머에 풍차, 두 능선 사이 숨은 골. 둥근 언덕이 같은 간격으로 늘어선 「달걀판」이 아니다 | ✅ 11-08 — 서쪽 등줄기 위 큰 바위 · 외딴 나무, 동쪽 길이 안부(8 m)를 넘고 너머에 풍차, 남동 숨은 골 비탈에 침식 물길. 하늘에서 결 있는 등성이 · 골(둥근 언덕 117 → 59) | |
+| QA-LVL-011 | — | 설계 검사가 지켜진다(경사 · 구역 높이 차 · 시선 · 밀도 · 길 경사 · 마탑 구간) | ① `Grimoire.Terrain.*` · `preview_openbeta.py` 의 `analysis.txt` | 모두 통과(마탑 구간 가림 기준 65 % — 결정 기록 2026-11-08) | ✅ 11-08 — 경사 72.1 % · 목초지 → 구릉 28.2 m · 시선 최소 3 · 밀도 244 m · 길 12.9°, 마탑 구간 경사 71.7 % · 가림 69.5 % · 랜드마크 100 %(최소 2) · POI 94~116 m(테스트 `Design.*` 5 통과) | |
+| QA-LVL-012 | — | 능선(점마다 높이 · 양쪽 폭) · 침식이 정해진 대로 · 다시 돌려도 같다 | ① `Grimoire.Terrain.Generator.Ridgeline` | 꺾은점 꼭대기 = 바닥 + 높이, 안부가 낮다, 왼쪽 폭 밖은 바닥, 침식은 같은 시드 = 같은 높이 · 4 m 넘게 바꾸지 않는다 | ✅ 11-08 — `Generator.Ridgeline` 통과 | |
+| QA-LVL-013 | — | 나무 · 덤불 · 바위가 격자로 보이지 않는다 — 숲덩이 · 빈터 · 숲 가장자리 덤불 · 등성이 바위 · 물가 나무 | ① `Grimoire.Terrain.Foliage.Natural`(포아송 간격 · 종 값) · ③ `ld2-hilltop` · `ld2-path200` · `ld2-path400` · 식생 점 지도 | 자리끼리 최소 간격을 지키고, 숲이 몇 그루씩 모인 덩이와 빈터로(고른 간격 「과수원」 아님), 종이 무리 지어 섞인다 | ✅ 11-08 — `Foliage.Natural` 통과. 1회차 숲이 과수원처럼 고른 간격 → 숲 안 덩이(24 m)를 더해 고침(`ld2-path400` 자작나무 숲덩이 · `ld2-hilltop` 덩이 · 빈터) | |
+| QA-LVL-014 | — | 구간 구도가 콘셉트 아트대로 | ③ `ld2-path100` · `ld2-path200`(돌담 · 돌 표지) · `ld2-windmill`(밀밭 · 울타리 · 건초 · 곳간) · `ld2-pond`(징검돌 · 섬) · `ld2-door`(등불) | 소품이 길 · 물 · POI 블록 위에 없고 콘셉트 구도로 읽힌다 | ✅ 11-08 — 1회차 지적(등불이 크고 문 앞을 가림 · 밀밭이 회색 판 · 곳간 지붕이 뒤집힘 · 연못 섬이 물속 덩이 · 풍차 언덕을 나무가 가림)을 고친 뒤 다시 찍음 | |
+| QA-LVL-015 | — | 거대 고목 큐브 목업 — 멀리서 둥근 큰 나무, 가까이서 뿌리 · 줄기 · 가지가 나뉜다 | ③ `ld2-tree-far`(약 480 m) · `ld2-tree-near`(120 m) · `ld2-tree-under`(30 m) · `ld2-aerial-tree` | 원기둥 하나가 아니라 판뿌리 · 비틀린 줄기 마디 · 가지 · 잎 덩어리 묶음, 멀리서 버섯 · 우산이 아닌 둥근 덩어리 | ✅ 11-08 — 2회차까지 멀리서 「버섯」 실루엣 → 줄기 7 → 5 마디 · 가지를 낮추고 아래 치마 묶음을 더해 둥근 참나무 덩어리로(`ld2-tree-far` · `ld2-aerial-tree`), 밑에서 판뿌리 · 비틀린 줄기 마디(`ld2-tree-under`) | |
+| QA-LVL-016 | — | 하늘 구역 이름 — 구역 안 · 멀리서 읽히고, 끌 수 있고, 출시 빌드엔 없다 | ③ `ld2-labels-door` · `ld2-aerial-region` · `Grim.DevLabels.Sections 0` 뒤 `ld2-labels-off` · 코드 `AGrimDevLabel::AreSectionLabelsEnabled`(`UE_BUILD_SHIPPING` 이면 거짓) | 한글이 네모로 깨지지 않고 구역 위 하늘에 보인다, 끄면 사라진다(POI 글씨는 그대로) | ✅ 11-08 — 구역 8 · 소구역 12 가 한글로 보이고, `Grim.DevLabels.Sections 0` 이면 하늘 이름만 사라진다(POI 글씨는 남음). 출시 빌드는 코드로 확인(`UE_BUILD_SHIPPING` → 위젯을 만들지 않음) | |
+| QA-LVL-017 | R16 | 걷기 · 표식 · 시작 · 탑 | ② `check_openbeta.ps1` · `check_tutorial.ps1` | PASS | ✅ 11-08 — `openbeta` PASS · `tutorial` PASS(`run_all.ps1 -Only automation,openbeta,tutorial`), 자동화 181/181(새 `Generator.Ridgeline` · `Foliage.Natural` 포함 — 처음엔 침식 상한 4 m 가 시험 능선의 가파른 비탈에 걸려 실패, 최대 6 m · 평균 0.5 m 로 고쳐 통과) | |
+| QA-LVL-018 | R16 | 성능 예산 안 | ① `measure.ps1 -Label level-design-2 -Settle 25`(전체) | QA-PRF-001~008 모두 예산 안 | ✅ 11-08 — GPU 4.10 ~ 4.43 ms · 게임 2.47 ~ 3.09 · 렌더 5.17 ~ 5.53 · p95 ≤ 6.8 · 끊김 0 · 드로 콜 ≤ 1,473 · 2.86 GB · 대역폭 ≤ 5.8 kB/s — [성능 측정 기록](../systems/performance#측정-기록) | |
+| QA-LVL-019 | — | 쓰는 팩 파일만 저장소에(늘어난 것만) | `add_pack_assets.ps1 -DryRun` | 1차 202 MB 에서 조금만 늘어남(돌 2 · 바위 2 메시) | ✅ 11-08 — 126 개 218.4 MB(1차 116 개 202.2 MB 에서 StyleHex 돌 2 종 메시 · 재질 · 텍스처 10 개 +16 MB). 잎 재질 인스턴스 3 은 우리 에셋(`Content/Grimoire/Terrain/Dress/`) | |
+
+**결과(11-08)**: 통과 10 · 실패 0(QA-LVL-010 ~ 019). 사람 눈 검토는 세 회차 — 회차마다 본 것 · 고친 것은 [레벨 디자인 「9」 결과](../dev/level-design#결과-2026-11-08-—-세-번-고쳐-찍었다)
+
+### 전 · 후 (같은 자리 · 같은 카메라, 눈높이 1.8 m)
+
+| 자리 | 전(레벨 아트 1차) | 후(레벨 디자인 2차) |
+|---|---|---|
+| 탑 문 앞 | ![](/qa/level-dress-door-after.jpg) | ![](/qa/ld2-door.jpg) |
+| 큰길 100 m | ![](/qa/level-dress-path100-after.jpg) | ![](/qa/ld2-path100.jpg) |
+| 큰길 200 m | ![](/qa/level-dress-path200-after.jpg) | ![](/qa/ld2-path200.jpg) |
+| 연못 | ![](/qa/level-dress-pond-after.jpg) | ![](/qa/ld2-pond.jpg) |
+| 봉화 언덕 꼭대기 | ![](/qa/level-dress-hilltop-after.jpg) | ![](/qa/ld2-hilltop.jpg) |
+| 하늘에서 마탑 구간 | ![](/art/terrain/openbeta-sector-aerial-v3.jpg) | ![](/qa/ld2-sector-aerial.jpg) |
+
+### 구간마다 (2차 새 자리)
+
+| 서쪽 등줄기 | 동쪽 안부 너머 풍차 | 남동 숨은 골 |
+|---|---|---|
+| ![](/qa/ld2-westspine.jpg) | ![](/qa/ld2-eastsaddle.jpg) | ![](/qa/ld2-hiddenvale.jpg) |
+| **풍차 마당** | **큰길 400 m — 꽃길 초원** | **부유석 언덕** |
+| ![](/qa/ld2-windmill.jpg) | ![](/qa/ld2-path400.jpg) | ![](/qa/ld2-floatsteps.jpg) |
+| **거대 고목 — 480 m** | **거대 고목 — 120 m** | **거대 고목 — 30 m 밑** |
+| ![](/qa/ld2-tree-far.jpg) | ![](/qa/ld2-tree-near.jpg) | ![](/qa/ld2-tree-under.jpg) |
+| **하늘 구역 이름(탑 문 앞)** | **구역 이름 끔(`Grim.DevLabels.Sections 0`)** | **하늘 700 m — 지역 전체** |
+| ![](/qa/ld2-labels-door.jpg) | ![](/qa/ld2-labels-off.jpg) | ![](/qa/ld2-aerial-region.jpg) |
+| **바다 위 280 m — 콘셉트 전경 구도** | **고목 남쪽 하늘 220 m** | |
+| ![](/qa/ld2-aerial-south.jpg) | ![](/qa/ld2-aerial-tree.jpg) | |

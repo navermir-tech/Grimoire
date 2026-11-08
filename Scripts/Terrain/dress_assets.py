@@ -6,6 +6,8 @@
 # - 풀 · 꽃 · 풀포기: StyleHex Grass Flowers · Forest Sample 메시 → 랜드스케이프 그래스(GT_Dress_Meadow)
 # - 나무 · 덤불 · 바위: StyleHex 메시 → 폴리지 타입 FT_Dress_*
 # - 구름: HandPaintedClouds 텍스처 → 우리 빛 받는 반투명 머티리얼(M_Dress_CloudCard — 밤에는 어두워진다)
+import math
+
 import unreal
 
 DRESS_DIR = "/Game/Grimoire/Terrain/Dress"
@@ -66,10 +68,11 @@ GRASS_VARIETIES = [
 
 # 폴리지 타입 — 이름: (메시, 시작 · 끝 컬 cm, 막힘, 그림자). 끝 컬 상한: 나무 400 m · 바위 200 m · 덤불 120 m(규칙 10), 그림자는 나무 · 큰 바위만(규칙 11)
 FOLIAGE = {
-    "FT_Dress_Broadleaf1": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Broadleaf_1", 21000, 30000, True, True),
-    "FT_Dress_Broadleaf2": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Broadleaf_2", 21000, 30000, True, True),
-    "FT_Dress_Birch1": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Birch_1", 21000, 30000, True, True),
-    "FT_Dress_Birch2": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Birch_2", 21000, 30000, True, True),
+    # 나무 끝 컬 480 m(레벨 디자인 2차 — 300 m 면 먼 언덕이 민둥산으로 보였다. World Partition 스트리밍 512 m 안)
+    "FT_Dress_Broadleaf1": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Broadleaf_1", 36000, 48000, True, True),
+    "FT_Dress_Broadleaf2": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Broadleaf_2", 36000, 48000, True, True),
+    "FT_Dress_Birch1": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Birch_1", 36000, 48000, True, True),
+    "FT_Dress_Birch2": (f"{SH_FOREST}/Meshes/Trees/SM_Tree_Birch_2", 36000, 48000, True, True),
     "FT_Dress_Bush1": (f"{SH_FOREST}/Meshes/Foliage/SM_Fol_Bush_1", 8400, 12000, False, False),
     "FT_Dress_Bush2": (f"{SH_FOREST}/Meshes/Foliage/SM_Fol_Bush_2", 8400, 12000, False, False),
     "FT_Dress_Bush3": (f"{SH_GRASS}/Meshes/SM_Fol_Bush_2", 8400, 12000, False, False),
@@ -80,13 +83,74 @@ FOLIAGE = {
     "FT_Dress_RockSmall1": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_1", 8400, 12000, True, False),
     "FT_Dress_RockSmall3": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_3", 8400, 12000, True, False),
     "FT_Dress_RockSmall5": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_5", 8400, 12000, True, False),
+    # 레벨 디자인 2차: 돌담 돌 · 능선 바위(docs/dev/level-design.md 「9」)
+    "FT_Dress_RockSmall2": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_2", 8400, 12000, True, False),
+    "FT_Dress_RockSmall4": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_4", 8400, 12000, True, False),
+    "FT_Dress_Boulder1": (f"{SH_FOREST}/Meshes/Stones/SM_Stone_Boulder_1", 14000, 20000, True, True),
+    "FT_Dress_Boulder2": (f"{SH_FOREST}/Meshes/Stones/SM_Stone_3", 14000, 20000, True, True),
 }
 
-# 생성기 식생 규칙 → 시작 구역에서 바꿔 놓을 폴리지 타입(자리마다 해시로 고른다) · 부품 크기(규칙 크기 0.8 ~ 1.4 에 곱함)
+# 잎 색(레벨 디자인 2차): 팩 기본 잎은 밝은 연두라 땅보다 떠 보인다 — 팩 잎 머티리얼 인스턴스를 부모로 우리 인스턴스를 만들어
+# 「Color Base」(그늘 쪽) · 「Color Top」(빛 받는 위쪽)을 콘셉트 아트(짙은 초록 그늘 · 따뜻한 황록 윗면)에 맞춘다. 폴리지 타입 덮어쓰기 재질(슬롯 0 = 잎).
+SH_LEAF = f"{SH_FOREST}/Materials/Mat_Trees"
+LEAF_MATERIALS = {   # 이름: (부모, Color Base, Color Top, Subsurface)
+    "MI_Dress_Leaves_BroadleafDeep": (f"{SH_LEAF}/MI_Tree_Leaves_Broadleaf", (0.010, 0.058, 0.022), (0.105, 0.255, 0.040), (0.012, 0.060, 0.025)),
+    "MI_Dress_Leaves_BroadleafOlive": (f"{SH_LEAF}/MI_Tree_Leaves_Broadleaf", (0.024, 0.070, 0.016), (0.165, 0.290, 0.050), (0.020, 0.065, 0.020)),
+    "MI_Dress_Leaves_Birch": (f"{SH_LEAF}/MI_Tree_Leaves_Birch_A", (0.040, 0.120, 0.008), (0.170, 0.330, 0.060), (0.018, 0.058, 0.030)),
+}
+LEAF_OVERRIDE = {"FT_Dress_Broadleaf1": "MI_Dress_Leaves_BroadleafDeep", "FT_Dress_Broadleaf2": "MI_Dress_Leaves_BroadleafOlive",
+                 "FT_Dress_Birch1": "MI_Dress_Leaves_Birch", "FT_Dress_Birch2": "MI_Dress_Leaves_Birch"}
+
+
+def make_leaf_materials():
+    out = {}
+    for name, (parent, base, top, sss) in LEAF_MATERIALS.items():
+        mi = _existing_or_new(name, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+        mel.set_material_instance_parent(mi, _load(parent))
+        for param, rgb in (("Color Base", base), ("Color Top", top), ("Subsurface Color", sss)):
+            mel.set_material_instance_vector_parameter_value(mi, param, unreal.LinearColor(rgb[0], rgb[1], rgb[2], 1.0))
+        eal.save_loaded_asset(mi)
+        out[name] = mi
+    return out
+
+
+# 생성기 식생 규칙 → 폴리지 타입 고르기(레벨 디자인 2차). pick(종 값 0~1, 월드 x, y) — 종 값은 생성기 Variant(같은 종끼리 무리 짓는 노이즈).
+# 부품 크기는 규칙 크기(레이아웃 MinScale ~ MaxScale)에 곱한다. 메시 크기 1 = 나무 약 14 m.
+def _hash01(x, y):
+    return (abs(math.sin(x * 0.000123 + y * 0.000731) * 43758.5453)) % 1.0
+
+
+def _pick_tree(var, x, y):
+    # 자작나무 숲덩이(종 값 낮음) · 섞인 띠 · 활엽수 숲 — 같은 종이 무리 짓고 경계에서 섞인다
+    if var < 0.33 or (var < 0.45 and _hash01(x, y) < 0.5):
+        return "FT_Dress_Birch1" if _hash01(y, x) < 0.55 else "FT_Dress_Birch2"
+    return "FT_Dress_Broadleaf1" if _hash01(y, x) < 0.6 else "FT_Dress_Broadleaf2"
+
+
+def _pick_dark(var, x, y):
+    return "FT_Dress_Broadleaf2" if var < 0.7 else "FT_Dress_Broadleaf1"
+
+
+def _pick_bush(var, x, y):
+    if var < 0.5:
+        return "FT_Dress_Bush1" if _hash01(x, y) < 0.5 else "FT_Dress_Bush2"
+    return "FT_Dress_Bush3" if _hash01(x, y) < 0.6 else "FT_Dress_Bush4"
+
+
+def _pick_rock(var, x, y):
+    h = _hash01(x, y)
+    if var < 0.35:
+        return ["FT_Dress_RockSmall1", "FT_Dress_RockSmall3", "FT_Dress_RockSmall5", "FT_Dress_RockSmall2"][int(h * 4) % 4]
+    if var < 0.75:
+        return "FT_Dress_RockCluster1" if h < 0.5 else "FT_Dress_RockCluster2"
+    return "FT_Dress_RockLarge" if h < 0.6 else "FT_Dress_Boulder1"
+
+
 RULE_SWAP = {
-    "Tree": (["FT_Dress_Broadleaf1", "FT_Dress_Broadleaf2", "FT_Dress_Broadleaf1", "FT_Dress_Birch1", "FT_Dress_Birch2"], 0.62),
-    "Bush": (["FT_Dress_Bush1", "FT_Dress_Bush2", "FT_Dress_Bush3", "FT_Dress_Bush4"], 0.75),
-    "Rock": (["FT_Dress_RockSmall1", "FT_Dress_RockSmall3", "FT_Dress_RockSmall5", "FT_Dress_RockCluster1", "FT_Dress_RockCluster2", "FT_Dress_RockLarge"], 0.9),
+    "Tree": (_pick_tree, 0.66),
+    "DarkTree": (_pick_dark, 0.62),
+    "Bush": (_pick_bush, 0.75),
+    "Rock": (_pick_rock, 0.9),
 }
 
 
@@ -339,6 +403,7 @@ def make_cloud_material(name="M_Dress_CloudCard"):
 def make_foliage_types():
     """폴리지 타입 — 팩 메시 그대로(머티리얼 덮어쓰기 없음). 컬 · 그림자는 FOLIAGE 표대로 매번 맞추고, 충돌은 처음 만들 때 정한다"""
     out = {}
+    leaves = make_leaf_materials()
     for name, (mesh_path, cull_start, cull_end, block, shadow) in FOLIAGE.items():
         ft = unreal.GrimTerrainEditorLibrary.create_foliage_type_asset(_path(name), _load(mesh_path), None, cull_start, cull_end, block, shadow)
         if ft is None:
@@ -346,6 +411,8 @@ def make_foliage_types():
         ft.set_editor_property("mesh", _load(mesh_path))
         ft.set_editor_property("cull_distance", unreal.Int32Interval(cull_start, cull_end))
         ft.set_editor_property("cast_shadow", shadow)
+        if name in LEAF_OVERRIDE:
+            ft.set_editor_property("override_materials", [leaves[LEAF_OVERRIDE[name]]])
         eal.save_loaded_asset(ft)
         out[name] = ft
     return out

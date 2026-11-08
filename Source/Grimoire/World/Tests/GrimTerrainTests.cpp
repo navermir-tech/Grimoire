@@ -195,6 +195,65 @@ bool FGrimTerrainDeterministicTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// 레벨 디자인 2차: 능선(점마다 높이 — 낮은 점 = 안부, 양쪽 폭이 다름) · 물방울 침식(같은 시드 = 같은 결과)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainRidgelineTest, "Grimoire.Terrain.Generator.Ridgeline", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainRidgelineTest::RunTest(const FString& Parameters)
+{
+	// 아무것도 없는 평지(253 × 253 m, 바닥 10 m)에 동서로 능선 하나 — 양끝 20 m, 가운데 안부 6 m. 진행 방향(동쪽) 왼쪽 = 북쪽 폭 40 m, 오른쪽 = 남쪽 60 m
+	FGrimTerrainLayout L;
+	L.Seed = 11;
+	L.SectionQuads = 63;
+	L.ComponentsX = 2;
+	L.ComponentsY = 2;
+	L.BaseHeight = 10.f;
+	L.NoiseAmplitude = L.RollingAmplitude = L.DetailAmplitude = L.BumpAmplitude = 0.f;
+	L.GullyDepth = 0.f;
+	L.WestRidgeWidth = L.NorthRidgeWidth = L.EastRidgeWidth = 0.f;
+	L.CoastLine = -1000.f;
+	L.TowerHill.Center = FVector2D(-5000.0, -5000.0);
+	FGrimTerrainRidgeline& R = L.Ridgelines.AddDefaulted_GetRef();
+	R.Name = TEXT("Test");
+	R.Points = { FVector2D(40.0, 126.0), FVector2D(126.0, 126.0), FVector2D(212.0, 126.0) };
+	R.Heights = { 20.f, 6.f, 20.f };
+	R.LeftWidth = 40.f;
+	R.RightWidth = 60.f;
+	R.Sharpness = 2.f;
+	R.Variation = 0.f;
+
+	FGrimTerrainMaps M;
+	FGrimTerrainGenerator::Generate(L, M);
+	const float Crest = FGrimTerrainGenerator::SampleHeight(M, 40.0, 126.0);
+	const float Saddle = FGrimTerrainGenerator::SampleHeight(M, 126.0, 126.0);
+	TestEqual(TEXT("꺾은점 꼭대기 = 바닥 + 20"), Crest, 30.f, 0.5f);
+	TestEqual(TEXT("안부 = 바닥 + 6"), Saddle, 16.f, 0.5f);
+	TestTrue(FString::Printf(TEXT("꼭대기 %.1f > 안부 %.1f + 8"), Crest, Saddle), Crest > Saddle + 8.f);
+	TestEqual(TEXT("왼쪽(북) 45 m 밖은 바닥"), FGrimTerrainGenerator::SampleHeight(M, 60.0, 126.0 + 45.0), 10.f, 0.05f);
+	TestTrue(TEXT("오른쪽(남) 45 m 는 아직 비탈"), FGrimTerrainGenerator::SampleHeight(M, 60.0, 126.0 - 45.0) > 10.2f);
+
+	// 침식: 같은 시드 = 같은 높이, 끄면 다르다, 높이가 크게 튀지 않는다
+	L.ErosionDropletsPerCell = 0.5f;
+	L.ErosionBoundsMin = FVector2D(10.0, 10.0);
+	L.ErosionBoundsMax = FVector2D(240.0, 240.0);
+	FGrimTerrainMaps E1, E2;
+	FGrimTerrainGenerator::Generate(L, E1);
+	FGrimTerrainGenerator::Generate(L, E2);
+	TestTrue(TEXT("침식 — 같은 시드 = 같은 높이"), E1.Heights == E2.Heights);
+	TestFalse(TEXT("침식이 땅을 바꾼다"), E1.Heights == M.Heights);
+	// 이 시험 능선은 북쪽 비탈(40 m 에 20 m)이 맵의 어느 비탈보다 가팔라 물길이 깊다 — 구덩이 · 뾰족한 값이 터지지 않는지만 본다
+	float MaxChange = 0.f;
+	double SumChange = 0.0;
+	for (int32 Index = 0; Index < M.Heights.Num(); ++Index)
+	{
+		const float Change = FMath::Abs(E1.Heights[Index] - M.Heights[Index]);
+		MaxChange = FMath::Max(MaxChange, Change);
+		SumChange += Change;
+	}
+	const double MeanChange = SumChange / FMath::Max(M.Heights.Num(), 1);
+	TestTrue(FString::Printf(TEXT("침식으로 바뀐 높이 최대 %.2f m ≤ 6 m"), MaxChange), MaxChange <= 6.f);
+	TestTrue(FString::Printf(TEXT("침식으로 바뀐 높이 평균 %.3f m ≤ 0.5 m"), MeanChange), MeanChange <= 0.5);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainOpenBetaShapeTest, "Grimoire.Terrain.Generator.OpenBeta", GrimTerrainTestLocal::Flags)
 bool FGrimTerrainOpenBetaShapeTest::RunTest(const FString& Parameters)
 {
@@ -348,6 +407,64 @@ bool FGrimTerrainFoliageRulesTest::RunTest(const FString& Parameters)
 			Broken += bOk ? 0 : 1;
 		}
 		TestEqual(FString::Printf(TEXT("%s 가 물 · 길 · 높이 · 탑 규칙을 지킴"), *Rule.Name.ToString()), Broken, 0);
+	}
+	return true;
+}
+
+// 레벨 디자인 2차: 자연 분포 — 포아송 원판 간격 · 종 값 · 다시 돌려도 같다
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainFoliageNaturalTest, "Grimoire.Terrain.Foliage.Natural", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainFoliageNaturalTest::RunTest(const FString& Parameters)
+{
+	using namespace GrimTerrainTestLocal;
+	FGrimTerrainLayout L;
+	const FGrimTerrainMaps* MapsPtr = GetOpenBetaMaps(*this, L);
+	if (!MapsPtr)
+	{
+		return false;
+	}
+	for (const FGrimTerrainFoliageRule& Rule : L.Foliage)
+	{
+		if (Rule.MinSpacing <= 0.f)
+		{
+			continue;
+		}
+		TArray<FTransform> A, B;
+		TArray<float> VA, VB;
+		FGrimTerrainGenerator::ScatterFoliage(L, *MapsPtr, Rule, A, &VA);
+		FGrimTerrainGenerator::ScatterFoliage(L, *MapsPtr, Rule, B, &VB);
+		TestEqual(FString::Printf(TEXT("%s 종 값 수 = 자리 수"), *Rule.Name.ToString()), VA.Num(), A.Num());
+		TestTrue(FString::Printf(TEXT("%s 다시 돌려도 같다"), *Rule.Name.ToString()), A.Num() == B.Num() && VA == VB);
+		// 가장 가까운 이웃 거리 ≥ MinSpacing(격자 칸으로 둘레만 본다)
+		const double Cell = Rule.MinSpacing;
+		TMap<FIntPoint, TArray<FVector2D>> Grid;
+		for (const FTransform& T : A)
+		{
+			const FVector2D P(T.GetLocation().X / 100.0, T.GetLocation().Y / 100.0);
+			Grid.FindOrAdd(FIntPoint(FMath::FloorToInt32(P.X / Cell), FMath::FloorToInt32(P.Y / Cell))).Add(P);
+		}
+		int32 TooClose = 0, BadVariant = 0;
+		for (int32 Index = 0; Index < A.Num(); ++Index)
+		{
+			BadVariant += (VA[Index] < 0.f || VA[Index] >= 1.f) ? 1 : 0;
+			const FVector2D P(A[Index].GetLocation().X / 100.0, A[Index].GetLocation().Y / 100.0);
+			const FIntPoint C(FMath::FloorToInt32(P.X / Cell), FMath::FloorToInt32(P.Y / Cell));
+			for (int32 DY = -1; DY <= 1; ++DY)
+			{
+				for (int32 DX = -1; DX <= 1; ++DX)
+				{
+					if (const TArray<FVector2D>* Bucket = Grid.Find(C + FIntPoint(DX, DY)))
+					{
+						for (const FVector2D& Q : *Bucket)
+						{
+							const double D = FVector2D::Distance(P, Q);
+							TooClose += (D > 1e-3 && D < Rule.MinSpacing - 0.01) ? 1 : 0;
+						}
+					}
+				}
+			}
+		}
+		TestEqual(FString::Printf(TEXT("%s 자리끼리 %.1f m 이상(%d 개)"), *Rule.Name.ToString(), Rule.MinSpacing, A.Num()), TooClose, 0);
+		TestEqual(FString::Printf(TEXT("%s 종 값 0~1"), *Rule.Name.ToString()), BadVariant, 0);
 	}
 	return true;
 }

@@ -48,6 +48,40 @@ struct GRIMOIRE_API FGrimTerrainZone
 	/** 이 구역에만 더하는 잔물결(±m) · 파장(m) — 언덕 사이 바닥이 평평하지 않게(마탑 구간). 0 이면 없음. 덮는 순서와 상관없이 가장 센 구역 것을 쓴다 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ExtraRollingAmplitude = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ExtraRollingScale = 60.f;
+	/**
+	 * 레벨 디자인 2차: 이 구역에만 더하는 「뒤튼 능선 노이즈」(±m 의 대략 두 배 폭) · 파장(m) · 뒤틀기(0~1.5).
+	 * 능선형 다중 프랙탈(1 − |펄린|)² 을 저주파 노이즈로 뒤틀어(domain warp) 둥근 언덕이 줄지어 늘어서지 않고 등성이 · 골 · 안부가 이어진 땅을 만든다.
+	 * 0 이면 없음. 잔물결처럼 덮는 순서와 상관없이 가장 센 구역 것을 쓴다. docs/systems/terrain.md 「높이를 만드는 순서」
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float RidgedAmplitude = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float RidgedScale = 220.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float WarpStrength = 0.6f;
+	/** 레이아웃 둔턱(BumpAmplitude)에 곱하는 값 — 바닥 높이처럼 뒤 구역이 덮으며 섞인다. 작으면 큰 땅 모양이 잔 울퉁불퉁에 묻히지 않는다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float BumpMultiplier = 1.f;
+};
+
+/**
+ * 능선(레벨 디자인 2차) — 꺾은선을 따라 둥근 등성이가 이어진다. 점마다 높이를 주면 낮은 점이 안부(고갯마루)가 된다.
+ * 양쪽 밑동 폭이 달라(비대칭) 한쪽은 가파르고 한쪽은 완만하다. 언덕과 같은 버퍼에 그려 겹치면 언덕처럼 섞인다(가장 큰 것 + 나머지 × HillOverlapBlend).
+ */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimTerrainRidgeline
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName Name;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FVector2D> Points;
+	/** 점마다 등성이 높이(구역 바닥 위, m) — Points 와 같은 수. 비면 Height 하나 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<float> Heights;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Height = 20.f;
+	/** 진행 방향 왼쪽 · 오른쪽 밑동까지(m) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float LeftWidth = 120.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float RightWidth = 120.f;
+	/** 단면 실루엣 k(언덕과 같은 식). 0 이면 레이아웃 HillSharpness */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Sharpness = 0.f;
+	/** 등성이 높이 · 폭이 길이를 따라 들쭉날쭉한 정도(±비율) · 마디 길이(m) — 곧은 둑이 되지 않게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Variation = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float VariationScale = 70.f;
 };
 
 /** 손으로 놓는 언덕 하나(중간 모양) — 둥근 삼각형 실루엣 */
@@ -86,6 +120,11 @@ struct GRIMOIRE_API FGrimTerrainHillField
 	/** 크기 쏠림: 0~1 난수를 이 거듭제곱 — 1 이면 고르게, 2~3 이면 작은 것이 많다 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float SizeBias = 2.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MaxAspect = 1.5f;
+	/** 길쭉함 하한(1 = 원도 나올 수 있음) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MinAspect = 1.f;
+	/** 긴 쪽 방향(도, 지도 +X 에서 반시계) 가운데 · 흩어짐(±도). 흩어짐 ≥ 90 이면 아무 방향 — 작으면 언덕이 한 방향으로 줄지어 능선 · 골 결이 생긴다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float YawCenter = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float YawSpread = 90.f;
 	/** 다른 언덕과 가운데 거리 ≥ (반지름 합) × 이 값 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MinSpacing = 0.5f;
 	/** 0 이면 레이아웃 HillSharpness */
@@ -390,6 +429,43 @@ struct GRIMOIRE_API FGrimTerrainFoliageRule
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MaxScale = 1.3f;
 	/** 땅속으로 묻는 깊이(cm, 크기 1 기준) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float SinkCm = 0.f;
+
+	// ── 레벨 디자인 2차: 자연스러운 분포(docs/systems/terrain.md 「식생」) ──
+	/** 자리끼리 최소 거리(m) — 포아송 원판(격자 느낌을 없앤다). 0 이면 가장 높은 밀도의 평균 간격 × 0.45 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MinSpacing = 0.f;
+	/** 작은 무리(초원의 숲덩이 · 바위 무더기): 같은 채널끼리 같은 노이즈. 파장(m, 0 이면 없음) · 문턱(-1~1) · 부드러움 · 무리 밖 밀도 배수 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 ClumpChannel = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ClumpScale = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ClumpThreshold = 0.1f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ClumpSoftness = 0.15f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ClumpOutside = 0.15f;
+	/** 숲 안 덩이(m, 0 이면 없음) — 숲 안에서도 몇 그루씩 모이고 작은 빈터가 생기게(고른 간격의 「과수원」 느낌을 없앤다). 덩이 밖 밀도 배수 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestPatchScale = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestPatchMin = 0.2f;
+	/** 숲 가장자리(숲 무늬 무게 0.5 언저리) 밀도 배수 — 덤불이 숲 가장자리에 모인다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestEdgeFactor = 1.f;
+	/** 등성이(볼록) · 골(오목) 밀도 배수 — 나무는 등성이에서 성기고 바위는 등성이 · 비탈에 모인다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float RidgeFactor = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleyFactor = 1.f;
+	/** 경사 RollingSlopeDeg 언저리(언덕 비탈) 밀도 배수 — 바위가 비탈에 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float SlopeFactor = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float SlopeFactorDeg = 18.f;
+	/** 물가(MinWaterDistance ~ + WaterEdgeDistance m — 개울 · 연못 · 강) 밀도 배수 — 개울을 따라 늘어선 나무 · 덤불 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float WaterEdgeFactor = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float WaterEdgeDistance = 20.f;
+	/** 길 가장자리(MinPathDistance ~ + PathEdgeDistance m) 밀도 배수 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PathEdgeFactor = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float PathEdgeDistance = 12.f;
+	/** 무리 · 숲 가운데일수록 크다(0~1) — 가운데는 늙은 나무, 가장자리는 어린 나무 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float GroveScaleBoost = 0.f;
+	/** 막 기울임(도, 피치 · 롤) · 비탈에 맞추는 정도(0~1) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MaxTiltDeg = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float AlignToSlope = 0.f;
+	/** 종(메시) 고르기 노이즈 파장(m) — 같은 종끼리 무리 지어 섞인다. 파이썬이 GetFoliageInstances 의 Variant 로 고른다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float VariantScale = 140.f;
+	/** 먼저 뿌린 이 규칙들의 자리에서 AvoidDistance(m) 안에는 놓지 않는다(바위가 나무 줄기 속에 들지 않게) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FName> AvoidRules;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float AvoidDistance = 3.f;
 };
 
 USTRUCT(BlueprintType)
@@ -442,6 +518,22 @@ struct GRIMOIRE_API FGrimTerrainLayout
 	/** 시드 언덕이 길 · 개울 · 강 · 계곡 가운데선에서 떨어지는 여유(반지름 배수) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float HillLineClearance = 0.6f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FGrimTerrainRidge> Ridges;
+	/** 능선 · 안부(레벨 디자인 2차) — 둥근 등성이가 이어지고 길은 그 사이 골과 안부로 지난다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FGrimTerrainRidgeline> Ridgelines;
+
+	// ── 침식(레벨 디자인 2차): 물방울 침식 — 비탈에 가지 친 물길 · 골 바닥에 쌓인 흙. 사각형 안만(비싸다) ──
+	/** 칸(1 m²)당 물방울 수. 0 이면 끔 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ErosionDropletsPerCell = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D ErosionBoundsMin = FVector2D::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D ErosionBoundsMax = FVector2D::ZeroVector;
+	/** 깎는 · 쌓는 세기(0~1) · 실어 나르는 양 배수 · 물방울 수명(걸음) · 붓 반지름(칸) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ErosionErodeSpeed = 0.3f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ErosionDepositSpeed = 0.3f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ErosionCapacity = 4.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 ErosionLifetime = 40;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 ErosionRadius = 3;
+	/** 한 걸음에 깎는 깊이 상한(m) — 뾰족한 구덩이가 생기지 않게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ErosionMaxStep = 0.25f;
 
 	// ── 작은 모양: 둔턱 · 침식 골 ──
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float BumpAmplitude = 1.5f;
@@ -506,6 +598,12 @@ struct GRIMOIRE_API FGrimTerrainLayout
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestNoiseScale = 340.f;
 	/** 숲 노이즈(-1~1)가 이 값을 넘으면 숲 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestThreshold = 0.18f;
+	/** 숲 경계를 부드럽게 섞는 노이즈 폭(문턱 ± 이 값) — 0 이면 칼로 자른 경계(1 · 2차) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestSoftness = 0.f;
+	/** 숲 노이즈를 뒤트는 세기(0~1.5) — 둥근 얼룩이 아니라 길쭉 · 불규칙한 숲 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ForestWarp = 0.f;
+	/** 등성이 · 골을 읽는 반지름(m) — 둘레 평균 높이 − 가운데 높이 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float CurvatureRadius = 20.f;
 	/** 탑 평지 둘레로 식생을 비우는 여유 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float TowerClearance = 40.f;
 	/** 랜드마크 · POI 둘레로 식생을 비우는 거리(POI 는 반지름 + 이 값) */

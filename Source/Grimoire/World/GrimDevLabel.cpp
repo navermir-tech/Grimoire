@@ -26,6 +26,13 @@ namespace GrimDevLabelLocal
 		TEXT("개발 표시 글씨를 숨기는 거리(cm). 0 = 액터 값(MaxVisibleDistance, 기본 250 m)"),
 		ECVF_Default);
 
+	int32 GShowSectionLabels = 1;
+	FAutoConsoleVariableRef CVarShowSectionLabels(
+		TEXT("Grim.DevLabels.Sections"),
+		GShowSectionLabels,
+		TEXT("하늘에 떠 있는 구역 이름(레벨 디자인 2차). 1 = 보임(기본), 0 = 숨김. Grim.DevLabels 0 이면 이것도 숨김. 출시 빌드에서는 늘 숨김."),
+		ECVF_Default);
+
 	/** 제목 · 설명 글씨 크기(Slate 포인트) — 위젯 1 픽셀 = 1 cm × WorldScale */
 	constexpr int32 TitleSize = 44;
 	constexpr int32 BodySize = 30;
@@ -64,6 +71,15 @@ bool AGrimDevLabel::AreLabelsEnabled()
 	return false;
 #else
 	return GrimDevLabelLocal::GShowDevLabels != 0;
+#endif
+}
+
+bool AGrimDevLabel::AreSectionLabelsEnabled()
+{
+#if UE_BUILD_SHIPPING
+	return false;
+#else
+	return GrimDevLabelLocal::GShowDevLabels != 0 && GrimDevLabelLocal::GShowSectionLabels != 0;
 #endif
 }
 
@@ -119,14 +135,26 @@ void AGrimDevLabel::BuildWidget()
 	using namespace GrimDevLabelLocal;
 	Widget->SetRelativeScale3D(FVector(FMath::Max(WorldScale, 0.1f)));
 
+	FSlateFontInfo TitleFont = FCoreStyle::GetDefaultFontStyle("Bold", TitleFontSize > 0 ? TitleFontSize : TitleSize);
+	FSlateFontInfo BodyFont = FCoreStyle::GetDefaultFontStyle("Regular", BodyFontSize > 0 ? BodyFontSize : BodySize);
+	if (bSectionLabel)
+	{
+		// 하늘 글씨: 판 없이 검은 테두리 — 밝은 하늘 · 구름 앞에서도 읽힌다
+		TitleFont.OutlineSettings.OutlineSize = FMath::Max(2, TitleFont.Size / 14);
+		TitleFont.OutlineSettings.OutlineColor = FLinearColor(0.f, 0.f, 0.f, 0.85f);
+		BodyFont.OutlineSettings.OutlineSize = FMath::Max(2, BodyFont.Size / 14);
+		BodyFont.OutlineSettings.OutlineColor = FLinearColor(0.f, 0.f, 0.f, 0.85f);
+	}
 	TSharedRef<SVerticalBox> Lines = SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
 		.AutoHeight()
+		.HAlign(HAlign_Center)
 		[
 			SNew(STextBlock)
 			.Text(Title)
-			.Font(FCoreStyle::GetDefaultFontStyle("Bold", TitleSize))
+			.Font(TitleFont)
 			.ColorAndOpacity(FSlateColor(TitleColor))
+			.Justification(bSectionLabel ? ETextJustify::Center : ETextJustify::Left)
 			.WrapTextAt(WrapWidth)
 		];
 	if (!Body.IsEmpty())
@@ -137,14 +165,15 @@ void AGrimDevLabel::BuildWidget()
 			[
 				SNew(STextBlock)
 				.Text(Body)
-				.Font(FCoreStyle::GetDefaultFontStyle("Regular", BodySize))
+				.Font(BodyFont)
+				.Justification(bSectionLabel ? ETextJustify::Center : ETextJustify::Left)
 				.ColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.95f, 0.92f)))
 				.WrapTextAt(WrapWidth)
 			];
 	}
 	TSharedRef<SWidget> Content = SNew(SBorder)
 		.BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
-		.BorderBackgroundColor(FLinearColor(0.02f, 0.02f, 0.03f, 0.72f))
+		.BorderBackgroundColor(bSectionLabel ? FLinearColor::Transparent : FLinearColor(0.02f, 0.02f, 0.03f, 0.72f))
 		.Padding(FMargin(28.f, 16.f))
 		[
 			Lines
@@ -155,7 +184,7 @@ void AGrimDevLabel::BuildWidget()
 
 void AGrimDevLabel::ApplyVisibility(bool bInRange)
 {
-	const bool bWant = AreLabelsEnabled() && bInRange;
+	const bool bWant = (bSectionLabel ? AreSectionLabelsEnabled() : AreLabelsEnabled()) && bInRange;
 	if (bWant != bShown || !bVisibilityApplied)
 	{
 		bVisibilityApplied = true;
@@ -194,7 +223,7 @@ void AGrimDevLabel::Tick(float DeltaSeconds)
 	FVector ViewLocation;
 	const bool bHasView = GetViewLocation(ViewLocation);
 	// 카메라가 아직 없으면(첫 프레임) 거리로 숨기지 않는다
-	const float MaxDistance = GrimDevLabelLocal::GMaxDistanceOverride > 0.f ? GrimDevLabelLocal::GMaxDistanceOverride : MaxVisibleDistance;
+	const float MaxDistance = (!bSectionLabel && GrimDevLabelLocal::GMaxDistanceOverride > 0.f) ? GrimDevLabelLocal::GMaxDistanceOverride : MaxVisibleDistance;
 	const bool bInRange = !bHasView || FVector::DistSquared(ViewLocation, GetActorLocation()) <= FMath::Square(MaxDistance);
 	ApplyVisibility(bInRange);
 	if (!bShown || !bFaceCamera || !bHasView)
@@ -205,6 +234,8 @@ void AGrimDevLabel::Tick(float DeltaSeconds)
 	const FVector ToCamera = ViewLocation - GetActorLocation();
 	if (!ToCamera.IsNearlyZero())
 	{
-		SetActorRotation(FRotator(0.f, ToCamera.Rotation().Yaw, 0.f));
+		// 하늘 글씨는 위아래로도 카메라를 본다(바로 밑에서 올려다봐도 납작해지지 않게). 위젯 앞면이 +X 라 Pitch 를 그대로 쓴다
+		const FRotator Look = ToCamera.Rotation();
+		SetActorRotation(FRotator(bSectionLabel ? Look.Pitch : 0.f, Look.Yaw, 0.f));
 	}
 }
