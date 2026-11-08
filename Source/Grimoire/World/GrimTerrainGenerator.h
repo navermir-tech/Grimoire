@@ -12,6 +12,25 @@ struct GRIMOIRE_API FGrimTerrainPathLine
 };
 
 /** 생성기가 만든 격자 데이터. 한 정점 = 지도 좌표 (X * QuadSize, Y * QuadSize) m */
+/** 자연 개울 물 표면용 자료 — 1 m 마다 자리(지도 m) · 물 높이 · 반폭(m) */
+struct FGrimNaturalCreekData
+{
+	FName Name;
+	TArray<FVector2D> Points;
+	TArray<float> Levels;
+	TArray<float> Halves;
+};
+
+/** 자연 연못 물 표면용 자료 — 각도마다 물가선 반지름 */
+struct FGrimNaturalPondData
+{
+	static constexpr int32 AngleCount = 96;
+	FName Name;
+	FVector2D Center = FVector2D::ZeroVector;
+	float Level = 0.f;
+	TArray<float> Radii;
+};
+
 struct GRIMOIRE_API FGrimTerrainMaps
 {
 	int32 SizeX = 0;
@@ -33,6 +52,10 @@ struct GRIMOIRE_API FGrimTerrainMaps
 
 	float TowerPlateauHeight = 0.f;
 	TArray<FGrimTerrainWaterBody> Water;
+	/** 길이 자연 개울을 건너는 자리 · 물 표면 메시 자료(레벨 디자인 3차) */
+	TArray<FGrimTerrainBridge> Bridges;
+	TArray<FGrimNaturalCreekData> NaturalCreeks;
+	TArray<FGrimNaturalPondData> NaturalPonds;
 	/** 놓인 언덕(손 + 시드 + 바위 노두) */
 	TArray<FGrimTerrainPlacedHill> PlacedHills;
 	TArray<FGrimTerrainPathLine> PathLines;
@@ -94,6 +117,12 @@ public:
 
 	/** 숲 무늬 무게(0~1) — 뒤틀고 경계를 부드럽게 섞은 숲 노이즈. 식생 · 분석이 같이 쓴다 */
 	static float ForestWeight(const FGrimTerrainLayout& Layout, double U, double V);
+
+	/**
+	 * 지도 자리(U, V)가 Bodies 의 자연 개울 · 연못 물 표면에서 Margin(m) 안이면 참 — 물 높이(m), UV 용 호 길이 · 옆 거리(m), 흐름(0 = 고인 물, 1 = 개울).
+	 * 연못이 먼저라 합류부에서 물 높이가 연못과 똑같다.
+	 */
+	static bool SampleNaturalWater(const FGrimTerrainMaps& Maps, const TArray<FName>& Bodies, double U, double V, double Margin, double& OutLevel, double& OutArc, double& OutSigned, double& OutFlow);
 
 	static FGrimTerrainSummary MakeSummary(const FGrimTerrainLayout& Layout, const FGrimTerrainMaps& Maps);
 };

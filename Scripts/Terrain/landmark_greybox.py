@@ -447,6 +447,8 @@ def build_pois(placer, raw):
     kinds = {}
     for spec in raw.get("Pois", []):
         poi = _Poi(spec)
+        if spec.get("bNoGreybox"):
+            continue   # 레벨 디자인 3차: 실제 소품이 놓인 POI(짐수레 — ld3_dress.py) — 블록을 겹치지 않는다
         builder = POI_BUILDERS.get(poi.kind)
         if builder is None:
             unreal.log_warning(f"landmark_greybox: 모르는 POI 종류 {poi.kind} ({poi.name}) — 표식만")
@@ -585,8 +587,9 @@ def build_dev_labels(placer, raw):
         placer.at(u, v, 0.0, f"DevLabels/Poi/{name}", f"Block_{name}")
         radius = min(spec.get("Radius", 10.0), 14.0)   # 거점 터(28 m)도 원판은 작게 — 멀리서 연못처럼 보이지 않게
         # 블록: 자리 크기(반지름) 원판(반쯤 묻힘) + 종류 색 기둥 — 멀리서도 「무엇이 들어갈 자리」인지 색으로 읽힌다
-        placer.shape(CYLINDER, material, "Footprint", 0, 0, 0, radius * 2.0, radius * 2.0, 1.0, block=False, shadow=False, z_center=0.0)
-        placer.shape(CYLINDER, material, "Post", 0, 0, -0.5, 0.45, 0.45, 7.0, block=False)
+        if not spec.get("bNoGreybox"):
+            placer.shape(CYLINDER, material, "Footprint", 0, 0, 0, radius * 2.0, radius * 2.0, 1.0, block=False, shadow=False, z_center=0.0)
+            placer.shape(CYLINDER, material, "Post", 0, 0, -0.5, 0.45, 0.45, 7.0, block=False)
         spawn_label(placer, f"Label_{name}", f"DevLabels/Poi/{name}", u, v, 6.8,
                     f"{kind_name} — {spec.get('Label', name)}", spec.get("Note", ""), color, 1.8, wrap=820.0)
         count += 1
@@ -654,6 +657,58 @@ def build_construction_fence(placer, raw, spacing_m=40.0, sign_every=4):
     return posts, signs
 
 
+def build_natural_bridges(placer, raw, summary, map_to_world):
+    """레벨 디자인 3차: 자연 개울 위 다리 — 생성기가 실제 곡선 교점에서 계산한 자리 · 방향 · 상판 높이대로, 수평으로 양쪽 둑에 얹는다.
+    가로 널 · 세로 보 · 돌 교대(둑 위) · 난간을 모두 길 방향에 맞춘다(비뚤지 않게 — 널 길이만 조금씩 다르다)"""
+    import random
+    count = 0
+    for bridge in summary.bridges:
+        rng = random.Random(hash(str(bridge.name)) & 0xffff)
+        rng.seed(int(bridge.center.x + bridge.center.y))
+        span = bridge.span / 100.0
+        width = bridge.width / 100.0
+        # 지도 각도 = 90 − 월드 Yaw (Placer 는 지도 각도)
+        angle = 90.0 - bridge.yaw
+        u = bridge.center.y / 100.0 + raw["WorldOrigin"]["X"]
+        v = bridge.center.x / 100.0 + raw["WorldOrigin"]["Y"]
+        name = str(bridge.name)
+        placer.at(u, v, angle, "Bridges", name)
+        placer.base_z = bridge.center.z
+        deck = 0.0      # 상판 윗면 = base_z
+        beam_len = span + 2.4
+        # 세로 보 셋(둑 위까지 간다)
+        for ly in (-width * 0.36, 0.0, width * 0.36):
+            placer.shape(CUBE, "Bark", f"Beam_{ly:+.1f}", 0, ly, 0, beam_len, 0.3, 0.3, z_center=deck - 0.28)
+        # 가로 널 — 수평 · 직각, 길이만 조금씩(끝이 들쭉날쭉 — 손으로 켠 널)
+        x = -beam_len * 0.5
+        k = 0
+        while x < beam_len * 0.5:
+            w = rng.uniform(0.34, 0.46)
+            placer.shape(CUBE, "Wood", f"Plank_{k:02d}", x + w * 0.5, rng.uniform(-0.05, 0.05), 0, w - 0.03, width + rng.uniform(-0.12, 0.2), 0.08, z_center=deck - 0.04)
+            x += w
+            k += 1
+        # 돌 교대: 양쪽 둑에 보 끝을 받치는 돌 턱
+        for sgn in (-1.0, 1.0):
+            ax = sgn * (span * 0.5 + 0.1)
+            bank = placer.ground_cm(*placer.world_xy(ax, 0.0))
+            top = bridge.center.z - 40.0
+            height = max(top - bank + 80.0, 80.0) / 100.0
+            placer.base_z = bridge.center.z
+            placer.shape(CUBE, "Stone", f"Abutment_{sgn:+.0f}", ax, 0, 0, 1.3, width + 1.3, height, z_center=(top / 100.0 - bridge.center.z / 100.0) - height * 0.5)
+            for ly in (-(width * 0.5 + 0.35), width * 0.5 + 0.35):
+                placer.shape(CUBE, "Stone", f"Wing_{sgn:+.0f}_{ly:+.1f}", ax - sgn * 0.45, ly, 0, 2.2, 0.7, height * 0.8, z_center=(top / 100.0 - bridge.center.z / 100.0) - height * 0.4)
+        # 난간: 기둥(양쪽 3 개) + 위 가로대 — 직각
+        for side in (1, -1):
+            ly = side * (width * 0.5 + 0.04)
+            for j in range(3):
+                lx = (j - 1) * span * 0.42
+                placer.shape(CUBE, "Bark", f"Post_{side:+d}_{j}", lx, ly, 0, 0.14, 0.14, 1.05, z_center=deck + 0.5)
+            placer.shape(CUBE, "Wood", f"Rail_{side:+d}", 0, ly, 0, span * 0.92, 0.09, 0.11, block=False, z_center=deck + 1.02)
+        count += 1
+        unreal.log(f"다리 {name}: 길이 {span:.1f} m 폭 {width:.1f} m, 상판 {bridge.center.z / 100.0:.2f} m, 물 {bridge.water_z / 100.0:.2f} m, 길과 개울 사이각 {bridge.crossing_angle:.0f}°")
+    return count
+
+
 def build_bridges(placer, raw, path_points_by_name):
     """길이 개울을 건너는 곳마다 널다리(길 꺾은선 × 개울 꺾은선 교차 — 꺾은점 기준이라 수 m 어긋날 수 있다)"""
     def segments(points):
@@ -673,6 +728,8 @@ def build_bridges(placer, raw, path_points_by_name):
     count = 0
     for path in raw.get("Paths", []):
         for creek in raw.get("Creeks", []):
+            if creek.get("bNatural"):
+                continue   # 자연 개울 다리는 build_natural_bridges(생성기가 곡선 교점에서 계산)
             for a, b in segments(path["Points"]):
                 for c, d in segments(creek["Points"]):
                     hit = intersect(a, b, c, d)

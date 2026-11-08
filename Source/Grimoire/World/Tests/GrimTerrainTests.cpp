@@ -196,6 +196,143 @@ bool FGrimTerrainDeterministicTest::RunTest(const FString& Parameters)
 }
 
 // 레벨 디자인 2차: 능선(점마다 높이 — 낮은 점 = 안부, 양쪽 폭이 다름) · 물방울 침식(같은 시드 = 같은 결과)
+namespace GrimTerrainTestLocal
+{
+	/** 아무것도 없는 평지(253 × 253 m, 바닥 Base m) — 능선 · 개울 단위 시험 바탕 */
+	FGrimTerrainLayout FlatLayout(float Base)
+	{
+		FGrimTerrainLayout L;
+		L.Seed = 11;
+		L.SectionQuads = 63;
+		L.ComponentsX = 2;
+		L.ComponentsY = 2;
+		L.BaseHeight = Base;
+		L.NoiseAmplitude = L.RollingAmplitude = L.DetailAmplitude = L.BumpAmplitude = 0.f;
+		L.GullyDepth = 0.f;
+		L.WestRidgeWidth = L.NorthRidgeWidth = L.EastRidgeWidth = 0.f;
+		L.CoastLine = -1000.f;
+		L.TowerHill.Center = FVector2D(-5000.0, -5000.0);
+		return L;
+	}
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainSharpRidgeTest, "Grimoire.Terrain.Generator.SharpRidge", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainSharpRidgeTest::RunTest(const FString& Parameters)
+{
+	// 레벨 디자인 3차: 날카로운 등성이 — 꼭대기에서도 기울어 있고(둥근 돔 아님), 한쪽이 가파르고, 등성이 높이가 끊기지 않는다
+	FGrimTerrainLayout L = GrimTerrainTestLocal::FlatLayout(10.f);
+	FGrimTerrainRidgeline& R = L.Ridgelines.AddDefaulted_GetRef();
+	R.Name = TEXT("Sharp");
+	R.bSharpCrest = true;
+	R.Points = { FVector2D(30.0, 126.0), FVector2D(126.0, 126.0), FVector2D(222.0, 126.0) };
+	R.Heights = { 30.f, 30.f, 30.f };
+	R.LeftWidth = 110.f;	// 왼쪽(북) 완사면
+	R.RightWidth = 45.f;	// 오른쪽(남) 급사면
+	R.LeftPower = 1.7f;
+	R.RightPower = 1.15f;
+	R.Variation = 0.f;
+	R.CrestRound = 1.f;
+	R.CrestWobble = 0.f;
+	R.CrestJag = 0.f;
+	R.GullyStrength = 0.f;
+	FGrimTerrainMaps M;
+	FGrimTerrainGenerator::Generate(L, M);
+	const float Top = FGrimTerrainGenerator::SampleHeight(M, 126.0, 126.0);
+	const float North6 = FGrimTerrainGenerator::SampleHeight(M, 126.0, 132.0);
+	const float South6 = FGrimTerrainGenerator::SampleHeight(M, 126.0, 120.0);
+	TestEqual(TEXT("꼭대기 = 바닥 + 30"), Top, 40.f, 1.5f);
+	TestTrue(FString::Printf(TEXT("꼭대기 6 m 옆이 벌써 낮다(둥근 돔이 아니다) 북 %.1f"), Top - North6), Top - North6 > 2.0f);
+	TestTrue(FString::Printf(TEXT("급사면(남)이 완사면(북)보다 빨리 낮아진다 %.1f > %.1f"), Top - South6, Top - North6), Top - South6 > Top - North6 + 0.8f);
+	TestTrue(TEXT("오른쪽 45 m 밖은 바닥"), FMath::IsNearlyEqual(FGrimTerrainGenerator::SampleHeight(M, 126.0, 126.0 - 50.0), 10.f, 0.1f));
+	TestTrue(TEXT("왼쪽 60 m 는 아직 비탈"), FGrimTerrainGenerator::SampleHeight(M, 126.0, 126.0 + 60.0) > 11.0f);
+	// 등성이가 이어진다: 진행 방향으로 어디서나 높이 ≥ 바닥 + 28
+	float MinCrest = 1000.f;
+	for (double X = 40.0; X <= 212.0; X += 2.0)
+	{
+		MinCrest = FMath::Min(MinCrest, FGrimTerrainGenerator::SampleHeight(M, X, 126.0));
+	}
+	TestTrue(FString::Printf(TEXT("등성이가 끊기지 않는다(가장 낮은 곳 %.1f)"), MinCrest), MinCrest > 38.f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainNaturalCreekTest, "Grimoire.Terrain.Generator.NaturalCreek", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainNaturalCreekTest::RunTest(const FString& Parameters)
+{
+	// 레벨 디자인 3차: 자연 개울 — 물이 내려가기만 하고, 끝이 연못 물 높이와 같고(틈 없음), V 자로 파이고, 다리는 곡선 교점 · 수평이다
+	FGrimTerrainLayout L = GrimTerrainTestLocal::FlatLayout(30.f);
+	FGrimTerrainPond& Pond = L.Ponds.AddDefaulted_GetRef();
+	Pond.Name = TEXT("Pond");
+	Pond.Center = FVector2D(126.0, 40.0);
+	Pond.Radius = 16.f;
+	Pond.Depth = 2.f;
+	Pond.ShoreWidth = 6.f;
+	Pond.WaterBelowGround = 5.f;
+	Pond.Irregularity = 0.2f;
+	FGrimTerrainChannel& C = L.Creeks.AddDefaulted_GetRef();
+	C.Name = TEXT("Creek");
+	C.bNatural = true;
+	C.Points = { FVector2D(126.0, 220.0), FVector2D(120.0, 180.0), FVector2D(132.0, 140.0), FVector2D(126.0, 100.0), FVector2D(124.0, 70.0), FVector2D(126.0, 45.0) };
+	C.Width = 2.f;
+	C.WidthEnd = 4.f;
+	C.WaterBelowGround = 1.f;
+	C.ValleyDepthStart = 4.f;
+	C.ValleyDepthEnd = 1.f;
+	C.ValleyHalfStart = 1.f;
+	C.ValleyHalfEnd = 5.f;
+	C.ValleySlopeStart = 35.f;
+	C.ValleySlopeEnd = 14.f;
+	C.HeadPoolRadius = 2.f;
+	C.JoinPond = TEXT("Pond");
+	FGrimTerrainChannel& P = L.Paths.AddDefaulted_GetRef();
+	P.Name = TEXT("Road");
+	P.Width = 3.f;
+	P.BankWidth = 8.f;
+	P.Points = { FVector2D(40.0, 150.0), FVector2D(126.0, 150.0), FVector2D(212.0, 150.0) };
+	FGrimTerrainMaps M;
+	FGrimTerrainGenerator::Generate(L, M);
+
+	const FGrimTerrainWaterBody* Body = M.Water.FindByPredicate([](const FGrimTerrainWaterBody& Each) { return Each.Name == TEXT("Creek"); });
+	const FGrimTerrainWaterBody* PondBody = M.Water.FindByPredicate([](const FGrimTerrainWaterBody& Each) { return Each.Name == TEXT("Pond"); });
+	if (!TestNotNull(TEXT("개울 물"), Body) || !TestNotNull(TEXT("연못 물"), PondBody))
+	{
+		return false;
+	}
+	TestTrue(TEXT("자연 개울 · 연못은 물 표면 메시"), Body->bSurfaceMesh && PondBody->bSurfaceMesh);
+	TestEqual(TEXT("폭 자료가 점마다"), Body->Widths.Num(), Body->Points.Num());
+	bool bDown = true;
+	for (int32 I = 1; I < Body->Points.Num(); ++I)
+	{
+		bDown &= Body->Points[I].Z <= Body->Points[I - 1].Z + 0.01;
+	}
+	TestTrue(TEXT("물이 하류로 내려가기만 한다"), bDown);
+	TestEqual(TEXT("끝 물 높이 = 연못 물 높이(틈 없음)"), Body->Points.Last().Z, PondBody->Points[0].Z, 3.0);
+	// 합류부: 물 표면이 개울 끝과 연못 사이에서 끊기지 않는다
+	double Level = 0.0, Arc = 0.0, Signed = 0.0, Flow = 0.0;
+	const TArray<FName> Bodies = { TEXT("Creek"), TEXT("Pond") };
+	for (double V = 44.0; V <= 70.0; V += 1.0)
+	{
+		TestTrue(FString::Printf(TEXT("합류부 %.0f m 에 물이 있다"), V), FGrimTerrainGenerator::SampleNaturalWater(M, Bodies, 125.0, V, 1.0, Level, Arc, Signed, Flow));
+	}
+	// V 자: 상류 쪽 물길 옆 8 m 는 물보다 충분히 높고, 200 m 밖 평지는 그대로
+	const FVector& Mid = Body->Points[Body->Points.Num() / 4];
+	const FVector2D MidMap = FGrimTerrainGenerator::WorldToMap(L, FVector2D(Mid.X, Mid.Y));
+	const float Side = FGrimTerrainGenerator::SampleHeight(M, MidMap.X + 8.0, MidMap.Y);
+	TestTrue(FString::Printf(TEXT("상류 옆 8 m 가 물보다 2 m 넘게 높다(%.1f)"), Side - Mid.Z / 100.0), Side - Mid.Z / 100.f > 2.f);
+	TestEqual(TEXT("멀리는 그대로"), FGrimTerrainGenerator::SampleHeight(M, 20.0, 220.0), 30.f, 0.2f);
+	// 다리: 곡선 교점 하나 · 수평 상판이 물보다 위 · 거의 직각
+	if (TestEqual(TEXT("다리 1 개"), M.Bridges.Num(), 1))
+	{
+		const FGrimTerrainBridge& B = M.Bridges[0];
+		TestTrue(TEXT("상판이 물보다 1 m 넘게 위"), B.Center.Z - B.WaterZ > 100.f);
+		TestTrue(FString::Printf(TEXT("길과 개울이 거의 직각(%.0f°)"), B.CrossingAngle), B.CrossingAngle > 60.f);
+		const FVector2D At = FGrimTerrainGenerator::WorldToMap(L, FVector2D(B.Center.X, B.Center.Y));
+		// 다리 양쪽 끝 노면이 상판 높이(수평으로 둑에 얹힘)
+		TestEqual(TEXT("다리 서쪽 끝 노면 = 상판"), FGrimTerrainGenerator::SampleHeight(M, At.X - B.Span / 200.0 - 1.5, At.Y), static_cast<float>(B.Center.Z / 100.0), 0.35f);
+		TestEqual(TEXT("다리 동쪽 끝 노면 = 상판"), FGrimTerrainGenerator::SampleHeight(M, At.X + B.Span / 200.0 + 1.5, At.Y), static_cast<float>(B.Center.Z / 100.0), 0.35f);
+	}
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainRidgelineTest, "Grimoire.Terrain.Generator.Ridgeline", GrimTerrainTestLocal::Flags)
 bool FGrimTerrainRidgelineTest::RunTest(const FString& Parameters)
 {
@@ -325,7 +462,8 @@ bool FGrimTerrainOpenBetaShapeTest::RunTest(const FString& Parameters)
 			const double Level = Water.Points[0].Z / 100.0;
 			TestTrue(FString::Printf(TEXT("%s 물 높이 %.1f 는 해수면 위"), *Water.Name.ToString(), Level), Level > L.SeaLevel + 1.0);
 			TestTrue(FString::Printf(TEXT("%s 가운데는 물 아래"), *Water.Name.ToString()), FGrimTerrainGenerator::SampleHeight(M, Spec->Center.X, Spec->Center.Y) < Level - Spec->Depth * 0.8);
-			for (int32 Index = 0; Index < 16; ++Index)
+			// 원판 물 평면만 — 자연 연못은 물 표면 메시라 물가선이 땅과의 교선이다(개울 입구로 땅이 낮은 곳이 있어도 된다)
+			for (int32 Index = 0; !Water.bSurfaceMesh && Index < 16; ++Index)
 			{
 				const double A = 2.0 * UE_DOUBLE_PI * Index / 16.0;
 				const double R = Water.Size / 100.0 + 0.5;

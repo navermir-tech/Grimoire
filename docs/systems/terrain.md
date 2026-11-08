@@ -5,6 +5,7 @@
 > **마탑 구간(2026-11-05, 2차 플레이 테스트 뒤)**: 2 × 4 km 를 한 번에 다듬지 않고 탑 둘레(약 1 km²)를 먼저 완성 수준으로 — 작은 언덕이 촘촘한 구릉 · 개울 · 연못 · POI 21 · 떠 있는 한글 글씨 · 「공사 중」 경계. 아래 「[마탑 구간](#마탑-구간-먼저-완성하는-구간)」, 결과 숫자는 노트의 「7」.
 > **레벨 아트 1차(2026-11-08)**: 시작 구역(마탑 구간)에 Fab 팩(StyleHex 풀 · 나무 · 바위, 지형 재질, 손그림 구름 등)을 입혔다 — `dress_openbeta.py`, 무엇을 어디에는 [레벨 디자인 노트 「8」](../dev/level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08).
 > **레벨 디자인 2차(2026-11-08)**: 「규칙적인 느낌」을 고쳤다 — 마탑 구간에 **능선 · 안부**(손으로 그은 등성이 7 줄) + 뒤튼 능선형 노이즈 + 물방울 침식, 식생을 **포아송 원판 · 숲 무늬 · 무리 · 등성이 / 골 · 물가**로 자연스럽게(맵 전체 StyleHex), 구간마다 콘셉트 구도(돌담 · 돌 표지 · 밭 · 봉화대 …), **하늘 구역 이름**, 거대 고목 **큐브 목업**. 무엇을 왜는 [레벨 디자인 노트 「9」](../dev/level-design#_9-레벨-디자인-2차-—-능선-·-자연-분포-·-구간-구도-2026-11-08).
+> **레벨 디자인 3차(2026-11-08)**: 능선을 꼭대기까지 기울어 있는 **날카로운 단면**(`bSharpCrest`, 급사면 + 완사면 · 바위 띠 · 지맥)으로, 개울을 **자연 개울**(`bNatural` — 지형이 판 V 자 골 · 소 · 여울 · 물 표면 메시 · 연못과 틈 없는 합류)로, 다리는 곡선 교점에서 계산, 돌담은 돌마다 땅에 앉혀 실제로 쌓는다(`ld3_dress.py`). 무엇을 왜: [레벨 디자인 노트 「10」](../dev/level-design#_10-레벨-디자인-3차-—-능선-·-개울-·-샘-·-돌담-·-채움-2026-11-08).
 > 상태: 지형 2차 + 마탑 구간 구현됨(2026-11-06 코드 대조). 코드: `Source/Grimoire/World/`. 스크립트: `Scripts/Terrain/`. 에셋: `Content/Grimoire/Terrain/`. 맵: `Content/Grimoire/Maps/L_OpenBeta.umap`(World Partition, 게임 맵 · 에디터 시작 맵).
 
 ![L_OpenBeta 를 하늘 2.9 km 에서 — 북쪽이 위. 남쪽 탑 곶 · 목초지 · 서쪽 연못 저지대 · 가운데 구릉과 고목 · 계곡(한쪽 절벽) · 북부 고지 · 동쪽 큰 강](/art/terrain/openbeta-aerial.jpg)
@@ -25,6 +26,7 @@
 | 레벨 아트 | `Scripts/Terrain/dress_openbeta.py`(+ `dress_assets.py`) | 만든 맵 위에 덧입힌다: 지형 재질 `M_Terrain_Dress`(맵 전체) · 랜드스케이프 풀 `GT_Dress_Meadow` · **맵 전체** 식생을 StyleHex 메시로(종은 생성기 Variant, 잎 색 `MI_Dress_Leaves_*`) · 길가 돌 · 손 소품 · 구름 카드. 지형을 다시 만들면 **이것도 다시 돌린다**. [레벨 디자인 「8」](../dev/level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) |
 | 구간 구도 · 하늘 이름(2차) | `Scripts/Terrain/section_dress.py` | `dress_openbeta.py` 가 부른다 — 콘셉트 아트대로 큰길 돌담 · 돌 표지 · 등불, 능선 꼭대기 바위 · 외딴 나무, 풍차 밭 · 곳간, 봉화대, 연못 징검돌 · 섬, 부유석 디딤돌, 고목 둥치, **하늘 구역 이름**(레이아웃 `Sections`). [레벨 디자인 「9」](../dev/level-design#구간-구도-—-콘셉트-아트대로-scripts-terrain-section-dress-py) |
 | 미리 보기(2차) | `Scripts/Terrain/preview_openbeta.py` · `Scripts/Terrain/overlay_foliage.py` | 맵을 만들지 않고 레이아웃만: 설계 검사 · 등고선 지도(마탑 구간 · 세부 · 고목 · 전체) · 식생 자리 CSV → 지도 위 점. `Saved/Terrain/preview/`. 레이아웃을 고치며 1 분 안에 본다 |
+| 3차 치장 | `Scripts/Terrain/ld3_dress.py` · 검사 `check_walls.py` | `dress_openbeta.py` 가 부른다 — 돌담 · 개울가 · 샘 · 짐수레 · 등성이 바위 · 빈 곳 채우기(폴리지 인스턴스). 검사는 맵에 놓인 돌담 돌이 땅이나 다른 돌에 닿았는지 라인 트레이스로 잰다 |
 | 게임플레이 배치 | `Scripts/Integration/place_openbeta_gameplay.py` | 서식 구역 볼륨 3(`Habitat.*` 표식 자리). 지형을 다시 만들면 **이것도 다시 돌린다**. 냄비는 탑 그레이박스가 이미 놓으므로 있으면 건너뛴다 |
 | 확인 | `Scripts/Terrain/check_openbeta.ps1` · `Scripts/Terrain/shoot_openbeta.ps1` · 콘솔 `Grim.Terrain.*`(`Source/Grimoire/World/GrimTerrainDebug.cpp`) · 테스트 `Grimoire.Terrain.*`(`Source/Grimoire/World/Tests/GrimTerrainTests.cpp`) | 아래 「확인」 |
 | 이동 치트 | `Source/Grimoire/World/GrimTeleportDebug.cpp` | 콘솔 `Grim.Go <이름>` · `Grim.Go.List [거르기]` — 표식 · 서식 구역 · 생물 · 태그 액터 곁으로([치트](../dev/cheats)) |
@@ -75,14 +77,17 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 |---|---|---|
 | 0. 언덕 놓기 | 손 언덕 7 + 언덕 군(다각형 안에 시드로 Count 개, 크기 = 난수^SizeBias → 작은 것이 많다). 길 · 개울 · 강 · 계곡 가운데선 · 탑 · 연못 · 거점을 피하고 서로 (반지름 합 × MinSpacing) 떨어진다. 가장 가파른 곳(타원의 짧은 쪽)이 `HillMaxSlopeDeg` 를 넘으면 높이를 줄인다. 바위 노두(작은 모양)는 시드 언덕 꼭대기 둘레 · 고지에. 언덕 군마다 바꿀 수 있는 것: 가파름 상한 `MaxSlopeDeg` · 길에서 떨어지는 여유 `LineClearance` · 손 언덕과 떨어지는 배수 `HandHillSpacing`. 작은 모양에 음수 높이를 주면 오목한 골이 된다 | `Hills` · `HillFields` · `HillSharpness` · `HillMaxSlopeDeg` |
 | 0b. 능선(2차) | 꺾은선을 따라 둥근 등성이 — 점마다 높이(낮은 점 = **안부**, 사이는 부드럽게), 단면은 언덕 실루엣, 진행 방향 왼쪽 · 오른쪽 밑동 폭이 달라 한쪽이 가파르다, 높이 · 폭이 길이를 따라 ± `Variation`. 언덕과 같은 버퍼(가장 큰 것 + 나머지 × 0.3) | `Ridgelines` |
+| 0c. 날카로운 등성이(3차) | `bSharpCrest` 능선 — 단면 (1 − t)^p, 양쪽 폭 · 지수가 다르고(급사면 · 완사면), 꼭대기는 `CrestRound` 만 둥글린다. 등성이 선 흔들림(`CrestWobble`) · 톱니(`CrestJag`) · 비탈 골(`Gully*`) · 급사면 바위 띠(`ScarpBand*`, 군데군데). 겹치면 큰 값만(`RidgeMax`) | `Ridgelines` |
 | 1. 바탕 | 구역 바닥(다각형, 경계 섞기 + 들쭉날쭉) + 구역 잔물결(`ExtraRolling*`, 덮는 순서와 상관없이 가장 센 구역 것) + **구역 뒤튼 능선 노이즈**(2차, `Ridged*` · `WarpStrength` — 능선형 다중 프랙탈을 저주파로 뒤틀어 결 있는 등성이 · 골) + 큰 노이즈 · 물결 · 둔턱(구역 `BumpMultiplier` 를 곱함) + 언덕(가장 큰 것 + 겹친 나머지 × 0.3) + 바위 노두 + 바위 능선 + 가장자리 산등성이(북쪽은 고개에서 낮아짐) | `Zones` · `Noise*` · `Rolling*` · `Bump*` · `Ridges` · `*RidgeWidth/Height` · `PassGaps` |
 | 1b. 침식 골 | 경사 7° 넘는 비탈에, 내리막 방향으로 길게 뻗은 좁은 골(깊이 0.7 m 안팎) | `Gully*` |
 | 1d. 물방울 침식(2차) | 사각형(`ErosionBounds*`) 안 칸마다 물방울을 떨어뜨려 비탈을 따라 흘리며 깎고 느려지면 쌓는다(Lague 방식, 한 스레드 고정 시드). 비탈에 가지 친 물길 · 골 바닥 · 언덕 밑동에 흙. 계곡 · 길 · 연못 · 탑 · 거점은 이 뒤에 깎고 고른다. 마탑 구간 130만 칸에 약 1 초 | `Erosion*` |
 | 1c · 2. 계곡 | 바닥 높이 = 양쪽 둑 중 **낮은 쪽** − 깊이, 이동 평균, 하류로 내려가기만. 한쪽(고지 쪽)은 거의 곧은 절벽, 다른 쪽은 부드러운 S 자. 바닥 · 비탈 폭이 계곡을 따라 들쭉날쭉 | `Valley` |
 | 2. 탑 · 해안 · 강 | 탑 언덕(꼭대기 평지 45 m), 남쪽 해안 · 곶 절벽, 큰 강(물 = 해수면) | `TowerHill` · `Coast*` · `River` |
+| 2b. 자연 개울 골(3차) | `bNatural` 개울의 물 높이(오목 곡선, `ValleyDepth*` 만큼 파임, 끝 = `JoinPond` 연못 물 높이) · 폭 · 소 · 곡률을 정하고 옆면 경사 `ValleySlope*` 의 골을 판다 — 굽이 바깥은 좁고 가파르게 | `Creeks` |
 | 3. 길 | 길 선을 2 m 마다 땅 높이로 재고, 경사 상한(`PathGradeDeg` 10°)을 지키는 가장 높은 「깎기」선과 가장 낮은 「메우기」선의 가운데를 고른 뒤(`PathSmoothing` 40 m 이동 평균) 그 높이로 깎고 메운다. 갈림길은 큰길 노면을 덮지 않고 큰길 높이에서 시작한다 | `Paths` · `PathGradeDeg` · `PathSmoothing` |
 | 4. 개울 · 폭포 | 물 높이는 상류 → 하류로 내려가기만. 4 m 마다 1.2 m 넘게 떨어지는 가장 큰 구간(8 m 이상)을 「폭포」로 물 목록에 낸다 | `Creeks` |
-| 5. 연못 · 거점 평지 | 둘레 땅에서 물 높이, 대접 모양 / 반지름 안 평평 | `Ponds` · `BaseSites` |
+| 5. 연못 · 거점 평지 | 둘레 땅에서 물 높이, 대접 모양(`Irregularity` 면 물가선이 흔들림) / 반지름 안 평평 | `Ponds` · `BaseSites` |
+| 5b. 자연 개울 물길(3차) | 길 · 연못 · 거점 뒤에 판다 — 다리 밑으로 흐르고 연못 둑을 뚫는다. 땅이 물보다 낮은 곳엔 둑을 쌓는다 | `Creeks` |
 
 언덕 실루엣 = 높이 × (1 − t)^k (1 + k t), t = 가운데 거리 / 반지름, k = 2.4 — 꼭대기가 둥글고 가운데가 곧고 밑동이 퍼지는 「둥근 삼각형」. 가장 가파른 기울기 = 높이 / 반지름 × 1.6.
 
@@ -101,12 +106,12 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 | 언덕(`Hills`, 손) | 자리 | 높이 · 지름 | 위에 있는 것 |
 |---|---|---|---|
 | `Hill_GiantTree` | (1100, 1980) | 55 m · 500 m(타원 1.15) | 거대 고목 — 중부 구릉에서 가장 큰 언덕 |
-| `Hill_Windmill` | (1400, 870) | 24 m · 300 m | 풍차 |
+| `Hill_Windmill` | (1400, 870) | 15 m · 210 m(3차 — 등성이 어깨) | 풍차 |
 | `Hill_Lookout` | (1380, 1580) | 36 m · 330 m | 전망 언덕(POI 전망대) |
 | `Hill_StoneCircle` | (560, 3700) | 28 m · 340 m | 선돌 고리 |
-| `Hill_Watchtower` | (1620, 2120) | 26 m · 240 m | 폐허 감시탑(동쪽은 강 둑 절벽) |
-| `Hill_FloatingRock` | (560, 800) | 26 m · 240 m | 부유석(마탑 구간 서쪽) |
-| `Hill_Beacon` | (880, 960) | 28 m · 220 m | 봉화 언덕 꼭대기(POI 전망대, 마탑 구간 북쪽) |
+| `Hill_Watchtower` | (1620, 2120) | 31 m · 240 m | 폐허 감시탑(동쪽은 강 둑 절벽) |
+| `Hill_FloatingRock` | (560, 800) | 15 m · 190 m(3차 — 등성이 어깨, 꼭대기는 `Ridge_WestSpine` 58 m) | 부유석(마탑 구간 서쪽) |
+| `Hill_Beacon` | (880, 960) | 15 m · 190 m(3차 — 등성이 어깨, 꼭대기는 `Ridge_WestSpine` 64 m) | 봉화 언덕 꼭대기(POI 전망대, 마탑 구간 북쪽) |
 
 - 언덕 군(`HillFields`): 마탑 구간 `TowerSector_*`(아래) 다음에 목초지(구간 북쪽 띠만) 30 · 구릉 50 · 저지대 40 · 고지 65 개를 시도해 **언덕 295 개**(손 7 포함), 작은 모양 180 개(바위 노두 85 + 구간 둔덕 · 골 · 바위). 자리가 모자라면 덜 놓인다(로그 `언덕 군 …: n / m 개만`).
 - 바위 능선 3(고지 동쪽 · 고개 양옆), 고개 `Gap_NorthPass`(지도 X 1000, 바닥 폭 80 m) — 북쪽 산등성이(60 m)가 그 둘레에서 사라져 협곡이 된다.
@@ -218,17 +223,17 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 | 조각 | 레이아웃 | 값 |
 |---|---|---|
 | 경계 | `Analysis.Sector.Polygon` · 구역 `TowerSector` | 서쪽 X 420(들판 끝) · 북쪽 개울 `Creek_Pasture`(Y 약 1080 → 강) · 동쪽 큰 강 · 남쪽 바다. 땅 1.02 km²(탑에서 약 600~750 m) |
-| 능선 · 안부(2차) | `Ridgelines` | 7 줄 — 서쪽 등줄기 · 동쪽 등줄기(동쪽 길이 넘는 안부 8 m) · 남동 능선(32 m) · 바닷가 능선 · 연못 둘레 · 개울 서쪽 · 북쪽 지맥. [레벨 디자인 「9」 땅](../dev/level-design#땅-—-능선-·-안부-·-골-마탑-구간) |
-| 구역 노이즈 · 침식(2차) | 구역 `TowerSector` `Ridged*` · `BumpMultiplier`, `Erosion*` | 뒤튼 능선형 노이즈 ±9 m(파장 360 m) · 둔턱 × 0.35 · 물방울 침식(칸당 0.6, 사각형 (420, 120) ~ (1780, 1090)). 구역 순서는 `Pasture` 다음(목초지 평균 높이에 구간 능선이 섞이지 않게 — 높이는 둘 다 27 m 라 같다) |
-| 작은 언덕 | `TowerSector_Hills` | 56 개 시도 → 56 개(2차, 1차 117), 지름 80~150 m, 높이 8~24 m 이되 가장 가파른 곳 27° 로 묶음(실제 8~18 m), 길쭉함 1.15~1.8 · **방향 북동 55° ± 40°**(능선과 같은 결), 실루엣 k = 2.0, 서로 (반지름 합 × 0.75), 길에서 반지름 × 0.35, 손 언덕과 × 0.9 |
-| 큰 언덕 | `Hills` | 봉화 언덕 28 m · 부유석 언덕 26 m · 풍차 언덕 24 m(지름 220~300 m) |
+| 능선 · 안부(3차) | `Ridgelines` | **29 줄**(날카로운 단면) — 주능선 5(서쪽 등줄기 64 m · 동쪽 등줄기 52 m · 풍차 능선 · 남동 능선 58 m · 바닷가) · 낮은 등성이 1 · 지맥 13 · 호그백 10. [레벨 디자인 「10」 땅](../dev/level-design#땅-—-등성이-생성기-bsharpcrest). 2차 7 줄은 [레벨 디자인 「9」 땅](../dev/level-design#땅-—-능선-·-안부-·-골-마탑-구간) |
+| 구역 노이즈 · 침식(2차) | 구역 `TowerSector` `Ridged*` · `BumpMultiplier`, `Erosion*` | 뒤튼 능선형 노이즈 ±5 m(3차, 2차 ±9 m · 파장 360 m) · 둔턱 × 0.35 · 물방울 침식(칸당 0.6, 사각형 (420, 120) ~ (1780, 1090)). 구역 순서는 `Pasture` 다음(목초지 평균 높이에 구간 능선이 섞이지 않게 — 높이는 둘 다 27 m 라 같다) |
+| 작은 언덕 | `TowerSector_Hills` | 12 개(3차 — 2차 56 개의 둥근 언덕이 「고분」으로 보였다), 지름 80~150 m, 높이 4~7 m, 길쭉함 1.6~2.4 · **방향 북동 55° ± 40°**(능선과 같은 결), 실루엣 k = 2.0, 서로 (반지름 합 × 0.75), 길에서 반지름 × 0.35, 손 언덕과 × 0.9 |
+| 큰 언덕 | `Hills` | 봉화 · 부유석 · 풍차 언덕 15 m — 등성이 어깨(3차, 꼭대기는 능선이 맡는다) |
 | 작은 모양 | `TowerSector_Mounds` · `_Hollows` · `_Rocks` | 둔덕 1.2~3.5 m 14 · 오목한 골 −1.2~−3 m(길쭉하게) 12 · 바위 1.5~4 m 10(2차에 줄임 — 둥근 바위 원뿔이 인공적으로 보였다. 바위는 식생 규칙이 등성이에 모은다) |
 | 바닥 잔물결 | 구역 `TowerSector` `ExtraRollingAmplitude` 1.6 m · `ExtraRollingScale` 60 m | 언덕 사이 바닥도 평평하지 않게 |
-| 물 | `Creek_TowerBrook` · `Pond_TowerWest` · `Creek_Pasture` | 봉화 언덕 기슭 샘 → 연못(연못 길에 널다리), 북쪽 경계 개울(큰길 · 동쪽 길에 널다리) |
+| 물 | `Creek_TowerBrook` · `Pond_TowerWest` · `Creek_Pasture` | 자연 개울(3차) — 봉화 언덕 기슭 샘 → 굽이쳐 연못으로 합류(연못 길에 다리), 북쪽 경계 개울(큰길 · 동쪽 길에 다리) → 큰 강 |
 | 길 | `Path_Main` 앞부분 · `Path_East` · `Path_PondLoop` | 구간 안 2.04 km. 큰길은 탑 문에서 언덕 사이로 세 번 휘고, 연못 길이 갈라진다 |
 | 랜드마크 | 탑(빛줄기 90 m) · 풍차 · 부유석(언덕 위 38~51 m) + 멀리 고목 · 바위 문 · 선돌 | 골 안에서도 어디서나 하나는 보이고 96% 의 자리에서 둘 이상 |
 
-**POI 21 곳(묶음 8)** — 가장 가까운 다른 POI 까지 94~116 m, 구간 길 위 어디서나 111 m 안.
+**POI 24 곳(묶음 9)** — 가장 가까운 다른 POI 까지 76~120 m, 구간 길 위 어디서나 108 m 안(3차 — 짐수레를 길섶으로 옮기며 길가 돌 사당 · 안부 돌무더기 · 개울가 약초를 더함).
 
 | 묶음 | POI(종류) |
 |---|---|
@@ -237,9 +242,10 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 | S3 연못 | 재칼로프 굴(생물) · 갈대 군락(자원) · 가라앉은 징검돌(퍼즐 — 얼리기) |
 | S4 부유석 | 부유석 조각(자원) · 무너진 관측소(폐허) · 바람 룬 돌(퍼즐) |
 | S5 봉화 언덕 | 꼭대기 전망(전망대) · 재칼로프 굴 무리(생물) · 비탈의 돌집 터(폐허) |
-| S6 길가 목초지 | 부서진 짐수레(이야기) · 들벌 둥지(생물) |
+| S6 길가 목초지 | 부서진 짐수레(이야기 — 길섶) · 들벌 둥지(생물) · 길가 돌 사당(이야기) |
 | S7 풍차 | 밀밭 · 건초 더미(자원) · 멈춘 방아(퍼즐 — 바람) · 무너진 방앗간 오두막(폐허) · 재칼로프 굴(생물) |
 | S8 북쪽 개울 | 마른 덩굴 돌문(퍼즐 — 불) · 개울 머리 샘(자원) |
+| S9 동쪽 길 | 안부 돌무더기(전망대) · 개울가 약초(자원) |
 
 ### 블록 · 떠 있는 글씨 · 공사 중
 
@@ -265,7 +271,7 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 
 | 검사 | 재는 법 | 기준(`Analysis.Sector`) | 지금 |
 |---|---|---|---|
-| 경사 | 구간 안 물 밖 땅, 4 m 격자 | 5~25° ≥ 70% | **71.7%**(2차) |
+| 경사 | 구간 안 물 밖 땅, 4 m 격자 | 5~25° ≥ 60%(3차 — 급사면을 일부러 넣었다) | **63.1%**(3차, 2차 71.7%) |
 | 언덕 | 가운데가 구간 안인 언덕(작은 모양 빼고) · 가장 가까운 언덕까지(가운데끼리) | 30 개 이상 · 손 2 이상 · 시드 지름 40~150 m · 높이 8~30 m · 간격 가운데값 50~120 m | 59(손 3) · 76 m(2차 — 1차 120 · 56 m) |
 | 작은 모양 | 가운데가 구간 안 | 20 개 이상 | 53 |
 | 물 | 구간 안 연못 · 개울 | 하나 이상씩 | 연못 1 · 개울 2 |
@@ -322,7 +328,8 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 |---|---|---|---|
 | 바다 + 큰 강 | 해수면(0 m) 평면 하나 | `WaterVolume_SeaRiver` | `Water` · `Water.Sea` · `Water.River` |
 | 연못 5곳 | 원판 | `WaterVolume_Pond_*` | `Water` · `Water.Pond` · 연못 이름 |
-| 개울 3개 | 12 m 조각 평면(물 높이를 따라 기울임) | 없음(얕다) | `Water` · `Water.Creek` · 개울 이름 |
+| 개울 2개(계곡 · 폭포) | 12 m 조각 평면(물 높이를 따라 기울임) | 없음(얕다) | `Water` · `Water.Creek` · 개울 이름 |
+| 자연 개울 2개 + 합류 연못(3차) | **물 표면 메시 하나**(`SM_Water_<개울>`, 격자 1 m · `BuildWaterSurfaceMesh`) — 물가선 = 땅과의 교선, 끝 물 높이 = 연못 물 높이, 재질 `M_Dress_Water`(정점 색 R = 흐름) | 연못만 `WaterVolume_*` | 같음 |
 | 폭포 | 흰 띠 · 물보라(그레이박스) | `WaterVolume_Landmark_Waterfall`(띠를 따라) | `Water` · `Water.Falls` |
 
 - 엔진 Water 플러그인을 쓰지 않은 까닭은 1차와 같다(프로젝트에 꺼져 있고, 물 몸체가 높이 지도를 두 번 깎는다).
@@ -393,6 +400,10 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 ![북부 고지에서 고개 바위 문 쪽](/art/terrain/openbeta-highland.jpg)
 
 1차(비교): [남쪽 바다 위에서](/art/terrain/openbeta-aerial-south-v1.jpg) · [앞마당에서 북쪽](/art/terrain/openbeta-yard-north-v1.jpg) · [동쪽 큰 강](/art/terrain/openbeta-river-v1.jpg) · [위에서 본 지도](/art/terrain/openbeta-preview-v1.png)
+
+## 다리 — 곡선 교점에서 계산 (3차)
+
+생성기가 길과 **자연 개울의 실제 곡선**이 만나는 자리마다 `FGrimTerrainBridge`(자리 · 길 방향 Yaw · 길이 · 폭 · 상판 높이 · 물 높이 · 사이각)를 낸다(`FGrimTerrainSummary.Bridges`). 길은 그 구간 노면을 상판 높이로 평평하게 고정하고 양쪽을 경사 상한으로 잇는다. `landmark_greybox.build_natural_bridges` 가 값대로 짓는다. 계곡 · 폭포 쪽(자연 개울이 아닌 물)은 예전 `build_bridges`.
 
 ## 범위 밖 · 다음
 

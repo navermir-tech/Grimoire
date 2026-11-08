@@ -88,7 +88,66 @@ FOLIAGE = {
     "FT_Dress_RockSmall4": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_4", 8400, 12000, True, False),
     "FT_Dress_Boulder1": (f"{SH_FOREST}/Meshes/Stones/SM_Stone_Boulder_1", 14000, 20000, True, True),
     "FT_Dress_Boulder2": (f"{SH_FOREST}/Meshes/Stones/SM_Stone_3", 14000, 20000, True, True),
+    # 레벨 디자인 3차(docs/dev/level-design.md 「10」): 돌담 돌은 그림자를 드리운다 — 그림자가 없으면 돌이 땅에서 떠 보인다
+    "FT_Dress_Wall1": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_1", 9800, 14000, True, True),
+    "FT_Dress_Wall2": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_2", 9800, 14000, True, True),
+    "FT_Dress_Wall3": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_3", 9800, 14000, True, True),
+    "FT_Dress_Wall4": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_4", 9800, 14000, True, True),
+    "FT_Dress_Wall5": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_5", 9800, 14000, True, True),
+    # 물가 · 샘: 윗면에 이끼가 낀 돌(MOSS_OVERRIDE), 자갈, 흩어진 돌
+    "FT_Dress_MossSmall1": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_1", 8400, 12000, True, True),
+    "FT_Dress_MossSmall3": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_3", 8400, 12000, True, True),
+    "FT_Dress_MossSmall5": (f"{SH_ROCKS}/Meshes/SM_Stone_Small_5", 8400, 12000, True, True),
+    "FT_Dress_MossLarge": (f"{SH_ROCKS}/Meshes/SM_Stone_Large_1", 14000, 20000, True, True),
+    "FT_Dress_MossCluster": (f"{SH_ROCKS}/Meshes/SM_Stone_Cluster_1", 14000, 20000, True, True),
+    "FT_Dress_MossBoulder": (f"{SH_FOREST}/Meshes/Stones/SM_Stone_Boulder_1", 14000, 20000, True, True),
+    "FT_Dress_Pebble1": (f"{SH_ROCKS}/Meshes/SM_Stone_Pebble_1", 4200, 6000, False, False),
+    "FT_Dress_Pebble2": (f"{SH_ROCKS}/Meshes/SM_Stone_Pebble_2", 4200, 6000, False, False),
+    "FT_Dress_Pebble3": (f"{SH_ROCKS}/Meshes/SM_Stone_Pebble_3", 4200, 6000, False, False),
+    "FT_Dress_Scatter": (f"{SH_ROCKS}/Meshes/SM_Stone_ScatterPile_1", 5600, 8000, False, False),
+    # 고사리 · 넓은 잎 · 갈대처럼 가는 풀 · 풀포기 · 꽃(사이 채우기)
+    "FT_Dress_Fern1": (f"{SH_GRASS}/Meshes/SM_Fol_Plant_19", 6300, 9000, False, False),
+    # 갈대 — 가는 풀포기를 위로 늘려 쓴다(꽃대가 달린 Plant 메시는 라벤더처럼 보였다)
+    "FT_Dress_Reed1": (f"{SH_FOREST}/Meshes/Foliage/SM_Fol_Grass_Clump_5", 6300, 9000, False, False),
+    "FT_Dress_Reed2": (f"{SH_FOREST}/Meshes/Foliage/SM_Fol_Grass_Clump_3", 6300, 9000, False, False),
+    "FT_Dress_Reed3": (f"{SH_GRASS}/Meshes/SM_Fol_Grass_Clump_3", 6300, 9000, False, False),
+    "FT_Dress_Tuft1": (f"{SH_FOREST}/Meshes/Foliage/SM_Fol_Grass_Clump_2", 5600, 8000, False, False),
+    "FT_Dress_Tuft2": (f"{SH_GRASS}/Meshes/SM_Fol_Grass_Clump_3", 5600, 8000, False, False),
+    "FT_Dress_Flower1": (f"{SH_GRASS}/Meshes/SM_Fol_Flower_Clump_2", 6300, 9000, False, False),
+    "FT_Dress_Flower2": (f"{SH_GRASS}/Meshes/SM_Fol_Flower_Clump_4", 6300, 9000, False, False),
+    "FT_Dress_Flower3": (f"{SH_FOREST}/Meshes/Foliage/SM_Fol_Flower_Clump_3", 6300, 9000, False, False),
+    # 블록아웃 소품(짐수레 · 울타리 · 통나무 · 건초 …) — 액터 수천 개 대신 폴리지 인스턴스(기본 도형 + 단색)
+    # 쓰러진 통나무(사이 채우기 — 맵에 이미 쓰던 스캔 2_Low 를 인스턴스로)
+    "FT_Dress_Trunk1": ("/Game/BlackCherryBrokenTrunks01/2_Low/Static_Meshes/SM_BlackCherryBrokenTrunk01_LOW", 11200, 16000, True, True),
+    "FT_Dress_Trunk2": ("/Game/BlackCherryBrokenTrunks01/2_Low/Static_Meshes/SM_BlackCherryBrokenTrunk02_LOW", 11200, 16000, True, True),
+    "FT_Block_Wood": ("/Engine/BasicShapes/Cube", 11200, 16000, True, True),
+    "FT_Block_Bark": ("/Engine/BasicShapes/Cube", 11200, 16000, True, True),
+    "FT_Block_WoodCyl": ("/Engine/BasicShapes/Cylinder", 11200, 16000, True, True),
+    "FT_Block_BarkCyl": ("/Engine/BasicShapes/Cylinder", 11200, 16000, True, True),
+    "FT_Block_Hay": ("/Engine/BasicShapes/Cylinder", 11200, 16000, True, True),
+    "FT_Block_Sack": ("/Engine/BasicShapes/Sphere", 8400, 12000, False, False),
+    "FT_Block_Stone": ("/Engine/BasicShapes/Cube", 11200, 16000, True, True),
+    "FT_Block_Mushroom": ("/Engine/BasicShapes/Sphere", 4200, 6000, False, False),
+    "FT_Block_Shard": ("/Engine/BasicShapes/Cone", 8400, 12000, False, False),
 }
+# 블록아웃 소품 색 — 그레이박스 단색 인스턴스(terrain_assets.LANDMARK_COLORS 와 구간 색)
+BLOCK_MATERIALS = {"FT_Block_Wood": "MI_Terrain_Wood", "FT_Block_Bark": "MI_Terrain_GiantBark", "FT_Block_WoodCyl": "MI_Terrain_Wood", "FT_Block_BarkCyl": "MI_Terrain_GiantBark",
+                   "FT_Block_Hay": "MI_Terrain_Hay", "FT_Block_Sack": "MI_Terrain_Sail", "FT_Block_Stone": "MI_Terrain_Stone", "FT_Block_Mushroom": "MI_Terrain_Bone", "FT_Block_Shard": "MI_Terrain_ManaGlow"}
+
+# 이끼 돌: 팩 돌 텍스처 + 윗면(월드 법선 Z)에 이끼 색 — 폴리지 타입 덮어쓰기
+SH_STONE_MI = f"{SH_ROCKS}/Materials/Mat_Stones"
+MOSS_MATERIALS = {   # 이름: 원본 돌 머티리얼 인스턴스(텍스처를 빌린다)
+    "MI_Dress_Moss_Small1": f"{SH_STONE_MI}/MI_Stone_Small_1",
+    "MI_Dress_Moss_Small3": f"{SH_STONE_MI}/MI_Stone_Small_3",
+    "MI_Dress_Moss_Small5": f"{SH_STONE_MI}/MI_Stone_Small_5",
+    "MI_Dress_Moss_Large": f"{SH_STONE_MI}/MI_Stone_Large",
+    "MI_Dress_Moss_Cluster": f"{SH_STONE_MI}/MI_Stone_Cluster_1",
+    "MI_Dress_Moss_Boulder": f"{SH_FOREST}/Materials/Mat_Stones/MI_Stone_Boulder",
+}
+MOSS_OVERRIDE = {"FT_Dress_MossSmall1": "MI_Dress_Moss_Small1", "FT_Dress_MossSmall3": "MI_Dress_Moss_Small3", "FT_Dress_MossSmall5": "MI_Dress_Moss_Small5",
+                 "FT_Dress_MossLarge": "MI_Dress_Moss_Large", "FT_Dress_MossCluster": "MI_Dress_Moss_Cluster", "FT_Dress_MossBoulder": "MI_Dress_Moss_Boulder"}
+# 물결 노멀은 엔진에 들어 있는 것 — WaterMaterials 팩은 CC BY 라 Q126 이 정해지기 전에는 쓰지 않는다
+WATER_NORMALS = ("/Engine/Functions/Engine_MaterialFunctions02/ExampleContent/Textures/water_n", "/Engine/Functions/Engine_MaterialFunctions02/ExampleContent/Textures/water_n")
 
 # 잎 색(레벨 디자인 2차): 팩 기본 잎은 밝은 연두라 땅보다 떠 보인다 — 팩 잎 머티리얼 인스턴스를 부모로 우리 인스턴스를 만들어
 # 「Color Base」(그늘 쪽) · 「Color Top」(빛 받는 위쪽)을 콘셉트 아트(짙은 초록 그늘 · 따뜻한 황록 윗면)에 맞춘다. 폴리지 타입 덮어쓰기 재질(슬롯 0 = 잎).
@@ -313,8 +372,9 @@ def make_landscape_material(grass_type, name="M_Terrain_Dress"):
     slope = _expr(m, unreal.MaterialExpressionOneMinus, -2800, 0)
     _connect(_mask(m, normal, "b", -3000, 0), "", slope, "")
     world_z = _mask(m, _expr(m, unreal.MaterialExpressionWorldPosition, -3200, 400), "b", -3000, 400)
-    rock = _ramp(m, slope, "RockSlopeStart", 0.30, "RockSlopeWidth", 0.12, -2600, -200)
-    dirt = _ramp(m, slope, "DirtSlopeStart", 0.13, "DirtSlopeWidth", 0.10, -2600, 0)
+    # 레벨 디자인 3차: 급사면 바위 띠가 바위로 읽히게 바위 시작을 약 45° → 40° 로 낮췄다(언덕 비탈 28° 까지는 풀)
+    rock = _ramp(m, slope, "RockSlopeStart", 0.235, "RockSlopeWidth", 0.09, -2600, -200)
+    dirt = _ramp(m, slope, "DirtSlopeStart", 0.14, "DirtSlopeWidth", 0.09, -2600, 0)
     high = _ramp(m, world_z, "HighStart", 9000.0, "HighWidth", 4000.0, -2600, 400)
 
     # 큰 얼룩(타일 반복 숨김) — 80 m · 23 m 두 배율
@@ -400,10 +460,148 @@ def make_cloud_material(name="M_Dress_CloudCard"):
     return instances
 
 
+def make_moss_materials():
+    """윗면(월드 법선 Z)에 이끼가 낀 돌 — 텍스처는 팩 돌 인스턴스에서 빌리고, 이끼 색 · 범위는 파라미터"""
+    m = _material("M_Dress_MossRock")
+    m.set_editor_property("used_with_instanced_static_meshes", True)
+    base = _expr(m, unreal.MaterialExpressionTextureSampleParameter2D, -1600, 0)
+    base.set_editor_property("parameter_name", "Base Color")
+    base.set_editor_property("texture", _load(f"{SH_ROCKS}/Textures/T_Stone_Large_BC"))
+    normal = _expr(m, unreal.MaterialExpressionTextureSampleParameter2D, -1600, 300)
+    normal.set_editor_property("parameter_name", "Normal Map")
+    normal.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+    normal.set_editor_property("texture", _load("/Engine/EngineMaterials/DefaultNormal"))
+    # 이끼 얼룩(월드 XY 3 m) — 돌마다 같은 무늬가 되지 않게
+    world = _expr(m, unreal.MaterialExpressionWorldPosition, -1900, 700)
+    uv = _bin(m, unreal.MaterialExpressionDivide, _mask(m, world, "rg", -1700, 700), _scalar(m, "MossPatchCm", 260.0, -1700, 820), -1500, 700)
+    macro = _expr(m, unreal.MaterialExpressionTextureSample, -1300, 700)
+    macro.set_editor_property("texture", _load(TEX["Macro"]))
+    _connect(uv, "", macro, "UVs")
+    up = _mask(m, _expr(m, unreal.MaterialExpressionVertexNormalWS, -1500, 1000), "b", -1300, 1000)
+    top = _ramp(m, up, "MossStart", 0.05, "MossWidth", 0.4, -1100, 1000)
+    patch = _ramp(m, _mask(m, macro, "r", -1200, 780), "MossPatchStart", 0.12, "MossPatchWidth", 0.3, -1100, 700)
+    mask = _bin(m, unreal.MaterialExpressionMultiply, top, patch, -500, 900)
+    tinted = _bin(m, unreal.MaterialExpressionMultiply, base, _vec(m, "RockTint", (0.82, 0.80, 0.76), -1300, 100), -1000, 0, "RGB")
+    moss = _bin(m, unreal.MaterialExpressionMultiply, macro, _vec(m, "MossColor", (0.34, 0.5, 0.08), -1000, 400), -700, 400, "RGB")
+    color = _lerp(m, tinted, moss, mask, -300, 200)
+    mel.connect_material_property(color, "", unreal.MaterialProperty.MP_BASE_COLOR)
+    mel.connect_material_property(normal, "RGB", unreal.MaterialProperty.MP_NORMAL)
+    mel.connect_material_property(_scalar(m, "Roughness", 0.9, -300, 500), "", unreal.MaterialProperty.MP_ROUGHNESS)
+    mel.connect_material_property(_scalar(m, "Specular", 0.2, -300, 600), "", unreal.MaterialProperty.MP_SPECULAR)
+    mel.recompile_material(m)
+    eal.save_loaded_asset(m)
+    out = {}
+    for name, source_path in MOSS_MATERIALS.items():
+        mi = _existing_or_new(name, unreal.MaterialInstanceConstant, unreal.MaterialInstanceConstantFactoryNew())
+        mel.set_material_instance_parent(mi, m)
+        source = _load(source_path)
+        for param in ("Base Color", "Normal Map"):
+            tex = mel.get_material_instance_texture_parameter_value(source, param)
+            if tex is not None:
+                mel.set_material_instance_texture_parameter_value(mi, param, tex)
+        eal.save_loaded_asset(mi)
+        out[name] = mi
+    return out
+
+
+def make_water_material(name="M_Dress_Water"):
+    """개울 · 연못 물 표면(BuildWaterSurfaceMesh 메시 전용): 정점 색 R = 흐름. 개울은 UV0(호 길이 m)를 따라 물결이 흐르고 연못은 천천히 일렁인다.
+    물가는 깊이 페이드로 투명해져 물가선이 칼로 자른 듯 보이지 않고, 얕은 곳은 바닥이 비친다"""
+    m = _material(name)
+    m.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    m.set_editor_property("translucency_lighting_mode", unreal.TranslucencyLightingMode.TLM_SURFACE)
+    m.set_editor_property("two_sided", True)
+    uv0 = _expr(m, unreal.MaterialExpressionTextureCoordinate, -2200, 0)
+    world = _expr(m, unreal.MaterialExpressionWorldPosition, -2200, 300)
+    vertex = _expr(m, unreal.MaterialExpressionVertexColor, -2200, 600)
+    flow_mask = _mask(m, vertex, "r", -2000, 600)
+
+    def sample(tex_path, uv_node, x, y, speed_x, speed_y, scale):
+        scaled = _bin(m, unreal.MaterialExpressionDivide, uv_node, _scalar(m, f"Scale{x}{y}".replace("-", "n"), scale, x - 400, y + 120), x - 400, y)
+        pan = _expr(m, unreal.MaterialExpressionPanner, x - 200, y)
+        pan.set_editor_property("speed_x", speed_x)
+        pan.set_editor_property("speed_y", speed_y)
+        _connect(scaled, "", pan, "Coordinate")
+        node = _expr(m, unreal.MaterialExpressionTextureSample, x, y)
+        node.set_editor_property("texture", _load(tex_path))
+        node.set_editor_property("sampler_type", unreal.MaterialSamplerType.SAMPLERTYPE_NORMAL)
+        _connect(pan, "", node, "UVs")
+        return node
+    n_flow_a = sample(WATER_NORMALS[0], uv0, -1200, 0, 0.3, 0.03, 2.6)
+    n_flow_b = sample(WATER_NORMALS[1], uv0, -1200, 300, 0.2, -0.05, 1.5)
+    world_xy = _bin(m, unreal.MaterialExpressionDivide, _mask(m, world, "rg", -1900, 300), _scalar(m, "WorldToM", 100.0, -1900, 420), -1700, 300)
+    n_still_a = sample(WATER_NORMALS[0], world_xy, -1200, 600, 0.015, 0.01, 9.0)
+    n_still_b = sample(WATER_NORMALS[1], world_xy, -1200, 900, -0.012, 0.018, 5.0)
+    n_flow = _bin(m, unreal.MaterialExpressionAdd, n_flow_a, n_flow_b, -900, 150, "RGB", "RGB")
+    n_still = _bin(m, unreal.MaterialExpressionAdd, n_still_a, n_still_b, -900, 750, "RGB", "RGB")
+    mixed = _lerp(m, n_still, n_flow, flow_mask, -700, 450)
+    # XY 세기 조절 뒤 정규화 — 개울 물결은 세게, 연못은 약하게
+    strength = _lerp(m, _scalar(m, "StillNormal", 0.12, -700, 650), _scalar(m, "FlowNormal", 0.3, -700, 730), flow_mask, -500, 650)
+    flat = _expr(m, unreal.MaterialExpressionAppendVector, -300, 450)
+    xy = _bin(m, unreal.MaterialExpressionMultiply, _mask(m, mixed, "rg", -500, 450), strength, -400, 500)
+    one = _expr(m, unreal.MaterialExpressionConstant, -400, 620)
+    one.set_editor_property("r", 1.0)
+    _connect(xy, "", flat, "A")
+    _connect(one, "", flat, "B")
+    norm = _expr(m, unreal.MaterialExpressionNormalize, -150, 450)
+    _connect(flat, "", norm, "VectorInput")
+    mel.connect_material_property(norm, "", unreal.MaterialProperty.MP_NORMAL)
+    # 깊이: 얕으면 투명 · 밝게, 깊으면 짙은 청록
+    fade = _expr(m, unreal.MaterialExpressionDepthFade, -700, 1100)
+    _connect(_scalar(m, "ShoreFadeCm", 35.0, -900, 1180), "", fade, "FadeDistance")
+    depth = _expr(m, unreal.MaterialExpressionDepthFade, -700, 1300)
+    _connect(_scalar(m, "DeepFadeCm", 90.0, -900, 1380), "", depth, "FadeDistance")
+    color = _lerp(m, _vec(m, "ShallowColor", (0.07, 0.24, 0.23), -500, 1000), _vec(m, "DeepColor", (0.008, 0.07, 0.10), -500, 1150), depth, -200, 1050)
+    mel.connect_material_property(color, "", unreal.MaterialProperty.MP_BASE_COLOR)
+    opacity = _bin(m, unreal.MaterialExpressionMultiply, fade, _lerp(m, _scalar(m, "ShallowOpacity", 0.6, -500, 1450), _scalar(m, "DeepOpacity", 0.93, -500, 1520), depth, -300, 1450), -100, 1300)
+    mel.connect_material_property(opacity, "", unreal.MaterialProperty.MP_OPACITY)
+    mel.connect_material_property(_scalar(m, "Roughness", 0.07, -100, 1500), "", unreal.MaterialProperty.MP_ROUGHNESS)
+    mel.connect_material_property(_scalar(m, "Specular", 0.55, -100, 1600), "", unreal.MaterialProperty.MP_SPECULAR)
+    mel.recompile_material(m)
+    eal.save_loaded_asset(m)
+    return m
+
+
+def make_spring_ripple_material(name="M_Dress_SpringRipple"):
+    """샘 물머리: 가운데서 번지는 동심원(빛 받지 않음) — 물이 솟는 것처럼 보이게. 평면 원판 UV 가운데가 물머리"""
+    m = _material(name)
+    m.set_editor_property("blend_mode", unreal.BlendMode.BLEND_TRANSLUCENT)
+    m.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    uv = _expr(m, unreal.MaterialExpressionTextureCoordinate, -1500, 0)
+    center = _expr(m, unreal.MaterialExpressionConstant2Vector, -1500, 150)
+    center.set_editor_property("r", 0.5)
+    center.set_editor_property("g", 0.5)
+    dist = _expr(m, unreal.MaterialExpressionDistance, -1300, 0)
+    _connect(uv, "", dist, "A")
+    _connect(center, "", dist, "B")
+    r = _bin(m, unreal.MaterialExpressionMultiply, dist, _scalar(m, "RingCount", 34.0, -1300, 200), -1100, 0)
+    t = _bin(m, unreal.MaterialExpressionMultiply, _expr(m, unreal.MaterialExpressionTime, -1300, 300), _scalar(m, "RingSpeed", 3.4, -1300, 400), -1100, 300)
+    phase = _bin(m, unreal.MaterialExpressionSubtract, r, t, -900, 150)
+    sine = _expr(m, unreal.MaterialExpressionSine, -700, 150)
+    _connect(phase, "", sine, "")
+    one = _expr(m, unreal.MaterialExpressionConstant, -700, 300)
+    one.set_editor_property("r", 1.0)
+    positive = _bin(m, unreal.MaterialExpressionMultiply, _bin(m, unreal.MaterialExpressionAdd, sine, one, -500, 150), _scalar(m, "HalfScale", 0.5, -500, 300), -300, 150)
+    ring = _expr(m, unreal.MaterialExpressionPower, -100, 150)
+    _connect(positive, "", ring, "Base")
+    ring.set_editor_property("const_exponent", 10.0)
+    edge = _expr(m, unreal.MaterialExpressionOneMinus, -500, 450)
+    _connect(_bin(m, unreal.MaterialExpressionMultiply, dist, _scalar(m, "EdgeScale", 2.05, -700, 500), -600, 450), "", edge, "")
+    fade = _expr(m, unreal.MaterialExpressionSaturate, -300, 450)
+    _connect(edge, "", fade, "")
+    opacity = _bin(m, unreal.MaterialExpressionMultiply, _bin(m, unreal.MaterialExpressionMultiply, ring, fade, 100, 200), _scalar(m, "Strength", 0.55, 100, 350), 300, 200)
+    mel.connect_material_property(opacity, "", unreal.MaterialProperty.MP_OPACITY)
+    mel.connect_material_property(_vec(m, "RingColor", (0.75, 0.9, 0.95), 100, 0), "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    mel.recompile_material(m)
+    eal.save_loaded_asset(m)
+    return m
+
+
 def make_foliage_types():
     """폴리지 타입 — 팩 메시 그대로(머티리얼 덮어쓰기 없음). 컬 · 그림자는 FOLIAGE 표대로 매번 맞추고, 충돌은 처음 만들 때 정한다"""
     out = {}
     leaves = make_leaf_materials()
+    moss = make_moss_materials()
     for name, (mesh_path, cull_start, cull_end, block, shadow) in FOLIAGE.items():
         ft = unreal.GrimTerrainEditorLibrary.create_foliage_type_asset(_path(name), _load(mesh_path), None, cull_start, cull_end, block, shadow)
         if ft is None:
@@ -413,6 +611,10 @@ def make_foliage_types():
         ft.set_editor_property("cast_shadow", shadow)
         if name in LEAF_OVERRIDE:
             ft.set_editor_property("override_materials", [leaves[LEAF_OVERRIDE[name]]])
+        elif name in MOSS_OVERRIDE:
+            ft.set_editor_property("override_materials", [moss[MOSS_OVERRIDE[name]]])
+        elif name in BLOCK_MATERIALS:
+            ft.set_editor_property("override_materials", [_load(f"/Game/Grimoire/Terrain/{BLOCK_MATERIALS[name]}")])
         eal.save_loaded_asset(ft)
         out[name] = ft
     return out
@@ -428,5 +630,7 @@ def make_all(rebuild_landscape=True):
         a["grass"] = eal.load_asset(_path("GT_Dress_Meadow"))
         a["landscape"] = eal.load_asset(_path("M_Terrain_Dress"))
     a["clouds"] = make_cloud_material()
+    a["water"] = make_water_material()
+    a["ripple"] = make_spring_ripple_material()
     a["foliage"] = make_foliage_types()
     return a

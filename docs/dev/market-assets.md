@@ -57,7 +57,7 @@ powershell -File Scripts\Terrain\add_pack_assets.ps1           # 그 파일만 g
 | `Gothic_Environment` | 0.3 GB | 고딕 환경 키트 | — |
 | `Medieval_Room_Kit` | 0.3 GB | 중세 방 모듈 키트(실내) | — |
 | `Megaplant_Library` | 0.2 GB | Megaplants — `Tree_English_Oak`. 플러그인 `ProceduralVegetationEditor` 필요(`Grimoire.uproject` 에 켬) | — (`r.Nanite.Foliage` 가 꺼져 있으면 줄기만 보인다 — [Q125](../spec/decisions#미결-질문)) |
-| `StyleHex_Studio` | 0.2 GB | StyleHex 무료 팩 셋 — Stylized Forest Sample · Grass Flowers Foliage · Rocks and Stones | **L_OpenBeta** 지형 재질 텍스처 · 풀 · 꽃 · 나무 · 덤불 · 바위(맵 전체 — 레벨 디자인 2차부터) · 돌담 돌 · 잎 재질 부모 — [레벨 아트 1차](./level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) · [레벨 디자인 2차](./level-design#_9-레벨-디자인-2차-—-능선-·-자연-분포-·-구간-구도-2026-11-08). 올린 파일 117 개 143.6 MB |
+| `StyleHex_Studio` | 0.2 GB | StyleHex 무료 팩 셋 — Stylized Forest Sample · Grass Flowers Foliage · Rocks and Stones | **L_OpenBeta** 지형 재질 텍스처 · 풀 · 꽃 · 나무 · 덤불 · 바위(맵 전체 — 레벨 디자인 2차부터) · 돌담 돌 · 잎 재질 부모 — [레벨 아트 1차](./level-design#_8-레벨-아트-1차-—-fab-팩-시험-적용-2026-11-08) · [레벨 디자인 2차](./level-design#_9-레벨-디자인-2차-—-능선-·-자연-분포-·-구간-구도-2026-11-08). 올린 파일 137 개 161.6 MB(레벨 디자인 3차) |
 | `Fab` | 0.1 GB | Quixel Megascans 개별 에셋(`Megascans/3D` — 중세 서고 책 · 의자 · 샹들리에 · 두루마리, 농가 통 · 바구니 · 솥 · 맷돌, 교회 폐허 벽 · 아치, 깔개 등) | — |
 | `WaterMaterials` | 0.1 GB | [Water Materials](https://www.fab.com/listings/063155ea-d9d2-4f29-b09f-33270b0bc861) — CC BY(크레딧 필요, [Q126](../spec/decisions#미결-질문)) | — |
 | `EnchantedPotionRoom` | 41 MB | [EnchantedPotionRoom_Free](https://www.fab.com/listings/6bee477a-f8a8-42d5-b987-c6937305ab58) — 물약 방(실내) | — |

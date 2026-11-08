@@ -111,3 +111,52 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld2 -RunSeconds 900
 | ![](/qa/ld2-labels-door.jpg) | ![](/qa/ld2-labels-off.jpg) | ![](/qa/ld2-aerial-region.jpg) |
 | **바다 위 280 m — 콘셉트 전경 구도** | **고목 남쪽 하늘 220 m** | |
 | ![](/qa/ld2-aerial-south.jpg) | ![](/qa/ld2-aerial-tree.jpg) | |
+
+## 레벨 디자인 3차 (2026-11-08)
+
+무엇을 왜 [레벨 디자인 「10」](../dev/level-design#_10-레벨-디자인-3차-—-능선-·-개울-·-샘-·-돌담-·-채움-2026-11-08). 마지막 실행 **2026-11-08**(`claude/level-design-3-148999`).
+
+```powershell
+# 맵: 위 「다시 돌리기」 그대로(build → gameplay → dress). 스크린숏(눈높이 · 하늘 33 장, 약 18 분)
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld3 -RunSeconds 1300
+# 돌담 뜬 돌 검사(맵에 놓인 인스턴스)
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\check_walls.py" -unattended -nop4 -nosplash -nullrhi   # → Saved/Terrain/ld3_wall_check.json
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-020 | — | 능선이 이어진 날카로운 등성이로 읽힌다(고분 아님) | ① `Grimoire.Terrain.Generator.SharpRidge` ③ `ld3-hilltop` · `ld3-pond` · `ld3-aerial-south` · `ld3-sector-aerial` | 꼭대기 옆 6 m 가 이미 낮다(둥근 돔 아님), 한쪽이 가파르다, 등성이가 끊기지 않는다. 눈으로: 길게 이어진 등줄기 · 지맥 · 군데군데 바위 | ✅ 11-08 — 테스트 통과. 연못 · 언덕 꼭대기에서 등줄기 실루엣이 하늘에 이어지고, 1 회차 지구라트 띠는 층을 흔들어 없앴다 | |
+| QA-LVL-021 | — | 개울이 자연스럽고 연못과 틈 없이 이어진다 | ① `Generator.NaturalCreek`(물 단조 감소 · 끝 = 연못 물 높이 · 합류부에 물 있음 · V 자) ③ `ld3-creek-upper` · `ld3-creek-mid` · `ld3-pond-junction` · `ld3-pond-aerial` · `ld3-creek-aerial` | 굽이 · 폭 변화 · 소 · 돌 · 둑, 상류 V 자 → 하류 넓음. 연못 어귀에 물이 끊기지 않는다 | ✅ 11-08 — 테스트 통과, 한 메시로 이어진 물 표면(`SM_Water_Creek_TowerBrook`). 1 회차 도랑 · 모래 띠 · 흙탕물을 고쳤다 | |
+| QA-LVL-022 | — | 돌담 돌이 뜨지 않는다(수치) | ① 쌓을 때 `Saved/Terrain/ld3_wall_report.json` · 맵에 놓인 뒤 `check_walls.py`(바닥 ↔ 랜드스케이프 라인 트레이스 / 아래 돌 안) | 뜬 돌 0 | ✅ 11-08 — 쌓을 때 돌 4,525: 밑돌 모서리 ≤ 7 cm, 윗단은 아래 돌에 2.9 cm 이상 묻힘. 맵 검사 돌 6,421(돌담 + 돌무더기 · 돌집 · 봉화대): 땅 3,022 · 돌 위 3,399 · **뜬 돌 0**. 처음 7 개 → 봉화대 윗단 높이 고침 | |
+| QA-LVL-023 | — | 돌담이 불규칙하고 자연스럽다 | ③ `ld3-wall-a` ~ `ld3-wall-e` · `ld3-path100` · `ld3-path200` | 돌 크기 · 방향이 제각각, 끊긴 곳 · 무너진 곳 · 밑동 풀, 땅을 따라 오르내린다. 같은 간격 반복 없음 | ✅ 11-08 — 큰길 담 13 줄 · 비탈 담 8 줄 · 양 우리 6, 무너진 돌 423. 돌탑처럼 솟은 곳을 3 회차에 고쳤다 | |
+| QA-LVL-024 | — | 다리가 곧고 수평, 양쪽 둑에 얹혔다 | ① `Generator.NaturalCreek`(다리 하나 · 양끝 노면 = 상판) · 로그 `다리 …: 사이각` ③ `ld3-bridge` · `ld3-bridge-top` · `ld3-bridge-side` · `ld3-fill-road780` | 널이 길 방향에 직각, 물 위 1.6 m, 양쪽이 땅에 닿는다 | ✅ 11-08 — 사이각 89° · 84° · 83°(처음 67° → 물길을 다시 그음). 다리 위 꽃을 없앴다 | |
+| QA-LVL-025 | — | 샘이 바위 틈에서 솟는다 | ③ `ld3-spring` · `ld3-spring-near` | 말굽꼴 이끼 바위 · 내민 판 바위 아래 웅덩이, 풀 · 갈대, 흘러나가는 물길, 동심원 | ✅ 11-08 — 구도 확인. 거품 · 튀는 물은 없음(Q135) | |
+| QA-LVL-026 | — | 짐수레가 길가에 있고 이야기가 읽힌다 | ③ `ld3-cart` · 레이아웃 `Poi_Meadow_Cart` · `Poi_Pasture_Cart` | 큰길 굽이 길섶, 기운 수레 · 빠진 바퀴 · 쏟아진 짐 | ✅ 11-08 — 길에서 3.4 m 길섶, POI 블록을 겹치지 않음(`bNoGreybox`) | |
+| QA-LVL-027 | — | 빈 곳이 채워졌다 · 콘셉트 재사용 | ③ `ld3-fill-road520` · `ld3-fill-road640` · `ld3-path400` · `ld3-hiddenvale` · 표 [콘셉트 목록](../dev/level-design#콘셉트-·-에셋-목록-전수-—-어디에-몇-번) | 작은 콘셉트 여러 변형 · 큰 콘셉트 1 ~ 2 번 더 | ✅ 11-08 — 작은 소품 묶음 약 280 곳, 큰 콘셉트 추가 6 곳 | |
+| QA-LVL-028 | — | 설계 검사 · 전체 자동화 · 맵 점검 | ① `Grimoire.*` ② `check_openbeta.ps1` · `check_tutorial.ps1` | 모두 통과 | ✅ 11-08 — 자동화 185/185, `openbeta` · `tutorial` PASS, 전체 경사 70.4 % · 시선 최소 3 · 구간 가림 65.5 % · 랜드마크 최소 1 | |
+| QA-LVL-029 | R16 | 성능 예산 안 | ① `measure.ps1 -Label level-design-3 -Settle 25` | QA-PRF-001 ~ 008 예산 안 | ✅ 11-09 — 렌더(`level-design-3b`, 셰이더 캐시가 찬 상태): GPU 4.30 ~ 4.67 ms · 게임 3.10 ~ 3.60 · 렌더 5.53 ~ 6.15 · p95 ≤ 7.6 · 33 ms 넘는 프레임 1 번(70 초) · 드로 콜 533 ~ 1,256 · 메모리 2.61 ~ 2.91 GB. 네트워크(`level-design-3`): 서버 보냄 2.0 ~ 5.5 kB/s · 월드 틱 1.57 ~ 2.12 ms. 재질을 막 바꾼 직후 첫 측정은 셰이더 컴파일로 33 ms 넘는 프레임 5 번(GPU 4.16 ~ 5.44) — [성능 측정 기록](../systems/performance#측정-기록) | |
+| QA-LVL-030 | — | 쓰는 팩 파일만 저장소에 | `add_pack_assets.ps1 -DryRun` | 수백 MB 넘지 않음 | ✅ 11-08 — 합계 146 개 236.4 MB(2차 126 개 218.4 MB + 20 개 18 MB — 돌 · 풀 메시 · 재질 · 텍스처). `WaterMaterials`(CC BY, Q126 미결)는 쓰지 않는다 | |
+
+### 전 · 후 (같은 자리 · 같은 카메라)
+
+| 자리 | 2차 | 3차 |
+|---|---|---|
+| 탑 문 앞 | ![](/qa/ld2-door.jpg) | ![](/qa/ld3-door.jpg) |
+| 큰길 100 m | ![](/qa/ld2-path100.jpg) | ![](/qa/ld3-path100.jpg) |
+| 큰길 200 m | ![](/qa/ld2-path200.jpg) | ![](/qa/ld3-path200.jpg) |
+| 연못 | ![](/qa/ld2-pond.jpg) | ![](/qa/ld3-pond.jpg) |
+| 봉화 언덕 꼭대기 | ![](/qa/ld2-hilltop.jpg) | ![](/qa/ld3-hilltop.jpg) |
+| 바다 위 280 m | ![](/qa/ld2-aerial-south.jpg) | ![](/qa/ld3-aerial-south.jpg) |
+| 하늘에서 마탑 구간 | ![](/qa/ld2-sector-aerial.jpg) | ![](/qa/ld3-sector-aerial.jpg) |
+
+### 고친 곳마다
+
+| 샘 | 상류 | 굽이 |
+|---|---|---|
+| ![](/qa/ld3-spring-near.jpg) | ![](/qa/ld3-creek-upper.jpg) | ![](/qa/ld3-creek-mid.jpg) |
+| **다리(길에서)** | **다리(위에서)** | **연못 어귀** |
+| ![](/qa/ld3-bridge.jpg) | ![](/qa/ld3-bridge-top.jpg) | ![](/qa/ld3-pond-junction.jpg) |
+| **짐수레** | **돌담** | **돌담 · 비탈 담** |
+| ![](/qa/ld3-cart.jpg) | ![](/qa/ld3-wall-c.jpg) | ![](/qa/ld3-wall-b.jpg) |
+| **서쪽 등줄기** | **봉화 언덕 쪽** | **동쪽 등줄기** |
+| ![](/qa/ld3-ridge-west.jpg) | ![](/qa/ld3-ridge-north.jpg) | ![](/qa/ld3-ridge-east.jpg) |
