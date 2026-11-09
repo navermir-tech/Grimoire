@@ -201,3 +201,44 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag dusk -TimeOf
 | 샘 동심원 | 어귀(위에서) | 밤 |
 |---|---|---|
 | ![](/qa/water-spring-top-day.jpg) | ![](/qa/water-mouth-top-day.jpg) | ![](/qa/water-creek-mid-night.jpg) |
+
+## 레벨 디자인 4차 (2026-11-09)
+
+무엇을 왜 [레벨 디자인 「11」](../dev/level-design#_11-레벨-디자인-4차-—-전망대-·-개울-·-어귀-·-능선-·-돌담-2026-11-09). 마지막 실행 **2026-11-09**(`claude/level-design-4-df6e32`).
+
+```powershell
+# 맵: 위 「다시 돌리기」 그대로(build → dress → gameplay).
+# 지형 수치(경사 · 터 · 물길 · 다리, 맵을 건드리지 않음) — 끝에 PASS/FAIL
+powershell -File Scripts\Terrain\check_terrain.ps1 -Label now
+# 실제 캐릭터로 비탈을 오르고 터 가장자리까지
+powershell -File Scripts\Terrain\check_walk.ps1
+# 돌담(맵에 놓인 뒤 — 뜬 돌 · 옆 돌 틈 · 돌탑)
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Terrain\check_walls.py" -unattended -nop4 -nosplash -nullrhi   # → Saved/Terrain/ld4_wall_check.json
+# 스크린숏(눈높이 · 하늘 32 장, 약 18 분)
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld4 -RunSeconds 1500
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-037 | — | 전망대 · 언덕 위 자리에 사람이 움직일 터가 있다 | ① `check_terrain.ps1`(레이아웃 `Pads` 전부: 안쪽 85 % 높이 차 ≤ 1.3 m · 경사 ≤ 12° · 걸어서 닿음) ① `Generator.Pad` ③ `ld4-beacon-aerial` · `ld4-beacon-top-se` · `ld4-beacon-top-nw` · `ld4-beacon-edge` | 원판 · 봉화대가 땅 위, 가장자리까지 걸을 수 있다. 봉화 언덕 터 18 m | ✅ 11-09 — 터 20 곳 중 19 곳 통과(높이 차 ≤ 0.5 m), 봉화 언덕 원판 뜸 4.2 → 0.15 m. `Pad_ValleyLedge`(구간 밖)는 [Q140](../spec/decisions#미결-질문)으로 검사 제외 | `Saved/Terrain/snap/final/stats.json` · 아래 그림 |
+| QA-LVL-038 | — | 전망대까지 끊기지 않는 오솔길 | ③ `ld4-beacon-trail` ① 설계 검사 길 경사 | 큰길에서 터까지 이어짐, 경사 ≤ 15° | ✅ 11-09 — `Path_BeaconTrail` 13.6°(가장 가파른 곳), 터 끝 높이 = 터 | ld4-beacon-trail |
+| QA-LVL-039 | — | 개울이 샘에서 연못까지 끊기지 않고 깊이가 충분하다 | ① `check_terrain.ps1`(가운데선 25 cm 마다 수심 · LOD0 · 2 m 솎음) ③ `ld4-creek-*-air` · `ld4-creek-eye-*` · `ld4-pasture-air` | 수심 ≥ 30 cm · 끊김 0 | ✅ 11-09 — 최소 수심 TowerBrook 0.47 m · Pasture 0.52 m, 끊김 0(LOD0 · LOD1). 4 m 솎음(아주 먼 LOD)은 3 곳 8 m | `stats.json` |
+| QA-LVL-040 | — | 어귀가 연못으로 자연스럽게 벌어져 든다 | ① `Generator.NaturalCreek`(어귀 물 높이 = 연못 · 둑 없음 · 흐름 정도) ③ `ld4-mouth-air` · `ld4-mouth-oblique` · `ld4-mouth-eye` | 각진 잘림 없음 · 수면 높이 차 · 색 경계 없음 · 둑과 모래 띠가 이어짐 | ✅ 11-09 | 아래 그림 |
+| QA-LVL-041 | — | 능선 비탈에 벼랑 띠 · 톱니 그림자가 없고 걸어 오를 수 있다 | ① `check_terrain.ps1`(의도한 벼랑 밖 44.76° 넘는 칸 ≤ 0.2 %) ① `Generator.Talus` ② `check_walk.ps1` ③ `ld4-ridge-*-air` · `ld4-sector-aerial` | 벼랑 띠 없음 · 비탈을 실제로 오른다 | ✅ 11-09 — 못 오르는 칸 3.27 → 0.93 %, 의도한 벼랑 밖 0.07 %, 걷기 6 구간 PASS(남쪽 비탈 +17.7 m) | `stats.json` · `Saved/TerrainCheck/walk.log` |
+| QA-LVL-042 | — | 능선 실루엣이 고분으로 돌아가지 않았다 | ① `Generator.SharpRidge` ③ `ld4-door` · `ld4-path100` · `ld4-pond` · `ld4-sector-aerial` | 날카로운 등성이가 그대로 읽힘 | ✅ 11-09 | 아래 그림 |
+| QA-LVL-043 | — | 다리 위치 · 직각이 그대로다 | ① `check_terrain.ps1`(사이각 ≥ 75°) ③ `ld4-creek-*` | 3차와 같다 | ✅ 11-09 — 84.0° · 82.6° · 88.6°, 상판 물 위 1.6 m | `stats.json` |
+| QA-LVL-044 | — | 돌담이 이유 있는 자리에만, 양이 크게 줄었다 | 레이아웃 `StoneWalls`(줄마다 `Why`) · [레벨 디자인 「돌담」](../dev/level-design#돌담) ③ `ld4-wall-road` · `ld4-wall-mill-lane` · `ld4-wall-field` · `ld4-fold-mill` | 초원을 가르거나 언덕을 곧게 오르는 담 없음 | ✅ 11-09 — 27 줄 약 1,650 m → 7 줄 379 m | 표 · 아래 그림 |
+| QA-LVL-045 | — | 돌담이 진짜 마른 돌담처럼 쌓였다(수치) | ① `check_walls.py`(뜬 돌 · 옆 돌 틈 > 6 cm · 돌탑) ③ `ld4-wall-close` | 뜬 돌 0 · 돌탑 0 · 틈 ≤ 2 % | ✅ 11-09 — 돌 4,606 개: 뜬 돌 0 · 돌탑 0 · 틈 1 | `Saved/Terrain/ld4_wall_check.json` |
+| QA-LVL-046 | — | 자동화 · 맵 점검 | ① `Automation RunTests Grimoire` ② `check_openbeta.ps1` · `check_tutorial.ps1` | 모두 통과 | ✅ 11-09 — 자동화 189/189, `openbeta` PASS, `tutorial` PASS | 로그 |
+| QA-LVL-047 | R16 | 성능 예산 안 | ① `measure.ps1 -Label ld4` | QA-PRF-001 ~ 008 예산 안 | ✅ 11-10 — GPU 4.47 ~ 5.20 ms · 게임 3.37 ~ 4.32 · 렌더 6.32 ~ 7.97 · 드로 콜 ≤ 1,311 · 메모리 ≤ 2.98 GB(다른 Unreal 없음). 같은 맵 세 번 측정 가운데 가장 나쁜 값을 적었다 — 모두 예산 안 | `Saved/Perf/ld4/summary.md` |
+| QA-LVL-048 | — | 쓰는 팩 파일만 저장소에 | `add_pack_assets.ps1 -DryRun` | 수백 MB 넘지 않음 · 새 팩 없음 | ✅ 11-10 — 162 개 248.1 MB(3차 + 물 재질 그대로, 새 팩 파일 없음) | `Saved/PackDeps/summary.txt` |
+
+통과 12 · 실패 0 · 보류 0.
+
+| 정상 눈높이 | 정상 — 가장자리 | 오솔길 |
+|---|---|---|
+| ![](/qa/ld4-beacon-top-se.jpg) | ![](/qa/ld4-beacon-edge.jpg) | ![](/qa/ld4-beacon-trail-air.jpg) |
+| **돌담 길가** | **돌담 밭 경계** | **구간 전체(능선)** |
+| ![](/qa/ld4-wall-mill-lane.jpg) | ![](/qa/ld4-wall-field.jpg) | ![](/qa/ld4-sector-aerial.jpg) |
+
+사람 눈에 남는 것: 물 깊이 페이드 값(`FadeDistance` 35)은 그대로라 얕은 곳 색은 비치는 바닥을 따른다. 어귀에서 연못 쪽으로 넘어가며 젖은 흙(개울 바닥) → 모래(연못 바닥)로 색이 천천히 바뀐다(경계는 없다).

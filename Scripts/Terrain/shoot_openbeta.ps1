@@ -8,12 +8,13 @@
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag before   # 레벨 아트 비교 — 측정 자리(Scripts/Perf/measure.ps1) 중 시작 구역
 #                                                                               → docs/public/qa/level-dress-<자리>-<Tag>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld3 -RunSeconds 1200  # 레벨 디자인 3차(「10」) — 고친 곳마다 눈높이 · 하늘, 2차와 같은 자리는 전 · 후 → docs/public/qa/ld3-<자리>.jpg
+#   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld4 -RunSeconds 1500 # 레벨 디자인 4차(「11」) — 전망대 · 개울 · 어귀 · 능선 · 돌담 → docs/public/qa/ld4-<자리>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag day -RunSeconds 700                 # 물 재질(Q126) — docs/public/qa/water-<자리>-<Tag>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag dusk -TimeOfDay 0.74 -RunSeconds 700 # 같은 자리 황혼
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld2 -RunSeconds 900   # 레벨 디자인 2차(docs/dev/level-design.md 「9」) — 구간마다 눈높이 · 하늘
 #                                                                               → docs/public/qa/ld2-<자리>.jpg(앞 다섯은 level-dress-*-after 와 같은 자리 = 전 · 후)
 param(
-	[ValidateSet("v3", "v2", "dress", "ld2", "ld3", "water")]
+	[ValidateSet("v3", "v2", "dress", "ld2", "ld3", "ld4", "water")]
 	[string]$Set = "v3",
 	[string]$Tag = "after",
 	# 시각 고정(0 자정 · 0.5 정오, Grim.Creature.Time) — 음수면 건드리지 않는다(시작 시각대로)
@@ -129,6 +130,46 @@ $ShotsLd3 = @(
 	@("ld3-sector-aerial", 21000, 9000, "125000", 0, -89.9, $false)
 )
 # water — 물 재질(Q126 Water Materials): ld3 와 같은 자리에서 낮 · 황혼 → docs/public/qa/water-<자리>-<Tag>.jpg
+$ShotsLd4 = @(
+	# 레벨 디자인 4차(docs/dev/level-design.md 「11」) — 3차와 같은 자리는 전 · 후. 좌표 X = (지도 Y − 380) × 100, Y = (지도 X − 1000) × 100
+	@("ld4-sector-aerial", 21000, 9000, "125000", 0, -89.9, $false),
+	@("ld4-door", 4000, 0, "+180", 0, -2, $false),
+	@("ld4-path100", 13776, 3029, "+180", 25, -2, $false),
+	@("ld4-path400", 41318, -1871, "+180", 32, -2, $false),
+	@("ld4-pond", 12500, -30000, "+180", -5, -3, $false),
+	# 전망대 — 사용자 스크린숏(남쪽 위에서 비스듬히) · 정상 눈높이 네 방향 · 가장자리 · 오르는 길
+	@("ld4-beacon-aerial", 50500, -12400, "13200", 0, -32, $false),
+	@("ld4-beacon-top-se", 58500, -11000, "+180", 140, -4, $false),
+	@("ld4-beacon-top-nw", 57400, -13800, "+180", 300, -4, $false),
+	@("ld4-beacon-edge", 58100, -10800, "+180", 270, -3, $false),
+	@("ld4-beacon-trail", 52000, -9500, "+180", 297, 4, $false),
+	@("ld4-beacon-trail-air", 52000, -7000, "13000", 305, -34, $false),
+	# 개울 — 위에서(끊김) · 눈높이 · 먼 높이(LOD)
+	@("ld4-creek-upper-air", 46600, -13800, "+3000", 0, -80, $false),
+	@("ld4-creek-mid-air", 39000, -17700, "+3000", 0, -80, $false),
+	@("ld4-creek-lower-air", 26700, -22000, "+3000", 0, -80, $false),
+	@("ld4-creek-far-air", 38000, -18500, "+14000", 0, -80, $false),
+	@("ld4-creek-eye-mid", 39300, -17300, "+180", 215, -6, $false),
+	@("ld4-creek-eye-lower", 27200, -21800, "+180", 200, -6, $false),
+	@("ld4-pasture-air", 69300, 20700, "+3000", 0, -80, $false),
+	# 어귀
+	@("ld4-mouth-air", 21000, -26400, "+3500", 0, -89, $false),
+	@("ld4-mouth-oblique", 24500, -24000, "+900", 219, -18, $false),
+	@("ld4-mouth-eye", 22600, -25200, "+180", 219, -5, $false),
+	# 능선 — 사용자 스크린숏처럼 비스듬한 하늘 시점
+	@("ld4-ridge-west-air", 32000, -30000, "13000", 270, -18, $false),
+	@("ld4-ridge-beacon-air", 44000, -24000, "13000", 318, -16, $false),
+	@("ld4-ridge-east-air", 22000, 15000, "11000", 95, -16, $false),
+	@("ld4-ridge-windmill-air", 42000, 25000, "11000", 130, -16, $false),
+	@("ld4-ridge-se-air", 12000, 40000, "11000", 165, -16, $false),
+	@("ld4-river-bank", 12000, 64000, "+180", 90, -2, $false),
+	# 돌담
+	@("ld4-wall-close", 9000, 150, "+150", 270, -4, $false),
+	@("ld4-wall-road", 6000, 800, "+170", 0, -2, $false),
+	@("ld4-wall-mill-lane", 32000, 33000, "+170", 5, -3, $false),
+	@("ld4-wall-field", 35800, 30500, "+170", 90, -3, $false),
+	@("ld4-fold-mill", 41000, 26500, "+220", 40, -9, $false)
+)
 $ShotsWater = @(
 	@("water-creek-mid-$Tag", 39400, -16800, "+180", 211, -5, $false),     # 개울 가운데(눈높이)
 	@("water-creek-upper-$Tag", 45500, -14200, "+200", 200, -8, $false),   # V 자 상류
@@ -142,9 +183,9 @@ $ShotsWater = @(
 	@("water-pond-aerial-$Tag", 21500, -28500, "+4500", 40, -60, $false),  # 연못 · 어귀 하늘에서
 	@("water-creek-aerial-$Tag", 34000, -20500, "+17000", 0, -89.9, $false) # 개울 전체 하늘에서
 )
-$Shots = if ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "water") { $ShotsWater } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
+$Shots = if ($Set -eq "ld4") { $ShotsLd4 } elseif ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "water") { $ShotsWater } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
 if ($Only) { $Shots = @($Shots | Where-Object { $_[0] -match $Only }) }   # 다듬는 중에는 몇 장만
-$Settled = @("dress", "ld2", "ld3", "water") -contains $Set   # 풀이 자랄 시간을 두고 docs/public/qa 에 두는 세트
+$Settled = @("dress", "ld2", "ld3", "ld4", "water") -contains $Set   # 풀이 자랄 시간을 두고 docs/public/qa 에 두는 세트
 if ($Settled) { $ArtDir = Join-Path $Root "docs\public\qa" }
 
 $Cmds = @()

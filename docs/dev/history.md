@@ -184,6 +184,13 @@
   - Megaplants 나무는 스켈레탈 메시 + Nanite 어셈블리라 `r.Nanite.Foliage`(읽기 전용 프로젝트 설정)가 꺼져 있으면 줄기만 보인다 — 놓지 않았다(Q125).
   - 이 PC 의 Bash 도구는 히어독 안 `\\` 를 하나로 줄인다 — 백슬래시가 든 문서 편집은 Write 도구로 만든 파이썬 파일로.
 
+## 레벨 디자인 4차 — 전망대 · 개울 · 어귀 · 능선 · 돌담 (2026-11-09)
+
+- **무엇을**: 3차를 에디터에서 본 사용자 피드백 전부 — 전망대 · 언덕 위 POI 터(20 곳, 봉화 언덕 18 m)와 정상 오솔길, 끊기지 않는 넓은 개울 · 연못 어귀(깔때기, 물 높이 일치), 벼랑 띠 · 톱니 그림자 제거(못 오르는 칸 3.27 → 0.93 %, 의도한 벼랑 밖 0.07 %), 돌담을 이유 있는 7 줄로(약 1,650 → 약 380 m) 납작한 단으로 다시 쌓기.
+- **어떻게**: 생성기(`GrimTerrainGenerator.cpp` — `Pads` · `TalusAngleDeg` · `MaxFlankDeg` · `MinDepth` · `BedRatio` · `MouthLength` · `MaxGradeDeg`), 물 표면(`SampleNaturalWater` · `BuildWaterSurfaceMesh` — 어귀 UV 연장 · 흐름 정도), 레이아웃(`openbeta_layout.json` — `Pads` · `StoneWalls` · `IntentionalCliffs`), `Scripts/Terrain/ld4_walls.py`, 검사 `Scripts/Terrain/check_terrain.ps1` · `check_walk.ps1` · `check_walls.py`. 무엇을 왜: [레벨 디자인 「11」](./level-design#_11-레벨-디자인-4차-—-전망대-·-개울-·-어귀-·-능선-·-돌담-2026-11-09).
+- **확인**: [QA — 레벨 아트](../qa/level-art) 「레벨 디자인 4차」.
+- **함정**: 터 둘레 경사 조건이 비탈과 거의 평행하면 산 전체를 메운다(높이를 평균 쪽으로, 경사를 비탈보다 가파르게). 터는 개울 골 뒤 · 길 앞이어야 한다(골이 터를 깎고, 길은 터까지 올라와야). 경사 완화 뒤 넓어진 지맥이 안부 시선을 막을 수 있어 설계 검사를 함께 본다. `.ps1` 에 한글 문자열을 쓰면 UTF-8 BOM 이 있어야 Windows PowerShell 5 이 읽는다. `build_openbeta.py` 가 `new_level 실패`(맵 파일은 지워졌는데 `Intermediate/CachedAssetRegistry*` 에 남음)로 멈추면 맵 세 파일을 `git checkout` + `git lfs checkout` 으로 되돌리고 캐시를 지운 뒤 다시 돌린다.
+
 ## 레벨 디자인 3차 — 능선 · 개울 · 샘 · 돌담 · 채움 (2026-11-08)
 
 - **무엇을**: 사용자 피드백(개울이 인위적 · 다리 비뚦 · 연못과 끊김 · 샘 · 짐수레가 언덕 꼭대기 · 빈 느낌 · 돌담이 뜸 · 능선이 고분) 전부. 능선 29 줄(날카로운 단면 · 지맥 · 호그백), 자연 개울 2 + 연못과 한 메시인 물 표면, 곡선 교점 다리 3, 샘 2, 돌담 27 줄(돌 4,525), 길섶 짐수레 2, 작은 소품 묶음 약 280 곳 · 큰 콘셉트 추가 6 곳.

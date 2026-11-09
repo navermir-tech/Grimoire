@@ -228,6 +228,10 @@ namespace GrimTerrainGenLocal
 		TArray<double> HalfWidth;
 		TArray<double> Pool;
 		TArray<double> Curve;
+		/** 흐름 정도(1 = 개울 → 어귀에서 0 = 연못) */
+		TArray<double> Flow;
+		/** 연못 물가선을 지나는 호 길이(m). 음수 = 연못과 만나지 않음 */
+		double JoinArc = -1.0;
 
 		static double SampleArray(const TArray<double>& Array, double Arc, double InStep)
 		{
@@ -243,6 +247,7 @@ namespace GrimTerrainGenLocal
 		double HalfAt(double Arc) const { return bNatural ? SampleArray(HalfWidth, Arc, Step) : (Spec ? Spec->Width * 0.5 : 0.0); }
 		double PoolAt(double Arc) const { return SampleArray(Pool, Arc, Step); }
 		double CurveAt(double Arc) const { return SampleArray(Curve, Arc, Step); }
+		double FlowAt(double Arc) const { return Flow.Num() ? SampleArray(Flow, Arc, Step) : 1.0; }
 
 		double ValueAt(double Arc) const
 		{
@@ -290,6 +295,24 @@ namespace GrimTerrainGenLocal
 		}
 		const double T = Smooth01((Distance - HalfWidth) / FMath::Max(Bank, 0.01));
 		return FMath::Min(Height, FMath::Lerp(Water + 0.3, Height, T));
+	}
+
+	/** 레벨 디자인 4차 — 자연 개울 단면: 바닥(BedRatio 안)은 고르게 Depth 아래, 물가선은 정확히 Half 에서 물 높이를 지난다. 파지만 한다(Min) */
+	double CarveNaturalBed(double Height, double Distance, double Water, double Depth, double HalfWidth, double BedRatio, double Bank)
+	{
+		const double BedHalf = HalfWidth * FMath::Clamp(BedRatio, 0.2, 0.95);
+		if (Distance < BedHalf)
+		{
+			const double T = Distance / BedHalf;
+			return FMath::Min(Height, Water - Depth * (1.0 - 0.25 * T * T));
+		}
+		if (Distance < HalfWidth)
+		{
+			const double T = Smooth01((Distance - BedHalf) / FMath::Max(HalfWidth - BedHalf, 0.01));
+			return FMath::Min(Height, FMath::Lerp(Water - Depth * 0.75, Water + 0.02, T));
+		}
+		const double T = Smooth01((Distance - HalfWidth) / FMath::Max(Bank, 0.01));
+		return FMath::Min(Height, FMath::Lerp(Water + 0.02, Height, T));
 	}
 
 	/** 부드러운 최솟값(K = 섞는 폭 m) — 골 옆면이 둘레 땅과 만나는 모서리를 둥글린다 */
@@ -832,7 +855,19 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 		const double Vary = FMath::Clamp(Spec.Variation, 0.f, 0.8f);
 		const double VaryScale = FMath::Max(Spec.VariationScale, 10.f);
 		const FVector2D Off = RidgelineOff + FVector2D(RidgeIndex * 4.31, RidgeIndex * 2.77);
-		const double Reach = FMath::Max(Spec.LeftWidth, Spec.RightWidth) * (1.0 + Vary) + Q + (Spec.bSharpCrest ? Spec.CrestWobble * 2.0 : 0.0);
+		// 레벨 디자인 4차: 경사 상한이 있으면 높은 곳일수록 폭을 넓힌다 — 폭 40 m · 높이 60 m 지맥 뿌리가 60° 첨탑이 되지 않게
+		const double FlankTan = (Spec.bSharpCrest && Spec.MaxFlankDeg > 0.f) ? FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(Spec.MaxFlankDeg, 5.f, 80.f))) : 0.0;
+		double FlankReach = 0.0;
+		if (FlankTan > 0.0)
+		{
+			double HighestCrest = 0.0;
+			for (const float Each : Spec.Heights)
+			{
+				HighestCrest = FMath::Max(HighestCrest, static_cast<double>(Each));
+			}
+			FlankReach = HighestCrest * (1.0 + 0.5 * Vary) * FMath::Max(Spec.LeftPower, Spec.RightPower) / FlankTan;
+		}
+		const double Reach = FMath::Max(FMath::Max(Spec.LeftWidth, Spec.RightWidth) * (1.0 + Vary), FlankReach) + Q + (Spec.bSharpCrest ? Spec.CrestWobble * 2.0 : 0.0);
 		const int32 X0 = FMath::Clamp(FMath::FloorToInt32((Line.Bounds.Min.X - Reach) / Q), 0, Count.X - 1);
 		const int32 X1 = FMath::Clamp(FMath::CeilToInt32((Line.Bounds.Max.X + Reach) / Q), 0, Count.X - 1);
 		const int32 Y0 = FMath::Clamp(FMath::FloorToInt32((Line.Bounds.Min.Y - Reach) / Q), 0, Count.Y - 1);
@@ -863,7 +898,11 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 						continue;
 					}
 					const bool bLeft = Signed >= 0.0;
-					const double Width = (bLeft ? Spec.LeftWidth : Spec.RightWidth) * (1.0 + Vary * Perlin(Arc / VaryScale, bLeft ? 3.7 : 8.9, Off));
+					double Width = (bLeft ? Spec.LeftWidth : Spec.RightWidth) * (1.0 + Vary * Perlin(Arc / VaryScale, bLeft ? 3.7 : 8.9, Off));
+					if (FlankTan > 0.0)
+					{
+						Width = FMath::Max(Width, FMath::Max(CrestAt(Arc), 0.0) * (1.0 + 0.5 * Vary) * (bLeft ? Spec.LeftPower : Spec.RightPower) / FlankTan);
+					}
 					const double Round = FMath::Max(Spec.CrestRound, 0.1f);
 					const double Rounded = FMath::Sqrt(Distance * Distance + Round * Round) - Round;
 					if (Width <= 1.0 || Rounded >= Width)
@@ -1198,6 +1237,57 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 		}
 	}
 
+	// ── 1e. 경사 완화(레벨 디자인 4차): 안식각을 넘는 칸의 흙이 이웃으로 흘러내린다(부피 보존 · 이웃 8 방향 · 고정 반복이라 결정적).
+	// 지층 띠 · 침식 골이 만든 벼랑을 비탈로 바꾼다. 계곡 절벽 · 해안 · 강은 이 뒤에 만들므로 의도한 벼랑은 남는다.
+	if (L.TalusAngleDeg > 0.f && L.TalusBoundsMax.X > L.TalusBoundsMin.X && L.TalusBoundsMax.Y > L.TalusBoundsMin.Y)
+	{
+		const double TanA = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(L.TalusAngleDeg, 5.f, 80.f)));
+		const int32 TX0 = FMath::Clamp(FMath::FloorToInt32(L.TalusBoundsMin.X / Q), 1, Count.X - 2);
+		const int32 TX1 = FMath::Clamp(FMath::CeilToInt32(L.TalusBoundsMax.X / Q), 1, Count.X - 2);
+		const int32 TY0 = FMath::Clamp(FMath::FloorToInt32(L.TalusBoundsMin.Y / Q), 1, Count.Y - 2);
+		const int32 TY1 = FMath::Clamp(FMath::CeilToInt32(L.TalusBoundsMax.Y / Q), 1, Count.Y - 2);
+		TArray<float> TalusDelta;
+		TalusDelta.SetNumZeroed(Count.X * Count.Y);
+		const int32 NDX[8] = { -1, 1, 0, 0, -1, -1, 1, 1 };
+		const int32 NDY[8] = { 0, 0, -1, 1, -1, 1, -1, 1 };
+		const double Limit[2] = { TanA * Q, TanA * Q * UE_DOUBLE_SQRT_2 };
+		constexpr double Rate = 0.1;	// 이웃 8 개가 동시에 움직여도 넘치지 않는 몫
+		for (int32 Iteration = 0; Iteration < L.TalusIterations; ++Iteration)
+		{
+			ParallelFor(TY1 - TY0 + 1, [&](int32 Row)
+			{
+				const int32 Y = TY0 + Row;
+				for (int32 X = TX0; X <= TX1; ++X)
+				{
+					const double H0 = Out.Heights[Out.Index(X, Y)];
+					double Sum = 0.0;
+					for (int32 N = 0; N < 8; ++N)
+					{
+						const double Over = H0 - Out.Heights[Out.Index(X + NDX[N], Y + NDY[N])];
+						const double Lim = Limit[N < 4 ? 0 : 1];
+						if (Over > Lim)
+						{
+							Sum -= Over - Lim;
+						}
+						else if (-Over > Lim)
+						{
+							Sum += -Over - Lim;
+						}
+					}
+					TalusDelta[Out.Index(X, Y)] = static_cast<float>(Sum * Rate);
+				}
+			});
+			ParallelFor(TY1 - TY0 + 1, [&](int32 Row)
+			{
+				const int32 Y = TY0 + Row;
+				for (int32 X = TX0; X <= TX1; ++X)
+				{
+					Out.Heights[Out.Index(X, Y)] += TalusDelta[Out.Index(X, Y)];
+				}
+			});
+		}
+	}
+
 	// ── 1c. 계곡 바닥 높이: 가운데선 땅 − 깊이, 고르고, 하류로 내려가기만 ──
 	FLineProfile ValleyFloor;
 	if (Valley.IsValid())
@@ -1324,6 +1414,9 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 	TMap<FName, double> JoinedPondLevels;
 	TArray<FLineProfile> NaturalCreeks;
 	const FVector2D NaturalOff = SeedOffset(L.Seed, 15);
+	const FVector2D PondOff = SeedOffset(L.Seed, 16);
+	struct FPondMouth { FVector2D Point = FVector2D::ZeroVector; FVector2D Dir = FVector2D(1.0, 0.0); double Arc = 0.0; };
+	TMap<FName, FPondMouth> PondMouths;
 	for (int32 CreekIndex = 0; CreekIndex < L.Creeks.Num(); ++CreekIndex)
 	{
 		const FGrimTerrainChannel& Spec = L.Creeks[CreekIndex];
@@ -1357,25 +1450,57 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 		const TArray<double> GroundSmooth = MovingAverage(Ground, 4);
 		const double StartLevel = Ground[0] - Spec.WaterBelowGround;
 		const double* Joined = JoinedPondLevels.Find(Spec.JoinPond);
+		// 레벨 디자인 4차: 물길은 연못 물가선에서 끝난다 — 물 높이가 그곳에서 연못과 같아지고, 그 안쪽 꺾은선은 물속 자리일 뿐이다
+		double JoinArc = -1.0;
+		if (Joined)
+		{
+			for (int32 PondIndex = 0; PondIndex < L.Ponds.Num(); ++PondIndex)
+			{
+				const FGrimTerrainPond& Pond = L.Ponds[PondIndex];
+				if (Pond.Name != Spec.JoinPond)
+				{
+					continue;
+				}
+				for (double Arc = 0.0; Arc <= Length; Arc += 1.0)
+				{
+					const FVector2D At = Profile.Line.AtArc(Arc);
+					const FVector2D ToCenter = At - Pond.Center;
+					if (ToCenter.Size() < PondRadiusAt(Pond, PondOff + FVector2D(PondIndex * 2.3, PondIndex * 1.7), FMath::Atan2(ToCenter.Y, ToCenter.X)))
+					{
+						JoinArc = Arc;
+						break;
+					}
+				}
+			}
+		}
+		Profile.JoinArc = JoinArc;
+		const int32 JoinIndex = JoinArc >= 0.0 ? FMath::Clamp(FMath::CeilToInt32(JoinArc / Profile.Step), 2, Steps) : Steps;
+		if (JoinArc >= 0.0)
+		{
+			FPondMouth& Mouth = PondMouths.FindOrAdd(Spec.JoinPond);
+			Mouth.Point = Profile.Line.AtArc(JoinArc);
+			Mouth.Dir = (Profile.Line.AtArc(JoinArc + 3.0) - Profile.Line.AtArc(JoinArc - 3.0)).GetSafeNormal();
+			Mouth.Arc = JoinArc;
+		}
 		// 강 · 바다로 흘러드는 끝은 물 높이를 해수면에 맞춘다(강바닥까지 파지 않게)
 		const double EndLevel = Joined ? FMath::Min(*Joined, StartLevel - 0.5) : FMath::Max(FMath::Min(Ground.Last() - Spec.WaterBelowGround, StartLevel - 0.5), static_cast<double>(L.SeaLevel) + 0.02);
 		const double MinDrop = 0.002 * Profile.Step;
 		double Previous = StartLevel + MinDrop;
 		for (int32 Index = 0; Index <= Steps; ++Index)
 		{
-			const double S = static_cast<double>(Index) / Steps;
+			const double S = FMath::Min(static_cast<double>(Index) / JoinIndex, 1.0);
 			// 위로 가파르고 아래로 완만한 오목한 종단 곡선, 땅이 더 낮으면 땅을 따른다
 			const double Designed = EndLevel + (StartLevel - EndLevel) * FMath::Pow(1.0 - S, static_cast<double>(FMath::Max(Spec.LongProfilePower, 0.1f)));
 			double Level = FMath::Min(Designed, GroundSmooth[Index] - FMath::Lerp(static_cast<double>(Spec.ValleyDepthStart), static_cast<double>(Spec.ValleyDepthEnd), S));
-			Level = FMath::Max(Level, EndLevel + (Steps - Index) * MinDrop);
-			Level = FMath::Min(Level, Previous - MinDrop);
+			Level = FMath::Max(Level, EndLevel + FMath::Max(JoinIndex - Index, 0) * MinDrop);
+			Level = FMath::Max(FMath::Min(Level, Previous - MinDrop), EndLevel);
 			Profile.Values.Add(Level);
 			Previous = Level;
 		}
 		// 상류일수록 계단(여울 · 작은 턱) — 단조 감소는 그대로
 		for (int32 Index = 0; Index <= Steps; ++Index)
 		{
-			const double S = static_cast<double>(Index) / Steps;
+			const double S = FMath::Min(static_cast<double>(Index) / JoinIndex, 1.0);
 			// 턱은 2 m 안에 부드럽게 내려간다 — 물 표면 칸이 계단으로 끊겨 보이지 않게
 			const double Over = Profile.Values[Index] / 0.45;
 			const double Stair = (FMath::FloorToDouble(Over) + Smooth01((Over - FMath::FloorToDouble(Over) - 0.55) / 0.45)) * 0.45;
@@ -1384,6 +1509,20 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 		// 물 높이 곡선을 고른다(단조 감소인 값의 이동 평균은 단조 감소) — 물 표면이 작은 턱으로 끊겨 보이지 않게
 		Profile.Values = MovingAverage(Profile.Values, 4);
 		Profile.Values.Last() = EndLevel;
+		// 어귀(레벨 디자인 4차): 물이 고이는 구간 — 물 높이가 연못에 맞춰 평평해진다(하구의 배수 구간)
+		const double MouthLength = JoinArc >= 0.0 ? FMath::Max(Spec.MouthLength, 0.f) : 0.0;
+		for (int32 Index = 0; Index <= Steps; ++Index)
+		{
+			const double Arc = Index * Profile.Step;
+			if (JoinArc >= 0.0 && (Index >= JoinIndex))
+			{
+				Profile.Values[Index] = EndLevel;
+			}
+			else if (MouthLength > 0.0)
+			{
+				Profile.Values[Index] = FMath::Lerp(Profile.Values[Index], EndLevel, static_cast<double>(SmoothStep(JoinArc - MouthLength, JoinArc - MouthLength * 0.35, Arc)));
+			}
+		}
 		// 폭 · 소 · 곡률
 		const double WidthEnd = Spec.WidthEnd > 0.f ? Spec.WidthEnd : Spec.Width;
 		const double PoolWave = FMath::Max(Spec.PoolSpacingWidths, 2.f) * FMath::Max((Spec.Width + WidthEnd) * 0.5, 0.5);
@@ -1405,8 +1544,18 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 				Half = FMath::Max(Half, HeadR * Head);
 				Pool = FMath::Max(Pool, Head);
 			}
+			// 어귀: 물길이 깔때기처럼 벌어져 연못으로 든다(갇혔던 흐름이 고인 물을 만나 퍼진다), 흐름 정도는 연못 쪽으로 0 이 되어 물결이 섞인다
+			double FlowHere = 1.0;
+			if (MouthLength > 0.0)
+			{
+				const double Open = FMath::Clamp((Arc - (JoinArc - MouthLength)) / MouthLength, 0.0, 1.0);
+				Half = FMath::Lerp(Half, FMath::Max(Half, static_cast<double>(Spec.MouthHalfWidth)), Open * Open);
+				Pool = FMath::Max(Pool, Open);
+				FlowHere = 1.0 - SmoothStep(JoinArc - MouthLength * 0.7, JoinArc, Arc);
+			}
 			Profile.HalfWidth.Add(Half);
 			Profile.Pool.Add(Pool);
+			Profile.Flow.Add(FlowHere);
 			const FVector2D A = Profile.Line.AtArc(Arc - 5.0);
 			const FVector2D B = Profile.Line.AtArc(Arc);
 			const FVector2D C = Profile.Line.AtArc(Arc + 5.0);
@@ -1453,6 +1602,61 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 		});
 	}
 
+	// ── 2c. 활동 터(레벨 디자인 4차, 개울 골을 판 뒤 — 골이 터를 깎지 않게): 안은 평평, 둘레는 경사 상한 원뿔 안으로 원래 땅을 가둔다(깎는 곳은 깎고 메우는 곳은 메운다). 길보다 먼저라 길이 터까지 올라온다.
+	const FVector2D PadOff = SeedOffset(L.Seed, 19);
+	for (int32 PadIndex = 0; PadIndex < L.Pads.Num(); ++PadIndex)
+	{
+		const FGrimTerrainPad& Pad = L.Pads[PadIndex];
+		const double Irregular = FMath::Clamp(Pad.Irregularity, 0.f, 0.5f);
+		const FVector2D Off = PadOff + FVector2D(PadIndex * 3.1, PadIndex * 1.9);
+		const double Ring = RingAverage(Out, Pad.Center, Pad.Radius * 1.1, 32);
+		double Top = Ring;
+		for (double DY = -Pad.Radius; DY <= Pad.Radius; DY += 1.0)
+		{
+			for (double DX = -Pad.Radius; DX <= Pad.Radius; DX += 1.0)
+			{
+				if (DX * DX + DY * DY <= Pad.Radius * Pad.Radius)
+				{
+					Top = FMath::Max(Top, static_cast<double>(ReadHeight(Out, Pad.Center.X + DX, Pad.Center.Y + DY)));
+				}
+			}
+		}
+		const double Level = FMath::Lerp(Ring, Top, static_cast<double>(FMath::Clamp(Pad.KeepHeight, 0.f, 1.f)));
+		const double EdgeTan = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(Pad.EdgeSlopeDeg, 5.f, 60.f)));
+		const double PadReach = Pad.Radius * (1.0 + Irregular) + 70.0;
+		const int32 PX0 = FMath::Clamp(FMath::FloorToInt32((Pad.Center.X - PadReach) / Q), 0, Count.X - 1);
+		const int32 PX1 = FMath::Clamp(FMath::CeilToInt32((Pad.Center.X + PadReach) / Q), 0, Count.X - 1);
+		const int32 PY0 = FMath::Clamp(FMath::FloorToInt32((Pad.Center.Y - PadReach) / Q), 0, Count.Y - 1);
+		const int32 PY1 = FMath::Clamp(FMath::CeilToInt32((Pad.Center.Y + PadReach) / Q), 0, Count.Y - 1);
+		ParallelFor(PY1 - PY0 + 1, [&](int32 Row)
+		{
+			const int32 Y = PY0 + Row;
+			for (int32 X = PX0; X <= PX1; ++X)
+			{
+				const FVector2D ToPad = FVector2D(X * Q, Y * Q) - Pad.Center;
+				const double R = ToPad.Size();
+				if (R >= PadReach)
+				{
+					continue;
+				}
+				const double Angle = FMath::Atan2(ToPad.Y, ToPad.X);
+				const double RadiusHere = FMath::Max(1.0, Pad.Radius * (1.0 + Irregular * Perlin(FMath::Cos(Angle) * 1.7 + 4.0, FMath::Sin(Angle) * 1.7 + 6.0, Off)));
+				float& H = Out.Heights[Out.Index(X, Y)];
+				if (R <= RadiusHere)
+				{
+					H = static_cast<float>(Level + Pad.DomeHeight * (1.0 - FMath::Square(R / RadiusHere)));
+					continue;
+				}
+				// 둘레 비탈이 동그란 절개면으로 보이지 않게 각도마다 경사를 다르게 하고 경계선을 흔든다(상한은 걷는 경사 안에서)
+				const double EdgeHere = EdgeTan * (1.0 + 0.12 * Perlin(FMath::Cos(Angle) * 2.9 + 9.0, FMath::Sin(Angle) * 2.9 + 2.0, Off + FVector2D(1.3, 7.1)));
+				const double Rr = FMath::Max(0.0, R - RadiusHere + 2.2 * Perlin(X * Q / 13.0, Y * Q / 13.0, Off + FVector2D(5.5, 3.3)));
+				const double K = FMath::Min(Rr * 0.5, 3.0);
+				const double Lower = -SmoothMin(-static_cast<double>(H), -(Level - EdgeHere * Rr), K);
+				H = static_cast<float>(SmoothMin(Lower, Level + EdgeHere * Rr, K));
+			}
+		});
+	}
+
 	// ── 3. 길: 땅을 따라가되 경사 PathGradeDeg 아래로 고른 높이로 깎고 메운다(언덕은 레이아웃에서 길이 피해 휜다) ──
 	TArray<FLineProfile> Paths;
 	const double Grade = FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(L.PathGradeDeg, 1.f, 40.f)));
@@ -1474,7 +1678,8 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			Ground.Add(ReadHeight(Out, At.X, At.Y));
 		}
 		// 기울기 상한을 지키는 가장 높은 「깎기만」 선과 가장 낮은 「메우기만」 선의 가운데 — 둘 다 상한을 지키므로 가운데도 지킨다
-		const double Rise = Grade * Profile.Step;
+		const double PathGrade = Profile.Spec->MaxGradeDeg > 0.f ? FMath::Tan(FMath::DegreesToRadians(FMath::Clamp(Profile.Spec->MaxGradeDeg, 1.f, 40.f))) : Grade;
+		const double Rise = PathGrade * Profile.Step;
 		Lower = Ground;
 		Upper = Ground;
 		for (int32 Index = 1; Index <= Steps; ++Index)
@@ -1499,7 +1704,18 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			Profile.Values[0] = Ground[0];
 			for (int32 Index = 1; Index <= Steps; ++Index)
 			{
-				Profile.Values[Index] = FMath::Clamp(Profile.Values[Index], Profile.Values[Index - 1] - Rise, Profile.Values[Index - 1] + Rise);
+				// 오솔길은 갈림목 앞 24 m 를 완만하게 — 큰길 둑에서 터지는 턱을 줄인다
+				const double LocalRise = Profile.Spec->MaxGradeDeg > 0.f ? Rise * FMath::Clamp(Index * Profile.Step / 24.0, 0.3, 1.0) : Rise;
+				Profile.Values[Index] = FMath::Clamp(Profile.Values[Index], Profile.Values[Index - 1] - LocalRise, Profile.Values[Index - 1] + LocalRise);
+			}
+			// 레벨 디자인 4차: 경사 상한을 따로 둔 오솔길은 끝점도 땅 높이(터) — 정상에 닿지 못해 터를 파 내리지 않게 뒤에서도 맞춘다
+			if (Profile.Spec->MaxGradeDeg > 0.f)
+			{
+				Profile.Values.Last() = Ground.Last();
+				for (int32 Index = Steps - 1; Index >= 0; --Index)
+				{
+					Profile.Values[Index] = FMath::Clamp(Profile.Values[Index], Profile.Values[Index + 1] - Rise, Profile.Values[Index + 1] + Rise);
+				}
 			}
 		}
 
@@ -1662,7 +1878,6 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 
 	// ── 5. 연못 · 거점 평지 ──
 	TArray<double> PondLevels;
-	const FVector2D PondOff = SeedOffset(L.Seed, 16);
 	for (const FGrimTerrainPond& Pond : L.Ponds)
 	{
 		const double* Joined = JoinedPondLevels.Find(Pond.Name);
@@ -1727,29 +1942,42 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 	for (const FLineProfile& Creek : NaturalCreeks)
 	{
 		const double MaxHalf = FMath::Max(Creek.HalfWidth);
+		const double CarveReach = MaxHalf + FMath::Max(8.0, FMath::Max(1.8, MaxHalf * 0.9) * 1.7);
 		ParallelFor(Count.Y, [&](int32 Y)
 		{
 			for (int32 X = 0; X < Count.X; ++X)
 			{
 				const FVector2D P(X * Q, Y * Q);
 				double Distance = 0.0, Arc = 0.0, Signed = 0.0;
-				if (!Creek.Line.Closest(P, MaxHalf + 8.0, Distance, Arc, &Signed))
+				if (!Creek.Line.Closest(P, CarveReach, Distance, Arc, &Signed))
+				{
+					continue;
+				}
+				// 연못 안쪽(물가선 너머)은 연못 몫 — 둑도 파기도 하지 않는다
+				if (Creek.JoinArc >= 0.0 && Arc > Creek.JoinArc + 9.0)
 				{
 					continue;
 				}
 				const double Half = Creek.HalfAt(Arc);
 				const double Pool = Creek.PoolAt(Arc);
-				const double Shift = FMath::Clamp(Creek.CurveAt(Arc) * 14.0, -1.0, 1.0) * 0.28 * Half;
+				const double FlowHere = Creek.FlowAt(Arc);
+				const double Shift = FMath::Clamp(Creek.CurveAt(Arc) * 14.0, -1.0, 1.0) * 0.28 * Half * FlowHere;
 				const double D = FMath::Abs(Signed + Shift);
 				const double Bank = FMath::Max(1.8, Half * 0.9);
-				const double Depth = FMath::Lerp(0.28, static_cast<double>(Creek.Spec->PoolDepth), Pool);
+				// 레벨 디자인 4차: 여울도 MinDepth 이상(깊이 페이드 · 먼 LOD 에서 끊겨 보이지 않게). 물가선 근처는 연못 바닥으로 얕아진다
+				double Depth = FMath::Lerp(static_cast<double>(Creek.Spec->MinDepth), static_cast<double>(Creek.Spec->PoolDepth), Pool);
+				if (Creek.JoinArc >= 0.0)
+				{
+					Depth = FMath::Lerp(Depth, 0.6, static_cast<double>(SmoothStep(Creek.JoinArc - 8.0, Creek.JoinArc + 2.0, Arc)));	// 물가선에 얕은 턱(모래 띠)이 가로놓이지 않게
+				}
 				float& H = Out.Heights[Out.Index(X, Y)];
 				const double Water = Creek.ValueAt(Arc);
-				double NewH = CarveChannel(H, D, Water, Depth, Half, Bank);
-				// 둑: 둘레 땅이 물보다 낮은 곳은 둑을 쌓아 물을 가둔다 — 물 표면이 땅 위에 떠 끊기지 않게
-				if (D >= Half && D < Half + Bank * 1.6 && H < Water + 0.3)
+				double NewH = CarveNaturalBed(H, D, Water, Depth, Half, Creek.Spec->BedRatio, Bank);
+				// 둑: 둘레 땅이 물보다 낮은 곳은 둑을 쌓아 물을 가둔다 — 물 표면이 땅 위에 떠 끊기지 않게. 어귀에서는 쌓지 않는다(연못 안으로 모래 둑이 뻗지 않게)
+				if (FlowHere > 0.0 && D >= Half && D < Half + Bank * 1.6 && H < Water + 0.3)
 				{
-					NewH = FMath::Lerp(Water + 0.3, static_cast<double>(H), static_cast<double>(Smooth01((D - Half) / (Bank * 1.6))));
+					const double Levee = FMath::Lerp(Water + 0.02 + 0.28 * Smooth01((D - Half) / 0.8), static_cast<double>(H), static_cast<double>(Smooth01((D - Half) / (Bank * 1.6))));
+					NewH = FMath::Lerp(NewH, Levee, FlowHere);
 				}
 				H = static_cast<float>(NewH);
 			}
@@ -1809,7 +2037,7 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 						const double Bar = 0.1 + 0.55 * Creek.PoolAt(Arc) * Bend + 0.35 * Bend;
 						Shore = FMath::Max(Shore, 1.f - SmoothStep(NaturalHalf + Bar * 0.3, NaturalHalf + Bar + 0.6, Distance));
 						// 물길 바닥은 젖은 어두운 흙(숲 바닥 레이어) — 밝은 모래 띠로 보이지 않게
-						WetBed = FMath::Max(WetBed, 1.f - SmoothStep(NaturalHalf - 0.3, NaturalHalf + 0.5, Distance));
+						WetBed = FMath::Max(WetBed, (1.f - SmoothStep(NaturalHalf - 0.3, NaturalHalf + 0.5, Distance)) * static_cast<float>(Creek.FlowAt(Arc)));
 					}
 					continue;
 				}
@@ -1897,6 +2125,13 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 			{
 				Data.Radii.Add(static_cast<float>(PondRadiusAt(Pond, PondOff + FVector2D(Index * 2.3, Index * 1.7), 2.0 * UE_DOUBLE_PI * Slice / FGrimNaturalPondData::AngleCount)));
 			}
+			if (const FPondMouth* Mouth = PondMouths.Find(Pond.Name))
+			{
+				Data.bHasMouth = true;
+				Data.MouthPoint = Mouth->Point;
+				Data.MouthDir = Mouth->Dir;
+				Data.MouthArc = static_cast<float>(Mouth->Arc);
+			}
 		}
 	}
 	for (const FLineProfile& Creek : Creeks)
@@ -1929,6 +2164,7 @@ void FGrimTerrainGenerator::Generate(const FGrimTerrainLayout& L, FGrimTerrainMa
 				Data.Points.Add(Creek.Line.AtArc(ArcAt));
 				Data.Levels.Add(static_cast<float>(Creek.ValueAt(ArcAt)));
 				Data.Halves.Add(static_cast<float>(Creek.HalfAt(ArcAt)));
+				Data.Flows.Add(static_cast<float>(Creek.FlowAt(ArcAt)));
 			}
 			continue;	// 자연 개울은 폭포를 만들지 않는다
 		}
@@ -2292,8 +2528,18 @@ bool FGrimTerrainGenerator::SampleNaturalWater(const FGrimTerrainMaps& Maps, con
 		if (R < Radius + Margin)
 		{
 			OutLevel = Pond.Level;
-			OutArc = U;
-			OutSigned = V;
+			if (Pond.bHasMouth)
+			{
+				// 개울 호 길이의 연장 — 물 표면 UV 가 어귀에서 끊기지 않는다(연못 안은 직선 좌표라 일그러짐도 없다)
+				const FVector2D FromMouth = P - Pond.MouthPoint;
+				OutArc = Pond.MouthArc + FVector2D::DotProduct(FromMouth, Pond.MouthDir);
+				OutSigned = Pond.MouthDir.X * FromMouth.Y - Pond.MouthDir.Y * FromMouth.X;
+			}
+			else
+			{
+				OutArc = U;
+				OutSigned = V;
+			}
 			OutFlow = 0.0;
 			return true;
 		}
@@ -2319,7 +2565,7 @@ bool FGrimTerrainGenerator::SampleNaturalWater(const FGrimTerrainMaps& Maps, con
 				// 꺾은점은 1 m 간격 — 번호에 앞뒤 거리를 더해 호 길이를 잇는다(정수로 두면 물결 UV 가 1 m 칸마다 끊겨 격자무늬가 보인다)
 				OutArc = Index + FVector2D::DotProduct(Q, Dir);
 				OutSigned = Dir.X * Q.Y - Dir.Y * Q.X;
-				OutFlow = 1.0;
+				OutFlow = Creek.Flows.IsValidIndex(Index) ? Creek.Flows[Index] : 1.0;
 				bFound = true;
 			}
 		}

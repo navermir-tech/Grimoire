@@ -283,6 +283,9 @@ bool FGrimTerrainNaturalCreekTest::RunTest(const FString& Parameters)
 	C.ValleySlopeEnd = 14.f;
 	C.HeadPoolRadius = 2.f;
 	C.JoinPond = TEXT("Pond");
+	C.MinDepth = 0.5f;		// 레벨 디자인 4차: 여울도 이만큼은 깊다
+	C.MouthLength = 20.f;
+	C.MouthHalfWidth = 7.f;
 	FGrimTerrainChannel& P = L.Paths.AddDefaulted_GetRef();
 	P.Name = TEXT("Road");
 	P.Width = 3.f;
@@ -313,6 +316,27 @@ bool FGrimTerrainNaturalCreekTest::RunTest(const FString& Parameters)
 	{
 		TestTrue(FString::Printf(TEXT("합류부 %.0f m 에 물이 있다"), V), FGrimTerrainGenerator::SampleNaturalWater(M, Bodies, 125.0, V, 1.0, Level, Arc, Signed, Flow));
 	}
+	// 레벨 디자인 4차: 가운데선 수심이 어디서나 MinDepth 근처 이상 — 바닥이 물 위로 올라오는 곳이 없다
+	double ShallowestDepth = 1000.0;
+	for (int32 I = 0; I < Body->Points.Num(); ++I)
+	{
+		const FVector2D At = FGrimTerrainGenerator::WorldToMap(L, FVector2D(Body->Points[I].X, Body->Points[I].Y));
+		if (FVector2D::Distance(At, Pond.Center) > Pond.Radius)
+		{
+			ShallowestDepth = FMath::Min(ShallowestDepth, Body->Points[I].Z / 100.0 - FGrimTerrainGenerator::SampleHeight(M, At.X, At.Y));
+		}
+	}
+	TestTrue(FString::Printf(TEXT("물길 가운데 수심 %.2f m ≥ 0.3 m"), ShallowestDepth), ShallowestDepth >= 0.3);
+	// 어귀: 물길이 벌어져 연못과 같은 물 높이로 만나고, 연못 안으로 둑이 뻗지 않는다
+	const double LevelAtPond = PondBody->Points[0].Z / 100.0;
+	double L0 = 0.0, A0 = 0.0, S0 = 0.0, F0 = 0.0;
+	TestTrue(TEXT("어귀(물가선 근처) 물 표면"), FGrimTerrainGenerator::SampleNaturalWater(M, Bodies, 126.0, 58.0, 1.0, L0, A0, S0, F0));
+	TestEqual(TEXT("어귀 물 높이 = 연못 물 높이"), L0, LevelAtPond, 0.25);
+	TestTrue(FString::Printf(TEXT("어귀 옆 5 m 도 물 아래(둑이 없다) %.2f"), FGrimTerrainGenerator::SampleHeight(M, 131.0, 58.0) - LevelAtPond), FGrimTerrainGenerator::SampleHeight(M, 131.0, 58.0) < LevelAtPond + 0.05);
+	TestTrue(TEXT("연못 안쪽 물길 자리는 둑 없이 물 아래"), FGrimTerrainGenerator::SampleHeight(M, 126.0, 50.0) < LevelAtPond - 0.1);
+	double L1 = 0.0, A1 = 0.0, S1 = 0.0, F1 = 0.0;
+	FGrimTerrainGenerator::SampleNaturalWater(M, Bodies, 126.0, 100.0, 1.0, L1, A1, S1, F1);
+	TestTrue(FString::Printf(TEXT("상류는 흐름 1(%.2f) · 어귀 쪽은 줄어든다(%.2f)"), F1, F0), F1 > 0.95 && F0 < 0.7);
 	// V 자: 상류 쪽 물길 옆 8 m 는 물보다 충분히 높고, 200 m 밖 평지는 그대로
 	const FVector& Mid = Body->Points[Body->Points.Num() / 4];
 	const FVector2D MidMap = FGrimTerrainGenerator::WorldToMap(L, FVector2D(Mid.X, Mid.Y));
@@ -330,6 +354,109 @@ bool FGrimTerrainNaturalCreekTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("다리 서쪽 끝 노면 = 상판"), FGrimTerrainGenerator::SampleHeight(M, At.X - B.Span / 200.0 - 1.5, At.Y), static_cast<float>(B.Center.Z / 100.0), 0.35f);
 		TestEqual(TEXT("다리 동쪽 끝 노면 = 상판"), FGrimTerrainGenerator::SampleHeight(M, At.X + B.Span / 200.0 + 1.5, At.Y), static_cast<float>(B.Center.Z / 100.0), 0.35f);
 	}
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainPadTest, "Grimoire.Terrain.Generator.Pad", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainPadTest::RunTest(const FString& Parameters)
+{
+	// 레벨 디자인 4차: 뾰족한 등성이 위 활동 터 — 안은 평평하고, 둘레는 경사 상한 안으로 이어진다
+	FGrimTerrainLayout L = GrimTerrainTestLocal::FlatLayout(10.f);
+	FGrimTerrainRidgeline& R = L.Ridgelines.AddDefaulted_GetRef();
+	R.Name = TEXT("Crest");
+	R.bSharpCrest = true;
+	R.Points = { FVector2D(30.0, 126.0), FVector2D(126.0, 126.0), FVector2D(222.0, 126.0) };
+	R.Heights = { 30.f, 30.f, 30.f };
+	R.LeftWidth = R.RightWidth = 45.f;
+	R.Variation = 0.f;
+	R.CrestRound = 1.f;
+	R.CrestWobble = 0.f;
+	R.CrestJag = 0.f;
+	R.GullyStrength = 0.f;
+	FGrimTerrainPad& Pad = L.Pads.AddDefaulted_GetRef();
+	Pad.Name = TEXT("Top");
+	Pad.Center = FVector2D(126.0, 126.0);
+	Pad.Radius = 14.f;
+	Pad.EdgeSlopeDeg = 36.f;
+	Pad.KeepHeight = 0.15f;
+	Pad.Irregularity = 0.f;
+	FGrimTerrainMaps M;
+	FGrimTerrainGenerator::Generate(L, M);
+	float Low = 1000.f, High = -1000.f;
+	for (double DY = -12.0; DY <= 12.0; DY += 1.0)
+	{
+		for (double DX = -12.0; DX <= 12.0; DX += 1.0)
+		{
+			if (DX * DX + DY * DY <= 144.0)
+			{
+				const float H = FGrimTerrainGenerator::SampleHeight(M, 126.0 + DX, 126.0 + DY);
+				Low = FMath::Min(Low, H);
+				High = FMath::Max(High, H);
+			}
+		}
+	}
+	TestTrue(FString::Printf(TEXT("터 안 높이 차 %.2f m ≤ 0.6"), High - Low), High - Low <= 0.6f);
+	float Steepest = 0.f;
+	for (double Angle = 0.0; Angle < 360.0; Angle += 15.0)
+	{
+		for (double Radius = 16.0; Radius <= 36.0; Radius += 2.0)
+		{
+			Steepest = FMath::Max(Steepest, FGrimTerrainGenerator::SampleSlopeDeg(M, 126.0 + Radius * FMath::Cos(FMath::DegreesToRadians(Angle)), 126.0 + Radius * FMath::Sin(FMath::DegreesToRadians(Angle))));
+		}
+	}
+	TestTrue(FString::Printf(TEXT("터 둘레 경사 %.1f° ≤ 걸을 수 있는 경사"), Steepest), Steepest <= 44.76f);
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTerrainTalusTest, "Grimoire.Terrain.Generator.Talus", GrimTerrainTestLocal::Flags)
+bool FGrimTerrainTalusTest::RunTest(const FString& Parameters)
+{
+	// 레벨 디자인 4차: 안식각 — 벼랑이 비탈이 되고 등성이는 남는다. 경사 상한 — 폭이 좁아도 뿌리가 첨탑이 되지 않는다
+	auto MakeRidge = []()
+	{
+		FGrimTerrainLayout L = GrimTerrainTestLocal::FlatLayout(10.f);
+		FGrimTerrainRidgeline& R = L.Ridgelines.AddDefaulted_GetRef();
+		R.Name = TEXT("Steep");
+		R.bSharpCrest = true;
+		R.Points = { FVector2D(30.0, 126.0), FVector2D(126.0, 126.0), FVector2D(222.0, 126.0) };
+		R.Heights = { 14.f, 14.f, 14.f };
+		R.LeftWidth = R.RightWidth = 8.f;
+		R.LeftPower = R.RightPower = 1.2f;
+		R.Variation = 0.f;
+		R.CrestRound = 1.f;
+		R.CrestWobble = 0.f;
+		R.CrestJag = 0.f;
+		R.GullyStrength = 0.f;
+		return L;
+	};
+	auto MaxSlope = [](const FGrimTerrainMaps& M)
+	{
+		float Most = 0.f;
+		for (double DY = -30.0; DY <= 30.0; DY += 1.0)
+		{
+			Most = FMath::Max(Most, FGrimTerrainGenerator::SampleSlopeDeg(M, 126.0, 126.0 + DY));
+		}
+		return Most;
+	};
+	FGrimTerrainMaps Raw, Relaxed, Flank;
+	FGrimTerrainLayout Plain = MakeRidge();
+	FGrimTerrainGenerator::Generate(Plain, Raw);
+	FGrimTerrainLayout Talus = MakeRidge();
+	Talus.TalusAngleDeg = 38.f;
+	Talus.TalusIterations = 500;
+	Talus.TalusBoundsMin = FVector2D(2.0, 2.0);
+	Talus.TalusBoundsMax = FVector2D(250.0, 250.0);
+	FGrimTerrainGenerator::Generate(Talus, Relaxed);
+	const float RawMost = MaxSlope(Raw);
+	const float RelaxedMost = MaxSlope(Relaxed);
+	TestTrue(FString::Printf(TEXT("손대기 전에는 벼랑(%.0f°)"), RawMost), RawMost > 55.f);
+	TestTrue(FString::Printf(TEXT("안식각 뒤 %.1f° ≤ 걷는 경사"), RelaxedMost), RelaxedMost <= 44.76f);
+	TestTrue(TEXT("등성이는 남는다"), FGrimTerrainGenerator::SampleHeight(Relaxed, 126.0, 126.0) > 18.f);
+	FGrimTerrainLayout Limited = MakeRidge();
+	Limited.Ridgelines[0].MaxFlankDeg = 30.f;
+	FGrimTerrainGenerator::Generate(Limited, Flank);
+	const float FlankMost = MaxSlope(Flank);
+	TestTrue(FString::Printf(TEXT("경사 상한 뒤 비탈 %.1f° ≤ 33°"), FlankMost), FlankMost <= 33.f);
 	return true;
 }
 

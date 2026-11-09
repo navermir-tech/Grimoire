@@ -182,7 +182,7 @@ UStaticMesh* UGrimTerrainEditorLibrary::BuildWaterSurfaceMesh(const FString& Pac
 			const double U = Box.Min.X + X * Step, V = Box.Min.Y + Y * Step;
 			C.bHas = FGrimTerrainGenerator::SampleNaturalWater(Maps, Bodies, U, V, Margin, C.Level, C.Arc, C.Signed, C.Flow);
 			C.bWet = C.bHas && FGrimTerrainGenerator::SampleHeight(Maps, U, V) < C.Level + 0.2;
-			if (C.bWet && C.Flow > 0.5)
+			if (C.bWet && C.Flow > 0.0)
 			{
 				// 개울은 물길 옆 1 m 까지만 — 물길 밖 낮은 땅에 물 조각이 뜨지 않게
 				double L2 = 0.0, A2 = 0.0, S2 = 0.0, F2 = 0.0;

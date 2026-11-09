@@ -1,6 +1,6 @@
 # 레벨 디자인 3차(docs/dev/level-design.md 「10」) — dress_openbeta.py 가 부른다(태그 · 폴리지 타입은 section_dress 와 같은 규칙, 다시 돌리면 걷고 다시 놓는다).
 #
-#   돌담      dry_stone_walls  돌마다 땅을 재어 앉히고 위 단은 아래 돌 윗면에 얹는다(뜬 돌 없음) · 크기 · 방향 불규칙 · 기울어짐 · 끊긴 곳 · 무너진 더미 · 밑동 풀
+#   돌담      ld4_walls        이유가 있는 자리에만(레이아웃 StoneWalls) — 납작한 돌이 가로로 이어진 단 + 갓돌
 #   개울      creek_dress      소 · 여울 · 굽이에 맞춘 돌 · 자갈 · 갈대 · 고사리(생성기의 폭 · 소 값을 그대로 읽는다)
 #   샘        spring           바위 틈(뒤 · 옆 바위 + 내민 바위) 아래 작은 웅덩이, 이끼 돌 · 고사리, 물이 솟는 동심원
 #   짐수레    cart             큰길 굽이 길섶 — 바퀴 빠져 기울고 짐이 도랑 쪽으로 쏟아진 이야기
@@ -16,6 +16,7 @@ import random
 import unreal
 
 import dress_assets
+import ld4_walls
 import section_dress
 
 WALL_STONES = ["FT_Dress_Wall1", "FT_Dress_Wall2", "FT_Dress_Wall3", "FT_Dress_Wall4", "FT_Dress_Wall5"]
@@ -129,28 +130,7 @@ class Level3:
                     break
         return None if best is None else (best[1], best[2])
 
-    # ── 돌담 ──
-    def _road_offset_line(self, path, a0, a1, side, base_off, seed):
-        line = self.d.paths[path]
-        pts = []
-        arc = a0
-        while arc < a1:
-            u, v, (dx, dy) = line.at(arc)
-            off = base_off + 1.0 * noise1(arc * 0.045, seed) + 0.35 * noise1(arc * 0.21, seed + 3.0)
-            pts.append((u - dy * side * off, v + dx * side * off))
-            arc += 1.0
-        return pts
-
-    def _branch_line(self, u, v, angle, length, seed):
-        """길에서 비탈로 뻗는 밭 경계 — 조금씩 휘며 올라간다"""
-        pts = [(u, v)]
-        a = angle
-        for i in range(int(length)):
-            a += 0.9 * noise1(i * 0.05, seed)
-            du, dv = math.cos(math.radians(a)), math.sin(math.radians(a))
-            pts.append((pts[-1][0] + du, pts[-1][1] + dv))
-        return pts
-
+    # ── 돌담(4차 — ld4_walls.py, 자리 · 이유는 레이아웃 StoneWalls) ──
     def _wall_ok(self, u, v):
         tower = self.raw["TowerHill"]
         if math.hypot(u - tower["Center"]["X"], v - tower["Center"]["Y"]) < tower["PlateauRadius"] + 8:
@@ -158,233 +138,12 @@ class Level3:
         import landmark_greybox
         return self.c["in_sector"](u, v) and not self.c["near_water"](u, v, 1.5) and landmark_greybox.distance_to_paths(u, v, self.raw) > 3.4 and self.slope(u, v) < 33
 
-    def build_wall(self, pts, height, seed, cope=True):
-        """돌을 아래 단부터 실제로 쌓는다. top[i] = 그 자리(5 cm 칸)의 지금까지 윗면 높이(cm)"""
-        rng = random.Random(seed)
-        poly = section_dress.Polyline(pts)
-        L = poly.length
-        if L < 4:
-            return 0
-        n = int(L / 0.05)
-        top = [None] * n
-        ground_at = []
-        for i in range(n):
-            u, v, _ = poly.at(i * 0.05)
-            ground_at.append(self.ground(u, v))
-        # 끊긴 곳(돌 없음) · 무너진 곳(낮음 + 무더기)
-        gap = [False] * n
-        fall = [1.0] * n
-        arc = rng.uniform(6, 16)
-        zones = []
-        while arc < L - 3:
-            if rng.random() < 0.35:
-                w = rng.uniform(1.4, 4.2)
-                for i in range(int(arc / 0.05), min(int((arc + w) / 0.05), n)):
-                    gap[i] = True
-                zones.append((arc, w, "gap"))
-                arc += w + rng.uniform(9, 26)
-            else:
-                w = rng.uniform(2.5, 8.0)
-                level = rng.uniform(0.22, 0.5)
-                for i in range(int(arc / 0.05), min(int((arc + w) / 0.05), n)):
-                    t = (i * 0.05 - arc) / w
-                    fall[i] = 1.0 - (1.0 - level) * max(0.0, math.sin(max(0.0, min(t, 1.0)) * math.pi)) ** 0.6
-                zones.append((arc, w, "fall"))
-                arc += w + rng.uniform(8, 24)
-        for i in range(n):
-            if not self._wall_ok(*poly.at(i * 0.05)[:2]):
-                gap[i] = True
-
-        def envelope(i):
-            a = i * 0.05
-            return height * 100.0 * fall[i] * (0.9 + 0.16 * noise1(a * 0.09, seed % 97) + 0.03 * noise1(a * 0.5, seed % 89))
-
-        lean_seed = seed % 83
-
-        def stone(course, arc0, length, thick, tall, support_i0, support_i1, base_z, upright=False):
-            mid = arc0 + length * 0.5
-            u, v, (dx, dy) = poly.at(mid)
-            ft = rng.choice(WALL_STONES)
-            ox, oy, oz, ex, ey, ez = self.bounds[ft]
-            yaw_jit = rng.uniform(-11, 11)
-            turned = (course > 0 and not upright and rng.random() < 0.1)   # 통돌 — 벽을 가로질러 놓인 돌
-            if turned:
-                length, thick = thick, length
-                yaw_jit += 90
-            sx, sy, sz = length * 100.0 / (2 * ex), thick * 100.0 / (2 * ey), tall * 100.0 / (2 * ez)
-            # 벽 전체가 길이를 따라 천천히 한쪽으로 기운다(지금 높이에 비례)
-            height_here = max(0.0, base_z - ground_at[int(mid / 0.05) if int(mid / 0.05) < n else n - 1]) / 100.0
-            lean_deg = 4.0 * noise1(mid * 0.06, lean_seed) + 1.0
-            cross = height_here * math.tan(math.radians(lean_deg)) + rng.uniform(-0.05, 0.05)
-            cu, cv = u - dy * cross, v + dx * cross
-            # 길이 방향 비탈에 맞춰 기운다 — 윗단일수록 덜(평평하게 놓으려 함)
-            g0, g1 = self.ground(cu - dx * length * 0.45, cv - dy * length * 0.45), self.ground(cu + dx * length * 0.45, cv + dy * length * 0.45)
-            slope_deg = math.degrees(math.atan2((g1 - g0) / 100.0, length * 0.9))
-            pitch = max(-16.0, min(16.0, slope_deg * (0.8 if course == 0 else 0.35))) + rng.uniform(-3.5, 3.5)
-            roll = lean_deg * (1 if course else 0.5) + rng.uniform(-3.5, 3.5)
-            base = 90.0 - math.degrees(math.atan2(dy, dx))
-            map_yaw = 90.0 - base + yaw_jit
-            # 바운드 바닥을 base_z 에 놓고 키의 비율만큼 묻는다(둥근 돌이라 바닥 모서리는 공기 — 묻어야 땅 · 아래 돌에 닿아 보인다)
-            embed = (0.16 + rng.uniform(0, 0.06)) * tall * 100.0
-            bottom = base_z - embed
-            pivot_z = bottom - sz * (oz - ez)
-            if course == 0:
-                # 판단: 바닥 네 모서리(기울인 뒤)와 땅의 차이가 크면 더 내린다 — 어느 모서리도 땅 위 7 cm 를 넘지 않게
-                worst = -1e9
-                for sa in (-0.45, 0.45):
-                    for st in (-0.42, 0.42):
-                        cx_u = cu + dx * length * sa - dy * thick * st
-                        cx_v = cv + dy * length * sa + dx * thick * st
-                        corner_z = bottom + math.sin(math.radians(pitch)) * length * sa * 100.0 - math.sin(math.radians(roll)) * thick * st * 100.0
-                        worst = max(worst, corner_z - self.ground(cx_u, cx_v))
-                if worst > 7.0:
-                    drop = worst - 7.0
-                    bottom -= drop
-                    pivot_z -= drop
-                self.wall_report.append({"course": 0, "float": round(max(worst, 0.0) if worst <= 7.0 else 7.0, 2), "bottom": round(bottom, 1), "ground": round(self.ground(cu, cv), 1), "seed": seed})
-            else:
-                self.wall_report.append({"course": course, "float": round(bottom - base_z, 2), "bottom": round(bottom, 1), "ground": round(base_z, 1), "seed": seed})
-            self.put(ft, cu, cv, pivot_z, map_yaw, (sx, sy, sz), pitch, roll)
-            t = bottom + tall * 100.0
-            for i in range(max(support_i0, 0), min(support_i1, n)):
-                f = (i - (support_i0 + support_i1) * 0.5) / max((support_i1 - support_i0) * 0.5, 1)
-                value = t - 0.08 * tall * 100.0 * f * f
-                top[i] = max(top[i], value) if top[i] is not None else value
-            self.bump("WallStone")
-
-        # 맨 아랫단 — 큰 돌, 끊긴 곳만 뺀다
-        arc = rng.uniform(0, 0.4)
-        while arc < L - 0.3:
-            length = rng.uniform(0.7, 1.25)
-            i0, i1 = int(arc / 0.05), int((arc + length) / 0.05)
-            if all(gap[max(0, i0):min(i1, n)]) or (i0 < n and gap[i0]):
-                arc += 0.4
-                continue
-            stone(0, arc, length, rng.uniform(0.62, 0.9), rng.uniform(0.34, 0.52), i0, i1, sum(ground_at[max(0, i0):min(i1, n)]) / max(min(i1, n) - max(0, i0), 1))
-            arc += length * rng.uniform(0.82, 1.02)
-        # 위 단 — 아래 돌 윗면 위(칸 중 높은 곳)에 얹는다, 한 돌이 받칠 칸이 충분할 때만
-        for course in range(1, 7):
-            arc = rng.uniform(0.1, 0.6)
-            while arc < L - 0.3:
-                length = rng.uniform(0.5, 0.95)
-                i0, i1 = int(arc / 0.05), min(int((arc + length) / 0.05), n)
-                span = [top[i] for i in range(max(i0, 0), i1) if top[i] is not None and not gap[i]]
-                if len(span) < (i1 - i0) * 0.8:
-                    arc += 0.25
-                    continue
-                g = sum(ground_at[i0:i1]) / max(i1 - i0, 1)
-                env = sum(envelope(i) for i in range(i0, i1)) / max(i1 - i0, 1)
-                support = max(span)
-                # 받침: 돌 밑 대부분이 받치는 높이에 가까워야 한다(가장자리가 공중에 뜨지 않게)
-                tight = sum(1 for v in span if v >= support - 11.0) / len(span)
-                # 돌탑 금지: 옆(±0.9 m)이 많이 낮으면 먼저 옆을 쌓는다 — 담은 고르게 올라간다
-                near = [top[i] for i in list(range(max(i0 - 18, 0), max(i0, 0))) + list(range(min(i1, n), min(i1 + 18, n))) if top[i] is not None and not gap[i]]
-                tower = bool(near) and support - min(near) > 40.0 and course >= 1
-                if support - g >= env or tight < 0.55 or tower:
-                    arc += length * 0.45
-                    continue
-                tall = rng.uniform(0.22, 0.36) * (1.0 - 0.04 * course)
-                stone(course, arc, length, rng.uniform(0.5, 0.76) * (1.0 - 0.05 * course), tall, i0, i1, support)
-                arc += length * rng.uniform(0.72, 0.95)
-        # 갓돌 — 멀쩡한 구간 윗면에 세운 돌 줄(군데군데)
-        if cope:
-            arc = rng.uniform(0.2, 1.0)
-            run = rng.random() < 0.4
-            while arc < L - 0.5:
-                if rng.random() < 0.05:
-                    run = not run
-                width = rng.uniform(0.32, 0.5)
-                i0, i1 = int(arc / 0.05), min(int((arc + width) / 0.05), n)
-                span = [top[i] for i in range(max(i0, 0), i1) if top[i] is not None]
-                g = sum(ground_at[i0:i1]) / max(i1 - i0, 1)
-                if run and len(span) >= (i1 - i0) * 0.8 and (i1 > i0) and max(span) - g > height * 100.0 * 0.62 and all(fall[i] > 0.85 for i in range(i0, i1)):
-                    stone(9, arc, width, rng.uniform(0.5, 0.7), rng.uniform(0.3, 0.42), i0, i1, max(span), upright=True)
-                arc += width * rng.uniform(1.0, 1.6)
-        # 무너진 돌 — 비탈 아래쪽(없으면 아무 쪽)으로 굴러 흩어진다, 하나하나 땅에 앉힌다
-        for start, width, kind in zones:
-            if kind == "gap":
-                count = rng.randint(1, 4)
-            else:
-                count = int(width * rng.uniform(1.6, 3.0))
-            for _ in range(count):
-                a = start + rng.uniform(0, width)
-                u, v, (dx, dy) = poly.at(a)
-                down_u, down_v = self.downhill(u, v)
-                dist = rng.uniform(0.7, 3.2) ** 1.0
-                side = (-dy * down_u + dx * down_v)
-                sgn = 1.0 if side >= 0 else -1.0
-                if rng.random() < 0.2:
-                    sgn = -sgn
-                pu, pv = u - dy * sgn * dist + rng.uniform(-0.4, 0.4), v + dx * sgn * dist + rng.uniform(-0.4, 0.4)
-                if not self._wall_ok(pu, pv):
-                    continue
-                ft = rng.choice(WALL_STONES)
-                _, _, _, ex, ey, ez = self.bounds[ft]
-                s = rng.uniform(0.32, 0.68)
-                self.sit(ft, pu, pv, rng.uniform(0, 360), (s * rng.uniform(0.85, 1.25), s, s * rng.uniform(0.6, 0.95)), embed=rng.uniform(0.2, 0.34), pitch=rng.uniform(-22, 22), roll=rng.uniform(-22, 22))
-                self.bump("WallTumble")
-        # 밑동 — 풀 · 고사리 · 작은 꽃(담 양쪽), 끊긴 곳에는 더 무성하게
-        arc = rng.uniform(0, 1)
-        while arc < L:
-            u, v, (dx, dy) = poly.at(arc)
-            for sgn in (-1.0, 1.0):
-                if rng.random() < 0.62:
-                    off = rng.uniform(0.42, 1.05)
-                    pu, pv = u - dy * sgn * off, v + dx * sgn * off
-                    if self._wall_ok(pu, pv):
-                        r = rng.random()
-                        ft = rng.choice(TUFTS) if r < 0.62 else rng.choice(FERNS) if r < 0.82 else rng.choice(FLOWERS)
-                        self.sit(ft, pu, pv, rng.uniform(0, 360), rng.uniform(0.55, 1.05), embed=0.05)
-                        self.bump("WallBase")
-            arc += rng.uniform(0.75, 1.6)
-        return 1
-
-    def dry_stone_walls(self):
-        walls = 0
-        main = self.d.paths["Path_Main"]
-        # 큰길: (시작 호, 끝 호, 쪽). 전부 같은 간격이 되지 않게 시작 · 끝을 굽이에 맞췄다
-        runs = [("Path_Main", 92, 172, -1, 5.6), ("Path_Main", 118, 198, 1, 6.4), ("Path_Main", 226, 318, -1, 7.1), ("Path_Main", 332, 396, 1, 5.8),
-                ("Path_Main", 404, 486, -1, 6.6), ("Path_Main", 522, 604, 1, 7.4), ("Path_Main", 616, 682, -1, 5.9), ("Path_Main", 694, 772, 1, 6.8),
-                ("Path_Main", 784, 860, -1, 6.2), ("Path_East", 18, 90, 1, 6.0), ("Path_East", 120, 196, -1, 6.8), ("Path_PondLoop", 26, 92, 1, 5.5), ("Path_PondLoop", 104, 168, -1, 6.3)]
-        for k, (path, a0, a1, side, off) in enumerate(runs):
-            walls += self.build_wall(self._road_offset_line(path, a0, a1, side, off, k * 3.7), self.rng.uniform(1.0, 1.32), 7001 + k * 13)
-        # 밭 경계 — 길 담에서 비탈로 뻗어 올라간다(요크셔 · 코츠월드의 격자처럼 지형을 넘는다, 낮고 더 많이 무너졌다)
-        branches = [(160, -1, 62, 70), (250, -1, 74, 60), (360, 1, 58, 55), (460, -1, 60, 65), (560, 1, 76, 80), (648, -1, 52, 40), (730, 1, 66, 75), (830, -1, 54, 60)]
-        for k, (arc, side, length, turn) in enumerate(branches):
-            u, v, (dx, dy) = main.at(arc)
-            off = 6.5
-            su, sv = u - dy * side * off, v + dx * side * off
-            base_ang = math.degrees(math.atan2(dx * side, -dy * side))   # 길에서 바깥쪽
-            pts = self._branch_line(su, sv, base_ang + (turn - 70) * 0.6, length, k + 11.3)
-            walls += self.build_wall(pts, self.rng.uniform(0.7, 1.0), 9001 + k * 17, cope=False)
-        # 작은 양 우리 — 둥글게 쌓은 낮은 담(입구 하나), 여러 자리
-        for k, (u, v) in enumerate([(1085, 720), (880, 660), (1240, 870), (1520, 640), (640, 690), (1180, 505)]):
-            spot = self.find_flat(u, v, 26, 11, 2.0)
-            if spot is None or not self.free(spot[0], spot[1], 9):
-                continue
-            r = self.rng.uniform(4.2, 6.5)
-            open_at = self.rng.uniform(0, 360)
-            pts = []
-            for d in range(40, 345, 8):
-                a = math.radians(open_at + d)
-                wob = r * (1 + 0.1 * noise1(d * 0.03, k + 2.0))
-                pts.append((spot[0] + wob * math.cos(a), spot[1] + wob * math.sin(a)))
-            walls += self.build_wall(pts, self.rng.uniform(0.75, 1.0), 11001 + k * 19, cope=False)
-            self.claim(spot[0], spot[1], 9)
-            self.bump("Fold")
-        return walls
-
-    def write_wall_report(self, root):
-        path = os.path.join(root, "Saved", "Terrain", "ld3_wall_report.json")
+    def write_wall_report(self, root, walls):
+        path = os.path.join(root, "Saved", "Terrain", "ld4_wall_report.json")
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        base = [w for w in self.wall_report if w["course"] == 0]
-        up = [w for w in self.wall_report if w["course"] > 0]
-        info = {"stones": len(self.wall_report), "base": len(base), "upper": len(up),
-                "base_max_float_cm": max((w["float"] for w in base), default=0.0),
-                "upper_max_gap_cm": max((w["float"] for w in up), default=0.0)}
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"summary": info, "stones": self.wall_report}, f)
-        return info
+            json.dump({"walls": walls, "stones": self.wall_stones}, f, ensure_ascii=False)
+        return {"walls": len(walls), "stones": len(self.wall_stones), "length_m": round(sum(w["length_m"] for w in walls), 1)}
 
     # ── 개울 ──
     def _water_bodies(self):
@@ -1029,8 +788,8 @@ class Level3:
         return made
 
     def all(self, ripple_material, root):
-        walls = self.dry_stone_walls()
-        unreal.log(f"ld3: 돌담 {walls} 줄")
+        walls, wall_rows = ld4_walls.build_all(self)
+        unreal.log(f"ld4: 돌담 {walls} 줄 — " + ", ".join(f"{w['name']} {w['length_m']} m" for w in wall_rows))
         creek = self.creek_dress()
         unreal.log(f"ld3: 개울 돌 · 자갈 · 식물 {creek}")
         for body in self._water_bodies():
@@ -1042,6 +801,6 @@ class Level3:
         unreal.log(f"ld3: 등성이 바위 · 급사면 · 너덜 {ridge}")
         made = self.fill()
         unreal.log("ld3: 채우기 " + ", ".join(f"{k}={v}" for k, v in sorted(made.items())))
-        info = self.write_wall_report(root)
-        unreal.log("ld3: 돌담 검사 " + json.dumps(info, ensure_ascii=False))
+        info = self.write_wall_report(root, wall_rows)
+        unreal.log("ld4: 돌담 " + json.dumps(info, ensure_ascii=False))
         unreal.log("ld3: 개수 " + ", ".join(f"{k}={v}" for k, v in sorted(self.counts.items())))
