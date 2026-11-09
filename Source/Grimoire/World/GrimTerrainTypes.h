@@ -104,6 +104,28 @@ struct GRIMOIRE_API FGrimTerrainRidgeline
 	/** 비탈의 골짜기 세기(0~1) · 간격(m) — 등성이에서 내려오는 지맥과 골이 번갈아 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float GullyStrength = 0.25f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float GullySpacing = 60.f;
+	/** 레벨 디자인 4차: 등성이 바로 옆 비탈의 경사 상한(도, 0 = 끔). 높은 등성이일수록 폭을 넓혀 맞춘다 — 폭은 고정인데 높이만 큰 지맥 뿌리가 첨탑이 되지 않게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MaxFlankDeg = 0.f;
+};
+
+/** 레벨 디자인 4차: 언덕 · 비탈 위 활동 터 — 지름 안은 평평하고, 둘레는 경사 상한을 넘지 않게 원래 땅으로 이어진다. 길보다 먼저 고르므로 길이 터 높이까지 올라온다 */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimTerrainPad
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName Name;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D Center = FVector2D::ZeroVector;
+	/** 평평한 터 반지름(m) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Radius = 16.f;
+	/** 터 가장자리에서 원래 땅으로 이어지는 비탈의 경사 상한(도) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float EdgeSlopeDeg = 28.f;
+	/** 터 높이: 0 = 둘레 평균(깎기 · 메우기가 같음), 1 = 터 안 가장 높은 곳(꼭대기를 덜 깎는다) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float KeepHeight = 0.5f;
+	/** 가장자리가 동그랗지 않게 흔들리는 정도(±비율) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float Irregularity = 0.12f;
+	/** 가운데가 볼록한 높이(m) — 완전한 수평판처럼 보이지 않게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float DomeHeight = 0.35f;
 };
 
 /** 손으로 놓는 언덕 하나(중간 모양) — 둥근 삼각형 실루엣 */
@@ -282,6 +304,16 @@ struct GRIMOIRE_API FGrimTerrainChannel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ValleyDepthEnd = 0.4f;
 	/** 이 연못으로 흘러든다 — 끝 물 높이 = 연못 물 높이(틈 없이 이어짐) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FName JoinPond;
+	/** 레벨 디자인 4차: 여울의 최소 수심(m) — 소에서는 PoolDepth 까지. 재질 깊이 페이드보다 깊어야 물이 끊겨 보이지 않는다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MinDepth = 0.28f;
+	/** 물 반폭 중 바닥이 고른 비율(0~1) — 나머지가 둑으로 올라온다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float BedRatio = 0.7f;
+	/** 어귀: 연못에 닿기 전 이만큼(m)에서 물길이 넓어지기 시작하고 물 높이가 연못에 맞춰진다. 0 = 없음 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MouthLength = 0.f;
+	/** 어귀가 연못과 만나는 곳의 반폭(m) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MouthHalfWidth = 0.f;
+	/** 길: 이 길만의 경사 상한(도). 0 이면 레이아웃 PathGradeDeg — 언덕 꼭대기로 가는 오솔길처럼 짧게 올라야 할 때 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float MaxGradeDeg = 0.f;
 };
 
 /** 거점 세울 만한 평지 — 둘레를 평평하게 고른다 */
@@ -581,6 +613,15 @@ struct GRIMOIRE_API FGrimTerrainLayout
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 ErosionRadius = 3;
 	/** 한 걸음에 깎는 깊이 상한(m) — 뾰족한 구덩이가 생기지 않게 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float ErosionMaxStep = 0.25f;
+
+	// ── 경사 완화(레벨 디자인 4차): 안식각을 넘는 흙이 아래로 흘러내린다 — 벼랑 띠 · 톱니 그림자를 없애고 어디든 걸어 오르게. 계곡 절벽 · 해안 · 강은 이 뒤에 만든다 ──
+	/** 안식각(도). 0 이면 끈다. 캐릭터가 걷는 경사(44.76°)보다 낮게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float TalusAngleDeg = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") int32 TalusIterations = 120;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D TalusBoundsMin = FVector2D::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") FVector2D TalusBoundsMax = FVector2D::ZeroVector;
+	/** 언덕 · 비탈 위 활동 터 — 전망대 · 언덕 위 POI · 랜드마크 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") TArray<FGrimTerrainPad> Pads;
 
 	// ── 작은 모양: 둔턱 · 침식 골 ──
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain") float BumpAmplitude = 1.5f;

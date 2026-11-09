@@ -19,6 +19,8 @@ struct FGrimNaturalCreekData
 	TArray<FVector2D> Points;
 	TArray<float> Levels;
 	TArray<float> Halves;
+	/** 흐름 정도(1 = 개울, 어귀에서 0 으로 줄어 연못과 섞인다) — 물 표면 정점 색 */
+	TArray<float> Flows;
 };
 
 /** 자연 연못 물 표면용 자료 — 각도마다 물가선 반지름 */
@@ -29,6 +31,11 @@ struct FGrimNaturalPondData
 	FVector2D Center = FVector2D::ZeroVector;
 	float Level = 0.f;
 	TArray<float> Radii;
+	/** 개울이 흘러드는 어귀 — 있으면 연못 UV 를 개울 호 길이의 연장으로 잡아 이음매가 없다 */
+	bool bHasMouth = false;
+	FVector2D MouthPoint = FVector2D::ZeroVector;
+	FVector2D MouthDir = FVector2D(1.0, 0.0);
+	float MouthArc = 0.f;
 };
 
 struct GRIMOIRE_API FGrimTerrainMaps
