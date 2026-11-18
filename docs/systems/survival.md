@@ -112,6 +112,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 - 시전 막힘(`[/Script/Grimoire.GrimSpellbookSettings]`): `Status.Sleeping` · `Status.Downed`(+ 건축 모드)는 `CastBlockingTags` — 마법 · 기본 공격 · 주먹질을 모두 막고 알리지 않는다. `Status.Exhausted` 는 `MagicBlockingTags` — **마법만** 막는다: 슬롯 마법은 실패 알림 「너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다」(`EGrimCastFailReason::Exhausted`), 기본 공격 입력은 주먹질이 대신 나간다(마법이 아니므로 — 구현에서 정한 것).
 - 탈진 전 구간의 「시전 속도 · 명중 크게 저하」(R29)는 아직 없다 — 문턱 · 수치는 미결 Q132. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
 - 명중 저하 · 바람 마법 「각성」은 나중.
+- **피곤함을 푸는 음료**(Q53 답 2026-11-18, 계획 — 코드 없음): 피곤함은 잠 말고는 거점에서 만든 커피 · 에너지 드링크로만 푼다(인챈트 · 장신구 · 마법은 안 됨). 만들 때는 음식과 같은 길로 — 아이템 표 `Content/Grimoire/Data/Items.csv` 에 「피곤함 회복량」 열을 더하고(`HungerRestore` 옆), 먹기 처리에서 `Survival.Fatigue` 를 깎는다. 연달아 마시면 줄어드는 규칙의 수치는 `[/Script/Grimoire.GrimSurvivalSettings]` 의 `Fatigue` 묶음에 둔다. 이름 · 수치는 미결 Q164 — [생존 — 피곤함을 푸는 법](../spec/survival#피곤함을-푸는-법-—-잠과-깨는-음료-q53).
 
 ## 질병
 

@@ -97,6 +97,9 @@
   - 수치 `UGrimBaseSettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%, `BaseRepairSkillId` · `BaseRepairRequiredCircle`(4), `bRequireRepairSpell`(끄면 모두 열림).
 - **같은 장비 합치기**(R28, M5 설계안): 순수 계산 `FGrimEnchantMergeMath`(마인크래프트 모루 규칙 — 작업 횟수 `RepairCount` 를 `PriorWork` 로 같이 씀).
 - **인챈트**(M5 설계안 — 표 `Content/Grimoire/Data/Enchants.csv` 만 있고 읽는 코드 없음): `UGrimEnchantDefinition`(DataAsset — 대상 슬롯 · 단계별 효과 GE · 비용 · 요구 서클 · 함께 못 하는 인챈트 목록). 장착 시 효과 GE 를 플레이어 ASC 에 Infinite 로 걸고 해제 시 지운다. 「자가 회복」 · 「견고」는 내구도 코드가 읽는 태그.
+  - **칸 수 · 단계는 데이터에만**(Q51 답 2026-11-18 — 「플레이해 보고 언제든 바꿀 수 있는 구조」, 계획): 장비마다 인챈트 칸 수 · 최고 단계는 `Content/Grimoire/Data/Equipment.csv` 에 `EnchantSlots` · `MaxEnchantLevel` 열을 더해 읽고(지금 열 없음), 단계 수 · 비용은 `Content/Grimoire/Data/EnchantLevels.csv`, 서클별 후보 단계는 `Content/Grimoire/Data/Circles.csv` 의 `MaxEnchantTier`(이미 `FGrimCircleMath::GetMaxEnchantTier` 가 읽는다) 한 곳만 정본으로 삼는다. 코드에 칸 수 · 단계 상수를 두지 않는다 — 지금도 박힌 숫자는 없다(`FGrimItemInstance::Enchantments` 는 길이 제한 없는 배열, 직렬화의 64 는 깨진 파일용 안전 상한). 표의 값을 낮춰도 이미 붙은 인챈트는 지우지 않는다. 스펙: [인챈트 — 바꿀 수 있는 구조](../spec/enchants#바꿀-수-있는-구조-q51).
+  - **함께 못 하는 묶음 알림**(Q54 답, 계획): `ExclusiveGroup` 이 같은 인챈트는 후보 굴림에서 빼고 까닭을 화면에 적으며, 각인서는 소모 없이 막는다 — 문구는 묶음 이름표(문자열 표)에서. 스펙: [인챈트 — 함께 못 하는 묶음을 알리는 법](../spec/enchants#함께-못-하는-묶음을-알리는-법-q54).
+  - **「포만」은 뺀다**(Q53 답): 배고픔 · 피곤함을 늦추는 인챈트는 없다 — `Enchants.csv` 의 `Satiety` 줄은 인챈트 코드를 만들 때 지운다(계획).
 - 마일스톤: 내구도 · 수리 = **M4**(인벤토리 완성과 함께), 인챈트 · 각인대 = **M5**(완드 공방과 함께).
 
 ## 인벤토리 · 아이템

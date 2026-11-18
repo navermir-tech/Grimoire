@@ -62,7 +62,7 @@ python Scripts/MagicFX/compare_fx.py art/fx/raw/ember.png art/fx/ingame/ember do
 
 - 일부만: `GRIM_FX_SYSTEMS=NS_GrimEmber_Impact`(쉼표 여럿), 공용 머티리얼 다시 만들기 `GRIM_FX_MATERIALS=1`(일부만 · 사양 파일일 때 기본은 건너뜀), 호출 추적 `GRIM_FX_TRACE=1`. 결과는 `Saved/MagicFX/make_fx_niagara.txt` — 시스템마다 「컴파일=UpToDate 설정 실패=0」 이어야 한다.
 - 기본 공격은 시작 마법에 없다: `-SetupList "Grim.Go Jackalope;Grim.Creature.Time 0.8;Grim.Magic.SpawnSkillbook BasicAttack 100;Grim.Magic.ReadSkillbook;Grim.Spawn Jack 1 10"`.
-- 툴셋 플러그인 두 개(`ToolsetRegistry` · `NiagaraToolsets`)는 `Grimoire.uproject` 에 에디터 전용으로 켰다. 게임 빌드에는 들어가지 않는다.
+- 툴셋 플러그인 두 개(`ToolsetRegistry` · `NiagaraToolsets`)는 `Grimoire.uproject` 에 에디터 전용으로 켰다. 게임 빌드에는 들어가지 않는다. 엔진 **실험** 플러그인이지만 **계속 쓴다**(Q90 확정, 2026-11-18) — 엔진 판이 바뀌어 도구 이름 · 인자가 달라지면 빌더(`fx_niagara_builder.py`)만 고친다.
 
 ### 다시 쓰는 도구
 
