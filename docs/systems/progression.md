@@ -87,7 +87,7 @@
 |---|---|---|
 | `MaxHealth` · `MaxMana` | 더하기(AddBase) | 단련된 몸 · 단단한 몸 · 축복받은 몸 / 마나 그릇 · 깊은 그릇 · 어둠의 그릇 |
 | `HeatResist` · `ColdResist` · `DiseaseResist` | 더하기 | 물의 몸 · 서늘한 피 / 불씨 품기 · 햇볕 품기 / 마력 피막 · 약초 지식 |
-| `MoveSpeedScale` · `CastSpeedScale` · `ManaCostScale` | 곱하기(MultiplyCompound, 생존 패널티와 같은 방식) — 값 = Mul × (1 + Add) | 가벼운 걸음 · 바람 걸음 · 그림자 걸음 / 완드 다루기 · 빠른 손 / 마나 절약 |
+| `MoveSpeedScale` · `CastSpeedScale` · `ManaCostScale` | 곱하기(MultiplyCompound, 생존 패널티와 같은 방식) — 값 = Mul × (1 + Add) | 가벼운 걸음 · 바람 걸음 · 그림자 걸음 / 완드 다루기 · 빠른 손(`CastSpeedScale` — 지금 코드는 쿨다운에 걸린다, Q166) / 마나 절약 |
 | 그 밖(`Fire.Power` · `Fire.IgniteStrength` · `Water.Trait.ForkedJet` …) | 없음 — 태그 `Progression.Node.<키>` 를 `DynamicGrantedTags` 로 붙이고, 합계는 `UGrimSkillTreeComponent::GetEffectValue(키)` | 속성별 위력 · 마나 효율 · 상태 · 상호작용 세기 · 특성 |
 
 - 반대 방향: 생물 보관함 설정(`[/Script/Grimoire.GrimCreatureStorageSettings]` 의 `PartyLimitTagBonuses` · `StorageCapacityTagBonuses`)이 태그 `Progression.Node.CreatureParty` · `Progression.Node.CreatureStorage` 를 읽지만(태그 정의 `Source/Grimoire/Creatures/GrimTamingTags.cpp`), 트리 표에 그 키를 주는 노드는 아직 없다(계획).

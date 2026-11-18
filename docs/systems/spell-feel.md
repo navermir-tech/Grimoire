@@ -93,6 +93,7 @@
 | `UGrimSpellCameraShake` | 0.16초 감쇠 사인(피치 0.35° · 요 0.12°) — 「아주 약한」 시전 흔들림 |
 
 - 연출 묶음 찾는 순서: `SourceObject` 가 VisualSet → `SourceObject.VisualSet` 필드(갈래 A 가 만든 필드를 이름으로 — 통합 때 직접 접근으로 바꿔도 됨) → 큐의 `Element.*`(없으면 정의의 `Element`, 그것도 없으면 시전자가 고른 마법) → 설정의 기본 묶음(`DefaultVisualSets` — 태그가 정확히 같아야 한다, 하위 태그는 안 맞음) → `FallbackVisualSet`. 구현: `Source/Grimoire/MagicFX/GrimMagicFXStatics.h` 의 `UGrimMagicFXStatics::ResolveVisualSet`.
+  - 계획(Q113 확정 2026-11-18, 구현은 코드 세션 — 마법 · 생존 결정 맞추기): 기본 묶음을 **부모 태그로 거슬러** 찾는다(`Element.Water.Ice` → `Element.Water`). 무속성 · 땅 · 어둠 기본 묶음을 볼트 색만 바꿔 더한다(Q87 과 함께) — 지금은 이 셋과 하위 속성이 모두 불(`VS_Ember`)로 보인다.
 - 큐 처리기 에셋(`GC_*`, C++ 클래스의 블루프린트 자식)은 `[/Script/GameplayAbilities.AbilitySystemGlobals] GameplayCueNotifyPaths=/Game/Grimoire` 에서 찾는다. 에셋 · 머티리얼 · 애님 BP 는 `Scripts/MagicFX/make_magicfx_assets.py`(헤드리스)가 만든다 — 값은 스크립트가 정본.
 
 #### 임시 이펙트 — 엔진 기본 · Niagara Examples Pack

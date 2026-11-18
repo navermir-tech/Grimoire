@@ -33,6 +33,7 @@ export default defineConfig({
           items: [
             { text: '개요 · 요구사항 R01~R16', link: '/spec/' },
             { text: '세계 · 환경', link: '/spec/world' },
+            { text: '지도 · 미니맵', link: '/spec/map' },
             { text: '아트 방향', link: '/spec/art-direction' },
             { text: '초원 꾸밈 · 작은 흥미지점', link: '/spec/meadow-dressing' },
             { text: '마법', link: '/spec/magic' },
