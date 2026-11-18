@@ -90,13 +90,16 @@
 - **완드 칸 · 기본 완드(Q71 답 2026-11-07)**: 완드 칸이 비면 주먹질이다(복제 루스 태그 `Status.WandMissing` — 부러짐 `Status.WandBroken` 과 같은 길, [마법 — 완드](./magic#완드-agrimwand)). 처음 들어온 플레이어는 `UGrimBaseSettings::StartingEquipment`(`Wand_Basic` 「기본 완드」 — 내구도 200 · 시전마다 1 · 수리 재료 나무)를 입고 시작한다(컴포넌트 `BeginPlay`, 세이브가 있으면 세이브가 이긴다). 마법탑이 10 솔에 늘 판다.
 - **장비 내구도**: 장비는 아이템 인스턴스 데이터(내구도 · 수리 횟수 · 인챈트)를 가진다(인벤토리 슬롯에 같이 복제 · 저장). 서버만 깎는다 — 완드는 `UGrimSpellAbility` 의 시전 확정 때 `DurabilityCostPerCast`, 방어구는 피해 실행(`UGrimDamageExecution`) 뒤 피해량 비례. 0 → 장비 해제 + 잔해 아이템으로 교체(완드는 `bBroken` 표시만 — Q22).
 - **건축 내구도**: 조각의 `Health`(세이브에 이미 있음)를 쓰고, 피해는 GAS 가 아닌 조각 전용 `ApplyStructureDamage` 하나로 받는다(습격 · 불 · 노후 모두). 불은 속성 상태 컴포넌트가 `State.Burning` 세기 × 초당 피해로 넘긴다 — 조각도 `UGrimElementalStateComponent` 를 가진다(재료 태그 `Material.Flammable` 은 나무만).
-- **수리 — 배워서 해금(Q121 답 2026-11-07 · Q123 제안)**: 구현 `UGrimBuilderComponent::PerformRepair` · 탭 `UGrimRepairTab`(`Source/Grimoire/Base/GrimBaseTabs.h`) · 볼트 `AGrimRepairProjectile`.
+- **수리 — 배워서 해금(Q121 답 2026-11-07 · Q123 확정 2026-11-18)**: 구현 `UGrimBuilderComponent::PerformRepair` · 탭 `UGrimRepairTab`(`Source/Grimoire/Base/GrimBaseTabs.h`) · 볼트 `AGrimRepairProjectile`.
   - **레스티투오**(무속성 2서클 수리 마법 `DA_Spell_Repair`, 스킬북 아이템 `Skillbook_Repair`): 배우면 작업대 옆 **「수리」 탭**이 열린다 — 입은 장비를 가방의 재료로 모두 고친다(재료 1개 = 최대 내구도 25%, 고칠 때마다 최대치 −10%, 레스티투오 마나). 볼트를 겨누면 맞은 조각 · 시설 **하나**를 가방 재료로 고친다(작업대 · 거점 핵도 자기 몸만). 배우지 않았으면 탭 · 조각 수리가 잠겨 있고, 누르면 서버가 까닭을 HUD 에 알린다(`RepairLocked` — [마법 실패 알림](./magic#마법-실패-알림-q64) 방식, 피식 연출 없음).
   - **마법탑 대리 수리**(레스티투오 전): 스승 마렌 서비스 `Repair` → `GrimTowerShop::TryRepair` — 입은 장비의 닳은 만큼(재료 몫 × `RepairPricePerMaterial` 5 솔, `[/Script/Grimoire.GrimShopSettings]`)을 받고 재료 없이 고친다(수리 횟수 · 최대치 −10% 는 같다). 대사 맥락 `Repair` · `Repair.NoMoney` · `Repair.Nothing`.
   - **레스티투오 막시마**(노말 스킬 `RestituoMaxima`, 스킬북 `Skillbook_Restituo_Maxima` — `Skill:RestituoMaxima`, 4서클): 배우면 거점 핵 「전체 수리」가 열린다 — 반경 안 닳은 조각 · 시설을 저장고 재료로 모두(마나 `BaseRepairManaCost` 40). 배운 노말 스킬은 `UGrimBuilderComponent::LearnedSkills`(소유자 복제, 세이브 Player `Base.Skills` v1). 잠겼으면 `BaseRepairLocked` 알림.
   - 수치 `UGrimBaseSettings`(ini): 재료당 회복 25%, 수리마다 최대치 −10%, 하한 50%, `BaseRepairSkillId` · `BaseRepairRequiredCircle`(4), `bRequireRepairSpell`(끄면 모두 열림).
 - **같은 장비 합치기**(R28, M5 설계안): 순수 계산 `FGrimEnchantMergeMath`(마인크래프트 모루 규칙 — 작업 횟수 `RepairCount` 를 `PriorWork` 로 같이 씀).
 - **인챈트**(M5 설계안 — 표 `Content/Grimoire/Data/Enchants.csv` 만 있고 읽는 코드 없음): `UGrimEnchantDefinition`(DataAsset — 대상 슬롯 · 단계별 효과 GE · 비용 · 요구 서클 · 함께 못 하는 인챈트 목록). 장착 시 효과 GE 를 플레이어 ASC 에 Infinite 로 걸고 해제 시 지운다. 「자가 회복」 · 「견고」는 내구도 코드가 읽는 태그.
+  - **칸 수 · 단계는 데이터에만**(Q51 답 2026-11-18 — 「플레이해 보고 언제든 바꿀 수 있는 구조」, 계획): 장비마다 인챈트 칸 수 · 최고 단계는 `Content/Grimoire/Data/Equipment.csv` 에 `EnchantSlots` · `MaxEnchantLevel` 열을 더해 읽고(지금 열 없음), 단계 수 · 비용은 `Content/Grimoire/Data/EnchantLevels.csv`, 서클별 후보 단계는 `Content/Grimoire/Data/Circles.csv` 의 `MaxEnchantTier`(이미 `FGrimCircleMath::GetMaxEnchantTier` 가 읽는다) 한 곳만 정본으로 삼는다. 코드에 칸 수 · 단계 상수를 두지 않는다 — 지금도 박힌 숫자는 없다(`FGrimItemInstance::Enchantments` 는 길이 제한 없는 배열, 직렬화의 64 는 깨진 파일용 안전 상한). 표의 값을 낮춰도 이미 붙은 인챈트는 지우지 않는다. 스펙: [인챈트 — 바꿀 수 있는 구조](../spec/enchants#바꿀-수-있는-구조-q51).
+  - **함께 못 하는 묶음 알림**(Q54 답, 계획): `ExclusiveGroup` 이 같은 인챈트는 후보 굴림에서 빼고 까닭을 화면에 적으며, 각인서는 소모 없이 막는다 — 문구는 묶음 이름표(문자열 표)에서. 스펙: [인챈트 — 함께 못 하는 묶음을 알리는 법](../spec/enchants#함께-못-하는-묶음을-알리는-법-q54).
+  - **「포만」은 뺀다**(Q53 답): 배고픔 · 피곤함을 늦추는 인챈트는 없다 — `Enchants.csv` 의 `Satiety` 줄은 인챈트 코드를 만들 때 지운다(계획).
 - 마일스톤: 내구도 · 수리 = **M4**(인벤토리 완성과 함께), 인챈트 · 각인대 = **M5**(완드 공방과 함께).
 
 ## 인벤토리 · 아이템

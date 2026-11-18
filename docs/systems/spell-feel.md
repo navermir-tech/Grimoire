@@ -93,6 +93,7 @@
 | `UGrimSpellCameraShake` | 0.16초 감쇠 사인(피치 0.35° · 요 0.12°) — 「아주 약한」 시전 흔들림 |
 
 - 연출 묶음 찾는 순서: `SourceObject` 가 VisualSet → `SourceObject.VisualSet` 필드(갈래 A 가 만든 필드를 이름으로 — 통합 때 직접 접근으로 바꿔도 됨) → 큐의 `Element.*`(없으면 정의의 `Element`, 그것도 없으면 시전자가 고른 마법) → 설정의 기본 묶음(`DefaultVisualSets` — 태그가 정확히 같아야 한다, 하위 태그는 안 맞음) → `FallbackVisualSet`. 구현: `Source/Grimoire/MagicFX/GrimMagicFXStatics.h` 의 `UGrimMagicFXStatics::ResolveVisualSet`.
+  - 계획(Q113 확정 2026-11-18, 구현은 코드 세션 — 마법 · 생존 결정 맞추기): 기본 묶음을 **부모 태그로 거슬러** 찾는다(`Element.Water.Ice` → `Element.Water`). 무속성 · 땅 · 어둠 기본 묶음을 볼트 색만 바꿔 더한다(Q87 과 함께) — 지금은 이 셋과 하위 속성이 모두 불(`VS_Ember`)로 보인다.
 - 큐 처리기 에셋(`GC_*`, C++ 클래스의 블루프린트 자식)은 `[/Script/GameplayAbilities.AbilitySystemGlobals] GameplayCueNotifyPaths=/Game/Grimoire` 에서 찾는다. 에셋 · 머티리얼 · 애님 BP 는 `Scripts/MagicFX/make_magicfx_assets.py`(헤드리스)가 만든다 — 값은 스크립트가 정본.
 
 #### 임시 이펙트 — 엔진 기본 · Niagara Examples Pack
@@ -112,7 +113,7 @@
 
 #### 볼트 이펙트 — 사용자 참고 그림대로 (2026-11-06)
 
-불씨 · 기본 공격(튕기기)은 사용자가 준 참고 그림(`art/fx/refs/`) 방향으로 다시 만들었다: **가늘고 뾰족한 바늘 빛줄기**(흰 심 → 속성색, 깃털 같은 꼬리) + 길 위 불티, 완드 끝의 작은 방사형 튐, 표적의 방사형 불티 · 퍼지는 고리 · 번쩍임 · 빛살. 어두운 배경에 가산 발광. 속성별 시안(GPT)은 `art/fx/concepts/`, 시안 대 게임 비교는 `art/fx/compare/`.
+불씨 · 기본 공격(튕기기)은 사용자가 준 참고 그림(`art/fx/refs/`) 방향으로 다시 만들었다: **가늘고 뾰족한 바늘 빛줄기**(흰 심 → 속성색, 깃털 같은 꼬리) + 길 위 불티, 완드 끝의 작은 방사형 튐, 표적의 방사형 불티 · 퍼지는 고리 · 번쩍임 · 빛살. 어두운 배경에 가산 발광. 속성별 시안(GPT)은 `art/fx/concepts/`, 시안 대 게임 비교는 `art/fx/compare/`. 다른 속성(물 · 바람 · 흙 · 빛 · 어둠) 볼트도 **이 시안을 그대로 방향으로 삼는다**(Q87 확정, 2026-11-18) — 같은 볼트 이펙트에 속성색만 바꾸고, 어둠은 연기 가닥 · 흙은 돌가루 불티 정도만 속성별로 더한다(계획).
 
 | 에셋(`/Game/Grimoire/MagicFX/Bolt/` — `Textures/` · 머티리얼 · `Systems/`) | 내용 |
 |---|---|
@@ -135,6 +136,7 @@
 - 연출 묶음 칸: `UGrimSpellVisualSet::LaunchStreak` · `LaunchStreakSeconds`(`Source/Grimoire/Core/GrimSpellFXTypes.h`). 불씨 · 기본 공격 묶음이 `NS_Bolt_Launch` 를 쓴다. 시스템 +Z = 날아가는 쪽, 사용자 변수 `User.Length` · `User.DrawTime` · `User.Color`. 기본 공격 연타라 컴포넌트 풀링(`AutoRelease`, 성능 규칙 24).
 - `NS_Bolt_Launch`: 바늘 빛줄기(스프라이트 기준점 = 아래 끝 → 완드에서 길이가 0 → Length 로 자람) · 깃털 껍질(실안개) · 앞 끝 번쩍임(길이 ÷ 그리는 시간의 속도로 감) · 길 위 불티 16. 다 그린 뒤 0.14초에 사라진다.
 - 가까운 표적: 완드 → 표적까지 그어지고 표적에서 터짐. 먼 표적: 첫 7.5 m 를 긋고 볼트(꼬리)가 이어 날아간다. 확인: `Grimoire.Magic.Delivery.LaunchStreak`, [QA-FX-005 · 010](../qa/fx).
+- **Q110 결정과 다르다**(2026-11-18 코드 대조): Q110 은 Q85 를 「원격 · 고지연일 때 **앞당긴 구간에만** 빛줄기를 그어 준다」로 좁혀 확정했다. 지금 코드는 숨긴 진짜 복제본을 뺀 **모든 보이는 볼트**가 시작할 때 긋는다 — 혼자 · 호스트(틈 Gap ≈ 0)도 `BoltSpeed × LaunchStreakSeconds`(불씨 ≈ 7.5 m)를 긋는다. 길이 식이 「틈과 속력 × 0.1초 중 **긴 쪽**」이라 앞당김이 없어도 0 이 되지 않아서다. 결정대로라면 앞당김이 있을 때(Gap > 0)만 긋고 길이는 Gap 까지 — 코드 세션 몫(미구현). 가까운 표적에서 빛줄기가 안 보이던 Q85 의 처음 문제는 혼자 · 호스트에선 `CastWindup` 대기로 이미 생기지 않는다(Q110).
 
 #### 물줄기 · 미풍 — 볼트와 같은 빛 언어 (Q86, 2026-11-07)
 
