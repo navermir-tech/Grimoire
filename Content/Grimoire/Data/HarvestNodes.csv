@@ -1,0 +1,6 @@
+Name,Note,DisplayName,Mesh,MeshMaterial,CullDistance,Item,CountMin,CountMax,HitsToHarvest,Ownership,ResetRule,ResetSeconds,InteractRadius
+D10_Branch1,떨어진 곁가지(D10): 큰 나무 밑. F 로 줍는다 → 나무. 세계 공유 · 다음 아침에 다시 떨어진다(잠정 Q151 · Q153),곁가지,/Game/Grimoire/Dressing/Meshes/SM_Meadow_Twig1.SM_Meadow_Twig1,,6000,Wood,1,1,1,Shared,Dawn,0,220
+D10_Branch2,떨어진 곁가지(D10): 큰 나무 밑. F 로 줍는다 → 나무. 세계 공유 · 다음 아침에 다시 떨어진다(잠정 Q151 · Q153),곁가지,/Game/Grimoire/Dressing/Meshes/SM_Meadow_Twig2.SM_Meadow_Twig2,,6000,Wood,1,1,1,Shared,Dawn,0,220
+D10_Branch3,떨어진 곁가지(D10): 큰 나무 밑. F 로 줍는다 → 나무. 세계 공유 · 다음 아침에 다시 떨어진다(잠정 Q151 · Q153),곁가지,/Game/Grimoire/Dressing/Meshes/SM_Meadow_Twig3.SM_Meadow_Twig3,,6000,Wood,1,1,1,Shared,Dawn,0,220
+D10_Pebble1,돌멩이(D10): 바위 옆. F 로 줍는다 → 돌. 세계 공유 · 다음 아침에 다시(잠정 Q151 · Q153),돌멩이,/Game/StyleHex_Studio/Free_Packs/FREE_Stylized_Rocks_and_Stones/Meshes/SM_Stone_Pebble_1.SM_Stone_Pebble_1,,6000,Stone,1,1,1,Shared,Dawn,0,220
+D10_Pebble2,돌멩이(D10): 바위 옆. F 로 줍는다 → 돌. 세계 공유 · 다음 아침에 다시(잠정 Q151 · Q153),돌멩이,/Game/StyleHex_Studio/Free_Packs/FREE_Stylized_Rocks_and_Stones/Meshes/SM_Stone_Pebble_2.SM_Stone_Pebble_2,,6000,Stone,1,1,1,Shared,Dawn,0,220

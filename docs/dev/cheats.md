@@ -171,6 +171,22 @@
 | `Grim.Items.At <초> <하위 명령 …>` · `Grim.Items.Dump` | 몇 초 뒤 아이템 명령(`Give` · `Dump` …) · 가방 · 픽업 · 냄비 로그 |
 | `Grim.Items.Reload` | 아이템 · 요리 표 다시 읽기 |
 
+## 초원 꾸밈
+
+코드 `Source/Grimoire/Dressing/GrimDressingDebug.cpp`. 2인 확인 `Scripts/Dressing/net_check_meadow.ps1`. 소품 id 는 `Content/Grimoire/Data/ReactiveProps.csv`, 채집점은 `HarvestNodes.csv` — [초원 꾸밈 구현](../systems/meadow-dressing).
+
+| 명령 | 효과 |
+|---|---|
+| `Grim.Meadow Dump` | 이 프로세스(서버 · 클라이언트 각자)의 소품 · 셀 상태 — 처음과 다른 것만 한 줄씩 + 종류별 합계 · 도감 줄 수 |
+| `Grim.Meadow Spawn <PropId> [앞 cm] [Host\|Client\|All]` | (서버) 플레이어 앞에 반응 소품. 음수면 뒤 |
+| `Grim.Meadow SpawnCell <Kind> [앞 cm] [Host\|Client\|All]` | (서버) 플레이어마다 앞에 채집점 하나씩 든 셀 하나 |
+| `Grim.Meadow Hit <Element> <세기> [반경 cm, 0 = 전부] [PropId]` | (서버) 플레이어 둘레 소품에 속성 자극. 예: `Grim.Meadow Hit Element.Wind 1 0 D01_WindCotton` |
+| `Grim.Meadow Dawn` | (서버) 해 뜸 처리 — 아침에 되돌리는 소품 · 다시 나는 채집점 |
+| `Grim.Meadow Interact` | F 와 같다(가장 가까운 소품 · 채집점 — 클라이언트면 서버 RPC) |
+| `Grim.Meadow Go <PropId\|Cell> [번째] [거리 cm]` | (서버) 그 소품 · 셀 첫 점을 바라보는 자리로 순간 이동(스크린숏) |
+| `Grim.Meadow Reload` | 표 셋 다시 읽기(놓인 소품에 다시 입힌다) |
+| `Grim.Journal` | 내 도감(임시 목록) |
+
 ## 레벨 · 성장 트리 · UI
 
 코드 `Source/Grimoire/Progression/GrimProgressionDebug.cpp` · `Source/Grimoire/UI/GrimUISubsystem.cpp`.

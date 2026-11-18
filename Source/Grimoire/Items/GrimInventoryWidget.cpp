@@ -1,5 +1,6 @@
 #include "Items/GrimInventoryWidget.h"
 #include "Items/GrimInventoryTab.h"
+#include "Core/GrimInteractable.h"
 #include "Base/GrimEquipmentComponent.h"
 #include "Items/GrimCookingPot.h"
 #include "Items/GrimItemPickup.h"
@@ -440,6 +441,10 @@ void UGrimInventoryWidget::Interact()
 	{
 		InventoryComponent->Server_InteractPot(Pot);
 	}
+	else if (AActor* Interactable = TargetInteractable.Get())
+	{
+		InventoryComponent->Server_Interact(Interactable, TargetInteractToken);
+	}
 }
 
 void UGrimInventoryWidget::RefreshPrompt()
@@ -452,6 +457,19 @@ void UGrimInventoryWidget::RefreshPrompt()
 	TargetPickup = Pickup;
 	TargetPot = Pot;
 
+	// 그다음 꾸밈 소품 · 채집 셀(IGrimInteractable)
+	FGrimInteractionOffer Offer;
+	UObject* Interactable = nullptr;
+	if (Pawn && !Pickup && !Pot)
+	{
+		if (const UGrimInteractableSubsystem* Interactables = Pawn->GetWorld()->GetSubsystem<UGrimInteractableSubsystem>())
+		{
+			Interactable = Interactables->FindBest(Pawn, Offer);
+		}
+	}
+	TargetInteractable = Cast<AActor>(Interactable);
+	TargetInteractToken = Interactable ? Offer.Token : INDEX_NONE;
+
 	FString Text;
 	if (Pickup)
 	{
@@ -460,6 +478,10 @@ void UGrimInventoryWidget::RefreshPrompt()
 	else if (Pot)
 	{
 		Text = DescribePot(Pot);
+	}
+	else if (Interactable)
+	{
+		Text = FString::Printf(TEXT("[%s] %s"), *UGrimItemSettings::Get()->InteractKey.GetDisplayName().ToString(), *Offer.Prompt.ToString());
 	}
 	if (PromptRoot)
 	{

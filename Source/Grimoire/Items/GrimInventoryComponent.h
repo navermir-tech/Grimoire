@@ -180,6 +180,10 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_InteractPot(AGrimCookingPot* Pot);
 
+	/** F 대상(Core IGrimInteractable — 꾸밈 소품 · 채집 셀)에 한다. 서버가 거리를 다시 잰다 */
+	UFUNCTION(Server, Reliable)
+	void Server_Interact(AActor* Target, int32 Token);
+
 	/** 소유 클라이언트가 가방 화면을 열었다 — 튜토리얼 「가방 열기」(퀘스트 이벤트 UI.Inventory.Opened) */
 	UFUNCTION(Server, Reliable)
 	void Server_NotifyBagOpened();

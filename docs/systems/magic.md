@@ -415,6 +415,8 @@ M1 규칙(11행 — 원본은 CSV):
 | `Flammable_Ignite` | Flammable, Wet · Burning · Charred 아님, Fire ≥ 0.5 | Burning +1(무한), 1.2m 전파 ×0.5 |
 | `Grass_BurnOut` | Expire Burning, Consumable | Charred 1(다시 안 탄다) |
 
+초원 꾸밈(2026-11-18)이 `Water_Soak` 바로 위에 다섯 행을 더했다 — `Seedhead_Scatter` · `Thirsty_Revive` · `Paper_Blown` · `Swarm_Scatter` · `Floating_Struck`(재질 `Material.Seedhead` · `Thirsty` · `Paper` · `Swarm` · `Floating`). 뜻은 [초원 꾸밈 — 반응 규칙](./meadow-dressing#반응-규칙-elementalreactions-csv-에-더한-다섯-행).
+
 스펙의 「양초 예시」는 모두 이 표로 나온다: 켜짐 · 바람으로 커짐(최대 3) · 돌풍에 꺼짐 · 물로 꺼지고 젖음 · 젖으면 불 안 붙음 · 불 · 바람 · 시간(20초)으로 마름 · 어둠에 작아짐. `Grimoire.Interaction.CandleExample` 이 한 줄씩 확인한다.
 
 ### 전파

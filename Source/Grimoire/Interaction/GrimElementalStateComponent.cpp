@@ -84,6 +84,40 @@ float UGrimElementalStateComponent::GetElementalStateIntensity(const FGameplayTa
 	return States.GetIntensity(StateTag);
 }
 
+void UGrimElementalStateComponent::ResetStates(const TMap<FGameplayTag, float>& NewStates)
+{
+	if (!HasAuthorityToChange())
+	{
+		return;
+	}
+
+	TArray<FGrimElementalStateChange> Changes;
+	TArray<FGameplayTag> ToRemove;
+	for (const FGrimElementalState& Item : States.Items)
+	{
+		if (!NewStates.Contains(Item.StateTag))
+		{
+			ToRemove.Add(Item.StateTag);
+		}
+	}
+	for (const FGameplayTag& Tag : ToRemove)
+	{
+		States.Remove(Tag, Changes);
+	}
+	for (const TPair<FGameplayTag, float>& Pair : NewStates)
+	{
+		States.SetIntensity(Pair.Key, Pair.Value, Changes);
+		if (FGrimElementalState* Item = States.Find(Pair.Key); Item && (Item->IsTimed() || Item->Propagation.IsActive()))
+		{
+			States.NotifyPreChange();
+			Item->RemainingTime = -1.f;
+			Item->Propagation = FGrimReactionPropagation();
+			States.MarkItemDirty(*Item);
+		}
+	}
+	CommitChanges(Changes);
+}
+
 void UGrimElementalStateComponent::AdvanceTime(float DeltaSeconds)
 {
 	if (!HasAuthorityToChange())

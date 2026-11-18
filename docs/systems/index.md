@@ -39,7 +39,7 @@
 
 | 폴더 | 내용 |
 |---|---|
-| `Source/Grimoire/Core/` | 게임 모드 · 게임 상태 · 플레이어 상태(ASC 소유) · ASC · 공용 태그, 시스템 사이 약속(속성 자극 `IGrimElementalReceiver` · 세이브 `IGrimSaveParticipant` · 조준 `IGrimAimProvider` · `IGrimTargetable` · 연출 묶음 `UGrimSpellVisualSet`), 에디터 단축키 |
+| `Source/Grimoire/Core/` | 게임 모드 · 게임 상태 · 플레이어 상태(ASC 소유) · ASC · 공용 태그, 시스템 사이 약속(속성 자극 `IGrimElementalReceiver` · 세이브 `IGrimSaveParticipant` · 조준 `IGrimAimProvider` · `IGrimTargetable` · F 대상 `IGrimInteractable` · 연출 묶음 `UGrimSpellVisualSet`), 에디터 단축키 |
 | `Source/Grimoire/Core/Cheats/` | 치트 매니저(`GrimSuperCheat` 등) · 지연 명령 `Grim.At` · 고정 카메라 `Grim.Cam` ([테스트 치트](../dev/cheats)) |
 | `Source/Grimoire/Core/Perf/` | 성능 측정 콘솔 `Grim.Perf.*` ([성능 측정 방법](../dev/perf-measure)) |
 | `Source/Grimoire/Character/` | 플레이어 캐릭터 · 컨트롤러 · 입력(Enhanced Input) |
@@ -48,6 +48,7 @@
 | `Source/Grimoire/MagicFX/` | 시전 연출 큐 · 그리모어 책 · 시전 자세 애님 · 카메라 흔들림 · 이펙트 에디터 도우미 ([투사체 · 시전 감각](./spell-feel)) |
 | `Source/Grimoire/Targeting/` | 소프트 · 고정 락온, 줌인 조준, 조준 더미 |
 | `Source/Grimoire/Interaction/` | 속성 상태 컴포넌트 · 반응 규칙 · 전파 · 상호작용 사물(양초 · 모닥불 · 마른 풀) |
+| `Source/Grimoire/Dressing/` | 초원 꾸밈 · 작은 흥미지점 — 반응 소품 공통 액터 · 채집 셀 관리자 · 도감 임시 목록 ([초원 꾸밈](./meadow-dressing)) |
 | `Source/Grimoire/Survival/` | 생존 어트리뷰트 · 주기 효과 · 체온 · 피곤함 · 질병 · 침대 · 잠 ([생존](./survival)) |
 | `Source/Grimoire/Environment/` | 시간 · 날씨 서브시스템, 기후 지역 볼륨, 하늘 컨트롤러 ([환경](./environment)) |
 | `Source/Grimoire/Creatures/` | 생물 · 종 · AI · 생태계 스폰 · 서식 구역 · 길들이기 · 충성도 · 탑승 · 데리고 다니기 · 보관함 · 거점 생물 상자 ([생물](./creatures)). 번식 · 노동은 계획 |
@@ -100,6 +101,7 @@
 | `VS_*` (`UGrimMagicFXVisualSet`) | DataAsset | 마법 연출 묶음 | 구현: `Source/Grimoire/MagicFX/GrimMagicFXVisualSet.h` |
 | `Items.csv` · `Recipes.csv` | CSV(런타임 읽기) | 아이템(재료 · 음식 · 스킬북 · 화폐) · 요리 | 구현: `Source/Grimoire/Items/GrimItemSettings.h` — 아이템은 DataAsset 이 아니라 표의 행(id) |
 | `ElementalReactions.csv` | CSV | 속성 반응 규칙 | 구현: `Source/Grimoire/Interaction/GrimInteractionSettings.h` |
+| `ReactiveProps.csv` · `HarvestNodes.csv` · `Journal.csv` | CSV | 반응 소품 · 채집점 · 도감 줄 | 구현: `Source/Grimoire/Dressing/GrimDressingSettings.h` |
 | `ClimateRegions.csv` | CSV | 지역 기온 곡선 · 등급 · 날씨 전이표 | 구현: `Source/Grimoire/Environment/GrimWeatherSettings.h` |
 | `CreatureEcology.csv` | CSV | 먹이 관계 | 구현: `Source/Grimoire/Creatures/GrimCreatureSettings.h` |
 | `ProficiencyGrades.csv` | CSV | 숙련도 등급 D~S | 구현: `Source/Grimoire/Magic/GrimProficiencySettings.h` |
@@ -129,6 +131,7 @@
 - [환경 · 날씨](./environment) — 시간 · 날씨 · 기후 서브시스템, 렌더링 연동
 - [마법 생물 · 생태계](./creatures) — 종 · 개체 · 유전 · 스폰 · AI · 길들이기 · 탑승 · 노동
 - [레벨 · 성장 트리](./progression) · [마법탑 튜토리얼](./tutorial) · [커스터마이징](./customization) · [지형](./terrain)
+- [초원 꾸밈 · 작은 흥미지점](./meadow-dressing) — 반응 소품 공통 액터 · 채집 셀 관리자 · 배치
 - [건축 · 농사 · 생산](./building) — 거점 · 조각 건축 · 작물 · 생산 대기열 · 인벤토리
 - [월드 · 멀티플레이 · 세이브](./world-multiplayer) — World Partition, 인스턴스 던전, 리슨/전용 서버, 세이브
 - [성능 예산](./performance) · [로드맵 · 리스크](./roadmap)

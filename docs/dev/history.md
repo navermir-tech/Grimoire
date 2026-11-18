@@ -37,6 +37,7 @@
 | 11-09 | 물 재질 Q126 | Water Materials 팩(CC BY) `M_River` 인스턴스로 개울 · 연못 물 표면 교체, 크레딧 문서, 호 길이 UV 연속화 | [물 재질 Q126](#물-재질-q126-2026-11-09) |
 | 11-09 | 초원 꾸밈 기획 (문서) | 소품을 마법 반응으로 — 요소 32 · 장면 8 · 분포 규칙 · 1차 11(Q150~Q157), 다른 게임 조사 근거 | [초원 꾸밈](../spec/meadow-dressing) |
 | 11-18 | 사용자 답 Q46~Q110 (문서) | 전설도 길들일 수 있다(Q48) · 피곤함 · 배고픔은 인챈트로 못 막고 커피 · 에너지 드링크로(Q53) · 인챈트 칸 · 단계는 데이터에(Q51) · 묶음 알리는 법(Q54) · 보관은 크기 무관(Q61) · 천둥새도 잡는다(Q162) · 마법탑 아트풍 시범(Q96) · Q85 빛줄기는 원격만(Q110) 등, 새 미결 Q160 · Q161 · Q163 · Q164 | [사용자 답 Q46~Q110](#사용자-답-q46-q110-→-문서-2026-11-18) |
+| 11-18 | 초원 꾸밈 1차 묶음 (Q150) | 반응 소품 공통 액터 · 채집 셀 관리자 · 도감 임시 목록 · F 대상 약속, 요소 11 을 `L_OpenBeta` 마탑 구간에 배치 스크립트로(소품 140 · 채집점 80 · 꽃 524), `EFT_Grim_Ambient` | 브랜치 `claude/meadow-dressing-1-e6c026` |
 
 ## M0 · 셋업 (2026-11-04 ~ 05)
 
@@ -250,3 +251,17 @@
 - **새 미결**: Q160 전설 길들이기 조건 · Q161 전설 재등장 · 번식 · Q163 들풀 반지 새 효과 · Q164 음료 이름 · 회복량 · 재료 · 시설.
 - **코드에서 확인한 것**: 전설을 막는 코드는 없다(종 정의 `bTameable` 기본 참, 포획 곡선에 전설 몫이 이미 있음). 인챈트 칸 · 단계 숫자는 코드에 박혀 있지 않다(세는 코드가 아직 없음, 서클별 후보 단계는 `Circles.csv`). **발사 빛줄기는 결정(Q110)과 다르다** — `AGrimSpellProjectile::SpawnLaunchStreak` 가 혼자 · 호스트를 포함한 모든 볼트에 약 7.5 m 를 긋는다([투사체 · 시전 감각](../systems/spell-feel)).
 - **남은 것(데이터 · 다른 세션 몫)**: `Content/Grimoire/Data/Enchants.csv` 의 `Satiety` 줄 · `Content/Grimoire/Data/Skillbooks.csv` 의 `Skillbook_Custodia_Maxima` 줄 지우기, 생물 명단 정본 `art/creatures/make_prompts.py` 의 전설 줄(「길들이기 불가」)을 명단 문서에 맞추기 — 문서의 전설 줄은 손으로 먼저 고쳤다. 발사 빛줄기를 원격 · 고지연일 때만 긋게 고치기(Q110 — 코드 세션).
+
+## 초원 꾸밈 1차 묶음 (2026-11-18)
+
+- **무엇을**: 사용자 답 Q150 「제안대로」 — 기획안의 1차 11 개(D01 바람솜꽃 · D02 마른 풀 · D03 목마른 들꽃 · D04 돌 등잔 · D10 곁가지 · 돌멩이 · D16 나비 · D20 식은 모닥불 · D21 흩날리는 책장 · D26 외딴 꽃나무 · D27 색 꽃밭 · D29 떠 있는 돌)를 만들어 마탑 구간에 놓았다. Q151~Q157 은 제안을 잠정값으로 표에 — [초원 꾸밈 구현](../systems/meadow-dressing).
+- **어떻게**: 소품마다 클래스를 만들지 않고 `AGrimReactiveProp`(표 `ReactiveProps.csv` 한 행) + 속성 상태 단일 시스템(규칙표에 다섯 행). 줍는 것은 `AGrimHarvestCell`(256 m 셀 · ISM · FastArray). 도감은 PlayerState 에 런타임으로 붙는 `UGrimJournalComponent`, F 는 Core 의 `IGrimInteractable` 로 가방 위젯에 끼웠다. 에셋은 블렌더 스크립트(메시 8) · PIL(나비 · 솜) · 팩 재질 인스턴스. 배치는 `Scripts/Dressing/meadow_place.py`(시드 고정, 탑 둘레 260 m · 길 · 물 · POI · 전망대 터 · 바닷가 비움).
+- **확인**: [QA — 초원 꾸밈](../qa/meadow) — 자동화 195/195(새 `Grimoire.Dressing.*` 6), 2인 `net_check_meadow.ps1` fail=0, 요소별 전 · 후 스크린숏, 성능 전 · 후.
+- **함정**:
+  - 파이썬 `StaticMesh.static_materials` 배열 원소를 고쳐 다시 넣어도 칸이 비었다 — `set_material(0, …)`.
+  - `MaterialEditingLibrary.set_material_instance_*_parameter_value` 의 돌려준 값은 늘 False — 이름 목록으로 확인한다.
+  - 팩 꽃 재질의 `Custom Color` 는 꽃잎 색을 바꾸지 못했다(`Desaturate Texture?` 를 켜도) — 색 꽃밭 · 시든 꽃 색은 [Q205](../spec/decisions#미결-질문).
+  - 마탑 구간 다각형이 남쪽 바닷가까지 들어온다 — 첫 배치에서 꽃이 모래 위에 놓였다. 땅 높이 · 해안선으로 거른다.
+  - 같은 PC 의 두 인스턴스는 같은 PlayerId(GameUserSettings.ini)를 읽는다 — 사람별 확인은 `-GrimPlayerId=` 를 따로 준다.
+  - 이름 붙은 `Grim.Terrain.ViewFrom` 은 4 초 뒤에 찍는다, 그리고 `-ExecCmds` 지연은 맵 로딩 전부터 센다 — 반응 전 · 후 그림은 그만큼 띄운다.
+

@@ -38,5 +38,6 @@ powershell -File Scripts\Perf\measure.ps1 -Label <이름>   # 성능(약 7분)
 | [QA-SUR-014](./survival) | 침대 F 키 · 잠 페이드 · 쓰러짐 표시 |
 | [QA-TUT-007 · 022](./tutorial) | 스승 대화 창 · 메인 메뉴 버튼 클릭 |
 | [QA-CRE-026](./creatures) | 가방(L) 안 보관함 탭 — 여는 콘솔 명령이 없음 |
+| [QA-MDW-032 · 039 · 050](./meadow) | 초원 꾸밈 — 시든 꽃 · 꽃 띠 색(Q205), 실제 마법으로 쏘는 손맛 · F 안내 글 |
 | [QA-APP-009 · 010](./customization) | 생성 화면 버튼(확인 · 취소), 접속 직후 외형 |
 | [QA-CHT-015](./cheats) | Shipping 빌드에 치트가 없는지(쿡 빌드 필요) |
