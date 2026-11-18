@@ -74,8 +74,13 @@ void AGrimFXPulse::Init(const FGrimFXPulseSpec& InSpec, const FVector& Direction
 		StartSize = EndSize * Ratio;
 	}
 
-	UStaticMesh* ShapeMesh = LoadShapeMesh(Spec.Shape);
-	Mesh->SetStaticMesh(ShapeMesh);
+	// 모양 없음 = 빛만 내는 펄스(IsEnabled) — 도형은 숨긴다.
+	const bool bHasShape = Spec.Shape != EGrimFXPulseShape::None;
+	Mesh->SetVisibility(bHasShape);
+	if (bHasShape)
+	{
+		Mesh->SetStaticMesh(LoadShapeMesh(Spec.Shape));
+	}
 
 	const FVector Axis = Direction.IsNearlyZero() ? FVector::UpVector : Direction.GetSafeNormal();
 	if (Spec.Shape == EGrimFXPulseShape::Cone)
@@ -88,7 +93,7 @@ void AGrimFXPulse::Init(const FGrimFXPulseSpec& InSpec, const FVector& Direction
 		SetActorRotation(FRotationMatrix::MakeFromZ(Axis).Rotator());
 	}
 
-	if (UMaterialInterface* BaseMaterial = UGrimMagicFXStatics::GetGlowMaterial())
+	if (UMaterialInterface* BaseMaterial = bHasShape ? UGrimMagicFXStatics::GetGlowMaterial() : nullptr)
 	{
 		Material = Mesh->CreateDynamicMaterialInstance(0, BaseMaterial);
 	}
@@ -99,6 +104,7 @@ void AGrimFXPulse::Init(const FGrimFXPulseSpec& InSpec, const FVector& Direction
 		Material->SetScalarParameterValue(TEXT("RimMix"), Spec.RimMix);
 	}
 
+	Light->SetWorldLocation(GetActorLocation() + Axis * Spec.LightOffset);
 	Light->SetLightColor(Color);
 	Light->SetAttenuationRadius(Spec.LightRadius);
 	Light->SetVisibility(Spec.LightIntensity > 0.f);

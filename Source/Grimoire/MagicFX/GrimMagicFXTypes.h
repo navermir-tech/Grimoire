@@ -62,14 +62,19 @@ struct GRIMOIRE_API FGrimFXPulseSpec
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pulse", meta = (ClampMin = "0", ClampMax = "1"))
 	float RimMix = 0.f;
 
-	/** 점광원 세기(0 = 빛 없음) */
+	/** 점광원 세기(0 = 빛 없음, 단위 없음 — 625 = 1 cd) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pulse", meta = (ClampMin = "0"))
 	float LightIntensity = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pulse", meta = (ClampMin = "0", Units = "cm"))
 	float LightRadius = 300.f;
 
-	bool IsEnabled() const { return Shape != EGrimFXPulseShape::None; }
+	/** 빛을 축(터짐 = 맞은 면의 법선) 쪽으로 띄우는 거리 — 면에 붙은 빛은 바로 아래만 비춘다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pulse", meta = (Units = "cm"))
+	float LightOffset = 0.f;
+
+	/** 모양이 없어도 빛이 있으면 켠다(빛만 내는 펄스 — 불씨 섬광 · 터짐이 밤에 둘레를 비추게, Q101) */
+	bool IsEnabled() const { return Shape != EGrimFXPulseShape::None || LightIntensity > 0.f; }
 };
 
 /** 맞은 곳 자국(그을음 · 젖음). 시간이 지나면 흐려져 사라진다. */

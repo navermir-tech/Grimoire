@@ -234,7 +234,7 @@ def make_cue(name, parent):
 
 # ---------------------------------------------------------------- 연출 묶음
 
-def pulse(shape, start, end, lifetime, glow, rim=0.0, light=0.0, radius=300.0):
+def pulse(shape, start, end, lifetime, glow, rim=0.0, light=0.0, radius=300.0, light_offset=0.0):
     p = unreal.GrimFXPulseSpec()
     p.set_editor_property("shape", shape)
     p.set_editor_property("start_size", unreal.Vector(*start))
@@ -244,6 +244,7 @@ def pulse(shape, start, end, lifetime, glow, rim=0.0, light=0.0, radius=300.0):
     p.set_editor_property("rim_mix", rim)
     p.set_editor_property("light_intensity", light)
     p.set_editor_property("light_radius", radius)
+    p.set_editor_property("light_offset", light_offset)
     return p
 
 
@@ -302,10 +303,12 @@ def make_visual_sets(decal_mat):
         "impact_sound": noise, "impact_sound_volume": 0.3, "impact_sound_pitch": 1.5, "impact_sound_duration": 0.15,
         "loop_sound": None,
         "camera_shake": shake, "camera_shake_scale": 1.0,
-        # 구 펄스는 끈다 — 볼트 이펙트가 번쩍임 · 고리를 직접 그린다(참고 그림에 둥근 공은 없다).
-        "muzzle_pulse": off,
+        # 구 펄스의 도형은 끈다 — 볼트 이펙트가 번쩍임 · 고리를 직접 그린다(참고 그림에 둥근 공은 없다).
+        # 빛만 남긴다(Q101 — 밤에 불 마법 둘레가 확실히 밝게): 완드 섬광 10 cd · 터짐 25 cd(625 = 1 cd), 수명 동안 제곱으로 꺼진다.
+        # 해가 10 lux 뿐이라 낮에도 1 m 안이 잠깐 밝아지는 정도. 모닥불은 120 cd(GrimElementalObject.cpp).
+        "muzzle_pulse": pulse(SHAPE.NONE, (0, 0, 0), (0, 0, 0), 0.3, 0.0, light=6250.0, radius=700.0),
         "cast_wave": off,
-        "impact_pulse": off,
+        "impact_pulse": pulse(SHAPE.NONE, (0, 0, 0), (0, 0, 0), 0.6, 0.0, light=15625.0, radius=1000.0, light_offset=60.0),
         "impact_decal": decal(decal_mat, unreal.LinearColor(0.02, 0.015, 0.01, 1), 0.95, 0.9, 70.0, 12.0, 4.0),
         "stream_bead_count": 0,
     })

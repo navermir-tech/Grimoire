@@ -64,6 +64,34 @@ float FGrimTimeOfDayMath::GetSunAngleDegrees(float TimeOfDay, float DayRatio)
 	return 180.f + (NightLength > 0.f ? SinceDusk / NightLength * 180.f : 0.f);
 }
 
+float FGrimTimeOfDayMath::GetDayBlend(float SunHeightSin, float HorizonFade)
+{
+	const float Fade = FMath::Max(HorizonFade, KINDA_SMALL_NUMBER);
+	return FMath::SmoothStep(-Fade, Fade, SunHeightSin);
+}
+
+float FGrimTimeOfDayMath::GetNightBlend(float SunHeightSin, float HorizonFade)
+{
+	const float Fade = FMath::Max(HorizonFade, KINDA_SMALL_NUMBER);
+	return FMath::SmoothStep(0.f, 2.f * Fade, -SunHeightSin);
+}
+
+FVector FGrimTimeOfDayMath::GetMoonDirection(const FVector& SunDirection, float MinElevationDegrees)
+{
+	const FVector Opposite = -SunDirection.GetSafeNormal();
+	const double MinSin = FMath::Sin(FMath::DegreesToRadians(FMath::Clamp(MinElevationDegrees, 0.f, 89.f)));
+	if (Opposite.Z >= MinSin)
+	{
+		return Opposite;
+	}
+	FVector Horizontal(Opposite.X, Opposite.Y, 0.0);
+	if (!Horizontal.Normalize())
+	{
+		Horizontal = FVector::ForwardVector;
+	}
+	return (Horizontal * FMath::Sqrt(1.0 - MinSin * MinSin) + FVector::UpVector * MinSin).GetSafeNormal();
+}
+
 float FGrimTimeOfDayMath::GetAmbientTemperature(float TimeOfDay, float MinTemperature, float MaxTemperature, float ColdestTimeOfDay, float WarmestTimeOfDay)
 {
 	const float T = Wrap01(TimeOfDay);

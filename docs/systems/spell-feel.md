@@ -88,7 +88,7 @@
 | `UGrimCueNotify_SpellCast` (Static) · 에셋 `GC_Spell_Cast` | 누르는 순간: 상체 시전 동작 · 책장 한 장 · 몸을 조준 쪽으로. 정의의 `CastWindup`(불씨 0.1초) 뒤 완드 끝 섬광 파티클 + 속성색 펄스 · 소리 · 흔들림(시전자 화면만). 쓸기(Cone) 마법은 원뿔 파동(`Trail` + 원뿔 펄스)도 여기서. **Bolt 꼬리는 그리지 않는다** — 투사체(갈래 A)가 `Trail` 을 직접 붙인다 |
 | `AGrimCueNotify_SpellChannel` (Actor, 시전자마다 하나) · `GC_Spell_Channel` | Stream 누르는 동안(Add/Remove): 완드 끝에서 조준 방향으로 `Trail` 파티클 + 포물선 물방울 구슬(앞을 막으면 끊김) · 도는 소리, 책장 초당 2장, 오른팔 뻗고 유지. 구슬은 판정과 같은 호 — 정의가 있으면 `UGrimSpellAbility::TraceStreamArc` 의 점들을 따른다(그림만, 판정은 서버). 정의가 없을 때만 VisualSet 의 기본 속도 · 중력 근사 |
 | `UGrimCueNotify_SpellImpact` (Static) · `GC_Spell_Impact` | 맞은 곳(`Location` · `Normal`): 터짐 파티클 + 속성색 펄스 · 소리 · 자국 데칼(그을음 · 젖음, 시간이 지나면 흐려짐) |
-| `UGrimMagicFXVisualSet` | `Source/Grimoire/MagicFX/GrimMagicFXVisualSet.h`. `UGrimSpellVisualSet` 의 자식. 임시 연출값(색 펄스 3종 · 자국 · 소리 세기 · 파티클 배율 · 줄기 구슬 · 시전 동작 지정 · 책장 넘김 시간 `PageFlipDuration`)을 더한다. 에셋 `VS_Ember` · `VS_WaterJet` · `VS_Breeze` · `VS_BasicAttack`(`Content/Grimoire/MagicFX/VisualSets/`). 파크툼 · 이그니스는 VisualSet 이 비어 속성으로 고른다 — 기본 묶음이 없는 속성(무속성 · 땅 · 그림자술 파크툼)은 `FallbackVisualSet` = `VS_Ember` |
+| `UGrimMagicFXVisualSet` | `Source/Grimoire/MagicFX/GrimMagicFXVisualSet.h`. `UGrimSpellVisualSet` 의 자식. 임시 연출값(색 펄스 3종 · 자국 · 소리 세기 · 파티클 배율 · 줄기 구슬 · 시전 동작 지정 · 책장 넘김 시간 `PageFlipDuration`)을 더한다. 펄스(`FGrimFXPulseSpec`, `AGrimFXPulse`)는 모양이 `None` 이어도 `LightIntensity` 가 있으면 빛만 낸다(2026-11-18), `LightOffset` 은 빛을 축(터짐 = 맞은 면 법선) 쪽으로 띄우는 거리. 에셋 `VS_Ember` · `VS_WaterJet` · `VS_Breeze` · `VS_BasicAttack`(`Content/Grimoire/MagicFX/VisualSets/`). 파크툼 · 이그니스는 VisualSet 이 비어 속성으로 고른다 — 기본 묶음이 없는 속성(무속성 · 땅 · 그림자술 파크툼)은 `FallbackVisualSet` = `VS_Ember` |
 | `UGrimMagicFXSettings` (`[/Script/Grimoire.GrimMagicFXSettings]`) | 정의에 `VisualSet` 이 없을 때 속성(`Element.*`)으로 고르는 기본 묶음, 펄스 · 책 머티리얼, 그리모어 클래스, 정의에서 이름으로 읽는 필드(`CastWindup` · `StreamLaunchSpeed` · `StreamGravityScale` · `ConeRange` · `ConeHalfAngle`) |
 | `UGrimSpellCameraShake` | 0.16초 감쇠 사인(피치 0.35° · 요 0.12°) — 「아주 약한」 시전 흔들림 |
 
@@ -103,7 +103,7 @@
 
 | 묶음 | 색 | 섬광 | 몸통(Trail) | 터짐 | 펄스 · 자국 — 멀리서 구분되는 모양 |
 |---|---|---|---|---|---|
-| `VS_Ember` 불씨 | `#E0582B` | `NS_Bolt_Cast` | `NS_Bolt_Trail`(투사체 꼬리, 색 구 숨김) + 발사 빛줄기 `NS_Bolt_Launch` | `NS_Bolt_Impact` | 구 펄스 끔, 그을음 자국 |
+| `VS_Ember` 불씨 | `#E0582B` | `NS_Bolt_Cast` | `NS_Bolt_Trail`(투사체 꼬리, 색 구 숨김) + 발사 빛줄기 `NS_Bolt_Launch` | `NS_Bolt_Impact` | 구 펄스 도형 끔, **빛만**(Q101 — 밤에 둘레를 비춘다): 완드 섬광 10 cd · 0.3초 · 반경 7 m, 터짐 25 cd · 0.6초 · 반경 10 m(맞은 면에서 60 cm 띄움), 그을음 자국 |
 | `VS_BasicAttack` 기본 공격 | `#CFE3FF` | `NS_Bolt_Cast`(0.8배) | `NS_Bolt_Trail`(색 구 숨김) + `NS_Bolt_Launch` | `NS_Bolt_Impact`(0.8배) | 펄스 · 자국 없음, 책장 0.15초 |
 | `VS_WaterJet` 물줄기 | `#3A7BD5` | `NS_Bolt_Cast`(0.7배) | `NS_Stream_Trail`(이어진 바늘 빛줄기 · 물방울 불티 · 끝 물보라) | `NS_Stream_Impact` | 펄스 · 구슬 끔, 젖은 자국 |
 | `VS_Breeze` 미풍 | `#7CC9A6` | `NS_Bolt_Cast`(0.7배) | `NS_Cone_Trail`(부채꼴 깃털 빛줄기) | `NS_Cone_Impact` | 원뿔 껍질 · 펄스 끔, 자국 없음 |

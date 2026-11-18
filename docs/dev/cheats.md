@@ -154,6 +154,7 @@
 | `Grim.Interaction.Dump [지연초]` | 속성 사물 상태 · 불꽃 · 빛 로그 |
 | `Grim.Interaction.ReloadReactions` | 반응 규칙표 `ElementalReactions.csv` 다시 읽기 |
 | `Grim.Sky.SunRotationStep <도>` | (콘솔 변수) 해 · 달 빛을 돌리는 최소 각. 음수 = 액터 값, 0 = 매 프레임(성능 비교용) |
+| `Grim.Sky.Set <속성> <값>` | 밤 화면 · 하늘 값을 실행 중에 바꿔 본다(이 프로세스에만, 저장 안 함). 환경 설정 속성(`NightExposureMinEV100` · `TwilightExposureMinEV100` · `NightSaturation` · `NightShadowSaturation` · `NightShadowsMax` · `Indoor*`)이면 거기에, 아니면 하늘 컨트롤러 속성(`MoonIntensity` · `MoonMinElevationDegrees` · `NightSkyLightIntensity` 등)에. 예: `Grim.Sky.Set NightExposureMinEV100 -1` — [환경 「밤 화면」](../systems/environment#밤-화면-q101-·-bug-008-2026-11-18) |
 
 ## 아이템 · 요리
 
