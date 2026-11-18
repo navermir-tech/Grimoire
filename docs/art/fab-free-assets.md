@@ -1,6 +1,6 @@
 # Fab 무료 에셋 후보
 
-> 상태: **검토용 v2** · 2026-11-07 · v2 에서 [필요 목록 대조](#필요-목록-대조)와 [실내](#실내)를 더했다. Fab(fab.com) 상세 페이지와 Fab 이 페이지에 쓰는 목록 데이터(가격 · 라이선스 · UE 버전 · Nanite 표시)를 하나씩 직접 확인했다. 받기(claim) · 구매 · 로그인은 하지 않았다 — **받기는 사용자가 한다.**
+> 상태: **검토용 v2** · 2026-11-07 · v2 에서 [필요 목록 대조](#필요-목록-대조)와 [실내](#실내)를 더했다. Fab(fab.com) 상세 페이지와 Fab 이 페이지에 쓰는 목록 데이터(가격 · 라이선스 · UE 버전 · Nanite 표시)를 하나씩 직접 확인했다. 받기(claim) · 구매 · 로그인은 하지 않았다 — **받기는 사용자가 한다.** Q124 ~ Q128 결정은 맨 아래 [결정](#결정-2026-11-18)(2026-11-18).
 >
 > 필요 항목 번호(C01 …)는 [1번 지역 — 필요한 3D 모델](./region1-assets), 스타일 기준은 [아트 방향](../spec/art-direction)(Painterly High-Fidelity Stylized Realism)이다.
 
@@ -399,14 +399,50 @@ Megaplants 는 40종 전부가 0원이었다(갈대 · 고사리 · 히스 · �
 - **CC BY 4.0** 항목(Water Materials · Tileable Pine Forest Road · 자루 · 그릇 · 고딕 소품 · Old Furniture · Ancient Ruins · Telescope · GanzSe Camping · Medieval Room Kit · Medieval Log Cabins · Modular Fantasy Castle · Stylized Crystal Pack · Pirate chandelier · IronBound 상자)은 게임 크레딧에 작가 · 에셋 이름 · 라이선스를 적어야 한다. 받을 때 크레딧 목록(예: `docs/art/credits.md`)을 같이 만든다.
 - **UE 전용**: 「Medieval Game Environment」처럼 설명에 「언리얼 엔진 제품에만」이라고 적힌 것과 옛 UE 마켓플레이스 라이선스 항목(예: Medieval Dungeon · Advanced Village Pack)은 언리얼 게임 안에서만 쓴다. 우리 게임은 언리얼이라 문제없지만, 블렌더로 꺼내 다른 엔진용으로 쓰지 않는다.
 - **UEFN 참조 전용**은 원본을 주지 않는다 → UE5 프로젝트에 못 쓴다(Megascans 유료 항목의 0원 등급이 이것).
-- **AI 생성 표시** 항목(Ancient Ruins · Medieval Campfire · Telescope · 손그림 돌벽 재질)은 라이선스상 문제는 없지만, 프로젝트가 AI 생성물을 어디까지 받을지 정하고 쓴다.
+- **AI 생성 표시** 항목(Ancient Ruins · Medieval Campfire · Telescope · 손그림 돌벽 재질)은 라이선스상 문제는 없다. 지금은 받지 않고 꼭 필요한 것이 생기면 그때 하나씩(Q127 — 2026-11-18).
 - Fab EULA 는 「NoAI」 표시 콘텐츠를 생성형 AI 의 데이터셋 · 개발 · 학습 입력에 쓰는 것을 금한다(6조). 받은 에셋을 Tripo · GPT 작업에 넣을 일이 생기면 그 에셋의 NoAI 표시부터 본다.
 - UE 버전: Project Nature(최고 5.4) · Open World Demo(5.2) 등은 그 버전 프로젝트에 받아 5.8 프로젝트로 **Migrate** 해야 한다.
 
-## Q 후보 (사용자가 고를 것)
+## 결정 (2026-11-18)
 
-- **사실적 에셋을 스타일라이즈드 셰이더로 맞출지**: 무료 좋은 품질은 대부분 사실적 스캔(Megascans · Megaplants · Project Nature)이다. 마스터 재질 하나(붓 터치 노멀 · 채도 · 그림자 색 이동)로 맞춰 쓸지, StyleHex 같은 스타일라이즈드 무료만 쓰고 나머지는 계획대로 만들지.
-- **Megaplants(UE 5.7+, PVE 플러그인)를 기본 나무로 쓸지**: 형태 · 바람 · Nanite 는 가장 좋지만 사실적이다. 카드 방식 나무 계획(C07~C09 「카드」)과 바꿀지.
-- **CC BY 에셋을 받을지**: 쓰면 크레딧 목록 관리가 생긴다.
-- **AI 생성 표시 에셋을 받을지**.
-- **「개인만 무료」를 지금 받아 둘지**: 지금은 자격이 되지만, 받은 시점 기준이라 미리 받아 두는 편이 유리하다.
+이 페이지의 Q 후보는 [결정 기록](../spec/decisions)의 Q124 ~ Q128 로 넘어가 모두 답을 받았다.
+
+| Q | 정할 것 | 결정 |
+|---|---|---|
+| Q124 | 사실적 에셋을 스타일라이즈드 마스터 재질로 맞출지 | **둘 다**(제안대로) — 스타일 「상」 무료(StyleHex)는 그대로, 사실적 에셋은 마스터 재질(붓 터치 노멀 · 채도 · 그림자 색 이동)을 한 번 만들어 시험해 보고 어울리는 것만 쓴다 |
+| Q125 | Megaplants 를 기본 나무로 쓸지 | **제안대로** — 참나무 · 서어나무(C07)에 Q124 마스터 재질을 입혀 보고 정한다. 그 전엔 카드 방식 계획 유지. 아래 「채집 · 베기」를 함께 본다 |
+| Q126 | CC BY 에셋을 받을지 | **Water Materials 만**(2026-11-09) — [크레딧](./credits)에 적었다. 나머지는 필요해질 때 하나씩 |
+| Q127 | AI 생성 표시 에셋을 받을지 | **꼭 필요한 것만**(「꼭 필요한게 있다면 받고, 아님 굳이 싶음.」) — 지금은 받지 않는다 |
+| Q128 | 「개인만 무료」를 지금 받아 둘지 | **미리 받아 둔다**(「미리 받아두자.」) — 받기는 사용자가 Fab 에서 직접 한다. 아래 체크리스트 |
+
+### 나무 · 풀은 나중에 채집 · 베기 대상이 된다 (Q125)
+
+사용자(2026-11-18): 「나중에 나무나 풀들 채집 가능하게 바꿔야하는데 그거 고려해야함.」
+
+- Megaplants 를 비롯한 나무 · 풀은 지금은 꾸밈(인스턴스 폴리지)이지만, 뒤에 **채집 · 베기 대상**이 된다.
+- 그래서 Megaplants 를 시험할 때 모양 · 재질만 보지 않고, **인스턴스 폴리지에서 채집 가능한 개체로 바꿀 수 있는 구조인지**를 함께 본다 — 플레이어가 다가가거나 마법을 맞힌 한 그루만 액터로 바꾸고, 베면 그 인스턴스를 지우고, 다시 자라면 되돌리는 방식이 되는지. Megaplants 는 스켈레탈 메시 + Nanite 어셈블리(가지 · 잔가지 인스턴스)라 보통 스태틱 메시 나무와 다를 수 있다([레벨 디자인 노트](../dev/level-design)).
+- 이 바꿔치기는 초원 꾸밈의 **채집 셀 관리자**와 같은 일이다 — 채집물 재생 · 멀티 공유 규칙(Q153)도 거기서 정한다([초원 꾸밈](../spec/meadow-dressing)).
+
+### 개인만 무료 받아 둘 것 (Q128)
+
+「개인만」 = 개인 등급만 0원인 항목. 받은 시점의 자격(최근 12개월 매출 10만 달러 이하)이 기준이라, 지금 받아 두면 나중에 매출이 넘어도 계속 쓸 수 있다(위 「라이선스 주의」). **받기는 사용자가 Fab 에서 한다** — 계정 라이브러리에 담기만 하고, 프로젝트에 넣는 것은 쓸 때 한다. **2026-11-18 에 14 개 모두 받았다** — 사용자 지시로 메인 세션이 사용자 크롬에서 Fab 라이브러리에 담았고, 모두 개인(Personal) 등급 0원이었다(새로 받음 10 · 이미 있던 것 4). 프로젝트(`Content/`)에는 아직 넣지 않았다. 가격은 2026-11-07 에 본 것이라 받기 전에 「개인」 등급이 아직 0원인지 상세 페이지에서 본다.
+
+| # | 에셋 (판매자) | 쓸 곳 | 받음 |
+|---|---|---|---|
+| 1 | [Stylized Environment - Forest](https://www.fab.com/listings/7b06f300-f295-40fe-9972-b9de3a0abe03) (SilverSet Studios) | C07 · C08 나무 예비(채도 높은 만화풍 — 스타일 하) | ☑ 받음 2026-11-18 |
+| 2 | [Free Mega Tree](https://www.fab.com/listings/e5ac0773-7e11-4e78-8d59-526ecd661b93) (3D Nik) | 그레이박스 · 예비 나무 1 | ☑ 받음 2026-11-18 |
+| 3 | [Stylized Nature Pack](https://www.fab.com/listings/b066de06-73b8-4fbe-b30c-468f5bcf7575) (Tiny Talisman Games) | 그레이박스 숲 대용 | ☑ 받음 2026-11-18 |
+| 4 | [Light Foliage](https://www.fab.com/listings/30e6c98c-6634-4b7e-b142-2c3cdfde6e1e) (MYTHRA TECH) | C12 · C13 풀밭 · 꽃 · 관목 | ☑ 받음 2026-11-18 |
+| 5 | [[FREE] Mountain Tops for Unreal Engine 5+](https://www.fab.com/listings/8cdfadfb-5fa6-4b4e-99db-1a02b01295c2) (Arghanion's Puzzlebox) | 원경 산봉우리 — 지역 가장자리 · 높은 곳에서 보이는 먼 산 | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+| 6 | [Environment - Rock Collection 04 (Free)](https://www.fab.com/listings/a51e61ac-98fa-4c54-ab23-fc533687afb7) (Shadowmire Studios) | C01 · C04 바위 | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+| 7 | [Free Pack - Rocks Stylized](https://www.fab.com/listings/a0746c4b-428b-4556-b4c9-98f70c2a30d4) (PolyOne Studio) | C01 바위 예비(로우 폴리) | ☑ 받음 2026-11-18 |
+| 8 | [Medieval Farm Barn – Windmill, Silo](https://www.fab.com/listings/3d4cf892-0971-49a8-b910-20b08e080816) (GESxQbee Studio) | 풍차 · 곳간 — 풍차 외관 참고 · 밭 둘레 | ☑ 받음 2026-11-18 |
+| 9 | [Stylized Library — 48 Cozy Interior Props](https://www.fab.com/listings/6150cf8e-8105-4da0-9209-3edbc2afb673) (Daria Borovleva) | 탑 서고 소품(책 · 촛대 · 의자) | ☑ 받음 2026-11-18 |
+| 10 | [Torn Banner Free](https://www.fab.com/listings/a95621bb-bc4c-4dc9-b45d-0af213ea89d7) (DzenGame) | C39 · T07 깃발 · 배너(색만 바꿔 서클 배너) | ☑ 받음 2026-11-18 |
+| 11 | [Medieval House Props Vol 2 – Furniture & Household](https://www.fab.com/listings/53b5afa7-de38-4034-bd13-cbb92cc883d1) (GESxQbee Studio) | 실내 가구 — 침대 · 장 · 탁자(마을 집 · 거점) | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+| 12 | [Medieval Village Props – Furniture, Containers & Clutter](https://www.fab.com/listings/b8fc5a33-8dce-48d1-8175-1015aa4c9436) (DuplexG) | 가구 · 용기 · 잡동사니 — 마을 · 거점 꾸밈 | ☑ 받음 2026-11-18 |
+| 13 | [Vintage Study](https://www.fab.com/listings/ff76f755-0c45-4913-a872-7cd5d2e43622) (Coded Arts Studios) | 서재 소품 — 지구의(마법 기구 빈 곳) | ☑ 받음 2026-11-18 |
+| 14 | [Misc Props - UB Free Pack](https://www.fab.com/listings/e5bb46ab-edf1-4530-8797-703f4c98b4a6) (UB) | 잡소품 — 촛대 · 지구의 · 시계 | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+
+- 이 표의 14 개가 이 페이지의 「개인만」 전부다(Torn Banner 는 두 표에 나와 한 번만 셌다). 스타일이 「하」인 나무 · 바위 몇 개는 쓸 일이 적지만, 받아 두는 데 비용이 없어 넣었다.
+- 프로젝트에 넣은 팩은 [마켓 · Fab 에셋 팩 — 받은 팩](../dev/market-assets#받은-팩-이-pc-2026-11-07)에 적는다.

@@ -16,7 +16,7 @@
 | `Fatigue` | 0~`MaxFatigue`(100) | 0 = 쌩쌩. 깨어 있으면 증가, 밤 ×1.5 |
 | `HeatResist` · `ColdResist` | 제한 없음(음수 가능) | 음식 버프 · 스킬 트리 보너스(`Source/Grimoire/Progression/GrimProgressionEffects.h`) · 시험 GE 가 더한다(장비 · 인챈트는 나중). 정수처럼 쓴다 |
 | `DiseaseResist` | 0~100 | 질병 확률 × (1 − 값/100) |
-| `MoveSpeedScale` · `CastSpeedScale` · `ManaCostScale` | ≥ 0, 기본 1 | 패널티 GE 가 곱한다. 이동은 생존 컴포넌트가 폰에 반영, 시전 · 마나 소모는 **마법 쪽이 읽는다** |
+| `MoveSpeedScale` · `CastSpeedScale` · `ManaCostScale` | ≥ 0, 기본 1 | 패널티 GE 가 곱한다. 이동은 생존 컴포넌트가 폰에 반영, 쿨다운(`CastSpeedScale` — 이름과 달리 시전 시간이 아니라 쿨다운을 나눈다, Q166) · 마나 소모는 **마법 쪽이 읽는다** |
 
 - 클램프는 `PreAttributeBaseChange` · `PreAttributeChange` 에서, 범위는 설정에서 읽는다.
 - 초기값(`InitialMaxHealth` · `InitialHunger` · `InitialBodyTemperature` · 피곤함 0 · `InitialDiseaseResist`)은 서버가 PlayerState 마다 **한 번** 넣는다(폰이 바뀌어도 유지).
@@ -41,7 +41,7 @@
 | `Climate.WetCold` · `BurningHeat` · `NearHeatSourceCold` · `SwimmingHeat` | 1 · 2 · 2 · 1 | 개인 몫: 젖음 추위 +1, 불붙음 더위 +2, 열원 근처 추위 −2, 물속 더위 −1 |
 | `Climate.BodyTemperaturePerDeficit` | 1.5 | 목표 체온 = 37 ∓ 1.5 × 모자람 |
 | `Climate.ModerateDeficit` · `SevereDeficit` | 2 · 3 | 단계 경계 |
-| `Climate.Chilly…Scale` · `Hypothermia…Scale` | 0.9 · 0.75 | 추위 1 · 2단계 이동 · 시전 속도 배율 |
+| `Climate.Chilly…Scale` · `Hypothermia…Scale` | 0.9 · 0.75 | 추위 1 · 2단계 이동 · `CastSpeedScale` 배율 — 코드는 쿨다운을 늘린다(스펙 「시전 느려짐」의 뜻은 Q166) |
 | `Climate.WarmManaCostScale` · `HyperthermiaManaCostScale` | 1.15 · 1.35 | 더위 1 · 2단계 마나 소모 배율 |
 | `Climate.ModerateFatigueRateScale` | 1.5 | 2단계 이상이면 피곤함이 빨리 쌓인다 |
 | `Fatigue.GainPerMinute` · `NightGainScale` | 1.5 · 1.5 | 하루(낮 30분 + 밤 18분)를 꼬박 새면 약 85 |
@@ -49,7 +49,7 @@
 | `Fatigue.SleepRecoveryPerSecond` | 5 | 자는 동안 회복 |
 | `Disease.RawFoodStomachChance` · `StomachDurationSeconds` · `StomachHungerDrainScale` | 0.3 · 180 · 2 | 배탈 |
 | `Disease.WetColdSecondsPerRoll` · `WetColdChance` · `ColdDurationSeconds` · `ColdManaRegenPenaltyPerSecond` | 60 · 0.35 · 300 · 1 | 감기 |
-| `Sleep.SleepSkipRatio` | 1.0 | 서버 옵션 — 잠든 비율(1 = 전원) |
+| `Sleep.SleepSkipRatio` | 1.0 | 서버 옵션 — 잠든 비율(1 = 전원). Q114(2026-11-18)로 남긴다 — 기본 1 |
 | `Sleep.SkipFadeSeconds` · `SkippedHungerScale` · `WakeAfterDawn` | 3 · 0.5 · 0.005 | 건너뛰기 페이드 · 배고픔 · 깨는 시각(해돋이 + 하루 비율) |
 | `Sleep.HostileBlockRadius` · `BedInteractRadius` · `BedInteractKey` | 1500 · 250 · F | 적 검사 · 침대 거리 · 눕기 키 |
 | `Sleep.SleepingMoveSpeedScale` | 0 | 자는 동안 못 움직인다 |
@@ -80,7 +80,7 @@
 - **패널티 GE** `UGrimSurvivalPenaltyEffect`(무한, `MultiplyCompound` SetByCaller 3개): 상태 → `FGrimSurvivalModel::ComputeModifiers` → 이동 · 시전 · 마나 소모 배율. 배율이 바뀌면 떼고 새 값으로 붙인다(동시에 하나).
   - 추위 1 · 2단계: 이동 · 시전 ×0.9 · ×0.75 / 더위 1 · 2단계: 마나 소모 ×1.15 · ×1.35 / Exhausted: 시전 ×0.7 / 잠: 이동 ×0 / 쓰러짐: 이동 ×0.25.
   - 이동: 컴포넌트가 `MoveSpeedScale` 변화를 듣고 폰의 `MaxWalkSpeed` 를 **비율로** 바꾼다(서버 · 소유 클라이언트, 바닥 0.01). 다른 감속(줌 조준)도 비율이면 서로 덮어쓰지 않는다.
-  - 시전 속도 · 마나 소모: Magic 이 읽는다 — `UGrimSpellAbility::GetCasterMultipliers`(`Source/Grimoire/Magic/GrimSpellAbility.cpp`)가 마나 비용 × `ManaCostScale`, 쿨다운 ÷ `CastSpeedScale`(어트리뷰트 이름은 `UGrimSpellbookSettings` 의 `ManaCostScaleAttribute` · `CastSpeedScaleAttribute`).
+  - 쿨다운 · 마나 소모: Magic 이 읽는다(`CastSpeedScale` 은 이름과 달리 쿨다운에 걸린다 — Q166) — `UGrimSpellAbility::GetCasterMultipliers`(`Source/Grimoire/Magic/GrimSpellAbility.cpp`)가 마나 비용 × `ManaCostScale`, 쿨다운 ÷ `CastSpeedScale`(어트리뷰트 이름은 `UGrimSpellbookSettings` 의 `ManaCostScaleAttribute` · `CastSpeedScaleAttribute`).
 - 마나 회복은 Magic 시스템 몫 — 회복 GE 가 `Status.Hungry` 태그를 보고 멈춘다(`Source/Grimoire/Magic/GrimMagicEffects.cpp`). 감기는 회복이 도는 동안(배고프지 않고 덜 찼을 때) 초당 `ColdManaRegenPenaltyPerSecond` 를 깎는다.
 
 ## 체온 모델 — 등급 방식 (M2)
@@ -110,7 +110,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 - 깨어 있으면 분당 `GainPerMinute`, 밤 ×`NightGainScale`, 체온 2단계 이상 ×`ModerateFatigueRateScale`. 자는 동안 초당 `SleepRecoveryPerSecond` 회복, 쓰러져 있으면 그대로.
 - `≥ 80 → Status.Exhausted` = **탈진**(R29 · Q116 확정 2026-11-08): 달리기 막힘(`AGrimPlayerCharacter::IsSprintBlocked`), 지친 걸음(이동 ×`ExhaustedMoveSpeedScale` 0.7 — 패널티 GE 의 `MoveSpeedScale`), **마법 시전 불가**. 100 이 되어도 **기절(강제 수면)은 없다** — 탈진 그대로 걷는다. 잠(침대 · 밤)만이 푼다.
 - 시전 막힘(`[/Script/Grimoire.GrimSpellbookSettings]`): `Status.Sleeping` · `Status.Downed`(+ 건축 모드)는 `CastBlockingTags` — 마법 · 기본 공격 · 주먹질을 모두 막고 알리지 않는다. `Status.Exhausted` 는 `MagicBlockingTags` — **마법만** 막는다: 슬롯 마법은 실패 알림 「너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다」(`EGrimCastFailReason::Exhausted`), 기본 공격 입력은 주먹질이 대신 나간다(마법이 아니므로 — 구현에서 정한 것).
-- 탈진 전 구간의 「시전 속도 · 명중 크게 저하」(R29)는 아직 없다 — 문턱 · 수치는 미결 Q132. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
+- **지침**(탈진 전 구간, R29 · Q132 확정 2026-11-18 — 계획, 코드 없음): 피곤함 50 이상이면 ① 시전 시간이 있는 마법만 시전 시간이 늘고(즉발은 그대로) ② 쿨다운은 그대로 ③ 생물 · 플레이어에게 맞는 판정이 난 뒤 서버가 확률로 **빗나감** — 피해 0 + 피해 숫자 자리에 「MISS」. 조준 퍼짐은 쓰지 않는다. 수치(`Fatigue` 묶음)와 빗나감이 무엇에 걸리는지는 Q165. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
 - 명중 저하 · 바람 마법 「각성」은 나중.
 - **피곤함을 푸는 음료**(Q53 답 2026-11-18, 계획 — 코드 없음): 피곤함은 잠 말고는 거점에서 만든 커피 · 에너지 드링크로만 푼다(인챈트 · 장신구 · 마법은 안 됨). 만들 때는 음식과 같은 길로 — 아이템 표 `Content/Grimoire/Data/Items.csv` 에 「피곤함 회복량」 열을 더하고(`HungerRestore` 옆), 먹기 처리에서 `Survival.Fatigue` 를 깎는다. 연달아 마시면 줄어드는 규칙의 수치는 `[/Script/Grimoire.GrimSurvivalSettings]` 의 `Fatigue` 묶음에 둔다. 이름 · 수치는 미결 Q164 — [생존 — 피곤함을 푸는 법](../spec/survival#피곤함을-푸는-법-—-잠과-깨는-음료-q53).
 
