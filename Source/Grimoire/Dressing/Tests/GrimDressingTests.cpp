@@ -110,9 +110,9 @@ namespace GrimDressingTest
 	}
 }
 
-using namespace GrimDressingTest;
+// 유니티 빌드에서 다른 테스트 파일과 이름이 겹치지 않게 using 없이 GrimDressingTest:: 로 쓴다
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingTablesTest, "Grimoire.Dressing.Tables", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingTablesTest, "Grimoire.Dressing.Tables", GrimDressingTest::Flags)
 bool FGrimDressingTablesTest::RunTest(const FString& Parameters)
 {
 	FGrimDressingData::Reset();
@@ -184,7 +184,7 @@ bool FGrimDressingTablesTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingRewardsTest, "Grimoire.Dressing.Rewards", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingRewardsTest, "Grimoire.Dressing.Rewards", GrimDressingTest::Flags)
 bool FGrimDressingRewardsTest::RunTest(const FString& Parameters)
 {
 	TArray<FString> Problems;
@@ -200,7 +200,7 @@ bool FGrimDressingRewardsTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingRulesTest, "Grimoire.Dressing.ReactionRules", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingRulesTest, "Grimoire.Dressing.ReactionRules", GrimDressingTest::Flags)
 bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 {
 	TArray<FString> Problems;
@@ -214,7 +214,7 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 
 	// D01 바람솜꽃: 바람 → 비었다(한 번만). 젖었으면 먼저 마른다
 	{
-		FRuleObject Cotton{ Table.Get() };
+		GrimDressingTest::FRuleObject Cotton{ Table.Get() };
 		Cotton.Material.AddTag(GrimDressingTags::Material_Seedhead);
 		Cotton.Hit(GrimTags::Element_Wind, 0.3f);
 		TestFalse(TEXT("약한 바람(0.3)엔 안 날린다"), Cotton.Has(GrimDressingTags::State_Spent));
@@ -228,7 +228,7 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 	}
 	// D03 목마른 들꽃: 비(물 0.5) → 핀다
 	{
-		FRuleObject Flower{ Table.Get() };
+		GrimDressingTest::FRuleObject Flower{ Table.Get() };
 		Flower.Material.AddTag(GrimDressingTags::Material_Thirsty);
 		TArray<FGrimElementalStateChange> Changes;
 		Flower.States.SetIntensity(GrimDressingTags::State_Wilted, 1.f, Changes);
@@ -239,7 +239,7 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 	}
 	// D02 마른 풀: 불 → 8초 탄다 → 다 탄다
 	{
-		FRuleObject Grass{ Table.Get() };
+		GrimDressingTest::FRuleObject Grass{ Table.Get() };
 		Grass.Material.AddTag(GrimInteractionTags::Material_Flammable);
 		Grass.Material.AddTag(GrimInteractionTags::Material_Consumable);
 		Grass.Hit(GrimTags::Element_Fire, 1.f);
@@ -251,7 +251,7 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 	}
 	// D04 등잔: 불 → 켜짐, 돌풍 → 꺼짐, 비 → 꺼짐
 	{
-		FRuleObject Lamp{ Table.Get() };
+		GrimDressingTest::FRuleObject Lamp{ Table.Get() };
 		Lamp.Material.AddTag(GrimInteractionTags::Material_Flammable);
 		Lamp.Hit(GrimTags::Element_Fire, 1.f);
 		TestTrue(TEXT("등잔이 켜진다"), Lamp.Has(GrimTags::State_Burning));
@@ -260,7 +260,7 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 	}
 	// D21 책장 · D16 나비 · D29 떠 있는 돌
 	{
-		FRuleObject Page{ Table.Get() };
+		GrimDressingTest::FRuleObject Page{ Table.Get() };
 		Page.Material.AddTag(GrimDressingTags::Material_Paper);
 		Page.Hit(GrimTags::Element_Wind, 0.6f);
 		TestFalse(TEXT("약한 바람엔 책장이 안 날린다"), Page.Has(GrimDressingTags::State_Blown));
@@ -269,14 +269,14 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 		Page.Wait(2.f);
 		TestFalse(TEXT("날림은 잠깐"), Page.Has(GrimDressingTags::State_Blown));
 
-		FRuleObject Swarm{ Table.Get() };
+		GrimDressingTest::FRuleObject Swarm{ Table.Get() };
 		Swarm.Material.AddTag(GrimDressingTags::Material_Swarm);
 		Swarm.Hit(GrimTags::Element_Wind, 0.5f);
 		TestTrue(TEXT("나비가 흩어진다"), Swarm.Has(GrimDressingTags::State_Scattered));
 		Swarm.Wait(21.f);
 		TestFalse(TEXT("20초 뒤 돌아온다"), Swarm.Has(GrimDressingTags::State_Scattered));
 
-		FRuleObject Stone{ Table.Get() };
+		GrimDressingTest::FRuleObject Stone{ Table.Get() };
 		Stone.Material.AddTag(GrimDressingTags::Material_Floating);
 		Stone.Hit(GrimMagicTags::Element_None, 1.f);
 		TestTrue(TEXT("충격에 튕긴다 → State.Struck"), Stone.Has(GrimDressingTags::State_Struck));
@@ -286,20 +286,20 @@ bool FGrimDressingRulesTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingPropReactTest, "Grimoire.Dressing.PropReact", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingPropReactTest, "Grimoire.Dressing.PropReact", GrimDressingTest::Flags)
 bool FGrimDressingPropReactTest::RunTest(const FString& Parameters)
 {
 	FGrimDressingData::Reset();
-	FScopedGameWorld TestWorld;
+	GrimDressingTest::FScopedGameWorld TestWorld;
 
 	// D01: 바람 → 솜이 빠지고 보상, 아침 → 다시
 	AGrimReactiveProp* Cotton = TestWorld.SpawnProp(TEXT("D01_WindCotton"), FVector(0.f, 0.f, 0.f));
 	TestTrue(TEXT("D01 처음 상태"), Cotton->IsAtInitialState());
-	UGrimElementalStatics::ApplyStimulusToActor(Cotton, Stim(GrimTags::Element_Wind, 1.f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Cotton, GrimDressingTest::Stim(GrimTags::Element_Wind, 1.f), nullptr);
 	TestTrue(TEXT("D01 바람 → State.Spent"), Cotton->GetElementalState()->HasState(GrimDressingTags::State_Spent));
 	TestTrue(TEXT("D01 바뀐 모습(솜 없음)"), Cotton->IsShowingAlt());
 	TestEqual(TEXT("D01 솜씨앗 픽업 하나"), TestWorld.CountPickups(TEXT("WindCotton")), 1);
-	UGrimElementalStatics::ApplyStimulusToActor(Cotton, Stim(GrimTags::Element_Wind, 1.f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Cotton, GrimDressingTest::Stim(GrimTags::Element_Wind, 1.f), nullptr);
 	TestEqual(TEXT("D01 다시 쏴도 보상은 한 번"), TestWorld.CountPickups(TEXT("WindCotton")), 1);
 	Cotton->HandleDawn();
 	TestTrue(TEXT("D01 아침에 다시 난다"), Cotton->IsAtInitialState());
@@ -308,7 +308,7 @@ bool FGrimDressingPropReactTest::RunTest(const FString& Parameters)
 	// D03: 처음 시듦, 물 → 핌 + 꽃잎, 아침 → 다시 시듦
 	AGrimReactiveProp* Flower = TestWorld.SpawnProp(TEXT("D03_ThirstyFlower"), FVector(500.f, 0.f, 0.f));
 	TestTrue(TEXT("D03 처음엔 시들었다"), Flower->GetElementalState()->HasState(GrimDressingTags::State_Wilted));
-	UGrimElementalStatics::ApplyStimulusToActor(Flower, Stim(GrimTags::Element_Water, 0.5f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Flower, GrimDressingTest::Stim(GrimTags::Element_Water, 0.5f), nullptr);
 	TestTrue(TEXT("D03 물 → 핌"), Flower->GetElementalState()->HasState(GrimDressingTags::State_Bloomed));
 	TestEqual(TEXT("D03 들꽃잎"), TestWorld.CountPickups(TEXT("WildPetal")), 1);
 	Flower->HandleDawn();
@@ -317,7 +317,7 @@ bool FGrimDressingPropReactTest::RunTest(const FString& Parameters)
 	// D02: 불 → 탄다 → 다 타면 몸이 사라지고 재 자국 · 보상 굴림(빈손일 수 있다)
 	AGrimReactiveProp* Grass = TestWorld.SpawnProp(TEXT("D02_DryGrass"), FVector(1000.f, 0.f, 0.f));
 	Grass->SetRewardSeed(7);
-	UGrimElementalStatics::ApplyStimulusToActor(Grass, Stim(GrimTags::Element_Fire, 1.f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Grass, GrimDressingTest::Stim(GrimTags::Element_Fire, 1.f), nullptr);
 	TestTrue(TEXT("D02 불 → 탄다"), Grass->GetElementalState()->HasState(GrimTags::State_Burning));
 	Grass->GetElementalState()->AdvanceTime(9.f);
 	TestTrue(TEXT("D02 다 탔다"), Grass->GetElementalState()->HasState(GrimInteractionTags::State_Charred));
@@ -327,26 +327,26 @@ bool FGrimDressingPropReactTest::RunTest(const FString& Parameters)
 
 	// D02 → 옆 등잔 불 번짐은 규칙표 2.5 m(전파 서브시스템) — 여기서는 등잔 자체만
 	AGrimReactiveProp* Lamp = TestWorld.SpawnProp(TEXT("D04_StoneLamp"), FVector(1500.f, 0.f, 0.f));
-	UGrimElementalStatics::ApplyStimulusToActor(Lamp, Stim(GrimTags::Element_Fire, 1.f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Lamp, GrimDressingTest::Stim(GrimTags::Element_Fire, 1.f), nullptr);
 	TestTrue(TEXT("D04 켜진다"), Lamp->GetElementalState()->HasState(GrimTags::State_Burning));
 	Lamp->HandleDawn();
 	TestFalse(TEXT("D04 아침이면 꺼진다"), Lamp->GetElementalState()->HasState(GrimTags::State_Burning));
 
 	// D20: 켜면 아침에도 그대로(되돌리지 않는다)
 	AGrimReactiveProp* Campfire = TestWorld.SpawnProp(TEXT("D20_Campfire"), FVector(2000.f, 0.f, 0.f));
-	UGrimElementalStatics::ApplyStimulusToActor(Campfire, Stim(GrimTags::Element_Fire, 1.f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Campfire, GrimDressingTest::Stim(GrimTags::Element_Fire, 1.f), nullptr);
 	Campfire->HandleDawn();
 	TestTrue(TEXT("D20 모닥불은 아침에도 탄다"), Campfire->GetElementalState()->HasState(GrimTags::State_Burning));
 
 	// D29: 충격 → 튕긴다(연출 틱이 켜졌다 꺼진다)
 	AGrimReactiveProp* Stone = TestWorld.SpawnProp(TEXT("D29_FloatStone"), FVector(2500.f, 0.f, 50.f));
-	UGrimElementalStatics::ApplyStimulusToActor(Stone, Stim(GrimMagicTags::Element_None, 1.f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Stone, GrimDressingTest::Stim(GrimMagicTags::Element_None, 1.f), nullptr);
 	TestTrue(TEXT("D29 State.Struck"), Stone->GetElementalState()->HasState(GrimDressingTags::State_Struck));
 
 	// D21: 센 바람 → 옮겨 간다
 	AGrimReactiveProp* Page = TestWorld.SpawnProp(TEXT("D21_Page"), FVector(3000.f, 0.f, 0.f));
 	const FVector Before = Page->GetActorLocation();
-	UGrimElementalStatics::ApplyStimulusToActor(Page, Stim(GrimTags::Element_Wind, 1.5f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Page, GrimDressingTest::Stim(GrimTags::Element_Wind, 1.5f), nullptr);
 	TestTrue(TEXT("D21 바람에 2.5 m 넘게 날려 갔다"), FVector::Dist2D(Before, Page->GetActorLocation()) >= 249.f);
 	TestEqual(TEXT("D21 도감 줄"), Page->GetJournalId(), FName(TEXT("Page_01")));
 	Page->SetJournalOverride(TEXT("Page_07"));
@@ -354,12 +354,12 @@ bool FGrimDressingPropReactTest::RunTest(const FString& Parameters)
 
 	// D16: 바람 → 흩어짐
 	AGrimReactiveProp* Swarm = TestWorld.SpawnProp(TEXT("D16_Butterflies"), FVector(3500.f, 0.f, 0.f));
-	UGrimElementalStatics::ApplyStimulusToActor(Swarm, Stim(GrimTags::Element_Wind, 0.5f), nullptr);
+	UGrimElementalStatics::ApplyStimulusToActor(Swarm, GrimDressingTest::Stim(GrimTags::Element_Wind, 0.5f), nullptr);
 	TestTrue(TEXT("D16 흩어졌다"), Swarm->GetElementalState()->HasState(GrimDressingTags::State_Scattered));
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingHarvestTest, "Grimoire.Dressing.HarvestRespawn", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingHarvestTest, "Grimoire.Dressing.HarvestRespawn", GrimDressingTest::Flags)
 bool FGrimDressingHarvestTest::RunTest(const FString& Parameters)
 {
 	FGrimDressingData::Reset();
@@ -378,7 +378,7 @@ bool FGrimDressingHarvestTest::RunTest(const FString& Parameters)
 	Harvest->AddRow(TEXT("Test_TreeLike"), TreeLike);
 	FGrimDressingData::SetTablesForTest(nullptr, Harvest, nullptr);
 
-	FScopedGameWorld TestWorld;
+	GrimDressingTest::FScopedGameWorld TestWorld;
 	AGrimHarvestCell* Cell = TestWorld.World->SpawnActorDeferred<AGrimHarvestCell>(AGrimHarvestCell::StaticClass(), FTransform::Identity);
 	Cell->AddPoint(TEXT("D10_Branch1"), FTransform(FVector(0.f, 0.f, 0.f)));
 	Cell->AddPoint(TEXT("D10_Pebble1"), FTransform(FRotator::ZeroRotator, FVector(300.f, 0.f, 0.f), FVector(0.5f)));
@@ -435,7 +435,7 @@ bool FGrimDressingHarvestTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingReplicationTest, "Grimoire.Dressing.Replication", Flags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDressingReplicationTest, "Grimoire.Dressing.Replication", GrimDressingTest::Flags)
 bool FGrimDressingReplicationTest::RunTest(const FString& Parameters)
 {
 	FGrimDressingData::Reset();
@@ -445,18 +445,18 @@ bool FGrimDressingReplicationTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("소품은 휴면(DormantAll)"), PropCDO->NetDormancy == DORM_DormantAll);
 	TestTrue(TEXT("소품은 날려 간 자리를 복제한다"), PropCDO->IsReplicatingMovement());
 	TestFalse(TEXT("소품은 틱으로 시작하지 않는다"), PropCDO->PrimaryActorTick.bStartWithTickEnabled);
-	TestTrue(TEXT("PropId 복제"), HasReplicatedProperty(AGrimReactiveProp::StaticClass(), TEXT("PropId")));
-	TestTrue(TEXT("주운 사람 복제"), HasReplicatedProperty(AGrimReactiveProp::StaticClass(), TEXT("CollectedBy")));
+	TestTrue(TEXT("PropId 복제"), GrimDressingTest::HasReplicatedProperty(AGrimReactiveProp::StaticClass(), TEXT("PropId")));
+	TestTrue(TEXT("주운 사람 복제"), GrimDressingTest::HasReplicatedProperty(AGrimReactiveProp::StaticClass(), TEXT("CollectedBy")));
 	TestTrue(TEXT("상태 컴포넌트는 복제된다"), PropCDO->GetElementalState() && PropCDO->GetElementalState()->GetIsReplicated());
 
 	const AGrimHarvestCell* CellCDO = GetDefault<AGrimHarvestCell>();
 	TestTrue(TEXT("셀은 복제된다"), CellCDO->GetIsReplicated());
 	TestTrue(TEXT("셀은 휴면"), CellCDO->NetDormancy == DORM_DormantAll);
-	TestTrue(TEXT("거둔 점 FastArray 복제"), HasReplicatedProperty(AGrimHarvestCell::StaticClass(), TEXT("Harvested")));
+	TestTrue(TEXT("거둔 점 FastArray 복제"), GrimDressingTest::HasReplicatedProperty(AGrimHarvestCell::StaticClass(), TEXT("Harvested")));
 	TestFalse(TEXT("셀은 틱이 없다"), CellCDO->PrimaryActorTick.bCanEverTick);
 
 	// 서버 셀 → 클라이언트 셀: 복제 콜백(PostReplicatedAdd)으로 클라이언트 모습이 따라온다
-	FScopedGameWorld TestWorld;
+	GrimDressingTest::FScopedGameWorld TestWorld;
 	auto MakeCell = [&]()
 	{
 		AGrimHarvestCell* Cell = TestWorld.World->SpawnActorDeferred<AGrimHarvestCell>(AGrimHarvestCell::StaticClass(), FTransform::Identity);

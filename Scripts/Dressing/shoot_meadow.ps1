@@ -101,7 +101,10 @@ if (-not $Only -or "D10" -match $Only) {
 }
 # 전경 — 구간을 내려다보는 하늘 · 언덕 위 눈높이(지도 → 월드: X = (지도 Y − 380) × 100, Y = (지도 X − 1000) × 100)
 $Vistas = @(
-	@("meadow-vista-west", -1000, -32000, 6000, 30, -14)
+	@("meadow-vista-west", -1000, -32000, 6000, 30, -14),
+	# 탑 앞마당(탑 시범 브랜치)과 그 바깥 초원이 함께 — 합친 뒤 둘 다 살아 있는지
+	@("meadow-tower-yard", 16000, -3000, 600, 169, -8),
+	@("meadow-tower-yard2", 14000, 12000, 300, 230, -6)
 )
 if (-not $Only -or "vista" -match $Only) {
 	foreach ($V in $Vistas) {
