@@ -242,3 +242,29 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld4 -RunSeconds 1500
 | ![](/qa/ld4-wall-mill-lane.jpg) | ![](/qa/ld4-wall-field.jpg) | ![](/qa/ld4-sector-aerial.jpg) |
 
 사람 눈에 남는 것: 물 깊이 페이드 값(`FadeDistance` 35)은 그대로라 얕은 곳 색은 비치는 바닥을 따른다. 어귀에서 연못 쪽으로 넘어가며 젖은 흙(개울 바닥) → 모래(연못 바닥)로 색이 천천히 바뀐다(경계는 없다).
+
+## 마법탑 구역 아트 시범 (2026-11-18)
+
+무엇을 어디에: [마법탑 구역 아트 시범](../art/tower-art) · [레벨 디자인 「12」](../dev/level-design#_12-마법탑-구역-아트-시범-2026-11-18). 브랜치 `claude/tower-artstyle-3be908`.
+
+```powershell
+$Cmd = "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Environment\tower_art_import.py" -unattended -nop4 -nosplash -nullrhi
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Tutorial\tower_art_dress.py" -unattended -nop4 -nosplash -nullrhi
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set tower -Tag after -RunSeconds 700
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set tower -Tag after-dusk -TimeOfDay 0.74 -Only "aerial|road|yard" -RunSeconds 400
+python Scripts/QA/compare_concept.py
+powershell -File Scripts\Perf\measure.ps1 -Label tower-after -Only Render -Settle 25 -Tower
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-049 | — | 키트 · 텍스처 · 재질이 스크립트로 다시 만들어진다 | ② `blender_tower_kit.py`(블렌더 경고 없음) · `tower_art_import.py` 로그 | GLB 43 · 「텍스처 21 · 재질 인스턴스 15 · 메시 43」, 「슬롯 … 에 맞는 인스턴스 없음」 없음 | ✅ 11-18 — 블렌더 경고 0, GLB 43. 가져오기 「텍스처 21 · 재질 인스턴스 15 · 메시 43」, 슬롯 경고 0, 「축 검사 −30.0 cm」(블렌더 +Y → 언리얼 −Y) | `Saved/TowerArt/import.log` |
+| QA-LVL-050 | — | 탑 구역 입히기가 다시 돌려도 같은 결과(쌓이지 않는다) | ② `tower_art_dress.py` 두 번 → 로그 「지난 TowerArt 액터 N 지움」 · 「지난 외부 액터 파일 N 지움」 | 두 번째 실행의 지운 수 = 첫 실행의 놓은 수, 외부 액터 파일 수 그대로 | ✅ 11-18 — 두 번 돌려 「지난 TowerArt 액터 305 지움」 · 「외부 액터 파일 305 지움」, 외부 액터 파일 2,324 그대로, 폴리지 뺀 수 23 → 23(처음 판은 공유 메시 폴리지가 돌릴 때마다 불어나는 버그 — 고치고 맵 파일을 되돌린 뒤 다시) | `Saved/TowerArt/dress_fix1.log` · `dress_fix2.log` |
+| QA-LVL-051 | R08 | 탑 안팎 길 · 게임 액터가 그대로 동작(튜토리얼 처음부터 끝까지) | ② `check_tutorial.ps1` · `check_openbeta.ps1` | PASS | ✅ 11-18 — `run_all`: tutorial PASS · openbeta PASS · save · join · castfail · circle · appearance · cheats PASS(탑 문 · 길 · 게임 액터 그대로) | `Saved/QA/summary.txt` |
+| QA-LVL-052 | R08 | 1층 방 안 · 현관 · 마당 포장에 풀이 나지 않는다(BUG-010) | ③ `tower-hall/start/library/kitchen/yard-after` | 방 바닥은 판석 · 마루, 풀 포기 없음. 마당 밖 풀밭은 그대로 | ✅ 11-18 — 홀 · 시작 방 · 서고 · 주방 · 현관 · 마당 포장에 풀 없음(전 그림은 방 안 가득), 마당 밖 풀밭 그대로 — BUG-010 고침 | `tower-*-after.jpg` |
+| QA-LVL-053 | — | 콘셉트와 견줘 화풍(양피지색 마름돌 · 남색 슬레이트 · 놋쇠 · 푸른 그늘)이 읽힌다 | ③ `tower-compare-*.jpg` 를 직접 열어 본다 | 색 · 재질 밀도가 콘셉트 쪽, 그레이박스 · 팩과 확연히 다름. 다른 점은 [아트 시범 「콘셉트와 다른 점」](../art/tower-art#콘셉트와-다른-점) | ✅ 11-18 — 직접 열어 봄: 양피지색 마름돌 · 남색 슬레이트 · 놋쇠 · 배너 · 판석이 콘셉트 쪽, 그레이박스와 확연히 다름. 실루엣은 둥근 기단 때문에 콘셉트보다 넓다(Q180), 잎 · 덩굴 없음 | `tower-compare-*.jpg` |
+| QA-LVL-054 | — | 해 질 녘 창 · 유리 구 · 놋쇠가 따뜻하게 빛난다(콘셉트 tower-dusk) | ③ `tower-*-after-dusk` | 창이 따뜻한 빛, 하늘 · 노출은 밤 세션 몫이라 판정 밖 | ⏸ 11-18 — `-TimeOfDay 0.74` 그림도 낮 하늘 · 밝기(BUG-008, 밤 밝기 세션 몫). 창 · 관측실 유리 · 놋쇠 구 등은 따뜻하게 빛남 | `tower-*-after-dusk.jpg` |
+| QA-LVL-055 | — | 숨긴 그레이박스 · 뺀 팩 인스턴스가 기록되고 되돌릴 수 있다 | ② `tower_art_removed.json` · `GRIM_TOWER_ART_REVERT=1` 로 한 번 → 다시 입히기 | 되돌리면 전 상태(그레이박스 보임 · 인스턴스 돌아옴), 다시 입히면 후 상태 | ✅ 11-18 — 되돌리기: 액터 305 지움 · 외부 액터 파일 2,324 → 2,019(맨 처음과 같음) · JSON 지움, 다시 입히기 2,324 | `Saved/TowerArt/revert.log` |
+| QA-LVL-056 | R16 | 성능 예산 안 — 특히 탑 문 앞 · 홀 · 앞마당 | ① `measure.ps1 -Tower` 전(`tower-before`) · 후(`tower-after`) | QA-PRF 예산 안, 문 앞 자리 GPU · 드로 콜 증가가 작다 | ✅ 11-18 — 문 앞 GPU 4.34 → 4.95 ms · 홀 4.67 → 4.88 · 마당 4.42 → 5.19, 렌더 스레드 ≤ 6.2, 드로 콜 ≤ 1,512(홀 · 마당 +900 ~ 1,000 — 다음 줄일 곳). 모두 예산 안 | [아트 시범 「성능」](../art/tower-art#성능) |
+| QA-LVL-057 | — | 자동화 테스트 전체 통과 | ② `Scripts/QA/run_all.ps1` | 자동화 모두 통과(알려진 BUG 만) | ✅ 11-18 — 자동화 189/189. FAIL 셋(creatures · storage · taming)은 이 브랜치가 건드리지 않은 `L_M1_Sandbox` 2인 스크립트 — creatures · storage 는 혼자 다시 돌려 PASS, taming 은 알려진 BUG-007 | `Saved/QA/summary.txt` |

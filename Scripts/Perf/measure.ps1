@@ -23,7 +23,10 @@ param(
 	[int]$Port = 17790,
 	# 렌더 실행 맨 앞에 더할 콘솔 명령(쉼표로) — 같은 바이너리로 전후 비교할 때.
 	# 예: -ExtraCmds "Grim.Sky.SunRotationStep 0,Grim.DevLabels.MaxDistance 10000000"(2026-11-06 최적화 전 동작)
-	[string]$ExtraCmds = ""
+	[string]$ExtraCmds = "",
+	# 마법탑 아트 시범(docs/art/tower-art.md): 탑 1층 홀 · 앞마당 자리를 더 잰다. -TowerOnly 면 문 앞 · 그 둘만
+	[switch]$Tower,
+	[switch]$TowerOnly
 )
 
 $UE = "C:\Program Files\Epic Games\UE_5.8"
@@ -46,6 +49,12 @@ $Views = @(
 	@("creatures", 0, 0, 0, "Grim.Go Jackalope;Grim.Spawn Jackalope 12 15"), # 재칼로프 무리 옆 + 12마리 더
 	@("rain", 23246, 2090, -26, "Grim.Weather.Set All Rain 0")              # 큰길 200 m 에서 비(블렌드 없이)
 )
+
+if ($TowerOnly) { $Views = @(,$Views[0]) }
+if ($Tower -or $TowerOnly) {
+	$Views += ,@("towerhall", 1450, -150, 180, "")      # 1층 홀 — 동문 안에서 서쪽
+	$Views += ,@("toweryard", 4700, -600, 165, "")      # 앞마당에서 현관 · 탑 쪽
+}
 
 # 같은 PC 에서 다른 언리얼 프로세스(다른 세션의 에디터 · 점검)가 돌면 GPU · CPU 를 나눠 써서 숫자가 흔들린다
 $Others = Get-Process UnrealEditor, UnrealEditor-Cmd -ErrorAction SilentlyContinue
