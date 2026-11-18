@@ -425,24 +425,24 @@ Megaplants 는 40종 전부가 0원이었다(갈대 · 고사리 · 히스 · �
 
 ### 개인만 무료 받아 둘 것 (Q128)
 
-「개인만」 = 개인 등급만 0원인 항목. 받은 시점의 자격(최근 12개월 매출 10만 달러 이하)이 기준이라, 지금 받아 두면 나중에 매출이 넘어도 계속 쓸 수 있다(위 「라이선스 주의」). **받기는 사용자가 Fab 에서 한다** — 계정 라이브러리에 담기만 하고, 프로젝트에 넣는 것은 쓸 때 한다. 가격은 2026-11-07 에 본 것이라 받기 전에 「개인」 등급이 아직 0원인지 상세 페이지에서 본다.
+「개인만」 = 개인 등급만 0원인 항목. 받은 시점의 자격(최근 12개월 매출 10만 달러 이하)이 기준이라, 지금 받아 두면 나중에 매출이 넘어도 계속 쓸 수 있다(위 「라이선스 주의」). **받기는 사용자가 Fab 에서 한다** — 계정 라이브러리에 담기만 하고, 프로젝트에 넣는 것은 쓸 때 한다. **2026-11-18 에 14 개 모두 받았다** — 사용자 지시로 메인 세션이 사용자 크롬에서 Fab 라이브러리에 담았고, 모두 개인(Personal) 등급 0원이었다(새로 받음 10 · 이미 있던 것 4). 프로젝트(`Content/`)에는 아직 넣지 않았다. 가격은 2026-11-07 에 본 것이라 받기 전에 「개인」 등급이 아직 0원인지 상세 페이지에서 본다.
 
 | # | 에셋 (판매자) | 쓸 곳 | 받음 |
 |---|---|---|---|
-| 1 | [Stylized Environment - Forest](https://www.fab.com/listings/7b06f300-f295-40fe-9972-b9de3a0abe03) (SilverSet Studios) | C07 · C08 나무 예비(채도 높은 만화풍 — 스타일 하) | ☐ |
-| 2 | [Free Mega Tree](https://www.fab.com/listings/e5ac0773-7e11-4e78-8d59-526ecd661b93) (3D Nik) | 그레이박스 · 예비 나무 1 | ☐ |
-| 3 | [Stylized Nature Pack](https://www.fab.com/listings/b066de06-73b8-4fbe-b30c-468f5bcf7575) (Tiny Talisman Games) | 그레이박스 숲 대용 | ☐ |
-| 4 | [Light Foliage](https://www.fab.com/listings/30e6c98c-6634-4b7e-b142-2c3cdfde6e1e) (MYTHRA TECH) | C12 · C13 풀밭 · 꽃 · 관목 | ☐ |
-| 5 | [[FREE] Mountain Tops for Unreal Engine 5+](https://www.fab.com/listings/8cdfadfb-5fa6-4b4e-99db-1a02b01295c2) (Arghanion's Puzzlebox) | 원경 산봉우리 — 지역 가장자리 · 높은 곳에서 보이는 먼 산 | ☐ |
-| 6 | [Environment - Rock Collection 04 (Free)](https://www.fab.com/listings/a51e61ac-98fa-4c54-ab23-fc533687afb7) (Shadowmire Studios) | C01 · C04 바위 | ☐ |
-| 7 | [Free Pack - Rocks Stylized](https://www.fab.com/listings/a0746c4b-428b-4556-b4c9-98f70c2a30d4) (PolyOne Studio) | C01 바위 예비(로우 폴리) | ☐ |
-| 8 | [Medieval Farm Barn – Windmill, Silo](https://www.fab.com/listings/3d4cf892-0971-49a8-b910-20b08e080816) (GESxQbee Studio) | 풍차 · 곳간 — 풍차 외관 참고 · 밭 둘레 | ☐ |
-| 9 | [Stylized Library — 48 Cozy Interior Props](https://www.fab.com/listings/6150cf8e-8105-4da0-9209-3edbc2afb673) (Daria Borovleva) | 탑 서고 소품(책 · 촛대 · 의자) | ☐ |
-| 10 | [Torn Banner Free](https://www.fab.com/listings/a95621bb-bc4c-4dc9-b45d-0af213ea89d7) (DzenGame) | C39 · T07 깃발 · 배너(색만 바꿔 서클 배너) | ☐ |
-| 11 | [Medieval House Props Vol 2 – Furniture & Household](https://www.fab.com/listings/53b5afa7-de38-4034-bd13-cbb92cc883d1) (GESxQbee Studio) | 실내 가구 — 침대 · 장 · 탁자(마을 집 · 거점) | ☑? — 폴더 `Medieval_House_Props_V2` 가 이것인지 Fab 라이브러리에서 확인 |
-| 12 | [Medieval Village Props – Furniture, Containers & Clutter](https://www.fab.com/listings/b8fc5a33-8dce-48d1-8175-1015aa4c9436) (DuplexG) | 가구 · 용기 · 잡동사니 — 마을 · 거점 꾸밈 | ☐ |
-| 13 | [Vintage Study](https://www.fab.com/listings/ff76f755-0c45-4913-a872-7cd5d2e43622) (Coded Arts Studios) | 서재 소품 — 지구의(마법 기구 빈 곳) | ☐ |
-| 14 | [Misc Props - UB Free Pack](https://www.fab.com/listings/e5bb46ab-edf1-4530-8797-703f4c98b4a6) (UB) | 잡소품 — 촛대 · 지구의 · 시계 | ☐ |
+| 1 | [Stylized Environment - Forest](https://www.fab.com/listings/7b06f300-f295-40fe-9972-b9de3a0abe03) (SilverSet Studios) | C07 · C08 나무 예비(채도 높은 만화풍 — 스타일 하) | ☑ 받음 2026-11-18 |
+| 2 | [Free Mega Tree](https://www.fab.com/listings/e5ac0773-7e11-4e78-8d59-526ecd661b93) (3D Nik) | 그레이박스 · 예비 나무 1 | ☑ 받음 2026-11-18 |
+| 3 | [Stylized Nature Pack](https://www.fab.com/listings/b066de06-73b8-4fbe-b30c-468f5bcf7575) (Tiny Talisman Games) | 그레이박스 숲 대용 | ☑ 받음 2026-11-18 |
+| 4 | [Light Foliage](https://www.fab.com/listings/30e6c98c-6634-4b7e-b142-2c3cdfde6e1e) (MYTHRA TECH) | C12 · C13 풀밭 · 꽃 · 관목 | ☑ 받음 2026-11-18 |
+| 5 | [[FREE] Mountain Tops for Unreal Engine 5+](https://www.fab.com/listings/8cdfadfb-5fa6-4b4e-99db-1a02b01295c2) (Arghanion's Puzzlebox) | 원경 산봉우리 — 지역 가장자리 · 높은 곳에서 보이는 먼 산 | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+| 6 | [Environment - Rock Collection 04 (Free)](https://www.fab.com/listings/a51e61ac-98fa-4c54-ab23-fc533687afb7) (Shadowmire Studios) | C01 · C04 바위 | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+| 7 | [Free Pack - Rocks Stylized](https://www.fab.com/listings/a0746c4b-428b-4556-b4c9-98f70c2a30d4) (PolyOne Studio) | C01 바위 예비(로우 폴리) | ☑ 받음 2026-11-18 |
+| 8 | [Medieval Farm Barn – Windmill, Silo](https://www.fab.com/listings/3d4cf892-0971-49a8-b910-20b08e080816) (GESxQbee Studio) | 풍차 · 곳간 — 풍차 외관 참고 · 밭 둘레 | ☑ 받음 2026-11-18 |
+| 9 | [Stylized Library — 48 Cozy Interior Props](https://www.fab.com/listings/6150cf8e-8105-4da0-9209-3edbc2afb673) (Daria Borovleva) | 탑 서고 소품(책 · 촛대 · 의자) | ☑ 받음 2026-11-18 |
+| 10 | [Torn Banner Free](https://www.fab.com/listings/a95621bb-bc4c-4dc9-b45d-0af213ea89d7) (DzenGame) | C39 · T07 깃발 · 배너(색만 바꿔 서클 배너) | ☑ 받음 2026-11-18 |
+| 11 | [Medieval House Props Vol 2 – Furniture & Household](https://www.fab.com/listings/53b5afa7-de38-4034-bd13-cbb92cc883d1) (GESxQbee Studio) | 실내 가구 — 침대 · 장 · 탁자(마을 집 · 거점) | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
+| 12 | [Medieval Village Props – Furniture, Containers & Clutter](https://www.fab.com/listings/b8fc5a33-8dce-48d1-8175-1015aa4c9436) (DuplexG) | 가구 · 용기 · 잡동사니 — 마을 · 거점 꾸밈 | ☑ 받음 2026-11-18 |
+| 13 | [Vintage Study](https://www.fab.com/listings/ff76f755-0c45-4913-a872-7cd5d2e43622) (Coded Arts Studios) | 서재 소품 — 지구의(마법 기구 빈 곳) | ☑ 받음 2026-11-18 |
+| 14 | [Misc Props - UB Free Pack](https://www.fab.com/listings/e5bb46ab-edf1-4530-8797-703f4c98b4a6) (UB) | 잡소품 — 촛대 · 지구의 · 시계 | ☑ 받음 — 이미 라이브러리에 있었다(2026-11-18 확인) |
 
 - 이 표의 14 개가 이 페이지의 「개인만」 전부다(Torn Banner 는 두 표에 나와 한 번만 셌다). 스타일이 「하」인 나무 · 바위 몇 개는 쓸 일이 적지만, 받아 두는 데 비용이 없어 넣었다.
-- 받은 뒤 받음 칸을 ☑ 로 바꾸고, 프로젝트에 넣은 팩은 [마켓 · Fab 에셋 팩 — 받은 팩](../dev/market-assets#받은-팩-이-pc-2026-11-07)에 적는다.
+- 프로젝트에 넣은 팩은 [마켓 · Fab 에셋 팩 — 받은 팩](../dev/market-assets#받은-팩-이-pc-2026-11-07)에 적는다.
