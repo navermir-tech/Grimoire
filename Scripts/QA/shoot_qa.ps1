@@ -7,7 +7,7 @@
 # 장면 = 이름, 찍는 초, 앞서 칠 명령(쉼표 없이 ; 로 — 1초 간격으로 차례로). 맵 로드(10~40초)를 넉넉히 둔다.
 param(
 	# Main = 기본 장면들, Pose = 시작 자리 앞 고정 카메라로 완드 · 그리모어 앞모습과 시전 순간(R21)
-	[ValidateSet("Main", "Pose", "Fizzle", "Circle", "Creator", "Bag")]
+	[ValidateSet("Main", "Pose", "Fizzle", "Circle", "Creator", "Bag", "Zones", "MenuCredits")]
 	[string]$Set = "Main",
 	[int]$Start = 45,
 	[int]$ResX = 1600,
@@ -80,6 +80,21 @@ $BagScenes = @(
 	@("qa-bag-doubleclick-material", "Grim.Items.BagMouse 1;Grim.Items.Dump", 0)
 )
 if ($Set -eq "Bag") { $Scenes = $BagScenes }
+# 구역 이름 표시(Q130) · 크레딧 탭(Q137) — 본 구역을 잊으면(Grim.Zones Reset) 시작 자리(마탑 곶 · 마탑 앞마당)의 「처음」 배너가 차례로 뜬다:
+# 큰 구역은 들어선 뒤 약 1.2~6 초, 소구역은 그 뒤 약 1~3.5 초가 다 보이는 때. 이어서 Esc 메뉴의 설정 → 설정 탭 · 크레딧 확인 탭
+$ZoneScenes = @(
+	@("qa-zone-region-first", "Grim.Weather.Set All Clear 0;Grim.Creature.Time 0.45;Grim.Zones Reset", 3),
+	@("qa-zone-sector-first", "Grim.Zones Dump", 2),
+	@("qa-settings-tab", "Grim.Online.Settings 0", 2),
+	@("qa-credits-tab", "Grim.Online.Settings 1", 2)
+)
+if ($Set -eq "Zones") { $Scenes = $ZoneScenes }
+# 메인 메뉴(L_MainMenu)의 설정 → 크레딧 확인 탭
+# 장면이 하나뿐이면 PowerShell 이 바깥 배열을 펴 버린다 — 앞에 쉼표(,)를 붙여 배열의 배열로 둔다
+$MenuCreditScenes = @(
+	,@("qa-menu-credits-tab", "Grim.Online.Settings 1", 2)
+)
+if ($Set -eq "MenuCredits") { $Scenes = $MenuCreditScenes }
 
 $Cmds = @("r.ScreenPercentage 100")
 $T = $Start
@@ -93,7 +108,8 @@ $Cmds += "Grim.At $($T + 3) quit"
 $Cmds = $Cmds -join ","
 
 $Before = Get-Date
-$GameArgs = @("`"$Project`"", "/Game/Grimoire/Maps/L_OpenBeta", "-game", "-GrimStartingSpells", "-nosound", "-unattended", "-nosplash", "-nop4", "-log",
+$Map = if ($Set -eq "MenuCredits") { "/Game/Grimoire/Maps/L_MainMenu" } else { "/Game/Grimoire/Maps/L_OpenBeta" }
+$GameArgs = @("`"$Project`"", $Map, "-game", "-GrimStartingSpells", "-nosound", "-unattended", "-nosplash", "-nop4", "-log",
 	"-windowed", "-ResX=$ResX", "-ResY=$ResY", "-abslog=`"$Log`"", "-ExecCmds=`"$Cmds`"")
 if (-not $Windowed) { $GameArgs += "-RenderOffscreen" }
 $Game = Start-Process -FilePath $Exe -PassThru -ArgumentList $GameArgs

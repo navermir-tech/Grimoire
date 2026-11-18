@@ -113,6 +113,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "UI")
 	FLinearColor CastFailColor = FLinearColor(1.f, 0.6f, 0.5f);
 
+	/** 크레딧(설정 → 크레딧 확인 탭, Q137). Content 폴더 기준. 정본 — docs/art/credits.md 와 CREDITS.txt 는 여기서 만든다 */
+	UPROPERTY(Config, EditAnywhere, Category = "UI")
+	FString CreditsFile = TEXT("Grimoire/Data/Credits.json");
+
 	UPROPERTY(Config, EditAnywhere, Category = "Input")
 	TSoftObjectPtr<UInputMappingContext> InputContext;
 

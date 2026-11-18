@@ -37,6 +37,7 @@
 | 11-09 | 물 재질 Q126 | Water Materials 팩(CC BY) `M_River` 인스턴스로 개울 · 연못 물 표면 교체, 크레딧 문서, 호 길이 UV 연속화 | [물 재질 Q126](#물-재질-q126-2026-11-09) |
 | 11-09 | 초원 꾸밈 기획 (문서) | 소품을 마법 반응으로 — 요소 32 · 장면 8 · 분포 규칙 · 1차 11(Q150~Q157), 다른 게임 조사 근거 | [초원 꾸밈](../spec/meadow-dressing) |
 | 11-18 | 사용자 답 Q46~Q110 (문서) | 전설도 길들일 수 있다(Q48) · 피곤함 · 배고픔은 인챈트로 못 막고 커피 · 에너지 드링크로(Q53) · 인챈트 칸 · 단계는 데이터에(Q51) · 묶음 알리는 법(Q54) · 보관은 크기 무관(Q61) · 천둥새도 잡는다(Q162) · 마법탑 아트풍 시범(Q96) · Q85 빛줄기는 원격만(Q110) 등, 새 미결 Q160 · Q161 · Q163 · Q164 | [사용자 답 Q46~Q110](#사용자-답-q46-q110-→-문서-2026-11-18) |
+| 11-18 | 구역 이름 · 크레딧 탭 (Q130 · Q137, 코드) | 구역에 처음 들어서면 화면 위쪽에 이름 + 한 줄(젤다 · 엘든 링식, 본 구역은 플레이어 세이브), 레이아웃 `Sections` 에 큰 구역 경계 · 게임 문구, 설정 → 「크레딧 확인」 탭(정본 `Credits.json` → 문서 표 · `CREDITS.txt`) | [구역 이름 · 크레딧](#구역-이름-·-크레딧-탭-q130-·-q137-2026-11-18) |
 
 ## M0 · 셋업 (2026-11-04 ~ 05)
 
@@ -242,6 +243,16 @@
 - **어떻게**: 사용 단추와 같은 `Server_UseItem` 을 부른다(새 RPC 없음, 판정 · 알림은 서버). `SButton` 은 더블클릭을 또 한 번의 누름으로 처리해 `OnClicked` 가 두 번 오므로, 칸 단추의 누름 간격을 `FGrimSlotDoubleClick` 이 본다(ini `SlotDoubleClickSeconds`, 기본 0.5초 = Windows 기본). 클라이언트는 `FGrimItemDefinition::IsUsable` 로 쓸 수 있는 종류만 보낸다 — 재료 더블클릭에 「쓸 수 없다」 알림이 뜨지 않게. 옮기기 중의 누름은 세지 않는다. 가방에는 끌어 놓기가 아직 없어(남은 것 「아이콘 · 끌어 놓기 UI」) 드래그와 겹치지 않는다.
 - **확인**: 자동화 `Grimoire.Items.BagDoubleClick.*`(2), 2인 `Scripts/Items/net_check_bag_doubleclick.ps1`, 화면 `Scripts/QA/shoot_qa.ps1 -Set Bag` — [QA — 생존](../qa/survival#먹기-·-요리-r03-·-r16).
 - **함정**: 합성 입력을 `RoutePointerDownEvent` · `RoutePointerMoveEvent` 에 경로와 함께 직접 넣으면 창 없는 실행(`-RenderOffscreen`)에서 엔진 배열 어서트로 죽었다. `ProcessMouseMoveEvent` + `OnMouseDown` · `OnMouseUp` · `OnMouseDoubleClick`(OS 메시지가 들어오는 함수)에 좌표를 주면 창 찾기 · 칸 맞히기까지 실제 입력과 같은 길로 돌고 죽지 않는다(`Grim.Items.BagMouse`). 화면이 그려지기 전이면 칸 크기가 0 이라 못 한다.
+
+## 구역 이름 · 크레딧 탭 Q130 · Q137 (2026-11-18)
+
+- **무엇을**: 사용자 답 Q130 「젤다랑 엘든링식으로」 · Q137 「설정 탭 안에 크레딧 확인 탭」. ① 구역(큰 구역 8 · 소구역 12)에 **처음** 들어서면 화면 위쪽 가운데에 이름 + 줄 + 한 줄 설명을 크게 띄웠다 사라진다. 다시 들어서면 큰 구역만 이름을 작게(3 분 안엔 다시 안 띄움), 소구역은 띄우지 않는다. 본 구역은 플레이어 세이브(`World.Zones`), 멀티는 플레이어마다. 미니맵 · 큰 지도가 쓸 조회(`UGrimZoneSubsystem` — 자리의 구역 · 정의 · 월드 경계 · 좌표 변환)를 뒀다. ② 메인 메뉴 · Esc 메뉴가 같이 쓰는 설정 칸에 「설정 · 크레딧 확인」 탭 — CC BY 표기 · 엔진 표기를 스크롤로. [구역 이름 표시 · 크레딧 탭](../systems/world-zones).
+- **어떻게**: 정본은 레이아웃 `Sections`(하늘 글씨와 같은 데이터)에 큰 구역 `Polygon`(맞닿게 손으로) · 게임 문구 `Subtitle` 을 더하고, `Scripts/Terrain/export_zones.py` 가 게임용 `Content/Grimoire/Data/WorldZones.json` 을 만든다(테스트가 둘을 비교). 소구역은 자기 큰 구역 안의 보로노이. 서버가 0.5 초마다 폰 자리를 보고(1 초 머물러야 들어섬 — 경계 깜빡임 막기) 소유 클라이언트에 RPC, 컴포넌트는 퀘스트처럼 런타임에 PlayerState 에 붙인다(Core 안 고침). 크레딧은 `Content/Grimoire/Data/Credits.json` 하나를 정본으로 게임이 읽고, `Scripts/Docs/credits.mjs` 가 `docs/art/credits.md` 의 표 · 표기 문구와 출시본 `CREDITS.txt` 를 만든다(`docs:check` 가 어긋남을 잡는다).
+- **확인**: 자동화 197/197(새 `Grimoire.World.Zones.*` 6 · `Grimoire.UI.Credits.*` 2), 헤드리스 `Scripts/QA/check_zones.ps1`(세이브 두 번 켜기) · `Scripts/QA/net_check_zones.ps1`(2인), 화면 `Scripts/QA/shoot_qa.ps1 -Set Zones` · `-Set MenuCredits` — [QA — 구역 이름 · 크레딧](../qa/world-zones).
+- **함정**:
+  - 레이아웃 `Zones` 의 `TowerSector` 다각형은 서쪽(x 650 ~ 860 m)에서 북쪽으로 y 1,000 m 를 넘는다 — 그 위에 「y 1,000 m 까지 목초지」를 그리면 다각형이 꼬여 겹친다. 경계는 서로 맞닿게(같은 꼭짓점 · 같은 변 위 점) 그리고, 테스트(`DataMatchesLayout` — 50 m 격자 빈틈 · 겹침)로 확인한다.
+  - 레이아웃의 `Note` 에는 개발용 POI 번호(「S1 꺼진 화로 제단」)가 있어 게임 문구로 못 쓴다 — `Subtitle` 을 따로 둔다.
+  - 이 워크트리도 처음엔 LFS 가 포인터뿐이라 입력 · 캐릭터 에셋을 쓰는 테스트 4 개가 실패하고 생물 보관 테스트에서 죽었다 — `git lfs checkout` 뒤 197/197.
 
 ## 사용자 답 Q46~Q110 → 문서 (2026-11-18)
 

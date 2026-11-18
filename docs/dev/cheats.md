@@ -204,6 +204,8 @@
 | `Grim.Terrain.ViewFrom <X> <Y> <Z> <Yaw> <Pitch> [지연초] [스크린숏 이름]` | 그 카메라로 보고, 이름을 주면 4초 뒤 `Saved/TerrainCheck/<이름>.png` |
 | `Grim.Terrain.Walk <지연초> <걷는초> [Yaw]` · `Grim.Terrain.Probe [지연초]` | 걸려 보고 처음 · 끝 위치 로그 · 땅 높이 · 프록시 수 · 시간 · 날씨 로그 |
 | `Grim.DevLabels 0/1` · `Grim.DevLabels.MaxDistance <cm>` | (콘솔 변수) 떠 있는 개발 글씨 보이기 · 숨기는 거리(0 = 액터 값 250 m) |
+| `Grim.Zones Where` · `Dump` · `Reset` · `Show <구역> [1/0]` · `Reload` | 구역 이름 표시(Q130): 지금 자리의 구역 · (서버) 본 구역 · (서버) 본 구역을 잊어 「처음」 배너 다시 보기 · 배너만 띄우기 · 구역 표 다시 읽기. 지연은 `Grim.Zones.At <초> <명령…>` — [구역 이름 표시 — 콘솔](../systems/world-zones#콘솔-개발-빌드) |
+| `Grim.Online.Settings [0/1]` | 설정 화면을 연다(0 = 설정 탭, 1 = 크레딧 확인 탭). 메인 메뉴가 떠 있으면 그 설정, 아니면 Esc 메뉴의 설정 |
 | `Grim.DevLabels.Sections 0/1` | (콘솔 변수) 하늘에 떠 있는 **구역 이름**(레벨 디자인 2차 — 「마탑 곶」「봉화 언덕」 …)만 끄고 켜기. 기본 1. `Grim.DevLabels 0` 이면 이것도 숨는다. `MaxDistance` 덮어쓰기를 받지 않는다(구역 이름 4.5 km · 마탑 구간 소구역 이름 1.6 km 까지 보임). 출시 빌드는 늘 숨김 — [지형 — 하늘 구역 이름](../systems/terrain#하늘-구역-이름-레벨-디자인-2차) |
 
 ## 세이브 · 접속 · 성능
