@@ -36,6 +36,10 @@
 - 볼륨은 `BeginPlay` 에 서브시스템에 등록한다(지역 수만큼이라 적다 — 상호작용 사물 목록과는 다르다).
 - 지금 맵에 놓인 것: 탑 · 오픈 베타 맵의 `Climate_Meadow`(`Scripts/Tutorial/tower_greybox.py` · `Scripts/Terrain/build_openbeta.py`). 다른 지역 볼륨은 시험 배치 스크립트만 놓는다(아래).
 
+## 풀 제외 볼륨 `AGrimGrassExclusionVolume`
+
+구현: `Source/Grimoire/Environment/GrimGrassExclusionVolume.h`. 상자 안에 랜드스케이프 그래스(풀 · 꽃 포기)가 나지 않는다 — 건물 바닥 메시를 랜드스케이프 위에 깐 곳(탑 1층 방 · 현관 · 앞마당 포장)에 놓는다. 엔진 `ALandscapeProxy::AddExclusionBox` 에 상자 바운드(월드 축 정렬)를 등록하고(`PostRegisterAllComponents` · 에디터에서 옮기면 다시), 내려갈 때 지운다. 에디터 · 게임 · 런타임 풀 지도 생성(`grass.GrassMap.UseRuntimeGeneration=1`) 모두에 먹는다. 충돌 · 복제 없음. 탑 구역에는 `Scripts/Tutorial/tower_art_dress.py` 가 셋 놓는다(`TA_NoGrass_*`) — [마법탑 구역 아트 시범](../art/tower-art). 콘솔 `grass.DrawExclusionVolumes 1` 로 상자를 본다.
+
 ## 날씨 `UGrimWeatherSubsystem`
 
 구현: `Source/Grimoire/Environment/GrimWeatherSubsystem.h`, 복제 `Source/Grimoire/Environment/GrimWeatherReplicator.h`, 순수 계산 `Source/Grimoire/Environment/GrimWeatherMath.h`, 설정 `Source/Grimoire/Environment/GrimWeatherSettings.h`, 콘솔 `Source/Grimoire/Environment/GrimWeatherDebug.cpp`.

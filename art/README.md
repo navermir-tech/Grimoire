@@ -24,6 +24,20 @@
 - 블렌더 스크립트에 상대 경로를 주면 출력이 .blend 기준으로 바뀐다 — 스크립트가 절대 경로로 바꾼다.
 - `.blend1`(블렌더 백업)은 커밋하지 않는다.
 
+## 마법탑 모듈 키트 (블렌더 스크립트 — 반듯한 건축)
+
+탑 구역 아트 시범(2026-11-18, [문서](../docs/art/tower-art.md)). 반듯한 벽 · 지붕 · 소품은 Tripo 대신 블렌더 스크립트로 만든다.
+
+1. **텍스처**: `python art/tools/make_env_textures.py` → `art/env/materials/T_GrimEnv_*`(돌 · 슬레이트 · 나무 · 금속 · 천 · 잎 색/노멀/ORM, 큰 무늬, 배너 · 깔개). 색은 중립 — 색조는 언리얼 마스터 재질 인스턴스가 정한다.
+2. **키트**: `"C:/Program Files/Blender Foundation/Blender 5.2/blender.exe" -b --factory-startup -P art/tools/blender_tower_kit.py -- art/env/tower-kit exterior,interior,yard [--preview]` → GLB 43 + `.blend`. 조각 정의는 `art/tools/tower_kit/`(공용 `kit_common.py` — 마름돌 쌓기 · 창 구멍 · 테 · UV · 정점 색).
+3. **언리얼**: `Scripts/Environment/tower_art_import.py` → `Scripts/Tutorial/tower_art_dress.py`.
+
+- 재질 슬롯 이름(Stone · Slate · Brass …)이 언리얼 인스턴스 `MI_GrimEnv_<슬롯>` 을 고른다. 새 슬롯은 `kit_common.MATERIALS` 와 `tower_art_import.MATERIALS` 둘 다에 더한다.
+- `bm.verts.new` 로 만든 조각은 번호가 갱신되지 않는다 — `Kit.add` 가 `index_update()` 한다(안 하면 면이 엉뚱한 자리로 간다).
+- 축 위 점을 합친 lathe 면은 같은 꼭짓점을 두 번 든다 — `Kit.add` 가 거른다(블렌더 「Mesh is not valid」, glTF 가 메시를 버림).
+- 블렌더 +Y → 언리얼 −Y(가져오기 로그 「축 검사」). 비대칭 조각은 배치 때 yaw 로 맞춘다.
+- 미리보기(`--preview`)는 EEVEE — 워크벤치는 `-b` 에서 죽는다.
+
 ## 캐릭터 의상 (커스터마이징 R39)
 
 방향 · 순서는 [기술 설계 — 커스터마이징](../docs/systems/customization.md) 「아트 파이프라인」. 조각 하나는 `art/characters/<조각>/` 에 모은다.

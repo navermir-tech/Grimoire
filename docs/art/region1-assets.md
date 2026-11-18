@@ -4,6 +4,8 @@
 >
 > 만드는 길은 [아트 방향](../spec/art-direction) 「리소스 만드는 길」과 `art/README.md`「환경 에셋 만들기」를 따른다. 첫 결과물은 초원 바위 A(`art/env/rock-meadow-a/`)다.
 >
+> **탑 구역 시범(2026-11-18)**: 마법탑 외관 · 탑 실내 키트 일부(T01 대신 네모 방 벽 · T02 · T03 · T07 · T08 · T11 · T12 · T13) · 앞마당(포장 · 화단 · 놋쇠 구 등 기둥 · 장작 헛간 · 통 · 쉼터)을 블렌더 모듈 키트로 만들어 L_OpenBeta 에 놓았다. 석등 · 화로 제단 · 우물 · 돌무더기는 Tripo 대신 블렌더 대체 모델 — [마법탑 구역 아트 시범](./tower-art).
+>
 > 언리얼에 들어간 것(2026-11-06): C01 초원 바위 A 하나 — `Content/Grimoire/Environment/Rocks/SM_Rock_MeadowA/`(가져오기 `Scripts/Environment/import_env_asset.py`, Nanite). 아직 맵에 놓지 않았고, 나머지는 모두 계획이다. 지금 맵의 랜드마크 · POI 는 엔진 기본 도형 그레이박스(`Scripts/Terrain/landmark_greybox.py`)다.
 
 ## 읽는 법
