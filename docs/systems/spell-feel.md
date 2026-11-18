@@ -1,6 +1,6 @@
 # 투사체 · 시전 감각 (Spell Feel)
 
-> 상태: **구현 문서 v1.3** · 2026-11-07 코드 대조 · 마일스톤 **M1.5 「시전 감각」** (M1 다음, M2 전) — 전달 방식 · 네트워크(갈래 A) · 연출 · 동작(갈래 C) · 볼트 이펙트(2026-11-06) · 볼트 발사 빛줄기(Q85) · 물줄기 · 미풍 빛 언어(Q86, 2026-11-07) 코드 반영. 코드 `Source/Grimoire/Magic/` · `Source/Grimoire/MagicFX/`
+> 상태: **구현 문서 v1.4** · 2026-11-18 코드 대조(발사 빛줄기는 원격 당김에만 Q110 · 연출 묶음 부모 태그 · 무속성 · 땅 · 어둠 볼트 Q113 · Q87) · 마일스톤 **M1.5 「시전 감각」** (M1 다음, M2 전) — 전달 방식 · 네트워크(갈래 A) · 연출 · 동작(갈래 C) · 볼트 이펙트(2026-11-06) · 볼트 발사 빛줄기(Q85) · 물줄기 · 미풍 빛 언어(Q86, 2026-11-07) 코드 반영. 코드 `Source/Grimoire/Magic/` · `Source/Grimoire/MagicFX/`
 >
 > 레퍼런스: **호그와트 레거시**의 마법 시전 · 투사체. 관련: [마법 시스템](./magic) · [소프트 락온 (R17)](./magic#소프트-락온-r17) · [스펙 — 마법](../spec/magic)
 
@@ -88,12 +88,14 @@
 | `UGrimCueNotify_SpellCast` (Static) · 에셋 `GC_Spell_Cast` | 누르는 순간: 상체 시전 동작 · 책장 한 장 · 몸을 조준 쪽으로. 정의의 `CastWindup`(불씨 0.1초) 뒤 완드 끝 섬광 파티클 + 속성색 펄스 · 소리 · 흔들림(시전자 화면만). 쓸기(Cone) 마법은 원뿔 파동(`Trail` + 원뿔 펄스)도 여기서. **Bolt 꼬리는 그리지 않는다** — 투사체(갈래 A)가 `Trail` 을 직접 붙인다 |
 | `AGrimCueNotify_SpellChannel` (Actor, 시전자마다 하나) · `GC_Spell_Channel` | Stream 누르는 동안(Add/Remove): 완드 끝에서 조준 방향으로 `Trail` 파티클 + 포물선 물방울 구슬(앞을 막으면 끊김) · 도는 소리, 책장 초당 2장, 오른팔 뻗고 유지. 구슬은 판정과 같은 호 — 정의가 있으면 `UGrimSpellAbility::TraceStreamArc` 의 점들을 따른다(그림만, 판정은 서버). 정의가 없을 때만 VisualSet 의 기본 속도 · 중력 근사 |
 | `UGrimCueNotify_SpellImpact` (Static) · `GC_Spell_Impact` | 맞은 곳(`Location` · `Normal`): 터짐 파티클 + 속성색 펄스 · 소리 · 자국 데칼(그을음 · 젖음, 시간이 지나면 흐려짐) |
-| `UGrimMagicFXVisualSet` | `Source/Grimoire/MagicFX/GrimMagicFXVisualSet.h`. `UGrimSpellVisualSet` 의 자식. 임시 연출값(색 펄스 3종 · 자국 · 소리 세기 · 파티클 배율 · 줄기 구슬 · 시전 동작 지정 · 책장 넘김 시간 `PageFlipDuration`)을 더한다. 펄스(`FGrimFXPulseSpec`, `AGrimFXPulse`)는 모양이 `None` 이어도 `LightIntensity` 가 있으면 빛만 낸다(2026-11-18), `LightOffset` 은 빛을 축(터짐 = 맞은 면 법선) 쪽으로 띄우는 거리. 에셋 `VS_Ember` · `VS_WaterJet` · `VS_Breeze` · `VS_BasicAttack`(`Content/Grimoire/MagicFX/VisualSets/`). 파크툼 · 이그니스는 VisualSet 이 비어 속성으로 고른다 — 기본 묶음이 없는 속성(무속성 · 땅 · 그림자술 파크툼)은 `FallbackVisualSet` = `VS_Ember` |
-| `UGrimMagicFXSettings` (`[/Script/Grimoire.GrimMagicFXSettings]`) | 정의에 `VisualSet` 이 없을 때 속성(`Element.*`)으로 고르는 기본 묶음, 펄스 · 책 머티리얼, 그리모어 클래스, 정의에서 이름으로 읽는 필드(`CastWindup` · `StreamLaunchSpeed` · `StreamGravityScale` · `ConeRange` · `ConeHalfAngle`) |
+| `UGrimMagicFXVisualSet` | `Source/Grimoire/MagicFX/GrimMagicFXVisualSet.h`. `UGrimSpellVisualSet` 의 자식. 임시 연출값(색 펄스 3종 · 자국 · 소리 세기 · 파티클 배율 · 줄기 구슬 · 시전 동작 지정 · 책장 넘김 시간 `PageFlipDuration`)을 더한다. 펄스(`FGrimFXPulseSpec`, `AGrimFXPulse`)는 모양이 `None` 이어도 `LightIntensity` 가 있으면 빛만 낸다(2026-11-18), `LightOffset` 은 빛을 축(터짐 = 맞은 면 법선) 쪽으로 띄우는 거리. 에셋 `VS_Ember` · `VS_WaterJet` · `VS_Breeze` · `VS_BasicAttack` · 속성 기본 볼트 `VS_Arcane` · `VS_Earth` · `VS_Dark`(`Content/Grimoire/MagicFX/VisualSets/`). 파크툼 · 이그니스는 VisualSet 이 비어 속성으로 고른다(Q113 — 아래 찾는 순서) |
+| `UGrimMagicFXSettings` (`[/Script/Grimoire.GrimMagicFXSettings]`) | 정의에 `VisualSet` 이 없을 때 속성(`Element.*`)으로 고르는 기본 묶음(`DefaultVisualSets`, 볼트 · 포물선은 `DefaultBoltVisualSets` 먼저, 모르면 `FallbackVisualSet` = `VS_Arcane`), 펄스 · 책 머티리얼, 그리모어 클래스, 정의에서 이름으로 읽는 필드(`CastWindup` · `StreamLaunchSpeed` · `StreamGravityScale` · `ConeRange` · `ConeHalfAngle`) |
 | `UGrimSpellCameraShake` | 0.16초 감쇠 사인(피치 0.35° · 요 0.12°) — 「아주 약한」 시전 흔들림 |
 
-- 연출 묶음 찾는 순서: `SourceObject` 가 VisualSet → `SourceObject.VisualSet` 필드(갈래 A 가 만든 필드를 이름으로 — 통합 때 직접 접근으로 바꿔도 됨) → 큐의 `Element.*`(없으면 정의의 `Element`, 그것도 없으면 시전자가 고른 마법) → 설정의 기본 묶음(`DefaultVisualSets` — 태그가 정확히 같아야 한다, 하위 태그는 안 맞음) → `FallbackVisualSet`. 구현: `Source/Grimoire/MagicFX/GrimMagicFXStatics.h` 의 `UGrimMagicFXStatics::ResolveVisualSet`.
-  - 계획(Q113 확정 2026-11-18, 구현은 코드 세션 — 마법 · 생존 결정 맞추기): 기본 묶음을 **부모 태그로 거슬러** 찾는다(`Element.Water.Ice` → `Element.Water`). 무속성 · 땅 · 어둠 기본 묶음을 볼트 색만 바꿔 더한다(Q87 과 함께) — 지금은 이 셋과 하위 속성이 모두 불(`VS_Ember`)로 보인다.
+- 연출 묶음 찾는 순서: `SourceObject` 가 VisualSet → `SourceObject.VisualSet` 필드(갈래 A 가 만든 필드를 이름으로 — 통합 때 직접 접근으로 바꿔도 됨) → 큐의 `Element.*`(없으면 정의의 `Element`, 그것도 없으면 시전자가 고른 마법) → 설정의 기본 묶음 → `FallbackVisualSet`(무속성 `VS_Arcane` — 모르는 것이 불로 보이지 않게). 구현: `Source/Grimoire/MagicFX/GrimMagicFXStatics.h` 의 `UGrimMagicFXStatics::ResolveVisualSet` · `FindDefaultVisualSet`.
+  - **부모 태그로 거슬러 찾는다**(Q113 확정 · 구현 2026-11-18): 정확한 태그가 없으면 `RequestDirectParent` 로 올라간다 — `Element.Dark.Shadow` → `Element.Dark`, `Element.Earth.Plant` → `Element.Earth`(`GrimMagicFXMath::FindByTagOrParent`). 볼트 · 포물선 마법(파크툼 등)은 `DefaultBoltVisualSets`(불 · 무속성 · 땅 · 어둠 — 볼트 빛 언어)를 먼저 보고, 없으면 `DefaultVisualSets`(물 · 바람은 줄기 · 부채꼴 묶음)를 본다 — 물줄기 몸통이 볼트에 붙지 않게.
+  - 투사체도 같은 고르기를 쓴다(`AGrimSpellProjectile::GetVisualSet` — 정의의 묶음, 없으면 `FindDefaultVisualSet(속성, 볼트)`, 없으면 색 구만). 그래서 파크툼 · 파크툼 테라 · 움브라 볼트가 이제 무속성 · 땅 · 어둠 바늘 빛줄기로 날아간다. 빛 · 물 · 바람 볼트 묶음은 아직 없다(빛은 무속성으로, 물 · 바람 파크툼은 예전처럼 색 구).
+  - 확인: `Grimoire.MagicFX.VisualSet.Resolve`(거슬러 찾기 · 파크툼 정의 셋), `Grimoire.MagicFX.Assets`(새 묶음 · 덧그림 · Effect Type), [QA-FX-012 · 013](../qa/fx).
 - 큐 처리기 에셋(`GC_*`, C++ 클래스의 블루프린트 자식)은 `[/Script/GameplayAbilities.AbilitySystemGlobals] GameplayCueNotifyPaths=/Game/Grimoire` 에서 찾는다. 에셋 · 머티리얼 · 애님 BP 는 `Scripts/MagicFX/make_magicfx_assets.py`(헤드리스)가 만든다 — 값은 스크립트가 정본.
 
 #### 임시 이펙트 — 엔진 기본 · Niagara Examples Pack
@@ -106,6 +108,9 @@
 |---|---|---|---|---|---|
 | `VS_Ember` 불씨 | `#E0582B` | `NS_Bolt_Cast` | `NS_Bolt_Trail`(투사체 꼬리, 색 구 숨김) + 발사 빛줄기 `NS_Bolt_Launch` | `NS_Bolt_Impact` | 구 펄스 도형 끔, **빛만**(Q101 — 밤에 둘레를 비춘다): 완드 섬광 10 cd · 0.3초 · 반경 7 m, 터짐 25 cd · 0.6초 · 반경 10 m(맞은 면에서 60 cm 띄움), 그을음 자국 |
 | `VS_BasicAttack` 기본 공격 | `#CFE3FF` | `NS_Bolt_Cast`(0.8배) | `NS_Bolt_Trail`(색 구 숨김) + `NS_Bolt_Launch` | `NS_Bolt_Impact`(0.8배) | 펄스 · 자국 없음, 책장 0.15초 |
+| `VS_Arcane` 무속성(파크툼 · 모를 때) | `#D9C68C` | `NS_Bolt_Cast`(0.9배) | `NS_Bolt_Trail` + `NS_Bolt_Launch` | `NS_Bolt_Impact`(0.9배) | 빛 · 펄스 · 자국 없음 |
+| `VS_Earth` 땅(파크툼 테라 · 풀) | `#A0773F` | `NS_Bolt_Cast`(0.9배) | `NS_Bolt_Trail` + **덧그림 `NS_Bolt_Dust`**(떨어지는 돌가루 불티) + `NS_Bolt_Launch` | `NS_Bolt_Impact`(0.9배) | 흙 자국 |
+| `VS_Dark` 어둠(파크툼 움브라 · 흑마법) | `#6B4FA0` | `NS_Bolt_Cast`(0.9배) | `NS_Bolt_Trail` + **덧그림 `NS_Bolt_Smoke`**(뒤로 풀리는 연기 가닥) + `NS_Bolt_Launch` | `NS_Bolt_Impact`(0.9배) | 자국 없음 |
 | `VS_WaterJet` 물줄기 | `#3A7BD5` | `NS_Bolt_Cast`(0.7배) | `NS_Stream_Trail`(이어진 바늘 빛줄기 · 물방울 불티 · 끝 물보라) | `NS_Stream_Impact` | 펄스 · 구슬 끔, 젖은 자국 |
 | `VS_Breeze` 미풍 | `#7CC9A6` | `NS_Bolt_Cast`(0.7배) | `NS_Cone_Trail`(부채꼴 깃털 빛줄기) | `NS_Cone_Impact` | 원뿔 껍질 · 펄스 끔, 자국 없음 |
 
@@ -113,7 +118,7 @@
 
 #### 볼트 이펙트 — 사용자 참고 그림대로 (2026-11-06)
 
-불씨 · 기본 공격(튕기기)은 사용자가 준 참고 그림(`art/fx/refs/`) 방향으로 다시 만들었다: **가늘고 뾰족한 바늘 빛줄기**(흰 심 → 속성색, 깃털 같은 꼬리) + 길 위 불티, 완드 끝의 작은 방사형 튐, 표적의 방사형 불티 · 퍼지는 고리 · 번쩍임 · 빛살. 어두운 배경에 가산 발광. 속성별 시안(GPT)은 `art/fx/concepts/`, 시안 대 게임 비교는 `art/fx/compare/`. 다른 속성(물 · 바람 · 흙 · 빛 · 어둠) 볼트도 **이 시안을 그대로 방향으로 삼는다**(Q87 확정, 2026-11-18) — 같은 볼트 이펙트에 속성색만 바꾸고, 어둠은 연기 가닥 · 흙은 돌가루 불티 정도만 속성별로 더한다(계획).
+불씨 · 기본 공격(튕기기)은 사용자가 준 참고 그림(`art/fx/refs/`) 방향으로 다시 만들었다: **가늘고 뾰족한 바늘 빛줄기**(흰 심 → 속성색, 깃털 같은 꼬리) + 길 위 불티, 완드 끝의 작은 방사형 튐, 표적의 방사형 불티 · 퍼지는 고리 · 번쩍임 · 빛살. 어두운 배경에 가산 발광. 속성별 시안(GPT)은 `art/fx/concepts/`, 시안 대 게임 비교는 `art/fx/compare/`. 다른 속성(물 · 바람 · 흙 · 빛 · 어둠) 볼트도 **이 시안을 그대로 방향으로 삼는다**(Q87 확정, 2026-11-18) — 같은 볼트 이펙트에 속성색만 바꾸고, 어둠은 연기 가닥 · 흙은 돌가루 불티 정도만 속성별로 더한다. 무속성 · 땅 · 어둠 묶음(`VS_Arcane` · `VS_Earth` · `VS_Dark`)을 먼저 만들었다(2026-11-18) — 덧그림은 연출 묶음 칸 `TrailAccent`(투사체에 꼬리와 함께 붙는다), 사양 `art/fx/specs/spell/bolt_accent.json`(`NS_Bolt_Smoke` 연기 가닥 · `NS_Bolt_Dust` 돌가루, 가산 발광 `MI_Bolt_Wisp` · `MI_Bolt_Spark`).
 
 | 에셋(`/Game/Grimoire/MagicFX/Bolt/` — `Textures/` · 머티리얼 · `Systems/`) | 내용 |
 |---|---|
@@ -122,21 +127,22 @@
 | `NS_Bolt_Cast` | 섬광 칸. 불티 18(속도 정렬) · 번쩍임 · 실안개 5 — 시스템 +Z 가 겨눈 방향 |
 | `NS_Bolt_Trail` | 몸통 칸(투사체에 붙음). 심 빛줄기(투사체 속도) · 머리 번쩍임 · 꼬리(속도 0.75배) · 불티 |
 | `NS_Bolt_Impact` | 터짐 칸. 불티 40 · 퍼지는 고리 · 번쩍임 · 빛살 |
+| `NS_Bolt_Smoke` · `NS_Bolt_Dust` | 덧그림 칸(`TrailAccent`, Q87). 연기 가닥(초당 70 + 큰 실안개 18, 위로 풀리며 커짐) · 돌가루(불티 초당 90, 중력으로 떨어짐 + 먼지 20). 입자는 월드에 남아 지나간 길에 흔적 |
 
 - 색은 모두 Niagara 사용자 변수 `User.Color` 하나 — `TintNiagara` 가 연출 묶음의 속성색을 넣는다. 다른 속성 볼트는 같은 시스템에 색만 다른 연출 묶음이면 된다.
 - Niagara 는 엔진 실험 플러그인 **NiagaraToolsets**(ToolsetRegistry 의 JSON 도구: 템플릿 이미터 붙이기 · 모듈 입력 · HLSL 식 · Set Parameters)로 `Scripts/MagicFX/make_bolt_fx.py` 가 데이터에서 만든다(텍스처는 먼저 `Scripts/MagicFX/make_bolt_textures.py`). 그다음 `Scripts/MagicFX/make_magicfx_assets.py`(`GRIM_FX_STEPS=visual_sets`)를 돌린다. 비교 그림은 `Scripts/MagicFX/compare_bolt.py`.
 - 볼트 연출 묶음은 `bHideProjectileMesh` 로 투사체의 색 구를 숨기고, 구 펄스(`MuzzlePulse` · `ImpactPulse`)는 끈다.
-- 화면 확인은 `Grim.FX.Bolt`(시전 없이 연출만, `Source/Grimoire/Magic/GrimMagicDebug.cpp`) · `Grim.Cam` 으로 한다(`Scripts/MagicFX/capture_bolt.ps1`, [치트](../dev/cheats)). 호스트 · 단독은 `CastWindup` 만큼 **기다렸다가** 완드 끝에서 쏘고, 앞당김(`AGrimSpellProjectile::CatchUp`)은 원격 시전자의 한쪽 지연이 Windup 을 넘을 때 그 넘은 만큼만(상한 0.15초 — `GrimSpellDelivery::SplitLag`)이다(Q110).
+- 화면 확인은 `Grim.FX.Bolt`(시전 없이 연출만 — 정의에 묶음이 없으면 투사체처럼 속성 기본 묶음, 마지막 인자 `당김초` 로 원격 지연 당김을 흉내, `Source/Grimoire/Magic/GrimMagicDebug.cpp`) · `Grim.Cam` 으로 한다(`Scripts/MagicFX/capture_bolt.ps1`, [치트](../dev/cheats)). 호스트 · 단독은 `CastWindup` 만큼 **기다렸다가** 완드 끝에서 쏘고, 앞당김(`AGrimSpellProjectile::CatchUp`)은 원격 시전자의 한쪽 지연이 Windup 을 넘을 때 그 넘은 만큼만(상한 0.15초 — `GrimSpellDelivery::SplitLag`)이다(Q110).
 
-##### 발사 빛줄기 (Q85, 2026-11-07)
+##### 발사 빛줄기 (Q85 → Q110, 2026-11-07 · 11-18)
 
-볼트는 75~90 m/s 라 4 m 앞 표적까지 0.05초(몇 프레임)에 닿는다 — 꼬리(`NS_Bolt_Trail`)는 투사체와 함께 사라져 가까운 표적에서는 날아가는 빛줄기가 거의 안 보였다. 원격 시전자의 볼트는 다른 사람 화면에서 지연을 당긴 만큼(최대 0.15초 ≈ 11 m) 앞에서 나타난다. **판정은 그대로 두고**, 보이는 볼트 사본이 시작할 때(`BeginPlay`, 시전자 화면에서 숨긴 진짜 복제본은 빼고 — 가짜가 대신 긋는다) 완드 끝부터 한 번 긋는 연출을 더했다.
+처음(Q85, 11-07)에는 가까운 표적에서 날아가는 빛줄기가 안 보인다고 보고 **모든** 보이는 볼트가 완드 끝부터 「틈과 속력 × 0.1초 중 긴 쪽」(불씨 ≈ 7.5 m)을 그었다. 코드를 대조해 보니 혼자 · 호스트는 `CastWindup` 만큼 기다렸다가 완드 끝에서 쏘므로 그 문제가 없었다 — 볼트가 완드 앞에서 나타나는 것은 **원격 시전자의 지연을 당긴 볼트뿐**이다(최대 0.15초 ≈ 11 m). 그래서 Q110(2026-11-18 확정)대로 **앞당김이 있을 때만, 그 틈만큼** 긋는다. **판정은 그대로**(연출만).
 
-- 구현: `Source/Grimoire/Magic/GrimSpellProjectile.h` 의 `AGrimSpellProjectile::SpawnLaunchStreak`. 시작 = 시전자 완드 끝(`AGrimWand::GetMuzzleTransform`, 없으면 볼트 자리), 길이 = `GrimSpellDelivery::CalcLaunchStreakLength` — 볼트가 이미 가 있는 틈(Gap)과 `BoltSpeed × LaunchStreakSeconds`(0.1초 → 불씨 7.5 m) 중 긴 쪽, 그 사이에 맞을 것(지형 · 사물 · 폰, 감지용 영역 제외)이 있으면 거기까지. 그리는 시간 = 길이 ÷ 볼트 속력(0.02~0.12초).
-- 연출 묶음 칸: `UGrimSpellVisualSet::LaunchStreak` · `LaunchStreakSeconds`(`Source/Grimoire/Core/GrimSpellFXTypes.h`). 불씨 · 기본 공격 묶음이 `NS_Bolt_Launch` 를 쓴다. 시스템 +Z = 날아가는 쪽, 사용자 변수 `User.Length` · `User.DrawTime` · `User.Color`. 기본 공격 연타라 컴포넌트 풀링(`AutoRelease`, 성능 규칙 24).
+- 구현: `Source/Grimoire/Magic/GrimSpellProjectile.h` 의 `AGrimSpellProjectile::SpawnLaunchStreak`. 서버가 `CatchUp(당김초)` 에서 당긴 시간을 `LaunchAdvanceSeconds`(처음 한 번 복제)에 넣는다. 0 이면(혼자 · 호스트 · 지연이 시전 대기 안) 긋지 않는다. 보이는 사본 — 호스트 화면은 서버 사본이 `CatchUp` 으로 당긴 직후, 다른 클라이언트는 복제 사본의 `BeginPlay`(당긴 시간이 함께 온다), 시전자 화면은 숨긴 진짜 복제본이라 긋지 않는다(가짜 볼트는 완드 끝에서 날아간다).
+- 길이 = `GrimSpellDelivery::CalcLaunchStreakLength(당김초, 틈, 맞을 거리)` — 당김이 없으면 0, 있으면 완드 끝(`AGrimWand::GetMuzzleTransform`, 없으면 스폰 자리)부터 볼트 자리까지(틈), 그 사이에 맞을 것(지형 · 사물 · 폰, 감지용 영역 제외)이 있으면 거기까지. 그리는 시간 = 길이 ÷ 볼트 속력(0.02~0.12초).
+- 연출 묶음 칸: `UGrimSpellVisualSet::LaunchStreak`(`Source/Grimoire/Core/GrimSpellFXTypes.h`, 예전 `LaunchStreakSeconds` 는 지웠다). 불씨 · 기본 공격 · 무속성 · 땅 · 어둠 묶음이 `NS_Bolt_Launch` 를 쓴다. 시스템 +Z = 날아가는 쪽, 사용자 변수 `User.Length` · `User.DrawTime` · `User.Color`. 기본 공격 연타라 컴포넌트 풀링(`AutoRelease`, 성능 규칙 24).
 - `NS_Bolt_Launch`: 바늘 빛줄기(스프라이트 기준점 = 아래 끝 → 완드에서 길이가 0 → Length 로 자람) · 깃털 껍질(실안개) · 앞 끝 번쩍임(길이 ÷ 그리는 시간의 속도로 감) · 길 위 불티 16. 다 그린 뒤 0.14초에 사라진다.
-- 가까운 표적: 완드 → 표적까지 그어지고 표적에서 터짐. 먼 표적: 첫 7.5 m 를 긋고 볼트(꼬리)가 이어 날아간다. 확인: `Grimoire.Magic.Delivery.LaunchStreak`, [QA-FX-005 · 010](../qa/fx).
-- **Q110 결정과 다르다**(2026-11-18 코드 대조): Q110 은 Q85 를 「원격 · 고지연일 때 **앞당긴 구간에만** 빛줄기를 그어 준다」로 좁혀 확정했다. 지금 코드는 숨긴 진짜 복제본을 뺀 **모든 보이는 볼트**가 시작할 때 긋는다 — 혼자 · 호스트(틈 Gap ≈ 0)도 `BoltSpeed × LaunchStreakSeconds`(불씨 ≈ 7.5 m)를 긋는다. 길이 식이 「틈과 속력 × 0.1초 중 **긴 쪽**」이라 앞당김이 없어도 0 이 되지 않아서다. 결정대로라면 앞당김이 있을 때(Gap > 0)만 긋고 길이는 Gap 까지 — 코드 세션 몫(미구현). 가까운 표적에서 빛줄기가 안 보이던 Q85 의 처음 문제는 혼자 · 호스트에선 `CastWindup` 대기로 이미 생기지 않는다(Q110).
+- 확인: `Grimoire.Magic.Delivery.LaunchStreak`(당김 0 = 0, 당김 있으면 틈 · 맞을 곳까지, `SplitLag` 와 이어서), 화면은 `Grim.FX.Bolt … <당김초>`(0 = 혼자 · 호스트, 0.15 = 원격 고지연) — [QA-FX-005 · 010 · 014](../qa/fx).
 
 #### 물줄기 · 미풍 — 볼트와 같은 빛 언어 (Q86, 2026-11-07)
 

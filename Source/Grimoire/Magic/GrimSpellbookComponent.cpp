@@ -3,6 +3,7 @@
 #include "Magic/GrimMagicEffects.h"
 #include "Magic/GrimMagicSettings.h"
 #include "Magic/GrimMagicTags.h"
+#include "Magic/GrimMissText.h"
 #include "Magic/GrimProficiencySettings.h"
 #include "Magic/GrimSkillbook.h"
 #include "Magic/GrimSpellAbility.h"
@@ -710,6 +711,25 @@ void UGrimSpellbookComponent::AwardXP(const UGrimSpellDefinition* Spell, const A
 void UGrimSpellbookComponent::AwardCastXP(const UGrimSpellDefinition* Spell, const AActor* Target)
 {
 	AwardXP(Spell, Target, UGrimProficiencySettings::GetCurveFor(Spell).XPPerCast, 0);
+}
+
+void UGrimSpellbookComponent::ClientShowMiss_Implementation(FVector_NetQuantize Location)
+{
+	++MissNoticeCount;
+	UWorld* World = GetWorld();
+	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	const FGrimMissTextTuning& Tuning = UGrimMagicSettings::Get()->MissText;
+	const double Now = World->GetTimeSeconds();
+	if (Now - LastMissTextTime < Tuning.MinInterval && FVector::DistSquared(Location, LastMissTextLocation) < FMath::Square(200.f))
+	{
+		return;
+	}
+	LastMissTextTime = Now;
+	LastMissTextLocation = Location;
+	AGrimMissText::Spawn(World, Location);
 }
 
 void UGrimSpellbookComponent::AwardHitXP(const UGrimSpellDefinition* Spell, const AActor* Target)

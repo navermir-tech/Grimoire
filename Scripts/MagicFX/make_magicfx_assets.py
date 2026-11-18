@@ -1,8 +1,10 @@
 # M1.5 갈래 C 「연출 · 동작」 에셋을 만든다 / 고친다. 값은 이 스크립트가 정본이다.
 #  - 머티리얼: M_GrimFX_Glow(색 펄스 · 줄기 구슬) · M_GrimFX_Book(그리모어) · M_GrimFX_Decal(그을음 · 젖음)
 #  - GameplayCue: GC_Spell_Cast · GC_Spell_Impact · GC_Spell_Channel (C++ 처리기의 블루프린트 자식)
-#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack (UGrimMagicFXVisualSet) — 모두 볼트 빛 언어:
-#    볼트는 make_bolt_fx.py 의 NS_Bolt_*, 발사 빛줄기 · 물줄기 · 미풍은 make_spell_fx.py 의 NS_Bolt_Launch · NS_Stream_* · NS_Cone_*
+#  - 연출 묶음: VS_Ember · VS_WaterJet · VS_Breeze · VS_BasicAttack · VS_Arcane · VS_Earth · VS_Dark (UGrimMagicFXVisualSet) — 모두 볼트 빛 언어:
+#    볼트는 make_bolt_fx.py 의 NS_Bolt_*, 발사 빛줄기 · 물줄기 · 미풍 · 속성 덧그림은 make_spell_fx.py 의
+#    NS_Bolt_Launch · NS_Stream_* · NS_Cone_* · NS_Bolt_Smoke · NS_Bolt_Dust
+#    VS_Arcane · VS_Earth · VS_Dark 는 정의에 묶음이 없는 볼트(파크툼 등)의 속성 기본 묶음(Q87 · Q113 — DefaultBoltVisualSets).
 #  - 애님: ABP_GrimPlayer = 템플릿 ABP_Unarmed 복제 + 부모를 UGrimSpellPoseAnimInstance 로
 #
 # 실행(에디터를 닫고, 저장소 루트에서):
@@ -43,6 +45,9 @@ FX_BOLT_TRAIL = BOLT + "NS_Bolt_Trail.NS_Bolt_Trail"
 FX_BOLT_IMPACT = BOLT + "NS_Bolt_Impact.NS_Bolt_Impact"
 # 같은 빛 언어로 사양 파일에서 만든 것(make_spell_fx.py — art/fx/specs/spell/*.json, 2026-11-07 Q85 · Q86).
 FX_BOLT_LAUNCH = BOLT + "NS_Bolt_Launch.NS_Bolt_Launch"
+# 속성 덧그림(Q87 — art/fx/specs/spell/bolt_accent.json): 어둠 = 연기 가닥, 흙 = 돌가루 불티.
+FX_BOLT_SMOKE = BOLT + "NS_Bolt_Smoke.NS_Bolt_Smoke"
+FX_BOLT_DUST = BOLT + "NS_Bolt_Dust.NS_Bolt_Dust"
 FX_STREAM_TRAIL = "/Game/Grimoire/MagicFX/Stream/Systems/NS_Stream_Trail.NS_Stream_Trail"
 FX_STREAM_IMPACT = "/Game/Grimoire/MagicFX/Stream/Systems/NS_Stream_Impact.NS_Stream_Impact"
 FX_CONE_TRAIL = "/Game/Grimoire/MagicFX/Cone/Systems/NS_Cone_Trail.NS_Cone_Trail"
@@ -292,9 +297,8 @@ def make_visual_sets(decal_mat):
         "trail": load(FX_BOLT_TRAIL),
         "impact": load(FX_BOLT_IMPACT),
         "hide_projectile_mesh": True,
-        # Q85: 볼트가 보이기 시작할 때 완드 끝부터 첫 0.1초 길(맞을 곳이 가까우면 거기까지)을 한 번 긋는다.
+        # Q85 · Q110: 원격 시전자의 지연을 당긴 볼트만, 완드 끝부터 볼트 자리까지(맞을 곳이 가까우면 거기까지) 한 번 긋는다.
         "launch_streak": load(FX_BOLT_LAUNCH),
-        "launch_streak_seconds": 0.1,
         "muzzle_flash_scale": 1.0,
         "trail_scale": 1.0,
         "impact_scale": 1.0,
@@ -374,9 +378,8 @@ def make_visual_sets(decal_mat):
         "trail": load(FX_BOLT_TRAIL),
         "impact": load(FX_BOLT_IMPACT),
         "hide_projectile_mesh": True,
-        # Q85: 볼트가 보이기 시작할 때 완드 끝부터 첫 0.1초 길(맞을 곳이 가까우면 거기까지)을 한 번 긋는다.
+        # Q85 · Q110: 원격 시전자의 지연을 당긴 볼트만, 완드 끝부터 볼트 자리까지(맞을 곳이 가까우면 거기까지) 한 번 긋는다.
         "launch_streak": load(FX_BOLT_LAUNCH),
-        "launch_streak_seconds": 0.1,
         "muzzle_flash_scale": 0.8,
         "trail_scale": 1.0,
         "impact_scale": 0.8,
@@ -391,6 +394,40 @@ def make_visual_sets(decal_mat):
         "stream_bead_count": 0,
     })
 
+    # 속성 기본 볼트 묶음(Q87 · Q113): 정의에 묶음이 없는 볼트(파크툼 등)가 속성으로 고른다 — 불씨와 같은 NS_Bolt_* 에 색만 바꾸고,
+    # 어둠은 연기 가닥 · 흙은 돌가루 불티를 덧그린다(TrailAccent). 빛 펄스는 불만 — 이 셋은 끈다. 색은 속성색 표(docs/spec/customization).
+    def bolt_set(name, color, accent=None, impact_decal=no_decal, cast_pitch=1.6, impact_pitch=1.5):
+        make_visual_set(name, {
+            "element_color": srgb(color),
+            "cast_motion": unreal.GrimCastMotion.AUTO,
+            "muzzle_flash": load(FX_BOLT_CAST),
+            "trail": load(FX_BOLT_TRAIL),
+            "trail_accent": load(accent) if accent else None,
+            "impact": load(FX_BOLT_IMPACT),
+            "hide_projectile_mesh": True,
+            "launch_streak": load(FX_BOLT_LAUNCH),
+            "muzzle_flash_scale": 0.9,
+            "trail_scale": 1.0,
+            "impact_scale": 0.9,
+            "one_shot_stop_seconds": 0.0,
+            "cast_sound": ping, "cast_sound_volume": 0.1, "cast_sound_pitch": cast_pitch,
+            "impact_sound": noise, "impact_sound_volume": 0.25, "impact_sound_pitch": impact_pitch, "impact_sound_duration": 0.12,
+            "loop_sound": None,
+            "camera_shake": shake, "camera_shake_scale": 0.8,
+            "muzzle_pulse": off,
+            "cast_wave": off,
+            "impact_pulse": off,
+            "impact_decal": impact_decal,
+            "stream_bead_count": 0,
+        })
+
+    # 무속성 — 파크툼(계약) · 무속성 마법. 양피지빛 금색(파크툼 정의 색과 같은 쪽). 속성을 모를 때의 기본(FallbackVisualSet)도 이것.
+    bolt_set("VS_Arcane", "#D9C68C", cast_pitch=1.3, impact_pitch=1.3)
+    # 땅 — 흙빛 + 떨어지는 돌가루 불티, 맞은 곳 흙 자국.
+    bolt_set("VS_Earth", "#A0773F", accent=FX_BOLT_DUST,
+             impact_decal=decal(decal_mat, unreal.LinearColor(0.035, 0.025, 0.012, 1), 0.95, 0.6, 70.0, 10.0, 4.0), cast_pitch=0.9, impact_pitch=0.8)
+    # 어둠(흑마법 · 그림자술) — 보랏빛 + 뒤로 풀리는 연기 가닥.
+    bolt_set("VS_Dark", "#6B4FA0", accent=FX_BOLT_SMOKE, cast_pitch=0.7, impact_pitch=0.6)
 
 # ---------------------------------------------------------------- 애님
 

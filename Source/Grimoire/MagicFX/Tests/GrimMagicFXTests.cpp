@@ -278,6 +278,55 @@ bool FGrimStreamShapeTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// Q113: 연출 묶음 기본값은 부모 태그로 거슬러 찾는다 — 하위 속성 · 무속성 · 땅 · 어둠이 불(VS_Ember)로 떨어지지 않는다.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimVisualSetResolveTest, "Grimoire.MagicFX.VisualSet.Resolve", GrimMagicFXTestFlags)
+bool FGrimVisualSetResolveTest::RunTest(const FString& Parameters)
+{
+	const FGameplayTag Plant = FGameplayTag::RequestGameplayTag(TEXT("Element.Earth.Plant"));
+	const FGameplayTag Shadow = FGameplayTag::RequestGameplayTag(TEXT("Element.Dark.Shadow"));
+
+	// 순수 거슬러 찾기
+	TMap<FGameplayTag, int32> Map;
+	Map.Add(GrimTags::Element_Earth, 1);
+	Map.Add(GrimTags::Element_Dark, 2);
+	Map.Add(Plant, 3);
+	const int32* Found = GrimMagicFXMath::FindByTagOrParent(Map, Shadow);
+	TestTrue(TEXT("Element.Dark.Shadow → Element.Dark"), Found && *Found == 2);
+	Found = GrimMagicFXMath::FindByTagOrParent(Map, Plant);
+	TestTrue(TEXT("정확한 태그가 있으면 그것"), Found && *Found == 3);
+	TestNull(TEXT("조상에도 없으면 없음"), GrimMagicFXMath::FindByTagOrParent(Map, GrimTags::Element_Fire.GetTag()));
+	TestNull(TEXT("빈 태그"), GrimMagicFXMath::FindByTagOrParent(Map, FGameplayTag()));
+
+	// 설정(DefaultGame.ini) — 볼트는 볼트 묶음을 먼저, 모르는 것은 무속성
+	auto Name = [](const UObject* Object) { return GetNameSafe(Object); };
+	TestEqual(TEXT("불 볼트 = 불씨"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Fire, true)), FString(TEXT("VS_Ember")));
+	TestEqual(TEXT("무속성 볼트(파크툼) = 무속성"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(GrimMagicTags::Element_None, true)), FString(TEXT("VS_Arcane")));
+	TestEqual(TEXT("땅 볼트(파크툼 테라) = 땅"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Earth, true)), FString(TEXT("VS_Earth")));
+	TestEqual(TEXT("풀 볼트 → 부모 땅"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(Plant, true)), FString(TEXT("VS_Earth")));
+	TestEqual(TEXT("그림자 볼트(파크툼 움브라) → 부모 어둠"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(Shadow, true)), FString(TEXT("VS_Dark")));
+	TestEqual(TEXT("물 볼트는 볼트 묶음이 없어 물 기본"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Water, true)), FString(TEXT("VS_WaterJet")));
+	TestEqual(TEXT("물줄기(볼트 아님) = 물"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Water, false)), FString(TEXT("VS_WaterJet")));
+	TestEqual(TEXT("빛(아직 묶음 없음) → 무속성, 불이 아님"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Light, true)), FString(TEXT("VS_Arcane")));
+	TestEqual(TEXT("속성 모름 → 무속성"), Name(UGrimMagicFXStatics::FindDefaultVisualSet(FGameplayTag(), true)), FString(TEXT("VS_Arcane")));
+	TestNull(TEXT("기본값 없이 찾기(투사체 꼬리)"), UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Light, true, false));
+
+	// 정의에 묶음이 없는 파크툼 정의로 큐가 고르는 묶음
+	for (const TPair<const TCHAR*, const TCHAR*>& Case : { TPair<const TCHAR*, const TCHAR*>(TEXT("DA_Spell_Pactum"), TEXT("VS_Arcane")),
+		TPair<const TCHAR*, const TCHAR*>(TEXT("DA_Spell_Pactum_Terra"), TEXT("VS_Earth")), TPair<const TCHAR*, const TCHAR*>(TEXT("DA_Spell_Pactum_Umbra"), TEXT("VS_Dark")) })
+	{
+		const UGrimSpellDefinition* Definition = LoadObject<UGrimSpellDefinition>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/Magic/Spells/%s.%s"), Case.Key, Case.Key));
+		if (!TestNotNull(Case.Key, Definition))
+		{
+			continue;
+		}
+		FGameplayCueParameters Cue;
+		Cue.SourceObject = Definition;
+		Cue.AggregatedSourceTags.AddTag(Definition->Element);
+		TestEqual(*FString::Printf(TEXT("%s 큐 연출 묶음"), Case.Key), Name(UGrimMagicFXStatics::ResolveVisualSet(Cue)), FString(Case.Value));
+	}
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimMagicFXAssetsTest, "Grimoire.MagicFX.Assets", GrimMagicFXTestFlags)
 bool FGrimMagicFXAssetsTest::RunTest(const FString& Parameters)
 {
@@ -306,24 +355,42 @@ bool FGrimMagicFXAssetsTest::RunTest(const FString& Parameters)
 		}
 	}
 	// 연출 묶음의 Niagara 는 모두 마법 Effect Type 을 단다(성능 규칙 24 · BUG-006). 볼트 묶음은 발사 빛줄기(Q85)가 있다.
-	for (const TCHAR* Name : { TEXT("VS_Ember"), TEXT("VS_WaterJet"), TEXT("VS_Breeze"), TEXT("VS_BasicAttack") })
+	for (const TCHAR* Name : { TEXT("VS_Ember"), TEXT("VS_WaterJet"), TEXT("VS_Breeze"), TEXT("VS_BasicAttack"), TEXT("VS_Arcane"), TEXT("VS_Earth"), TEXT("VS_Dark") })
 	{
 		const UGrimMagicFXVisualSet* VisualSet = LoadObject<UGrimMagicFXVisualSet>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/MagicFX/VisualSets/%s.%s"), Name, Name));
 		if (!TestNotNull(Name, VisualSet))
 		{
 			continue;
 		}
-		for (const UFXSystemAsset* Asset : { VisualSet->MuzzleFlash.Get(), VisualSet->Trail.Get(), VisualSet->Impact.Get(), VisualSet->LaunchStreak.Get() })
+		for (const UFXSystemAsset* Asset : { VisualSet->MuzzleFlash.Get(), VisualSet->Trail.Get(), VisualSet->TrailAccent.Get(), VisualSet->Impact.Get(), VisualSet->LaunchStreak.Get() })
 		{
 			if (const UNiagaraSystem* System = Cast<UNiagaraSystem>(Asset))
 			{
 				TestEqual(*FString::Printf(TEXT("%s · %s Effect Type"), Name, *System->GetName()), GetNameSafe(System->GetEffectType()), FString(TEXT("EFT_Grim_Spell")));
 			}
 		}
-		if (FCString::Strcmp(Name, TEXT("VS_Ember")) == 0 || FCString::Strcmp(Name, TEXT("VS_BasicAttack")) == 0)
+		const bool bBoltSet = FCString::Strcmp(Name, TEXT("VS_WaterJet")) != 0 && FCString::Strcmp(Name, TEXT("VS_Breeze")) != 0;
+		if (bBoltSet)
 		{
 			TestNotNull(*FString::Printf(TEXT("%s 발사 빛줄기"), Name), VisualSet->LaunchStreak.Get());
-			TestTrue(*FString::Printf(TEXT("%s 발사 빛줄기 시간"), Name), VisualSet->LaunchStreakSeconds > 0.f);
+			TestNotNull(*FString::Printf(TEXT("%s 볼트 꼬리"), Name), VisualSet->Trail.Get());
+		}
+	}
+
+	// Q87: 어둠은 연기 가닥, 흙은 돌가루를 덧그리고, 무속성은 덧그림이 없다. 셋 다 불(VS_Ember)과 색이 다르다.
+	const UGrimSpellVisualSet* Ember = UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Fire, true);
+	const UGrimSpellVisualSet* Earth = UGrimMagicFXStatics::FindDefaultVisualSet(GrimTags::Element_Earth, true);
+	const UGrimSpellVisualSet* Dark = UGrimMagicFXStatics::FindDefaultVisualSet(FGameplayTag::RequestGameplayTag(TEXT("Element.Dark.Shadow")), true);
+	const UGrimSpellVisualSet* Arcane = UGrimMagicFXStatics::FindDefaultVisualSet(GrimMagicTags::Element_None, true);
+	if (TestNotNull(TEXT("땅 묶음"), Earth) && TestNotNull(TEXT("어둠 묶음"), Dark) && TestNotNull(TEXT("무속성 묶음"), Arcane) && TestNotNull(TEXT("불 묶음"), Ember))
+	{
+		TestEqual(TEXT("흙 덧그림 = 돌가루"), GetNameSafe(Earth->TrailAccent), FString(TEXT("NS_Bolt_Dust")));
+		TestEqual(TEXT("어둠 덧그림 = 연기 가닥"), GetNameSafe(Dark->TrailAccent), FString(TEXT("NS_Bolt_Smoke")));
+		TestNull(TEXT("무속성은 덧그림 없음"), Arcane->TrailAccent.Get());
+		for (const UGrimSpellVisualSet* Set : { Earth, Dark, Arcane })
+		{
+			const FLinearColor D = Set->ElementColor - Ember->ElementColor;
+			TestTrue(*FString::Printf(TEXT("%s 는 불과 다른 색"), *Set->GetName()), FVector(D.R, D.G, D.B).Size() > 0.15f);
 		}
 	}
 

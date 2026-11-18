@@ -159,7 +159,7 @@
 | **건강** | 질병에 걸릴 확률 −%(질병 저항 +) | 20 / 36 / 50 | 60 | 머리 · 반지 | | 신성 | 5 |
 | **비막이** | 비 · 눈 · 물에 젖는 속도와 젖음 지속 −% | 20 / 36 / 50 | 60 | 머리 · 망토 | | 물 | 5 |
 
-- **피곤함 · 배고픔 인챈트는 없다**(Q53 사용자 결정, 2026-11-18: 「피곤함이랑 배고픔은 인챈트로 못막았으면 좋겠어.」). 피곤함은 **잠** 또는 **거점에서 만든 커피 · 에너지 드링크**로만 풀고, 배고픔은 **무조건 먹어야** 한다 — [생존 — 피곤함을 푸는 법](./survival#피곤함을-푸는-법-—-잠과-깨는-음료-q53). 그래서 예전 목록의 **「포만」**(배고픔이 쌓이는 속도 −10 / 18 / 25%, 몸 · 반지)을 **뺐다.** 데이터 표 `Enchants.csv` 에는 그 줄(`Satiety`)이 아직 남아 있다 — 인챈트 코드를 만드는 세션이 지운다.
+- **피곤함 · 배고픔 인챈트는 없다**(Q53 사용자 결정, 2026-11-18: 「피곤함이랑 배고픔은 인챈트로 못막았으면 좋겠어.」). 피곤함은 **잠** 또는 **거점에서 만든 커피 · 에너지 드링크**로만 풀고, 배고픔은 **무조건 먹어야** 한다 — [생존 — 피곤함을 푸는 법](./survival#피곤함을-푸는-법-—-잠과-깨는-음료-q53). 그래서 예전 목록의 **「포만」**(배고픔이 쌓이는 속도 −10 / 18 / 25%, 몸 · 반지)을 **뺐다.** 데이터 표 `Enchants.csv` 에서도 그 줄(`Satiety`)을 지웠다(2026-11-18 — 마법 · 생존 결정 맞추기).
 - **기력(스태미나) 인챈트도 없다** — 기력 스탯은 넣지 않는다(Q58 확정 — 레퍼런스 호그와트 레거시처럼 달리기에 기력이 없다). 그래서 「지구력」 인챈트도 없다.
 
 ### 마나 — 머리 · 목걸이
@@ -346,7 +346,7 @@
 
 | 파일 | 내용 |
 |---|---|
-| `Content/Grimoire/Data/Enchants.csv` | 53줄(이 문서의 52줄 + Q53 으로 뺄 `Satiety` 「포만」 한 줄 — 아직 안 지움) — `Name`(속성 붙은 것은 `Amplify.Fire` · `Resist.Fire`), `Category`, `Element`(각인 마법 · 소재 속성), `Slots`(`Wand\|Head\|…`), `ExclusiveGroup`, `Stat`(어트리뷰트 키 — 트리 표와 같은 이름), `Unit`, `BaseValue`(단위), `MaxLevel`, `Tier1~3`, `StackCap`, `Scope`(`Player` = 플레이어 능력치에 더함 · `Item` = 그 장비에만), `RollWeight`, `bTableRoll`(거짓이면 각인서 전용) |
+| `Content/Grimoire/Data/Enchants.csv` | 52줄(이 문서의 52줄 — Q53 으로 뺀 `Satiety` 「포만」 줄은 지웠다) — `Name`(속성 붙은 것은 `Amplify.Fire` · `Resist.Fire`), `Category`, `Element`(각인 마법 · 소재 속성), `Slots`(`Wand\|Head\|…`), `ExclusiveGroup`, `Stat`(어트리뷰트 키 — 트리 표와 같은 이름), `Unit`, `BaseValue`(단위), `MaxLevel`, `Tier1~3`, `StackCap`, `Scope`(`Player` = 플레이어 능력치에 더함 · `Item` = 그 장비에만), `RollWeight`, `bTableRoll`(거짓이면 각인서 전용) |
 | `Content/Grimoire/Data/EnchantLevels.csv` | 단계 Ⅰ~Ⅲ — `ValueScale`(k), `PowerPoints`, `OreCost`, `MaterialCount`, `MaterialGrade`, `ManaCost`, `MinCircleOnTable`, `MinGearTier` |
 
 - `Tier1~3` 은 `round(BaseValue × ValueScale)` 로 만든 값이다. 밸런스를 바꿀 때는 `BaseValue` 나 `ValueScale` 을 고치고 단계값을 다시 계산한다(손으로 한 칸만 고치면 규칙이 깨진다).

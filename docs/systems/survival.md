@@ -45,11 +45,15 @@
 | `Climate.WarmManaCostScale` · `HyperthermiaManaCostScale` | 1.15 · 1.35 | 더위 1 · 2단계 마나 소모 배율 |
 | `Climate.ModerateFatigueRateScale` | 1.5 | 2단계 이상이면 피곤함이 빨리 쌓인다 |
 | `Fatigue.GainPerMinute` · `NightGainScale` | 1.5 · 1.5 | 하루(낮 30분 + 밤 18분)를 꼬박 새면 약 85 |
+| `Fatigue.TiredThreshold` · `TiredCastTimeScale` · `TiredCastTimeMinSeconds` | 50 · 1.3 · 0.25 | `Status.Tired`(지침, Q132) — 시전 시간 ≥ 0.25초인 마법만 시전 시간 ×1.3(즉발 · 쿨다운 그대로). 수치는 제안(Q165) |
+| `Fatigue.TiredMissChanceMin` · `TiredMissChanceMax` | 0.1 · 0.3 | 지침 빗나감 확률 — 피곤함 50 에서 10 %, 탈진 문턱으로 갈수록 30 % 쪽(곧게). 제안(Q165) |
 | `Fatigue.ExhaustedThreshold` · `ExhaustedMoveSpeedScale` | 80 · 0.7 | `Status.Exhausted`(탈진) — 지친 걸음 이동 ×0.7. 시전 차단은 마법 쪽 `MagicBlockingTags`(Q116) |
 | `Fatigue.SleepRecoveryPerSecond` | 5 | 자는 동안 회복 |
 | `Disease.RawFoodStomachChance` · `StomachDurationSeconds` · `StomachHungerDrainScale` | 0.3 · 180 · 2 | 배탈 |
-| `Disease.WetColdSecondsPerRoll` · `WetColdChance` · `ColdDurationSeconds` · `ColdManaRegenPenaltyPerSecond` | 60 · 0.35 · 300 · 1 | 감기 |
-| `Sleep.SleepSkipRatio` | 1.0 | 서버 옵션 — 잠든 비율(1 = 전원). Q114(2026-11-18)로 남긴다 — 기본 1 |
+| `Disease.ExposureSicknessSeconds` · `ExposureSicknessChance` | 300 · 1 | 체온 질병(R29 · Q115): 모자람 3(`Climate.SevereDeficit`) 이상이 5분 이어지면 추위 감기 · 더위 열병(확률 × (1 − 질병 저항)) |
+| `Disease.ColdDurationSeconds` · `ColdManaRegenPenaltyPerSecond` | 300 · 1 | 감기 |
+| `Disease.FeverDurationSeconds` · `FeverBodyTemperatureRise` · `FeverFatigueRateScale` | 300 · 1.5 · 1.5 | 열병(감기와 대칭 제안) |
+| `Sleep.SleepSkipRatio` | 1.0 | 서버 옵션 — 잠든 비율(1 = 전원). Q114(2026-11-18)로 남긴다 — 기본 1(`Grimoire.Survival.Sleep` 이 ini 값을 확인) |
 | `Sleep.SkipFadeSeconds` · `SkippedHungerScale` · `WakeAfterDawn` | 3 · 0.5 · 0.005 | 건너뛰기 페이드 · 배고픔 · 깨는 시각(해돋이 + 하루 비율) |
 | `Sleep.HostileBlockRadius` · `BedInteractRadius` · `BedInteractKey` | 1500 · 250 · F | 적 검사 · 침대 거리 · 눕기 키 |
 | `Sleep.SleepingMoveSpeedScale` | 0 | 자는 동안 못 움직인다 |
@@ -107,23 +111,28 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 
 ## 피곤함
 
-- 깨어 있으면 분당 `GainPerMinute`, 밤 ×`NightGainScale`, 체온 2단계 이상 ×`ModerateFatigueRateScale`. 자는 동안 초당 `SleepRecoveryPerSecond` 회복, 쓰러져 있으면 그대로.
+- 깨어 있으면 분당 `GainPerMinute`, 밤 ×`NightGainScale`, 체온 2단계 이상 ×`ModerateFatigueRateScale`, 열병 ×`FeverFatigueRateScale`. 자는 동안 초당 `SleepRecoveryPerSecond` 회복, 쓰러져 있으면 그대로.
 - `≥ 80 → Status.Exhausted` = **탈진**(R29 · Q116 확정 2026-11-08): 달리기 막힘(`AGrimPlayerCharacter::IsSprintBlocked`), 지친 걸음(이동 ×`ExhaustedMoveSpeedScale` 0.7 — 패널티 GE 의 `MoveSpeedScale`), **마법 시전 불가**. 100 이 되어도 **기절(강제 수면)은 없다** — 탈진 그대로 걷는다. 잠(침대 · 밤)만이 푼다.
 - 시전 막힘(`[/Script/Grimoire.GrimSpellbookSettings]`): `Status.Sleeping` · `Status.Downed`(+ 건축 모드)는 `CastBlockingTags` — 마법 · 기본 공격 · 주먹질을 모두 막고 알리지 않는다. `Status.Exhausted` 는 `MagicBlockingTags` — **마법만** 막는다: 슬롯 마법은 실패 알림 「너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다」(`EGrimCastFailReason::Exhausted`), 기본 공격 입력은 주먹질이 대신 나간다(마법이 아니므로 — 구현에서 정한 것).
-- **지침**(탈진 전 구간, R29 · Q132 확정 2026-11-18 — 계획, 코드 없음): 피곤함 50 이상이면 ① 시전 시간이 있는 마법만 시전 시간이 늘고(즉발은 그대로) ② 쿨다운은 그대로 ③ 생물 · 플레이어에게 맞는 판정이 난 뒤 서버가 확률로 **빗나감** — 피해 0 + 피해 숫자 자리에 「MISS」. 조준 퍼짐은 쓰지 않는다. 수치(`Fatigue` 묶음)와 빗나감이 무엇에 걸리는지는 Q165. 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다.
-- 명중 저하 · 바람 마법 「각성」은 나중.
+- **지침** `Status.Tired`(50 이상 · 탈진 전, R29 · Q132 — 2026-11-18 구현): 이동 · 시전 속도 배율은 건드리지 않는다.
+  - **시전 시간**: 시전 시간이 있는 마법만 늘어난다 — `UGrimSpellAbility::GetCastTime` = `FGrimSurvivalModel::ComputeTiredCastTime(정의의 CastWindup, 피곤함)`. `CastWindup` 이 `TiredCastTimeMinSeconds`(0.25초) 아래면 즉발로 보고 그대로(지금 마법은 모두 0.1초 이하라 즉발 — 어떤 마법이 시전 시간을 가질지는 Q166). 쿨다운은 그대로. 서버(발사 대기 `SplitLag`)와 시전자 클라이언트(가짜 볼트 시각)가 복제된 피곤함으로 같은 값을 쓴다. 완드 끝 섬광 큐는 아직 정의의 `CastWindup` 을 그대로 읽는다(즉발에는 차이 없음).
+  - **빗나감**: 서버 `UGrimSpellAbility::ApplySpellHit` 가 맞는 판정 뒤 `RollTiredMiss` — 시전자 피곤함으로 `ComputeTiredMissChance`(50 에서 10 % → 탈진 문턱 쪽 30 %)를 굴린다. 대상이 생물 · 플레이어(ASC 가 있는 것)일 때만. 빗나가면 피해 · 속성 상태 · 숙련도 경험이 없고 `UGrimSpellbookComponent::ClientShowMiss`(시전자에게만, Unreliable)가 맞은 자리 위에 **「MISS」 피해 숫자**(`AGrimMissText` — 떠올라 1초에 줄며 사라지는 글, 빛을 받지 않는 `UnlitText` 머티리얼 — 기본 글 머티리얼은 불씨 터짐 빛에 하얗게 떠 뭉개졌다, 수치 `[/Script/Grimoire.GrimMagicSettings] MissText`)를 띄운다. 물줄기처럼 잦은 판정은 같은 자리 0.35초 안의 글을 건너뛴다. 사물(양초 · 풀 · 문 — ASC 없음)에 주는 속성 자극은 늘 된다(R16). 파크툼(계약 볼트 — 자기 판정)과 주먹질은 빗나가지 않는다. 조준 퍼짐은 쓰지 않는다.
+  - 확인: `Grimoire.Survival.Tired`(문턱 · 확률 곡선 · 시전 시간), `Grimoire.Magic.Tired.Miss`(서버 굴림 · 「MISS」 글), [QA-SUR-037 · 038](../qa/survival). 수치는 제안 — Q165.
+- 옛 「탈진 시전 −30%」(`ExhaustedCastSpeedScale`)는 시전이 막히므로 지웠다. 바람 마법 「각성」은 나중.
 - **피곤함을 푸는 음료**(Q53 답 2026-11-18, 계획 — 코드 없음): 피곤함은 잠 말고는 거점에서 만든 커피 · 에너지 드링크로만 푼다(인챈트 · 장신구 · 마법은 안 됨). 만들 때는 음식과 같은 길로 — 아이템 표 `Content/Grimoire/Data/Items.csv` 에 「피곤함 회복량」 열을 더하고(`HungerRestore` 옆), 먹기 처리에서 `Survival.Fatigue` 를 깎는다. 연달아 마시면 줄어드는 규칙의 수치는 `[/Script/Grimoire.GrimSurvivalSettings]` 의 `Fatigue` 묶음에 둔다. 이름 · 수치는 미결 Q164 — [생존 — 피곤함을 푸는 법](../spec/survival#피곤함을-푸는-법-—-잠과-깨는-음료-q53).
 
 ## 질병
 
-- `UGrimDiseaseEffect`(지속형, 시간은 SetByCaller `Survival.Disease.Duration`) 하위 클래스 2종. 이미 걸린 병은 다시 걸지 않는다. 시간으로 낫는다.
+- `UGrimDiseaseEffect`(지속형, 시간은 SetByCaller `Survival.Disease.Duration`) 하위 클래스 3종. 이미 걸린 병은 다시 걸지 않는다. 시간으로 낫는다.
 
 | 질병 | 원인 | 효과 |
 |---|---|---|
 | 배탈 `UGrimDiseaseStomachEffect` → `Status.Sick.Stomach` | 날것 섭취(아이템 표 `DiseaseChance`, 기본 30% — 아래 「먹기」) | 배고픔 감소 ×2, 180초 |
-| 감기 `UGrimDiseaseColdEffect` → `Status.Sick.Cold` | 젖은 채 추위 모자람 ≥ 1 이 60초 쌓일 때마다 35% | 마나 회복 −1/초, 300초. 「시전 가끔 끊김」은 태그만 — 마법 쪽이 읽는다 |
+| 감기 `UGrimDiseaseColdEffect` → `Status.Sick.Cold` | **추위 모자람 3 이상이 5분**(R29 · Q115 — 젖음은 추위 등급 +1 로만 거든다) | 마나 회복 −1/초, 300초. 「시전 가끔 끊김」은 태그만 — 마법 쪽이 읽는다 |
+| 열병 `UGrimDiseaseFeverEffect` → `Status.Sick.Fever` | **더위 모자람 3 이상이 5분**(Q115 — 새로) | 감기와 대칭 제안: 300초, 목표 체온 +1.5 ℃(「열 = 체온 ↑」 — 게이지만, 판정은 등급), 피곤함 ×1.5 |
 
 - 확률 × (1 − `DiseaseResist`/100). 원인 확률 · 지속은 `UGrimSurvivalSettings.Disease`.
+- 체온 질병 시계(`FGrimSurvivalModel::AccumulateExposureSickness`): 추위 · 더위 따로 모자람 3 이상인 틱마다 쌓고, 5분을 채우면 굴린 뒤 처음부터. 3 아래로 내려가면 0. 예전 「젖은 채 추위 모자람 1 이상 60초마다 35 %」 규칙은 지웠다(Q115 — R29 에 없는 규칙). 그늘 더위 −1 은 넣지 않는다(Q115 — 물속 −1 만). 확인: `Grimoire.Survival.Disease`, [QA-SUR-004](../qa/survival).
 - 치료: 약초 아이템(GE 제거), 빛 마법 정화(`Status.Sick` 으로 `RemoveActiveEffectsWithGrantedTags` — `CureAllDiseases()`)는 나중.
 - 생물 공격 · 오염 지역 원인은 생물 · 지역 시스템이 `ApplyDisease` 를 부른다(나중).
 
@@ -167,7 +176,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 
 ## 세이브
 
-`UGrimSurvivalComponent` 가 `IGrimSaveParticipant`(`Source/Grimoire/Core/GrimSaveTypes.h`) — Player 범위 `Survival.Vitals` v1: HP · 최대 HP · 배고픔 · 체온 · 피곤함 · 질병 저항(기본값), 질병 남은 시간(배탈 · 감기), 젖은 채 추운 누적, 부활 지점. 잠 · 쓰러짐은 저장하지 않는다(다시 들어오면 깨어 있다).
+`UGrimSurvivalComponent` 가 `IGrimSaveParticipant`(`Source/Grimoire/Core/GrimSaveTypes.h`) — Player 범위 `Survival.Vitals` v2: HP · 최대 HP · 배고픔 · 체온 · 피곤함 · 질병 저항(기본값), 질병 남은 시간(배탈 · 감기 · 열병), 체온 질병 시계(추위 · 더위), 부활 지점. v1(열병 없음 · 젖은 채 추운 누적)도 읽는다 — 옛 누적은 뜻이 달라 버린다. 잠 · 쓰러짐은 저장하지 않는다(다시 들어오면 깨어 있다).
 
 ## 슈퍼치트
 
@@ -182,7 +191,7 @@ BodyTemp += (목표 − BodyTemp) × (1 − exp(−dt / 120초))                
 | `grim.Survival.Sleep` · `grim.Survival.Wake` | 눕기(반경 안 침대, 없으면 그 자리) · 일어나기 |
 | `grim.Survival.Fatigue <값>` | 피곤함 설정 |
 | `grim.Survival.Down` · `grim.Survival.Revive` · `grim.Survival.Die` | HP 0(쓰러짐) · 일으키기 · 바로 사망 → 부활 |
-| `grim.Survival.EatRaw` · `grim.Survival.Sick <0 배탈 / 1 감기>` · `grim.Survival.Cure` | 질병 |
+| `grim.Survival.EatRaw` · `grim.Survival.Sick <0 배탈 / 1 감기 / 2 열병>` · `grim.Survival.Cure` | 질병 |
 | `grim.Survival.Resist <더위> <추위>` | 시험용 저항 버프(0 0 이면 뗀다) |
 | `grim.Survival.SpawnBed [1]` | 내 앞 1.5m 에 침대(1 = 침낭) — 맵 배치 전 시험용 |
 | `grim.Survival.Dump` · `grim.Survival.At <초> <명령> [A] [B]` | 플레이어별 상태 로그 · 몇 초 뒤 명령(헤드리스 `-ExecCmds` 용, 명령 = `Dump` · `Sleep` · `Down` …) |

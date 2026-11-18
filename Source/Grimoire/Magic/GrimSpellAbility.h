@@ -87,6 +87,18 @@ public:
 	 */
 	static FGrimProficiencyMultipliers GetCasterMultipliers(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
 
+	/**
+	 * 시전 시간(정의의 CastWindup). 지침(피곤함 50 이상 — Q132)이면 시전 시간이 있는 마법만 늘어난다(즉발 · 쿨다운은 그대로).
+	 * 서버 · 시전자 클라이언트가 같은 값을 쓴다(피곤함 어트리뷰트는 복제된다).
+	 */
+	static float GetCastTime(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC);
+
+	/**
+	 * 서버: 지침이면 생물 · 플레이어에게 맞은 판정 뒤 빗나감을 굴린다(Q132 · Q165). 빗나가면 피해 · 상태 · 숙련도 경험이 없고
+	 * 시전자 화면에 「MISS」가 뜬다. 사물(ASC 가 없는 것)에 주는 속성 자극은 늘 된다. Roll 을 주면(0~1) 그것으로 굴린다(테스트).
+	 */
+	static bool RollTiredMiss(const UAbilitySystemComponent* SourceASC, const UAbilitySystemComponent* TargetASC, float Roll = -1.f);
+
 	/** 시전자 서클(Circle 어트리뷰트 — 없으면 0) */
 	static int32 GetCasterCircle(const UAbilitySystemComponent* ASC);
 

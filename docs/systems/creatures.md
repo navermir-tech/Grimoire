@@ -173,7 +173,8 @@ Q118(2026-11-08)부터 **조건은 더하고 등급 · 거대 · 서클은 곱�
      + 완드 친화 min((완드의 그 생물 주속성 위력 − 1) × 0.5, 0.15)
      + 숙련도 추가 효과 + 장신구(M4 자리)
 등급(GradeScale) = (1 − SizeClassPenalty[소형 0 · 중형 0.15 · 대형 0.35 · 전설 0.7]) × (거대면 1 − GiantPenalty 0.3)
-서클(CircleScale) = CalcCircleScale(내 서클 − 요구 서클)
+     파크툼 막시마(GiantPactSpells)로 거대 개체에 걸면 × 0.7 이 없고 조건에 속성 일치 0.25 를 더한다(Q133)
+서클(CircleScale) = CalcCircleScale(내 서클 − 요구 서클)   — 요구 서클: 전설 등급은 모두 LegendaryRequiredCircle 7(Q134)
      차 ≥ 0 : min(1 + 차 × CircleSurplusScalePerCircle 0.1, CircleSurplusMaxScale 1.3)
      차 < 0 : (1 + 차 ÷ CircleDeficitWindow 4) ^ CircleDeficitExponent 9, 0 아래면 0
 확률 = clamp(조건 × 등급 × 서클, 0, MaxChance 0.95)   — 하한 없음(옛 MinChance 0.02 는 지웠다)
@@ -182,7 +183,8 @@ Q118(2026-11-08)부터 **조건은 더하고 등급 · 거대 · 서클은 곱�
 
 - 예: 1서클 플레이어가 체력 20% 재칼로프(소형 · 요구 1)에 파크툼 → (0.30 + 0.20 + 0.05) × 1 × 1 = **55%**, 파크툼 벤투스면 80%, 좋아하는 먹이(허브 · 곡물)까지 주면 95%.
 - 예: 6서클이 체력 15% 전설(요구 7)에 속성 맞는 파크툼 → 0.825 × 0.3 × 0.075 = **1.9%**, 1서클이면 차 −6 → **0**(시도 불가).
-- **전설도 길들일 수 있다**(Q48 답 2026-11-18): 코드가 전설을 따로 막는 곳은 없다 — 계약을 거절하는 것은 종 정의의 `bTameable` 이 거짓일 때뿐이고(`UGrimTamingSubsystem::TryTame` → `NotTameable`), 지금 있는 세 종은 모두 참이다. 전설 종 데이터를 만들 때 `tameable=True` · `SizeClass` = `Legendary` 로 둔다. 전설 전용 조건(체력 30 % 문턱 · 파크툼 막시마 보정 · 재등장 · 번식)은 스펙 제안 Q160 · Q161 이라 코드가 없다(계획).
+- **전설도 길들일 수 있다**(Q48 답 2026-11-18): 코드가 전설을 따로 막는 곳은 없다 — 계약을 거절하는 것은 종 정의의 `bTameable` 이 거짓일 때뿐이고(`UGrimTamingSubsystem::TryTame` → `NotTameable`), 지금 있는 세 종은 모두 참이다. 전설 종 데이터를 만들 때 `tameable=True` · `SizeClass` = `Legendary` 로 둔다. 전설 전용 조건(체력 30 % 문턱 · 재등장 · 번식)은 스펙 제안 Q160 · Q161 이라 코드가 없다(계획).
+- **전설 요구 서클 · 파크툼 막시마**(Q134 · Q133 확정 · 데이터 규칙 2026-11-18): 전설 등급(`SizeClass = Legendary`) 종은 정의의 `TamingCircle` 과 상관없이 요구 서클 **7**(`[/Script/Grimoire.GrimTamingSettings] Capture.LegendaryRequiredCircle`, `GrimTamingMath::ResolveRequiredCircle`) — 어려움은 등급 배율 ×0.3 · 거대 · 사는 곳으로 낸다. 파크툼 막시마(6서클 · M6, 정의 `DA_Spell_Pactum_Maxima` 는 아직 없다)는 이름을 `Capture.GiantPactSpells` 에 두었다 — 그 정의로 **거대 개체**에 걸면 거대 깎기 ×0.7 이 없고 속성 일치 몫 +0.25 를 받는다(무속성이라 어느 생물에게나, 거대가 아니면 기본 파크툼과 같다). 지금은 전설 종 · 막시마 정의가 없어 규칙만 있다. 확인: `Grimoire.Taming.GiantPact`.
 - 로그 `[Server] 계약 … 확률 1.86% (조건 0.83 = …) × 등급 0.30 × 서클 0.0751`. 알림의 확률 글은 `GrimTamingMath::FormatChancePercent`(10% 이상 정수, 1~10% 소수 한 자리, 1% 아래 소수 두 자리).
 - **성공**: 개체 기록 `OwnerId` = 그 플레이어 PlayerId(`UGrimSaveSubsystem::GetPlayerId` — 세이브 파일 이름과 같은 값), 충성도 50, 까닭 「계약」, 체력 50% 까지, 개체군에서 빼기(`UGrimEcosystemSubsystem::HandleCreatureTamed` — 회복이 시작된다), 주인 기록에 넣기, 퀘스트 이벤트 `Creature.Tamed.<분류>`(소형 = 튜토리얼 14단계 `Creature.Tamed.Small`).
 - **실패 = 저항**: `EnrageSeconds`(6초) 동안 `Creature.State.Enraged` — AI 판단 1-1 순위로 **겁 많은 종도 시전자에게 덤빈다**(공격이 없으면 도망).

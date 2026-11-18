@@ -1,8 +1,8 @@
 # QA — 생존 · 밤낮 · 날씨
 
-[QA 절차](../dev/qa) · 스펙 [생존](../spec/survival) · [세계 · 환경](../spec/world), 설계 [생존](../systems/survival) · [환경 · 날씨](../systems/environment). 마지막 실행 **2026-11-08**(브랜치 `claude/answers-q116-032c8c` — Q102 · Q116~Q120 항목만, 나머지 행은 적힌 날짜 그대로)(main `a6da3f7` 기준).
+[QA 절차](../dev/qa) · 스펙 [생존](../spec/survival) · [세계 · 환경](../spec/world), 설계 [생존](../systems/survival) · [환경 · 날씨](../systems/environment). 마지막 실행 **2026-11-18**(QA-SUR-004 · 037 · 038 — 브랜치 `claude/align-decisions-1c6ee9`), 그 전 **2026-11-08**(브랜치 `claude/answers-q116-032c8c` — Q102 · Q116~Q120 항목만, 나머지 행은 적힌 날짜 그대로)(main `a6da3f7` 기준).
 
-다시 돌리기: `powershell -File Scripts\QA\run_all.ps1 -Only automation,survival,weather,items` · 화면 `Scripts\QA\shoot_qa.ps1` · 밤 화면 `Scripts\Environment\shoot_night.ps1 -Tag after`.
+다시 돌리기: `powershell -File Scripts\QA\run_all.ps1 -Only automation,survival,weather,items` · 지침 「MISS」 · 열병 화면 `Scripts\Survival\capture_tired_fever.ps1` · 화면 `Scripts\QA\shoot_qa.ps1` · 밤 화면 `Scripts\Environment\shoot_night.ps1 -Tag after`.
 
 ## 생존 스탯 (R03 · R25 · R29)
 
@@ -11,8 +11,8 @@
 | QA-SUR-001 | R03 | 배고픔 감소 · HP · 마나 회복(배고프면 HP 회복 없음) · 어트리뷰트 범위 | ① `Grimoire.Survival.Hunger` · `.Effects` · `.AttributeClamp` · `.Penalty` | 통과 | ✅ 11-06 | 자동화 153/153 |
 | QA-SUR-002 | R25 | 지역 · 날씨 등급 − 장비 저항 = 실제 등급(저항 3 이면 추위 등급이 있어도 태그 없음) | ① `Grimoire.Survival.Climate.Exposure` · `.Climate.Status` · `Grimoire.Environment.Climate.*` + ④ `net_check_survival.ps1`(클라이언트 저항 0 3) | 통과, 밤 건너뛴 뒤 클라이언트 `Cold=0` · 태그 없음 | ✅ 11-06 | `survival.txt` |
 | QA-SUR-003 | R29 | **체온은 그 존에 들어가면 등급이 즉시** 적용(게이지가 천천히 따라가지 않음) | 코드 · 설정 확인 | 등급 즉시, 수렴 없음 | ❌ [BUG-003](./bugs) | `Grimoire.Survival.BodyTemperature.Converge` 가 아직 2분 지수 수렴을 시험 · `BodyTemperatureTimeConstantSeconds=120` |
-| QA-SUR-004 | R29 | 체온 모자람 3 이상이 5분 → 감기(추위) · **열병**(더위) | ① `Grimoire.Survival.Disease` | 통과 + 열병 질병이 있다 | ❌ [BUG-003](./bugs) — 감기는 있음, 열병(새 질병) 없음 | 질병 표에 열병 없음(`Heatstroke` 는 더위 2단계 상태 글자) |
-| QA-SUR-005 | R29 · Q116 | 피곤함: **탈진(≥ 80) = 달리기 불가 · 지친 걸음 · 마법 시전 불가**(주먹질은 됨), 강제 기절 없음. 탈진 전 「시전 속도 · 명중 저하」는 Q132 | ① `Grimoire.Survival.Fatigue` · `.Penalty` · `Grimoire.Magic.Proficiency.Spellbook`(차단 태그) · `Grimoire.Magic.CastFailure.Classify` + ④ `net_check_survival.ps1`(피곤함 85 → 슬롯 1 → 기본 공격) | 탈진에서 걸음 ×0.7 · 시전 배율 그대로 · 슬롯 마법은 「마법 실패 Exhausted」 · 기본 공격은 주먹질, 설정에 기절 키 없음 | ✅ 11-08(브랜치 `claude/answers-q116-032c8c`) — 서버 · 클라이언트 덤프 `Fatigue=85.0 Move=0.70 Cast=1.00 Walk=350 tags=Status.Exhausted`(걸음 500 → 350), 슬롯 1 → `[Server] 마법 실패 … Exhausted` · `[Client] 마법 실패 알림 Exhausted: 너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다` · 양쪽 피식 연출, 기본 공격 → 양쪽 `주먹질`. 탈진 전 저하는 아직 없음(Q132) | `survival.txt` · 자동화 181/181 |
+| QA-SUR-004 | R29 · Q115 | 체온 모자람 3 이상이 5분 → 감기(추위) · **열병**(더위), 3 아래로 내려가면 시계 처음부터, 모자람 2 는 아무리 오래도 없음. 열병 = 체온 게이지 +1.5 ℃ · 피곤함 ×1.5 · 300초(감기와 대칭 제안). 옛 「젖은 채 60초 35 %」 없음 | ① `Grimoire.Survival.Disease` · `.Effects` · ③ `Scripts\Survival\capture_tired_fever.ps1`(열병을 걸고 생존 디버그 글, 20초 뒤 다시) | 통과, 화면에 `Status Fever` · 체온이 오름 · 피곤함이 빨리 쌓임 | ✅ 11-18(브랜치 `claude/align-decisions-1c6ee9`) — 자동화 통과, 화면 `Status Fever` · 20초 뒤 체온 37.24 ℃(목표 38.5 로 2분 수렴 — 계산 37.23) · 피곤함 0 → 0.8(보통이면 0.55, ×1.5) | `qa-surv-fever.jpg` · 로그 `질병 Status.Sick.Fever — 300초` |
+| QA-SUR-005 | R29 · Q116 | 피곤함: **탈진(≥ 80) = 달리기 불가 · 지친 걸음 · 마법 시전 불가**(주먹질은 됨), 강제 기절 없음. 탈진 전 「지침」은 QA-SUR-037 · 038(Q132) | ① `Grimoire.Survival.Fatigue` · `.Penalty` · `Grimoire.Magic.Proficiency.Spellbook`(차단 태그) · `Grimoire.Magic.CastFailure.Classify` + ④ `net_check_survival.ps1`(피곤함 85 → 슬롯 1 → 기본 공격) | 탈진에서 걸음 ×0.7 · 시전 배율 그대로 · 슬롯 마법은 「마법 실패 Exhausted」 · 기본 공격은 주먹질, 설정에 기절 키 없음 | ✅ 11-08(브랜치 `claude/answers-q116-032c8c`) — 서버 · 클라이언트 덤프 `Fatigue=85.0 Move=0.70 Cast=1.00 Walk=350 tags=Status.Exhausted`(걸음 500 → 350), 슬롯 1 → `[Server] 마법 실패 … Exhausted` · `[Client] 마법 실패 알림 Exhausted: 너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다` · 양쪽 피식 연출, 기본 공격 → 양쪽 `주먹질`. 탈진 전 저하는 아직 없음(Q132) | `survival.txt` · 자동화 181/181 |
 | QA-SUR-006 | R29 | 질병 = 상태별 디버프 총칭, 치료 수단 태그(약초 · 치료 마법 · 질병별 물약 · 정화) | ① `Grimoire.Survival.Disease` + 설정 확인 | 질병 정의가 데이터(질병마다 치료 수단 태그) | ❌ [BUG-003](./bugs) — 테스트는 통과하지만 질병은 복통 · 감기 둘이 `Disease=(…)` 고정 칸이고, 치료 수단 태그 · 질병 표가 없다 | `Config/DefaultGame.ini` `Disease=(RawFoodStomachChance … ColdDurationSeconds …)` |
 
 ## 잠 · 쓰러짐 · 부활 (R29 — 2인)
@@ -103,8 +103,14 @@
 | QA-SUR-034 | R03 | 더블클릭 사용: 한 번 = 고르기만, 두 번 = 음식 하나 먹음(배고픔 · 「먹었다」 알림), 재료 · 빈 칸 = 줄지 않고 알림도 없음, 장비 = 입기(「입었다」 알림), 옮기기 중의 누름은 쓰지 않음 | ① `Grimoire.Items.BagDoubleClick.Use` | 통과 | ✅ 11-08 | 자동화 |
 | QA-SUR-035 | R03 · R13 | 2인: 클라이언트 화면의 더블클릭이 `Server_UseItem` 으로 서버에서 처리되고 소유자에게 복제된다(호스트도 같은 입력) | ④ `Scripts\Items\net_check_bag_doubleclick.ps1` | 끝 줄 `NETCHECK_RESULT fail=0` | ✅ 11-08 | PASS 10 · 클라 고기 3 → 3 → 3 → 2 · 배고픔 29.9 → 59.8 · 털 3 그대로 · 두건 입음 · 서버 「먹었다」 2줄(클라 · 호스트) |
 | QA-SUR-036 | R03 | 화면: 실제 칸 단추에 OS 마우스 메시지 경로로 더블클릭 입력 — 개수 ×3 → ×2, 배고픔 막대 30 → 60, 「먹었다」 알림, 재료는 고르기만 | ③ `Scripts\QA\shoot_qa.ps1 -Set Bag`(`Grim.Items.BagMouse`) | 그림과 `shoot.log` 의 덤프 | ✅ 11-08 · [그림](#그림) | `[BagInput] 칸 0 슬레이트 더블클릭 라우팅 됨` → 덤프 `RoastedJackalopeMeat×2` · Hunger 59.9 |
+| QA-SUR-037 | R29 · Q132 | 지침(피곤함 50~79 `Status.Tired`): 이동 · 시전 속도 배율은 그대로, 시전 시간이 있는 마법(0.25초 이상)만 ×1.3 · 즉발(불씨 0.1초)은 그대로, 빗나감 확률 50 에서 10 % → 탈진 문턱 쪽 30 %, 탈진에선 굴리지 않음. 서버 굴림은 생물 · 플레이어에게만(사물 자극은 늘) | ① `Grimoire.Survival.Tired` · `Grimoire.Magic.Tired.Miss`(굴림 0 · 0.99, 2,000번 ≈ 20 %, 시전 시간) | 통과 | ✅ 11-18 — 수치는 제안(Q165), 「시전 속도」 보정의 뜻은 Q166 | 자동화 195/195 |
+| QA-SUR-038 | Q132 | 화면: 지침에서 생물을 맞혔는데 빗나가면 맞은 자리 위에 「MISS」가 떠올라 사라지고 피해가 없다(로그 `빗나감(지침)`), 맞으면 그대로 | ③ `Scripts\Survival\capture_tired_fever.ps1 -Casts 20`(초원, 재칼로프 셋 8 m, 피곤함 79 고정, 불씨 연사 — 쏠 때마다 장면) | 몇 발이 빗나가고 그 장면에 「MISS」 글 | ✅ 11-18 — 17발 맞음 중 5발 빗나감(≈ 29 %, 피곤함 79 의 기대 30 %), 빗나간 장면에 흰 「MISS」가 터짐 위에 뜬다. 처음엔 기본 글 머티리얼이 불씨 터짐 빛을 받아 주황 덩어리로 뭉개졌다 → 빛을 받지 않는 `UnlitText` 로(데이터 `MissText.Material`) | `qa-surv-miss.jpg` · `Saved\TiredCapture\game.log` |
 
 ## 그림
+
+![QA-SUR-038 — 지침 빗나감: 맞은 자리 위 「MISS」(초원, 피곤함 79)](/qa/qa-surv-miss.jpg)
+
+![QA-SUR-004 — 열병: 생존 디버그 글 `Status Fever`, 20초 뒤 체온 37.24 ℃ · 피곤함 0.8](/qa/qa-surv-fever.jpg)
 
 ![QA-SUR-024 — 고치기 전(11-06) 밤 — 자동 노출로 낮처럼 보인다](/qa/qa-night.jpg)
 

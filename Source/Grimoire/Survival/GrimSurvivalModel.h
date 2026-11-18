@@ -37,6 +37,8 @@ struct FGrimSurvivalInputs
 	bool bDowned = false;
 	bool bStomachSick = false;
 	bool bColdSick = false;
+	/** 열병(Q115) — 목표 체온이 오르고 피곤함이 빨리 쌓인다 */
+	bool bFeverSick = false;
 };
 
 /** 한 틱 동안의 변화량(GE SetByCaller 로 베이스에 더한다). */
@@ -65,6 +67,9 @@ struct FGrimSurvivalStatus
 	bool bWarm = false;
 	bool bHyperthermia = false;
 	bool bHyperthermiaSevere = false;
+
+	/** 지침(피곤함 TiredThreshold 이상, 탈진 전) — 시전 시간이 있는 마법이 느려지고 맞혀도 가끔 빗나간다(Q132) */
+	bool bTired = false;
 
 	/** 탈진 — 달리기 · 마법 시전 불가, 지친 걸음(R29 · Q116). 강제 기절은 없다. */
 	bool bExhausted = false;
@@ -109,7 +114,8 @@ struct GRIMOIRE_API FGrimSurvivalModel
 	/** 모자람 = 등급 − 저항(소수 저항은 모자란 쪽으로 올림), 0 아래는 0. */
 	static FGrimClimateExposure ComputeDeficit(const FGrimClimateExposure& Exposure, float HeatResist, float ColdResist);
 
-	static float ComputeTargetBodyTemperature(const FGrimClimateExposure& Deficit, const FGrimSurvivalRules& Rules);
+	/** 목표 체온. 열병이면 FeverBodyTemperatureRise 만큼 더(R29 「열 = 체온 ↑」). */
+	static float ComputeTargetBodyTemperature(const FGrimClimateExposure& Deficit, const FGrimSurvivalRules& Rules, bool bFever = false);
 
 	/** DeltaSeconds 뒤의 체온. 틱 간격이 바뀌어도 같은 곡선을 따른다. */
 	static float StepBodyTemperature(float Current, float Target, float DeltaSeconds, const FGrimSurvivalTuning& Tuning);
@@ -119,8 +125,18 @@ struct GRIMOIRE_API FGrimSurvivalModel
 	/** 상태 → 패널티 배율. 자는 중 · 쓰러짐은 이동을 막거나 줄인다. */
 	static FGrimSurvivalModifiers ComputeModifiers(const FGrimSurvivalStatus& Status, bool bSleeping, bool bDowned, const FGrimSurvivalRules& Rules);
 
-	/** 피곤함 변화: 깨어 있으면 증가(밤 · 2단계 체온이면 더 빠르게), 자면 회복, 쓰러짐이면 그대로. */
-	static float ComputeFatigueDelta(float Fatigue, float DeltaSeconds, bool bSleeping, bool bDowned, bool bNight, bool bModerateExposure, const FGrimSurvivalRules& Rules);
+	/** 피곤함 변화: 깨어 있으면 증가(밤 · 2단계 체온 · 열병이면 더 빠르게), 자면 회복, 쓰러짐이면 그대로. */
+	static float ComputeFatigueDelta(float Fatigue, float DeltaSeconds, bool bSleeping, bool bDowned, bool bNight, bool bModerateExposure, const FGrimSurvivalRules& Rules, bool bFever = false);
+
+	// 지침(Q132)
+	/** 빗나감 확률: 지침 문턱 아래 · 탈진이면 0, 문턱에서 TiredMissChanceMin → 탈진 문턱에서 Max 로 곧게. */
+	static float ComputeTiredMissChance(float Fatigue, const FGrimSurvivalRules& Rules);
+
+	/** 지침이면 시전 시간이 있는 마법(CastTime ≥ TiredCastTimeMinSeconds)만 × TiredCastTimeScale. 즉발 · 쿨다운은 그대로. */
+	static float ComputeTiredCastTime(float CastTime, float Fatigue, const FGrimSurvivalRules& Rules);
+
+	/** 빗나감 굴림(Roll 0~1) */
+	static bool RollMiss(float Chance, float Roll) { return Chance > 0.f && Roll < Chance; }
 
 	static FGrimSurvivalDeltas ComputeTick(const FGrimSurvivalInputs& Inputs, float DeltaSeconds, const FGrimSurvivalRules& Rules);
 
@@ -128,8 +144,11 @@ struct GRIMOIRE_API FGrimSurvivalModel
 	/** 원인 확률 × (1 − DiseaseResist/100), 0~1. */
 	static float ComputeDiseaseChance(float BaseChance, float DiseaseResist);
 
-	/** 젖은 채 추운 시간을 쌓고, 한 주기를 채울 때마다 굴릴 횟수를 돌려준다. 조건이 풀리면 0 으로. */
-	static int32 AccumulateWetCold(float& AccumulatedSeconds, float DeltaSeconds, bool bWetAndCold, const FGrimDiseaseTuning& Disease);
+	/**
+	 * 체온 질병 시계(R29 · Q115): 모자람이 심한 단계(SevereDeficit) 이상이면 시간을 쌓고, ExposureSicknessSeconds 를 채우면 true 를 돌려주며
+	 * 처음부터 다시 잰다. 조건이 풀리면(모자람이 3 아래로) 0 으로. 추위(감기) · 더위(열병) 따로 쓴다.
+	 */
+	static bool AccumulateExposureSickness(float& AccumulatedSeconds, float DeltaSeconds, int32 DeficitGrade, const FGrimSurvivalRules& Rules);
 
 	// 잠
 	/** 잠든 수 / 접속자 수 ≥ Ratio 이고 밤이면 건너뛴다. 접속자 0 이면 false. */

@@ -37,6 +37,7 @@
 | 11-09 | 물 재질 Q126 | Water Materials 팩(CC BY) `M_River` 인스턴스로 개울 · 연못 물 표면 교체, 크레딧 문서, 호 길이 UV 연속화 | [물 재질 Q126](#물-재질-q126-2026-11-09) |
 | 11-09 | 초원 꾸밈 기획 (문서) | 소품을 마법 반응으로 — 요소 32 · 장면 8 · 분포 규칙 · 1차 11(Q150~Q157), 다른 게임 조사 근거 | [초원 꾸밈](../spec/meadow-dressing) |
 | 11-18 | 밤 화면 Q101 | 해가 진 뒤 자동 노출 하한(−5.5 → −2 EV100) · 채도 빼기, 달빛 최저 높이 30°, 불씨 섬광 · 터짐 빛 — 달빛 아래 실루엣, 낮 · 노을 · 탑 안 그대로(BUG-008) | [밤 화면 Q101](#밤-화면-q101-—-달빛-아래-실루엣-2026-11-18) |
+| 11-18 | 마법 · 생존 결정 맞추기 (코드) | 발사 빛줄기는 원격 지연 당김에만(Q110) · 연출 묶음 부모 태그로 · 무속성 · 땅 · 어둠 볼트 묶음 + 연기 가닥 · 돌가루(Q113 · Q87) · 열병 + 모자람 3 이상 5분 질병(Q115) · 지침 = 시전 시간 · 「MISS」(Q132) · 막시마 · 전설 7서클 규칙(Q133 · Q134) · 「포만」 · 쿠스토디아 막시마 줄 삭제(Q53 · Q61) | [마법 · 생존 결정 맞추기](#마법-·-생존-결정-맞추기-2026-11-18) |
 | 11-18 | 사용자 답 Q46~Q110 (문서) | 전설도 길들일 수 있다(Q48) · 피곤함 · 배고픔은 인챈트로 못 막고 커피 · 에너지 드링크로(Q53) · 인챈트 칸 · 단계는 데이터에(Q51) · 묶음 알리는 법(Q54) · 보관은 크기 무관(Q61) · 천둥새도 잡는다(Q162) · 마법탑 아트풍 시범(Q96) · Q85 빛줄기는 원격만(Q110) 등, 새 미결 Q160 · Q161 · Q163 · Q164 | [사용자 답 Q46~Q110](#사용자-답-q46-q110-→-문서-2026-11-18) |
 | 11-18 | 사용자 답 Q111~Q150 (문서) | 낙뢰는 빛 자극 하나(Q111) · 밤 건너뛰기 비율은 서버 옵션 기본 전원(Q114) · 열병 추가 · 그늘 더위 −1 없음(Q115) · 피곤함 「지침」 = 시전 시간 · 맞은 뒤 빗나감 MISS(Q132) — 시전 속도와 쿨다운 용어 정리 · 레스티투오 하나씩 수리(Q123) · 「개인만 무료」 받아 둘 14 개(Q128) · 크레딧은 설정 안 탭(Q137) · **지도 · 미니맵 스펙 새로**(Q130), 새 미결 Q165~Q169 | [사용자 답 Q111~Q150](#사용자-답-q111-q150-→-문서-2026-11-18) |
 
@@ -227,6 +228,24 @@
   - VitePress 검색창 Enter(`router.go`)는 `hashchange` 를 안 내므로 필터를 풀려면 `router.onAfterRouteChange` 도 걸어야 한다.
   - 검색 색인은 `<hN>…<a href="#…"></a></hN>` 이 한 줄일 때만 절로 나눈다 — 카드 제목 줄에 줄바꿈을 넣으면 번호 검색이 페이지 맨 위로 간다.
   - 한글 머리글 `id` 는 NFD(자모 분리)다 — `getElementById('미결-질문')` 처럼 NFC 문자열로는 못 찾는다.
+
+## 마법 · 생존 결정 맞추기 (2026-11-18)
+
+- **무엇을**: 사용자 답(2026-11-18)과 어긋난 마법 · 생존 코드 · 데이터를 맞췄다. 브랜치 `claude/align-decisions-1c6ee9`(밤 화면 Q101 브랜치 위).
+  - **Q110** 볼트 발사 빛줄기는 원격 시전자의 지연을 당긴 볼트에만, 완드 끝부터 볼트 자리(틈)까지 — 혼자 · 호스트는 긋지 않는다. 당긴 시간을 투사체 `LaunchAdvanceSeconds`(처음 한 번 복제)로 보내고, 연출 묶음의 `LaunchStreakSeconds` 는 지웠다([투사체 · 시전 감각 — 발사 빛줄기](../systems/spell-feel)).
+  - **Q113 · Q87** 연출 묶음 기본값을 부모 태그로 거슬러 찾고(`GrimMagicFXMath::FindByTagOrParent`), 볼트 · 포물선은 `DefaultBoltVisualSets` 먼저 — 무속성 `VS_Arcane` · 땅 `VS_Earth`(덧그림 돌가루 `NS_Bolt_Dust`) · 어둠 `VS_Dark`(덧그림 연기 가닥 `NS_Bolt_Smoke`), 모르면 무속성. 투사체도 같은 고르기를 써서 파크툼 볼트가 바늘 빛줄기로 난다. 연출 묶음 칸 `TrailAccent` 를 더했다.
+  - **Q115** 체온 질병을 R29 대로 — 모자람 3 이상 5분 → 감기 · **열병**(새 `Status.Sick.Fever`, 감기와 대칭 제안: 300초 · 체온 게이지 +1.5 ℃ · 피곤함 ×1.5). 옛 「젖은 채 추위 60초마다 35 %」는 지웠다. 세이브 `Survival.Vitals` v2(열병 · 더위 시계, v1 도 읽음). 그늘 더위 −1 은 넣지 않았다([생존 — 질병](../systems/survival#질병)).
+  - **Q132** 지침(피곤함 50~79, `Status.Tired`): 시전 시간 0.25초 이상인 마법만 시전 시간 ×1.3(지금 마법은 모두 즉발이라 체감 없음, 쿨다운 그대로), 서버가 생물 · 플레이어에게 맞은 뒤 10 → 30 % 로 빗나감을 굴려 피해 · 상태 · 숙련도를 막고 시전자 화면에 「MISS」(`AGrimMissText`)([생존 — 피곤함](../systems/survival#피곤함)).
+  - **Q133 · Q134** 데이터 규칙: 파크툼 막시마(`GiantPactSpells`)는 거대 개체에 ×0.7 없이 속성 일치 +0.25, 전설 요구 서클은 모두 7(`LegendaryRequiredCircle`) — 전설 종 · 막시마 정의는 아직 없다([생물 — 길들이기](../systems/creatures)).
+  - **Q53 · Q61** `Enchants.csv` 의 `Satiety`(포만), `Skillbooks.csv` 의 `Skillbook_Custodia_Maxima` 줄을 지우고 스킬북 표를 다시 뽑았다(90권). 레스티투오 설명에 「하나씩 수리」(Q123)를 넣었다.
+  - **Q123** 은 코드가 이미 그 규칙(Q121 때)이라 테스트만 더했다. **Q114** `SleepSkipRatio` 기본 1 을 테스트로 확인.
+- **어떻게**: 순수 계산은 `FGrimSurvivalModel`(`AccumulateExposureSickness` · `ComputeTiredMissChance` · `ComputeTiredCastTime`) · `GrimSpellDelivery::CalcLaunchStreakLength` · `GrimTamingMath::ResolveRequiredCircle` 로 떼어 자동화 테스트. 새 Niagara 는 사양 파일 `art/fx/specs/spell/bolt_accent.json` → `make_spell_fx.py`(`GRIM_FX_SPEC=bolt_accent`), 묶음은 `make_magicfx_assets.py`(`GRIM_FX_STEPS=visual_sets`). 화면은 `Grim.FX.Bolt … <당김초>`(새 인자) · `Scripts/Survival/capture_tired_fever.ps1`(새).
+- **확인**: 자동화 195/195(새 `Grimoire.MagicFX.VisualSet.Resolve` · `Grimoire.Survival.Tired` · `Grimoire.Magic.Tired.Miss` · `Grimoire.Taming.GiantPact` · `Grimoire.Base.Repair.Piece`, 고친 `Grimoire.Magic.Delivery.LaunchStreak` · `Grimoire.Survival.Disease` · `.Sleep` · `.Effects` · `Grimoire.MagicFX.Assets`), 화면 [QA — 이펙트](../qa/fx) 012 · 014, [QA — 생존](../qa/survival) 004 · 037 · 038.
+- **함정**:
+  - 투사체의 발사 빛줄기를 `BeginPlay` 에서만 그으면 서버(호스트 화면)는 `CatchUp` 전이라 틈이 늘 0 이다 — 서버 사본은 당긴 직후에 긋는다.
+  - 새 워크트리는 LFS 파일이 포인터로만 있다 — 헤드리스 스크립트가 「Invalid value for PACKAGE_FILE_TAG」로 에셋을 못 연다. `git lfs checkout`(공유 저장소에서 꺼냄, 1.9 GB)부터.
+  - NiagaraToolsets 의 Fountain 템플릿 이미터에는 `ScaleSpriteSize` 모듈이 없다 — 끄기를 시키면 설정 실패로 센다.
+  - 「시전 속도」 보정(완드 · 추위 · 성장 트리)은 코드가 여전히 쿨다운을 나눈다(Q166 미결) — 지침은 그것과 따로 시전 시간만 건드린다.
 
 ## 밤 화면 Q101 — 달빛 아래 실루엣 (2026-11-18)
 

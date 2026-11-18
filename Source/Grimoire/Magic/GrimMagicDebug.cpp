@@ -290,16 +290,16 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 		FConsoleCommandWithArgsDelegate::CreateStatic(&CastCommand));
 
 	/**
-	 * Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm] — 시전 없이 그 자리에서 볼트 연출만 날린다(판정 없는 가짜
-	 * 투사체 + 완드 끝 섬광 + 발사 빛줄기, 거리를 주면 거기서 적중 연출). 볼트는 75~90 m/s 라 좁은 방의 실제 시전은 비행이 몇 프레임뿐이다
-	 * — 이펙트를 찍을 때 쓴다(Scripts/MagicFX/capture_bolt.ps1).
-	 * 예: Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 250
+	 * Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm] [당김초] — 시전 없이 그 자리에서 볼트 연출만 날린다(판정 없는 가짜
+	 * 투사체 + 완드 끝 섬광, 거리를 주면 거기서 적중 연출). 당김초 > 0 이면 원격 시전자의 지연 당김처럼 그만큼 앞에서 나타나고 그 틈에
+	 * 발사 빛줄기를 긋는다(Q110). 볼트는 75~90 m/s 라 좁은 방의 실제 시전은 비행이 몇 프레임뿐이다 — 이펙트를 찍을 때 쓴다(Scripts/MagicFX/capture_bolt.ps1).
+	 * 예: Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 1500 0.15
 	 */
 	void FxBoltCommand(const TArray<FString>& Args, UWorld* World)
 	{
 		if (Args.Num() < 5 || !World)
 		{
-			UE_LOG(LogGrimMagicDebug, Warning, TEXT("사용: Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm]"));
+			UE_LOG(LogGrimMagicDebug, Warning, TEXT("사용: Grim.FX.Bolt <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm] [당김초]"));
 			return;
 		}
 		const UGrimSpellDefinition* Definition = LoadObject<UGrimSpellDefinition>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/Magic/Spells/%s.%s"), *Args[0], *Args[0]));
@@ -311,6 +311,7 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 		const FVector Start(FCString::Atod(*Args[1]), FCString::Atod(*Args[2]), FCString::Atod(*Args[3]));
 		const FRotator Rotation(Args.Num() >= 6 ? FCString::Atod(*Args[5]) : 0.0, FCString::Atod(*Args[4]), 0.0);
 		const float ImpactDistance = Args.Num() >= 7 ? FCString::Atof(*Args[6]) : 0.f;
+		const float AdvanceSeconds = Args.Num() >= 8 ? FCString::Atof(*Args[7]) : 0.f;
 		const FTransform SpawnTransform(Rotation, Start);
 		const TSubclassOf<AGrimSpellProjectile> ProjectileClass = Definition->ProjectileClass ? Definition->ProjectileClass : TSubclassOf<AGrimSpellProjectile>(AGrimSpellProjectile::StaticClass());
 		AGrimSpellProjectile* Bolt = World->SpawnActorDeferred<AGrimSpellProjectile>(ProjectileClass, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
@@ -320,7 +321,10 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 		}
 		Bolt->InitFake(Definition, nullptr);
 		Bolt->FinishSpawning(SpawnTransform);
-		const UGrimSpellVisualSet* VisualSet = Definition->VisualSet;
+		// 원격 시전자의 지연 당김 흉내(Q110): 그만큼 앞에서 나타나고 그 틈에 발사 빛줄기를 긋는다. 0 이면 혼자 · 호스트처럼 긋지 않는다.
+		Bolt->CatchUp(AdvanceSeconds);
+		// 정의에 묶음이 없으면(파크툼 등) 속성 기본 묶음 — 투사체와 같은 고르기(Q113).
+		const UGrimSpellVisualSet* VisualSet = Bolt->GetVisualSet();
 		const UGrimMagicFXVisualSet* Extended = Cast<UGrimMagicFXVisualSet>(VisualSet);
 		const float StopAfter = Extended ? Extended->OneShotStopSeconds : 0.6f;
 		if (VisualSet)
@@ -360,7 +364,7 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 
 	FAutoConsoleCommandWithWorldAndArgs GFxBoltCommand(
 		TEXT("Grim.FX.Bolt"),
-		TEXT("시전 없이 볼트 연출만 날린다(판정 없음). <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm]"),
+		TEXT("시전 없이 볼트 연출만 날린다(판정 없음). <마법 정의 이름> <X> <Y> <Z> <요> [피치] [터질 거리cm] [당김초 — 원격 지연 흉내, 발사 빛줄기]"),
 		FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&FxBoltCommand));
 
 	/**
@@ -377,7 +381,9 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 			return;
 		}
 		const UGrimSpellDefinition* Definition = LoadObject<UGrimSpellDefinition>(nullptr, *FString::Printf(TEXT("/Game/Grimoire/Magic/Spells/%s.%s"), *Args[0], *Args[0]));
-		const UGrimSpellVisualSet* VisualSet = Definition ? Definition->VisualSet.Get() : nullptr;
+		const bool bBolt = Definition && (Definition->Delivery == EGrimSpellDelivery::Bolt || Definition->Delivery == EGrimSpellDelivery::Lob);
+		const UGrimSpellVisualSet* VisualSet = !Definition ? nullptr
+			: Definition->VisualSet ? Definition->VisualSet.Get() : UGrimMagicFXStatics::FindDefaultVisualSet(Definition->Element, bBolt);
 		if (!VisualSet)
 		{
 			UE_LOG(LogGrimMagicDebug, Warning, TEXT("[Grim.FX.Spawn] 연출 묶음 없음 %s"), *Args[0]);
@@ -385,7 +391,8 @@ namespace GrimMagicDebugLocal // 유니티 빌드에서 GrimInteractionDebug 의
 		}
 		const FString Slot = Args[1];
 		UFXSystemAsset* Asset = Slot == TEXT("Muzzle") ? VisualSet->MuzzleFlash.Get() : Slot == TEXT("Trail") ? VisualSet->Trail.Get()
-			: Slot == TEXT("Impact") ? VisualSet->Impact.Get() : Slot == TEXT("Launch") ? VisualSet->LaunchStreak.Get() : nullptr;
+			: Slot == TEXT("Impact") ? VisualSet->Impact.Get() : Slot == TEXT("Launch") ? VisualSet->LaunchStreak.Get()
+			: Slot == TEXT("Accent") ? VisualSet->TrailAccent.Get() : nullptr;
 		const FVector Location(FCString::Atod(*Args[2]), FCString::Atod(*Args[3]), FCString::Atod(*Args[4]));
 		const FRotator Aim(Args.Num() >= 7 ? FCString::Atod(*Args[6]) : 0.0, FCString::Atod(*Args[5]), 0.0);
 		const float StopAfter = Args.Num() >= 8 ? FCString::Atof(*Args[7]) : 0.f;

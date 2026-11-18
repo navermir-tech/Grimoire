@@ -111,9 +111,14 @@ namespace GrimSpellDelivery
 		return FMath::Clamp(FlatDistance / FlatSpeed, 0.f, FMath::Max(Fallback, 0.f));
 	}
 
-	float CalcLaunchStreakLength(float Gap, float BoltSpeed, float Seconds, float HitDistance)
+	float CalcLaunchStreakLength(float AdvanceSeconds, float Gap, float HitDistance)
 	{
-		float Length = FMath::Max(FMath::Max(Gap, 0.f), FMath::Max(BoltSpeed, 0.f) * FMath::Max(Seconds, 0.f));
+		// Q110: 앞당김이 없으면(혼자 · 호스트 · 지연이 시전 대기 안) 볼트가 완드 끝에서 날아가므로 긋지 않는다.
+		if (AdvanceSeconds <= 0.f || Gap <= 0.f)
+		{
+			return 0.f;
+		}
+		float Length = Gap;
 		if (HitDistance > 0.f)
 		{
 			Length = FMath::Min(Length, HitDistance);
