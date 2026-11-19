@@ -262,7 +262,9 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1          # 스크린숏 → 
 
 ### 하늘 구역 이름 (레벨 디자인 2차)
 
-사용자가 구역을 알아보게 구역 위 하늘에 큰 한글 이름을 띄운다(개발 표시). 레이아웃 `Sections`(이름 · 층 · 제목 · 설명 · 자리 · 땅 위 높이 — 스크립트만 읽는다), `Scripts/Terrain/section_dress.py` 의 `section_labels` 가 `AGrimDevLabel` 을 놓는다(태그 `LevelDress.SectionLabel`, 늘 로드).
+사용자가 구역을 알아보게 구역 위 하늘에 큰 한글 이름을 띄운다(개발 표시). 레이아웃 `Sections`(이름 · 층 · 제목 · 설명 · 자리 · 땅 위 높이), `Scripts/Terrain/section_dress.py` 의 `section_labels` 가 `AGrimDevLabel` 을 놓는다(태그 `LevelDress.SectionLabel`, 늘 로드).
+
+> 게임 기능(Q130, 2026-11-18): 같은 `Sections` 가 **구역 이름 표시**(처음 들어서면 화면 위쪽에 이름 + 한 줄)의 정본이다 — 큰 구역 경계 `Polygon` · 게임 문구 `Subtitle` 을 더했고, `Scripts/Terrain/export_zones.py` 가 게임용 `Content/Grimoire/Data/WorldZones.json` 을 만든다. [구역 이름 표시](./world-zones).
 
 | 층(`Tier`) | 수 | 땅 위 | 모양 | 보이는 거리 |
 |---|---|---|---|---|

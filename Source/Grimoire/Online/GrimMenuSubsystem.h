@@ -34,6 +34,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Grimoire|Menu")
 	bool IsPauseMenuOpen() const { return bPauseOpen; }
 
+	/** Esc 메뉴를 열고 설정 페이지로(Tab = UGrimMenuSettingsPanel::ETab — 0 설정, 1 크레딧 확인) */
+	void OpenPauseSettings(int32 Tab);
+
 	static void ForEach(TFunctionRef<void(UGrimMenuSubsystem&)> Fn);
 
 private:

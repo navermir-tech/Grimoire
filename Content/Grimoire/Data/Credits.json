@@ -1,0 +1,25 @@
+{
+  "_comment": "크레딧의 정본(Q137, docs/art/credits.md). 게임 안 「설정 → 크레딧 확인」 탭이 이 파일을 읽는다. 고친 뒤 node Scripts/Docs/credits.mjs --write 로 docs/art/credits.md 의 표를 다시 쓰고, 출시본에는 node Scripts/Docs/credits.mjs --txt <폴더>/CREDITS.txt. ModifiedKo · ModifiedEn = 플레이어에게 보이는 「고친 점」, DocUsedFor · DocChanges = 문서 표에만(마크다운), Checked = 작가 · 라이선스를 Fab 목록에서 직접 본 날과 내용",
+  "Game": "그리모리 (Grimoire)",
+  "IntroKo": "이 게임은 아래 에셋을 크리에이티브 커먼즈 저작자 표시(CC BY) 라이선스로 씁니다.",
+  "IntroEn": "This game uses the following assets under Creative Commons Attribution (CC BY) licenses.",
+  "Attributions": [
+    {
+      "Author": "tharlevfx",
+      "Asset": "Water Materials",
+      "Store": "Fab",
+      "AssetUrl": "https://www.fab.com/listings/063155ea-d9d2-4f29-b09f-33270b0bc861",
+      "License": "CC BY 4.0",
+      "LicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "ModifiedKo": "색 · 물결 크기와 속도와 세기 · 투명도를 고치고 정점 파도를 껐다.",
+      "ModifiedEn": "Colors, wave scale, speed and strength and opacity were modified; vertex waves were disabled.",
+      "DocUsedFor": "마탑 구간 개울 2 줄(`Creek_TowerBrook` · `Creek_Pasture`)과 합류 연못의 물 표면 — 재질 `M_River` 와 그것이 쓰는 텍스처 · 재질 함수",
+      "DocChanges": "원본 파일은 그대로 두고, 파생 인스턴스 `MI_Dress_Water`(`Content/Grimoire/Terrain/Dress/`)에서 물 색(회색 → 숲 개울 청록) · 물결 크기와 속도와 세기 · 물가 투명도를 바꾸고, 파도(정점 이동)를 끄고, 양면으로 그린다. 값은 `Scripts/Terrain/dress_assets.py` 의 `WATER_SCALARS` · `WATER_COLORS`",
+      "Checked": "2026-11-09 — Fab 목록에서 저작자 tharlevfx · 라이선스 「Creative Commons Attribution(CC BY 4.0)」 확인"
+    }
+  ],
+  "Notices": [
+    "Unreal® is a trademark or registered trademark of Epic Games, Inc. in the United States of America and elsewhere.",
+    "Unreal® Engine, Copyright 1998 – 2026, Epic Games, Inc. All rights reserved."
+  ]
+}
