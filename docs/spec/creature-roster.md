@@ -4,7 +4,7 @@
 
 10 × 10 km 세계의 8지역([세계 — 지역과 크기](./world#지역과-크기-r34-—-q36-확정))에 어떤 마법 생물을 두는지 정한 명단이다. 생물 하나하나의 규칙(속성 1~2 · 고유 능력 · 길들이기 · 개체 차이)은 [마법 생물](./creatures)을 따른다. 명단의 정본은 `art/creatures/make_prompts.py` 의 `CREATURES` 이고, 아래 표는 `python -X utf8 art/creatures/make_prompts.py --md` 로 뽑았다 — 명단을 고치면 그 파일을 고치고 표를 다시 뽑는다.
 
-> **표와 정본이 잠깐 다르다(2026-11-18)**: Q48 · Q162 답(천둥새를 포함해 전설도 길들일 수 있다)은 아래 표의 전설 일곱 줄(「각색」 · 「길들이기 · 쓰임」 칸)에 **손으로** 적었다. 정본 `art/creatures/make_prompts.py` 는 그림 세션이 쓰는 중이라 아직 옛 글(「길들이기 불가 — 시험 · 축복」)이다 — 표를 다시 뽑기 전에 그 파일의 전설 줄을 먼저 맞춘다(안 맞추고 뽑으면 이 표가 옛 글로 돌아간다).
+> **표와 정본이 같다(2026-11-19)**: Q48 · Q162 답(천둥새를 포함해 전설도 길들일 수 있다)을 정본 `art/creatures/make_prompts.py` 의 전설 일곱 줄(「각색」 · 「길들이기 · 쓰임」 칸)에도 옮겼다 — `--md` 로 다시 뽑아도 이 표와 같다.
 
 > 구현 상태(2026-11-06): 게임 데이터(종 정의)가 있는 것은 **1번 지역의 재칼로프 · 켈피 · 검은 개 3종뿐**이다 — `Content/Grimoire/Creatures/Species/` 의 `DA_Creature_Jackalope` · `DA_Creature_Kelpie` · `DA_Creature_BlackDog`(값의 정본 `Scripts/Creatures/make_creature_species.py`, 규칙은 [마법 생물 — M3 생물 3종](./creatures)). 나머지 58종은 이 명단과 그림 프롬프트(`art/creatures/prompts/`)에만 있다. 아래 「기능」(날것 · 목축 · 손재주 · 운반 · 방범 · 속성 작업)은 아직 코드가 없다 — 탈것은 켈피만 된다.
 

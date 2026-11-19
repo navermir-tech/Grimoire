@@ -15,7 +15,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
-from make_prompts import CREATURES, FUNCTIONS, REGIONS, legend_adapt  # noqa: E402
+from make_prompts import CREATURES, FUNCTIONS, REGIONS  # noqa: E402
 
 OUT_IMG = os.path.join(ROOT, "docs", "public", "art", "creatures")
 OUT_MD = os.path.join(ROOT, "docs", "art", "creature-concepts.md")
@@ -54,10 +54,9 @@ def func_plain(cid):
     return " · ".join(f"{k}({d})" for k, d in f) if f else "없음(동행 · 전투)"
 
 
-def tame_text(rarity, use):
-    if rarity == "전설" and "불가" in use:
-        return "길들일 수 있다(Q48 답 — 방법 · 서클은 정하는 중)"
-    return use
+def tame_text(use):
+    # 카드는 HTML 이라 Markdown 굵은 글씨(**)가 그대로 보인다 — 뺀다.
+    return use.replace("**", "")
 
 
 def publish_image(job):
@@ -81,8 +80,6 @@ def card(c):
     cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
     has = publish_image(cid)
     has_b = publish_image(cid + "-b")
-    if rarity == "전설":
-        adapt = legend_adapt(adapt)
     tags = ""
     if rarity == "전설":
         tags += '<span class="tag legend">전설</span>'
@@ -101,7 +98,7 @@ def card(c):
     lines.append(f"{esc(adapt)}")
     lines.append(
         f'<div class="meta">크기 {esc(size)}({esc(height)}) · 속성 {main} · {sub} · {esc(rarity)}<br>'
-        f"원전 {esc(src)}<br>기능 {esc(func_plain(cid))}<br>{esc(tame_text(rarity, use))}</div>"
+        f"원전 {esc(src)}<br>기능 {esc(func_plain(cid))}<br>{esc(tame_text(use))}</div>"
     )
     lines += ["</div>", "</div>"]
     return "\n".join(lines), int(has) + int(has_b)
@@ -122,7 +119,7 @@ def main():
         ">",
         "> **쓰임**: 오픈 베타 30종(Q50)을 그림을 보고 고른다. 1번 지역 10종은 다 들어가고, 2 · 3번 지역 16종에서 골라 채운다 — **셋을 다 넣어도 26종**이라 30종에는 4종이 모자란다(4번 지역부터 당겨 오거나 종 수를 줄이는 것은 정할 일).",
         ">",
-        "> **전설(☆)도 길들일 수 있다**(Q48 답). 전설 카드에는 도감 그림과 「길들인 뒤 동행 장면」 시안 B 를 함께 둔다.",
+        "> **전설(☆)도 잡고 교배할 수 있다**(Q48 답 — [지역별 생물 명단 「전설」](../spec/creature-roster#전설-—-잡고-·-자랑하고-·-교배한다-q48)). 전설 카드에는 도감 그림과 「길들인 뒤 동행 장면」 시안 B 를 함께 둔다.",
         "",
         "그림 읽는 법: 3/4 앞 시점 전신, 옆의 회색 실루엣은 키 1.8 m 사람(축척), 아래 띠는 색 변이 셋(기본 · 암수 · 돌연변이). 그림을 누르면 크게 열린다. 이름 · 설명의 정본은 [지역별 생물 명단](../spec/creature-roster)(`art/creatures/make_prompts.py`), 프롬프트는 `art/creatures/prompts/`, 이 페이지는 `art/creatures/publish.py` 가 만든다.",
         "",
@@ -151,8 +148,6 @@ def main():
         lines += ["| 이름 | 한 줄 | 크기 | 원전 | 기능 | 희귀도 |", "|---|---|---|---|---|---|"]
         for c in rs:
             cid, _, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
-            if rarity == "전설":
-                adapt = legend_adapt(adapt)
             lines.append(f"| **{name}** `{cid}` | {adapt} | {size}({height}) | {src} | {func_plain(cid)} | {rarity} |")
         lines += ["", '<div class="creature-grid">']
         for c in rs:
