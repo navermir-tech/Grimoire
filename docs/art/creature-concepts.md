@@ -43,6 +43,7 @@ import { withBase } from 'vitepress'  // 그림 링크(href)는 base(/Grimoire/)
 | [1. 마법탑 · 온난 지대](#region-1) | 10 | — | 구릉 멧돼지 | 전부 |
 | [2. 깊은 숲](#region-2) | 8 | 오초 | 아팡크 | 고른다 |
 | [3. 폭풍 해안](#region-3) | 8 | 천둥새 | 카르키노스 게 | 고른다 |
+| [새 종 후보 — 보석 · 유리 느낌](#new-species) | 5 | — | — | 후보(Q212) |
 
 ## 1. 마법탑 · 온난 지대 — 10종 {#region-1}
 
@@ -421,6 +422,66 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 폭풍 해안의 전설. 날갯짓이 천둥, 눈빛이 번개. 원전의 신성함을 존중해 묘사는 정중하게 — 잡기 · 교배는 다른 전설과 같다(Q162)
 <div class="meta">크기 거대(날개 폭 20 m) · 속성 빛 · 바람 · 전설<br>원전 천둥새(북미 원주민 전승) ☆<br>기능 없음(동행 · 전투)<br>길들일 수 있다(Q48) — 요구 7서클(Q134) · 조건 Q160 · 쓰임은 종 데이터 때</div>
 <div class="fx"><b>FX:</b> 둘레로 밀려나는 구름 고리 · 번개</div>
+</div>
+</div>
+</div>
+
+## 새 종 후보 — 보석 · 유리 느낌 — 5종 {#new-species}
+
+2026-11-19 사용자 「이런 느낌의 동물들도 추가해줘」(참고 그림 5장 — 느낌만 옮겨 새로 설계, 그림은 올리지 않음). 처음부터 판타지 생물 — 보석 · 유리 같은 얇은 막, 스스로 빛나는 무늬, 화려한 색. **아직 지역 명단 밖의 후보**다: 오픈 베타 30종에 넣을지는 [Q212](../spec/decisions#미결-질문), 지역(아래 「제안 지역」)은 Q213, 늪 히드라를 보스로 둘지는 Q214.
+
+| 이름 | 제안 지역 | 한 줄 | 크기 | 원전 | 기능 | 희귀도 |
+|---|---|---|---|---|---|---|
+| **카벙클** `carbuncle` | 1. 마법탑 · 온난 지대 | 보석 박힌 작은 짐승 → 잠자리 날개 두 쌍과 지느러미 꼬리를 단 푸른 털 짐승. 이마 보석으로 빛을 모은다 | 소형(몸길이 0.4 m) | 카벙클(남미 · 스페인 광부 전승 — 이마에 붉은 보석이 박힌 작은 짐승) | 없음(동행 · 전투) | 드묾 |
+| **피랄리스 유리도마뱀** `pyrallis` | 3. 폭풍 해안 | 용광로 불에서 나는 짐승 → 번개가 모래를 녹인 유리(뇌우 뒤 모래톱) 사이에서 깨어나는 유리 도마뱀 | 소형(몸길이 0.6 m(꼬리 포함)) | 피랄리스(플리니우스 「박물지」 — 구리 용광로의 불 속에서 사는 날개 달린 작은 짐승) | 없음(동행 · 전투) | 드묾(조건부) |
+| **나비볏 암피프테르** `amphiptere` | 2. 깊은 숲 | 날개 달린 뱀 → 날개 대신 머리 둘레에 스테인드글라스 같은 나비 날개 볏을 목도리처럼 두른 순한 뱀 | 중형(몸길이 2.5 m) | 암피프테르(유럽 문장 — 다리 없는 날개 뱀) | 방범(볏 빛으로 침입자를 눈부시게) | 보통 |
+| **꽃깃 용새** `blossom-drake` | 2. 깊은 숲 | 봉황 · 불사조와 다르게 땅에 사는 키 큰 용새(긴 다리로 달리고 짧게만 난다). 몸이 꽃 피는 숲과 하나 — 잎 비늘 · 꽃잎 볏 | 대형(머리 높이 2.4 m) | 창작 — 꽃 핀 숲의 용새 | 탈것(달리기 · 짧은 활공) | 희귀 |
+| **늪 히드라** `hydra` | 2. 깊은 숲 | 전설의 한 마리 대신 그 혈통의 큰 늪 짐승 종. 원전의 독 · 머리가 다시 자람은 「후드 빛으로 겁주기」로 순하게 | 거대(몸길이 9 m) | 창작 — 레르네의 히드라(그리스 신화 ☆)의 먼 혈통 | 탈것(늪 건너기) | 드묾 |
+
+<div class="creature-grid">
+<div class="creature-card">
+<a class="shot" :href="withBase('/art/creatures/carbuncle.jpg')" target="_blank"><img src="/art/creatures/carbuncle.jpg" alt="카벙클" loading="lazy"></a>
+<div class="body">
+<span class="name">카벙클</span> <code>carbuncle</code><br>
+보석 박힌 작은 짐승 → 잠자리 날개 두 쌍과 지느러미 꼬리를 단 푸른 털 짐승. 이마 보석으로 빛을 모은다
+<div class="meta">크기 소형(몸길이 0.4 m) · 속성 바람 · 빛 · 드묾<br>원전 카벙클(남미 · 스페인 광부 전승 — 이마에 붉은 보석이 박힌 작은 짐승)<br>기능 없음(동행 · 전투)<br>3서클 벤투스 · 동행(밤에 곁을 비춤) · 빠진 보석 조각(빛 마법 재료)</div>
+<div class="fx"><b>FX:</b> 몸 둘레에 떠다니는 금빛 반짝이 · 보석 앞 빛 구슬</div>
+</div>
+</div>
+<div class="creature-card">
+<a class="shot" :href="withBase('/art/creatures/pyrallis.jpg')" target="_blank"><img src="/art/creatures/pyrallis.jpg" alt="피랄리스 유리도마뱀" loading="lazy"></a>
+<div class="body">
+<span class="name">피랄리스 유리도마뱀</span> <code>pyrallis</code><br>
+용광로 불에서 나는 짐승 → 번개가 모래를 녹인 유리(뇌우 뒤 모래톱) 사이에서 깨어나는 유리 도마뱀
+<div class="meta">크기 소형(몸길이 0.6 m(꼬리 포함)) · 속성 빛 · 바람 · 드묾(조건부)<br>원전 피랄리스(플리니우스 「박물지」 — 구리 용광로의 불 속에서 사는 날개 달린 작은 짐승)<br>기능 없음(동행 · 전투)<br>4서클 · 동행 · 허물(유리 비늘 — 빛 마법 재료)</div>
+<div class="fx"><b>FX:</b> 발밑 유리 모래의 반짝임 · 몸 둘레 작은 전기 불꽃</div>
+</div>
+</div>
+<div class="creature-card">
+<a class="shot" :href="withBase('/art/creatures/amphiptere.jpg')" target="_blank"><img src="/art/creatures/amphiptere.jpg" alt="나비볏 암피프테르" loading="lazy"></a>
+<div class="body">
+<span class="name">나비볏 암피프테르</span> <code>amphiptere</code><br>
+날개 달린 뱀 → 날개 대신 머리 둘레에 스테인드글라스 같은 나비 날개 볏을 목도리처럼 두른 순한 뱀
+<div class="meta">크기 중형(몸길이 2.5 m) · 속성 풀 · 빛 · 보통<br>원전 암피프테르(유럽 문장 — 다리 없는 날개 뱀)<br>기능 방범(볏 빛으로 침입자를 눈부시게)<br>3서클 · 동행 · 거점 경비(볏 빛으로 침입자를 눈부시게) · 허물(색유리 재료)</div>
+<div class="fx"><b>FX:</b> 땅에 비친 색 빛 무늬(라이트 함수 · 데칼) · 볏 둘레 빛가루</div>
+</div>
+</div>
+<div class="creature-card">
+<a class="shot" :href="withBase('/art/creatures/blossom-drake.jpg')" target="_blank"><img src="/art/creatures/blossom-drake.jpg" alt="꽃깃 용새" loading="lazy"></a>
+<div class="body">
+<span class="name">꽃깃 용새</span> <code>blossom-drake</code><br>
+봉황 · 불사조와 다르게 땅에 사는 키 큰 용새(긴 다리로 달리고 짧게만 난다). 몸이 꽃 피는 숲과 하나 — 잎 비늘 · 꽃잎 볏
+<div class="meta">크기 대형(머리 높이 2.4 m) · 속성 풀 · 빛 · 희귀<br>원전 창작 — 꽃 핀 숲의 용새<br>기능 탈것(달리기 · 짧은 활공)<br>5서클 · 탑승(달리기 · 짧은 활공) · 꽃가루(잠 물약 재료)</div>
+<div class="fx"><b>FX:</b> 빛나는 꽃가루 구름 · 흩날리는 분홍 꽃잎</div>
+</div>
+</div>
+<div class="creature-card">
+<a class="shot" :href="withBase('/art/creatures/hydra.jpg')" target="_blank"><img src="/art/creatures/hydra.jpg" alt="늪 히드라" loading="lazy"></a>
+<div class="body">
+<span class="name">늪 히드라</span> <code>hydra</code><br>
+전설의 한 마리 대신 그 혈통의 큰 늪 짐승 종. 원전의 독 · 머리가 다시 자람은 「후드 빛으로 겁주기」로 순하게
+<div class="meta">크기 거대(몸길이 9 m) · 속성 물 · 풀 · 드묾<br>원전 창작 — 레르네의 히드라(그리스 신화 ☆)의 먼 혈통<br>기능 탈것(늪 건너기)<br>5서클 아쿠아 · 대형 탈것(늪 건너기) · 후드 막(가죽)</div>
+<div class="fx"><b>FX:</b> 둘레 짙은 늪 안개 · 발밑 물결 고리</div>
 </div>
 </div>
 </div>

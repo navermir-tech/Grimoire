@@ -16,7 +16,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
-from make_prompts import CREATURES, FUNCTIONS, MAGIC, REGIONS  # noqa: E402
+from make_prompts import CREATURES, FUNCTIONS, MAGIC, NEW_GROUP, NEW_SPECIES, REGIONS  # noqa: E402
 
 OUT_IMG = os.path.join(ROOT, "docs", "public", "art", "creatures")
 OUT_MD = os.path.join(ROOT, "docs", "art", "creature-concepts.md")
@@ -152,6 +152,7 @@ def main():
         legend = " · ".join(c[2] for c in rs if c[13] == "전설") or "—"
         boss = " · ".join(c[2] for c in rs if "보스" in c[10]) or "—"
         lines.append(f"| [{reg}. {REGIONS[reg][0]}](#region-{reg}) | {len(rs)} | {legend} | {boss} | {'전부' if reg == 1 else '고른다'} |")
+    lines.append(f"| [{NEW_GROUP}](#new-species) | {len(NEW_SPECIES)} | — | — | 후보(Q212) |")
     lines.append("")
     done = 0
     for reg in regions:
@@ -168,6 +169,21 @@ def main():
             done += n
             lines.append(text)
         lines += ["</div>", ""]
+    # 새 종 후보(지역 명단 밖) — 오픈 베타에 넣을지 · 지역은 Q212 · Q213
+    lines += [f"## {NEW_GROUP} — {len(NEW_SPECIES)}종 {{#new-species}}", "",
+              "2026-11-19 사용자 「이런 느낌의 동물들도 추가해줘」(참고 그림 5장 — 느낌만 옮겨 새로 설계, 그림은 올리지 않음). "
+              "처음부터 판타지 생물 — 보석 · 유리 같은 얇은 막, 스스로 빛나는 무늬, 화려한 색. **아직 지역 명단 밖의 후보**다: "
+              "오픈 베타 30종에 넣을지는 [Q212](../spec/decisions#미결-질문), 지역(아래 「제안 지역」)은 Q213, 늪 히드라를 보스로 둘지는 Q214.", "",
+              "| 이름 | 제안 지역 | 한 줄 | 크기 | 원전 | 기능 | 희귀도 |", "|---|---|---|---|---|---|---|"]
+    for c in NEW_SPECIES:
+        cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
+        lines.append(f"| **{name}** `{cid}` | {reg}. {REGIONS[reg][0]} | {adapt} | {size}({height}) | {src} | {func_plain(cid)} | {rarity} |")
+    lines += ["", '<div class="creature-grid">']
+    for c in NEW_SPECIES:
+        text, n = card(c)
+        done += n
+        lines.append(text)
+    lines += ["</div>", ""]
     with open(OUT_MD, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines))
     print(f"그림 {done}장 · 종 {len(rows)} → {OUT_MD}")
