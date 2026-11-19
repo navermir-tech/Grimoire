@@ -4,7 +4,7 @@
     python -X utf8 art/creatures/publish.py 1 2 3 4    # 지역을 골라서
 
 그림이 아직 없는 종은 「그림 없음」 카드로 둔다. 전설의 동행 장면 시안은 raw/<id>-b.png(있으면 같은 카드에 둘째 그림).
-옛 판 raw/<id>-v1.png 가 있으면 카드 아래 접힌 칸에 둔다(비교용). 카드의 「FX」 줄은 make_prompts.py 의 MAGIC.
+옛 판 raw/<id>-v1.png · <id>-v2.png 가 있으면 카드 아래 접힌 칸에 둔다(비교용). 카드의 「FX」 줄은 make_prompts.py 의 MAGIC.
 문서 그림은 LFS 가 아니므로 JPG(가로 1536, 품질 85)로 줄인다. 명단 · 설명의 정본은 make_prompts.py 의 CREATURES.
 """
 import html
@@ -84,7 +84,7 @@ def card(c):
     cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
     has = publish_image(cid)
     has_b = publish_image(cid + "-b")
-    olds = [j for j in (cid + "-v1", cid + "-b-v1") if publish_image(j)]
+    olds = [j for j in (cid + "-v2", cid + "-v1", cid + "-b-v1") if publish_image(j)]
     tags = ""
     if rarity == "전설":
         tags += '<span class="tag legend">전설</span>'
@@ -99,7 +99,7 @@ def card(c):
         lines.append(f'<div class="alt">시안 B — 길들인 뒤 동행 장면</div>')
         lines.append(shot(cid + "-b", esc(name) + " 시안 B"))
     if olds:
-        lines.append('<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>')
+        lines.append('<details class="old"><summary>옛 판 보기 — v1(2026-11-18)' + (' · v2' if any(j.endswith('-v2') for j in olds) else '') + '</summary>')
         lines += [shot(j, esc(name) + " 옛 판") for j in olds]
         lines.append("</details>")
     lines.append('<div class="body">')

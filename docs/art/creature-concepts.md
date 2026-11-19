@@ -53,7 +53,7 @@ import { withBase } from 'vitepress'  // 그림 링크(href)는 base(/Grimoire/)
 | **재칼로프** `jackalope` | M3 기존 종. 뿔은 가지가 적은 짧은 사슴뿔(바람 결 재질 — 색 변이마다 뿔 색이 다름, 재질 파라미터), 몸은 산토끼 비율 | 소형(몸길이 0.5 m) | 재칼로프(북미 민담) | 없음(동행 · 전투) | 흔함 |
 | **켈피** `kelpie` | M3 기존 종. 사람으로 변하는 원전 설정은 뺌 — 갈기 · 꼬리가 젖은 물풀인 말 | 중형(어깨 1.6 m) | 켈피(스코틀랜드 민담) | 탈것(물 위 달리기) · 속성 작업(물 나르기 · 급수) | 보통 |
 | **검은 개** `black-dog` | M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불씨처럼 빛나는 호박색 눈. 그림자 안개는 FX | 중형(어깨 0.9 m) | 블랙 독(영국 민담) | 방범(밤 경비) | 보통 |
-| **볼퍼팅어** `wolpertinger` | 여러 동물을 이어 붙인 원전을 다람쥐 몸 + 작은 뿔 + 활공막으로 정리 | 소형(몸길이 0.4 m) | 볼퍼팅어(독일 바이에른 민담) | 없음(동행 · 전투) | 흔함 |
+| **볼퍼팅어** `wolpertinger` | 여러 동물을 이어 붙인 원전을 날다람쥐 · 슈가글라이더 체형 + 작은 뿔 + 빛나는 혈맥 비막으로 정리(2026-11-19 사용자) | 소형(몸길이 0.4 m) | 볼퍼팅어(독일 바이에른 민담) | 없음(동행 · 전투) | 흔함 |
 | **흙닭 에르트헨** `erdhenne` | 집을 지키는 검은 닭 정령 → 땅에 둥지를 파는 큰 들닭. 위험이 오기 전에 우는 습성은 남김 | 소형(키 0.6 m) | 에르트헨(독일 알프 지역 정령) | 목축(알) | 흔함 |
 | **바로메츠 양** `barometz` | 줄기에 열리는 양 → 등에 이끼 · 고사리 털이 자라는 양. 밤에는 발굽 둘레 뿌리털을 땅에 내리고 쉰다 | 중형(어깨 0.9 m) | 바로메츠(타타르의 식물 양 전설) | 목축(털 · 젖) | 흔함 |
 | **위스프 나방** `wisp-moth` | 길을 잃게 하는 불빛 → 빛나는 나방 떼. 따라가면 숨은 상자 · 길이 나온다 | 소형(날개 폭 0.15 m) | 윌 오 더 위스프(영국 민담 도깨비불) | 없음(동행 · 전투) | 드묾(조건부) |
@@ -64,7 +64,7 @@ import { withBase } from 'vitepress'  // 그림 링크(href)는 base(/Grimoire/)
 <div class="creature-grid">
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/jackalope.jpg')" target="_blank"><img src="/art/creatures/jackalope.jpg" alt="재칼로프" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/jackalope-v1.jpg')" target="_blank"><img src="/art/creatures/jackalope-v1.jpg" alt="재칼로프 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -76,7 +76,7 @@ M3 기존 종. 뿔은 가지가 적은 짧은 사슴뿔(바람 결 재질 — �
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/kelpie.jpg')" target="_blank"><img src="/art/creatures/kelpie.jpg" alt="켈피" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/kelpie-v1.jpg')" target="_blank"><img src="/art/creatures/kelpie-v1.jpg" alt="켈피 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -88,7 +88,7 @@ M3 기존 종. 사람으로 변하는 원전 설정은 뺌 — 갈기 · 꼬리�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/black-dog.jpg')" target="_blank"><img src="/art/creatures/black-dog.jpg" alt="검은 개" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/black-dog-v1.jpg')" target="_blank"><img src="/art/creatures/black-dog-v1.jpg" alt="검은 개 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -100,19 +100,21 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/wolpertinger.jpg')" target="_blank"><img src="/art/creatures/wolpertinger.jpg" alt="볼퍼팅어" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<a class="shot" :href="withBase('/art/creatures/wolpertinger-v2.jpg')" target="_blank"><img src="/art/creatures/wolpertinger-v2.jpg" alt="볼퍼팅어 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/wolpertinger-v1.jpg')" target="_blank"><img src="/art/creatures/wolpertinger-v1.jpg" alt="볼퍼팅어 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
 <span class="name">볼퍼팅어</span> <code>wolpertinger</code><br>
-여러 동물을 이어 붙인 원전을 다람쥐 몸 + 작은 뿔 + 활공막으로 정리
+여러 동물을 이어 붙인 원전을 날다람쥐 · 슈가글라이더 체형 + 작은 뿔 + 빛나는 혈맥 비막으로 정리(2026-11-19 사용자)
 <div class="meta">크기 소형(몸길이 0.4 m) · 속성 바람 · 땅 · 흔함<br>원전 볼퍼팅어(독일 바이에른 민담)<br>기능 없음(동행 · 전투)<br>1서클 벤투스 · 야생 도토리 저장고(굴을 파면 씨앗 · 견과)</div>
-<div class="fx"><b>FX:</b> 뒤로 남는 바람 자취 · 그 자취를 따라 맴도는 나뭇잎 · 도토리</div>
+<div class="fx"><b>FX:</b> 뒤로 남는 바람 자취 · 맴도는 나뭇잎</div>
 </div>
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/erdhenne.jpg')" target="_blank"><img src="/art/creatures/erdhenne.jpg" alt="흙닭 에르트헨" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<a class="shot" :href="withBase('/art/creatures/erdhenne-v2.jpg')" target="_blank"><img src="/art/creatures/erdhenne-v2.jpg" alt="흙닭 에르트헨 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/erdhenne-v1.jpg')" target="_blank"><img src="/art/creatures/erdhenne-v1.jpg" alt="흙닭 에르트헨 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -124,7 +126,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/barometz.jpg')" target="_blank"><img src="/art/creatures/barometz.jpg" alt="바로메츠 양" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/barometz-v1.jpg')" target="_blank"><img src="/art/creatures/barometz-v1.jpg" alt="바로메츠 양 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -136,7 +138,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/wisp-moth.jpg')" target="_blank"><img src="/art/creatures/wisp-moth.jpg" alt="위스프 나방" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/wisp-moth-v1.jpg')" target="_blank"><img src="/art/creatures/wisp-moth-v1.jpg" alt="위스프 나방 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -148,7 +150,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/mandrake.jpg')" target="_blank"><img src="/art/creatures/mandrake.jpg" alt="맨드레이크" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/mandrake-v1.jpg')" target="_blank"><img src="/art/creatures/mandrake-v1.jpg" alt="맨드레이크 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -160,7 +162,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/foxfire-fox.jpg')" target="_blank"><img src="/art/creatures/foxfire-fox.jpg" alt="불씨여우" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/foxfire-fox-v1.jpg')" target="_blank"><img src="/art/creatures/foxfire-fox-v1.jpg" alt="불씨여우 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -172,7 +174,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/hill-boar.jpg')" target="_blank"><img src="/art/creatures/hill-boar.jpg" alt="구릉 멧돼지" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/hill-boar-v1.jpg')" target="_blank"><img src="/art/creatures/hill-boar-v1.jpg" alt="구릉 멧돼지 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -192,7 +194,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 |---|---|---|---|---|---|
 | **꿈먹이 맥** `baku` | 여러 짐승을 섞은 원전 → 말레이맥 체형 + 짧은 코끼리 코 + 별무늬 털 | 대형(어깨 1.2 m) | 맥(동아시아 — 악몽을 먹는 짐승) | 없음(동행 · 전투) | 보통 |
 | **드라이아드 사슴** `dryad-stag` | 인간형 님프 → 사람 모습을 없애고 나무와 하나인 사슴으로. 뿔이 살아 있는 가지 · 꽃 | 대형(어깨 1.5 m) | 드라이아드(그리스 신화 나무 님프) | 탈것(숲길) | 희귀 |
-| **키키모라 늪새** `kikimora-heron` | 여자 모습 정령 → 실을 잣는 습성만 남긴 키 큰 늪새. 반짝이는 물건을 훔쳐 둥지에 엮는다 | 중형(키 1.4 m) | 키키모라(슬라브 신화 집 · 늪 정령) | 손재주(실 잣기) | 보통 |
+| **키키모라 늪새** `kikimora-heron` | 여자 모습 정령 → 실을 잣는 습성만 남긴 키 큰 늪새. 반짝이는 물건을 훔쳐 알 같은 실타래 속에 감아 둔다 | 중형(키 1.4 m) | 키키모라(슬라브 신화 집 · 늪 정령) | 손재주(실 잣기) | 보통 |
 | **히시 그루터기거북** `hiisi-tortoise` | 숲 정령 → 등딱지가 오래된 그루터기인 큰 거북. 등 위에 버섯 · 이끼 정원 | 대형(등높이 1.3 m) | 히시(핀란드 숲의 정령) | 운반(무거운 짐) · 손재주(벌목) | 보통 |
 | **루 카르콜 달팽이** `lou-carcolh` | 사람을 끌어가는 뱀 달팽이 → 순한 큰 늪 달팽이. 점액이 물약 재료 | 중형(껍데기 높이 0.8 m) | 루 카르콜(프랑스 남서부 전승) | 목축(점액) | 보통(비 오면 흔함) |
 | **대롱여우** `kuda-fox` | 대롱 속 작은 여우 → 속 빈 갈대 · 대나무 속에 사는 족제비만 한 여우 | 소형(몸길이 0.3 m) | 쿠다키츠네(일본 — 대롱 속 여우) | 없음(동행 · 전투) | 흔함 |
@@ -202,7 +204,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 <div class="creature-grid">
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/baku.jpg')" target="_blank"><img src="/art/creatures/baku.jpg" alt="꿈먹이 맥" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/baku-v1.jpg')" target="_blank"><img src="/art/creatures/baku-v1.jpg" alt="꿈먹이 맥 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -214,7 +216,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/dryad-stag.jpg')" target="_blank"><img src="/art/creatures/dryad-stag.jpg" alt="드라이아드 사슴" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/dryad-stag-v1.jpg')" target="_blank"><img src="/art/creatures/dryad-stag-v1.jpg" alt="드라이아드 사슴 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -226,19 +228,20 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/kikimora-heron.jpg')" target="_blank"><img src="/art/creatures/kikimora-heron.jpg" alt="키키모라 늪새" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<a class="shot" :href="withBase('/art/creatures/kikimora-heron-v2.jpg')" target="_blank"><img src="/art/creatures/kikimora-heron-v2.jpg" alt="키키모라 늪새 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/kikimora-heron-v1.jpg')" target="_blank"><img src="/art/creatures/kikimora-heron-v1.jpg" alt="키키모라 늪새 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
 <span class="name">키키모라 늪새</span> <code>kikimora-heron</code><br>
-여자 모습 정령 → 실을 잣는 습성만 남긴 키 큰 늪새. 반짝이는 물건을 훔쳐 둥지에 엮는다
+여자 모습 정령 → 실을 잣는 습성만 남긴 키 큰 늪새. 반짝이는 물건을 훔쳐 알 같은 실타래 속에 감아 둔다
 <div class="meta">크기 중형(키 1.4 m) · 속성 물 · 풀 · 보통<br>원전 키키모라(슬라브 신화 집 · 늪 정령)<br>기능 손재주(실 잣기)<br>2서클 아쿠아 · 실 잣기 일꾼 · 둥지에서 잃어버린 물건</div>
-<div class="fx"><b>FX:</b> 몸에서 실타래로 이어지는 빛나는 실 가닥</div>
+<div class="fx"><b>FX:</b> 부리에서 실타래로 이어지는 가는 빛 실 한 가닥(실타래의 빛은 재질)</div>
 </div>
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/hiisi-tortoise.jpg')" target="_blank"><img src="/art/creatures/hiisi-tortoise.jpg" alt="히시 그루터기거북" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/hiisi-tortoise-v1.jpg')" target="_blank"><img src="/art/creatures/hiisi-tortoise-v1.jpg" alt="히시 그루터기거북 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -250,7 +253,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/lou-carcolh.jpg')" target="_blank"><img src="/art/creatures/lou-carcolh.jpg" alt="루 카르콜 달팽이" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/lou-carcolh-v1.jpg')" target="_blank"><img src="/art/creatures/lou-carcolh-v1.jpg" alt="루 카르콜 달팽이 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -262,7 +265,8 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/kuda-fox.jpg')" target="_blank"><img src="/art/creatures/kuda-fox.jpg" alt="대롱여우" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<a class="shot" :href="withBase('/art/creatures/kuda-fox-v2.jpg')" target="_blank"><img src="/art/creatures/kuda-fox-v2.jpg" alt="대롱여우 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/kuda-fox-v1.jpg')" target="_blank"><img src="/art/creatures/kuda-fox-v1.jpg" alt="대롱여우 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -274,7 +278,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/afanc.jpg')" target="_blank"><img src="/art/creatures/afanc.jpg" alt="아팡크" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/afanc-v1.jpg')" target="_blank"><img src="/art/creatures/afanc-v1.jpg" alt="아팡크 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -288,7 +292,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 <a class="shot" :href="withBase('/art/creatures/otso.jpg')" target="_blank"><img src="/art/creatures/otso.jpg" alt="오초" loading="lazy"></a>
 <div class="alt">시안 B — 길들인 뒤 동행 장면</div>
 <a class="shot" :href="withBase('/art/creatures/otso-b.jpg')" target="_blank"><img src="/art/creatures/otso-b.jpg" alt="오초 시안 B" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/otso-v1.jpg')" target="_blank"><img src="/art/creatures/otso-v1.jpg" alt="오초 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/otso-b-v1.jpg')" target="_blank"><img src="/art/creatures/otso-b-v1.jpg" alt="오초 옛 판" loading="lazy"></a>
 </details>
@@ -309,7 +313,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 |---|---|---|---|---|---|
 | **라이쥬 번개족제비** `raiju` | 뇌수 → 뇌우 때만 나오는 담비. 번개 털은 빛 마법 재료 | 소형(몸길이 0.5 m) | 라이쥬(일본 — 번개와 함께 떨어지는 짐승) | 없음(동행 · 전투) | 드묾(조건부) |
 | **할시온 물총새** `halcyon` | 그대로. 둥지 근처는 파도 · 바람이 약해진다 | 소형(몸길이 0.3 m) | 할시온(그리스 신화 — 파도를 잠재우는 새) | 없음(동행 · 전투) | 보통 |
-| **세이렌 바다새** `siren-bird` | 사람 머리의 새 → 사람 요소를 모두 빼고 노래로 홀리는 큰 바다새 무리. 노래가 들리면 걸음이 끌려간다 | 중형(날개 폭 2.5 m) | 세이렌(그리스 신화) | 방범(노래로 침입자를 붙잡음) | 보통 |
+| **세이렌** `siren` | 사람 머리의 새 → 사람 느낌이 살짝 드는 어인(인어형, 2026-11-19 사용자). 노래로 홀리는 습성 그대로 — 노래가 들리면 걸음이 끌려간다 | 중형(몸길이 2.0 m) | 세이렌(그리스 신화) | 방범(노래로 침입자를 붙잡음) | 보통 |
 | **페리톤** `peryton` | 사슴 머리 + 큰 새 몸. 그림자가 사람 모양이라는 원전 설정은 뺌 | 대형(어깨 1.6 m) | 페리톤(중세 전설 — 사슴 머리의 새) | 날것(활공) | 보통 |
 | **번개매** `thunder-hawk` | 전설의 천둥새 대신 그 혈통의 큰 매 종 | 대형(날개 폭 5 m) | 창작 — 천둥새(북미 원주민 전승 ☆)의 아래 혈통 | 날것(비행) | 드묾 |
 | **폭풍 해파리** `storm-jelly` | 폭풍 바람을 타고 하늘을 떠다니는 해파리. 뇌우 뒤 해안에 내려앉는다 | 중형(우산 지름 1 m) | 창작 | 없음(동행 · 전투) | 드묾(조건부) |
@@ -319,7 +323,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 <div class="creature-grid">
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/raiju.jpg')" target="_blank"><img src="/art/creatures/raiju.jpg" alt="라이쥬 번개족제비" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/raiju-v1.jpg')" target="_blank"><img src="/art/creatures/raiju-v1.jpg" alt="라이쥬 번개족제비 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -331,7 +335,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/halcyon.jpg')" target="_blank"><img src="/art/creatures/halcyon.jpg" alt="할시온 물총새" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/halcyon-v1.jpg')" target="_blank"><img src="/art/creatures/halcyon-v1.jpg" alt="할시온 물총새 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -342,20 +346,22 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 </div>
 <div class="creature-card">
-<a class="shot" :href="withBase('/art/creatures/siren-bird.jpg')" target="_blank"><img src="/art/creatures/siren-bird.jpg" alt="세이렌 바다새" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
-<a class="shot" :href="withBase('/art/creatures/siren-bird-v1.jpg')" target="_blank"><img src="/art/creatures/siren-bird-v1.jpg" alt="세이렌 바다새 옛 판" loading="lazy"></a>
+<a class="shot" :href="withBase('/art/creatures/siren.jpg')" target="_blank"><img src="/art/creatures/siren.jpg" alt="세이렌" loading="lazy"></a>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<a class="shot" :href="withBase('/art/creatures/siren-v2.jpg')" target="_blank"><img src="/art/creatures/siren-v2.jpg" alt="세이렌 옛 판" loading="lazy"></a>
+<a class="shot" :href="withBase('/art/creatures/siren-v1.jpg')" target="_blank"><img src="/art/creatures/siren-v1.jpg" alt="세이렌 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
-<span class="name">세이렌 바다새</span> <code>siren-bird</code><br>
-사람 머리의 새 → 사람 요소를 모두 빼고 노래로 홀리는 큰 바다새 무리. 노래가 들리면 걸음이 끌려간다
-<div class="meta">크기 중형(날개 폭 2.5 m) · 속성 바람 · 물 · 보통<br>원전 세이렌(그리스 신화)<br>기능 방범(노래로 침입자를 붙잡음)<br>4서클 벤투스 · 거점 경비(노래로 침입자를 붙잡음) · 깃털</div>
-<div class="fx"><b>FX:</b> 빛나는 음파 리본</div>
+<span class="name">세이렌</span> <code>siren</code><br>
+사람 머리의 새 → 사람 느낌이 살짝 드는 어인(인어형, 2026-11-19 사용자). 노래로 홀리는 습성 그대로 — 노래가 들리면 걸음이 끌려간다
+<div class="meta">크기 중형(몸길이 2.0 m) · 속성 바람 · 물 · 보통<br>원전 세이렌(그리스 신화)<br>기능 방범(노래로 침입자를 붙잡음)<br>4서클 벤투스 · 거점 경비(노래로 침입자를 붙잡음) · 비늘</div>
+<div class="fx"><b>FX:</b> 빛나는 음파 리본 · 꼬리 둘레 물보라</div>
 </div>
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/peryton.jpg')" target="_blank"><img src="/art/creatures/peryton.jpg" alt="페리톤" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<a class="shot" :href="withBase('/art/creatures/peryton-v2.jpg')" target="_blank"><img src="/art/creatures/peryton-v2.jpg" alt="페리톤 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/peryton-v1.jpg')" target="_blank"><img src="/art/creatures/peryton-v1.jpg" alt="페리톤 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -367,7 +373,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/thunder-hawk.jpg')" target="_blank"><img src="/art/creatures/thunder-hawk.jpg" alt="번개매" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/thunder-hawk-v1.jpg')" target="_blank"><img src="/art/creatures/thunder-hawk-v1.jpg" alt="번개매 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -379,7 +385,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/storm-jelly.jpg')" target="_blank"><img src="/art/creatures/storm-jelly.jpg" alt="폭풍 해파리" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/storm-jelly-v1.jpg')" target="_blank"><img src="/art/creatures/storm-jelly-v1.jpg" alt="폭풍 해파리 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -391,7 +397,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/karkinos.jpg')" target="_blank"><img src="/art/creatures/karkinos.jpg" alt="카르키노스 게" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/karkinos-v1.jpg')" target="_blank"><img src="/art/creatures/karkinos-v1.jpg" alt="카르키노스 게 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
@@ -405,7 +411,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 <a class="shot" :href="withBase('/art/creatures/thunderbird.jpg')" target="_blank"><img src="/art/creatures/thunderbird.jpg" alt="천둥새" loading="lazy"></a>
 <div class="alt">시안 B — 길들인 뒤 동행 장면</div>
 <a class="shot" :href="withBase('/art/creatures/thunderbird-b.jpg')" target="_blank"><img src="/art/creatures/thunderbird-b.jpg" alt="천둥새 시안 B" loading="lazy"></a>
-<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18)</summary>
 <a class="shot" :href="withBase('/art/creatures/thunderbird-v1.jpg')" target="_blank"><img src="/art/creatures/thunderbird-v1.jpg" alt="천둥새 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/thunderbird-b-v1.jpg')" target="_blank"><img src="/art/creatures/thunderbird-b-v1.jpg" alt="천둥새 옛 판" loading="lazy"></a>
 </details>
