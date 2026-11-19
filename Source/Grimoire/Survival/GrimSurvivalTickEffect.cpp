@@ -93,6 +93,11 @@ UGrimDiseaseColdEffect::UGrimDiseaseColdEffect()
 	GrantTag(GrimSurvivalTags::Status_Sick_Cold);
 }
 
+UGrimDiseaseFeverEffect::UGrimDiseaseFeverEffect()
+{
+	GrantTag(GrimSurvivalTags::Status_Sick_Fever);
+}
+
 UGrimClimateResistEffect::UGrimClimateResistEffect()
 {
 	using namespace GrimSurvivalEffectsPrivate;

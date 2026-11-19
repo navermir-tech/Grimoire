@@ -30,7 +30,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
 | `Circle` | 필요 서클 1~10. 배울 때 · 시전할 때 확인 |
 | `AbilityClass` | 비우면 공용 `UGrimSpellAbility` |
 | `ManaCost` · `ChannelManaPerSecond` · `Cooldown` · `CooldownTag` | 시전 비용 · 누르는 동안 초당 비용(Stream 만, Q19) · 쿨다운(`Cooldown.Spell.*`, 마법마다 달라야 서로 막지 않음) |
-| `CastMontage` · `CastWindup` · `bChanneled` | 시전 동작(연출 쪽이 Cast 큐에서 재생) · 입력부터 실제 발사까지 초 · 누르고 있는 동안 지속 |
+| `CastMontage` · `CastWindup` · `bChanneled` | 시전 동작(연출 쪽이 Cast 큐에서 재생) · 입력부터 실제 발사까지 초(시전 시간 — 0.25초 아래는 즉발로 본다, 지침이면 그 이상만 ×1.3: `UGrimSpellAbility::GetCastTime`) · 누르고 있는 동안 지속 |
 | `Delivery` | `Bolt` · `Stream` · `Cone` · `Beam` · `Lob`(열거형만, Bolt 로 처리) — [투사체 · 시전 감각](./spell-feel#전달-방식-delivery-다시-정의) |
 | `Radius` · `Range` | 판정 반지름(Bolt 구 · Stream 구간 스윕 · Beam 스윕) · 사거리(조준 트레이스 · 락온 거리 · Bolt 수명) |
 | `ProjectileClass` · `BoltSpeed` · `HomingStrength` | Bolt: 비우면 `AGrimSpellProjectile` · 속도 · 락온 대상 유도(초당 최대 회전 각, 0 = 없음) |
@@ -98,6 +98,7 @@ ASC 는 **플레이어는 `AGrimPlayerState`**, **생물은 `AGrimCreature` 자�
    - 네 방식 모두 **감지용 영역**(질의 전용이고 아무것도 막지 않는 트리거 상자 — 전투 금지 구역 · 퀘스트 발동 · 서식 구역)은 맞은 것으로 치지 않고 지나간다(`AGrimSpellProjectile::IsSensorComponent`, 2026-11-05 플레이 테스트에서 마법탑 실내 상자에 맞아 몸 앞에서 터지던 버그).
    - 조준점 · 유도: 대상이 있으면 발사 때 대상의 지금 조준점을 다시 읽고 Bolt 는 대상 쪽으로 휜다. **줌인 조준(`Mode = Zoom`)이면 대상이 있어도 따라가지 않고 겨눈 곳으로 곧게**(`UGrimSpellAbility::FollowsTarget`, R24).
 5. 맞은 대상마다 `UGrimSpellAbility::ApplySpellHit`:
+   - **지침 빗나감**(Q132, 2026-11-18): 대상에 ASC 가 있고(생물 · 플레이어) 시전자가 지침(피곤함 50~79)이면 먼저 `RollTiredMiss` — 빗나가면 피해 · 속성 자극 · 숙련도 경험 없이 끝나고 시전자 화면에 「MISS」(`UGrimSpellbookComponent::ClientShowMiss` → `AGrimMissText`). 사물은 늘 맞는다. 시전 시간(`GetCastTime` — 시전 시간 0.25초 이상인 마법만 ×1.3)도 지침을 본다 — [생존 — 피곤함](./survival#피곤함).
    - 대상 ASC(액터 → 폰이면 PlayerState 순으로 찾음)가 있으면 피해 GE 적용. 플레이어끼리는 `bFriendlyFire` 가 아니면 피해 없음. **전투 금지 구역**: 시전자나 대상 ASC 에 `Zone.NoCombat`(마법탑 실내 — `Source/Grimoire/Factions/GrimNoCombatVolume.h` 의 `AGrimNoCombatVolume` 이 붙인다)이 있으면 피해만 막고 속성 자극은 준다(`UGrimSpellAbility::IsCombatBlocked`, 주먹질도 같다). 피해 Spec 은 `SetByCaller.Magic.Damage = Damage × 완드 속성 위력` 과 에셋 태그 `Element.*` · `Spell.*` 를 가진다.
    - `UGrimElementalStatics::ApplyStimulusToActor(대상, Stimulus, 시전 폰)` — 받는 쪽(`IGrimElementalReceiver`)이 있으면 반응 규칙. Magic 은 구현체를 모른다. Cone 은 세기를 거리별 값으로 바꿔 준다.
 

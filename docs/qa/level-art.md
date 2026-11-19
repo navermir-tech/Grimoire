@@ -24,11 +24,11 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag after
 | QA-LVL-004 | — | 랜드스케이프 풀(StyleHex 풀 · 꽃 · 풀포기)이 풀밭에만 나고 길 · 모래 · 바위 비탈에는 안 난다 | ③ 스크린숏 `level-dress-path100/path200/pond-after` | 길 · 연못 모래 위 풀 없음, 풀밭은 빽빽, 45 m 밖에서 사라짐 | ✅ 11-08 — 길 · 연못 모래 위 풀 없음, 풀밭 빽빽, 멀리는 맨 땅 색 | `level-dress-path100/path200/pond-after.jpg` |
 | QA-LVL-005 | — | 풀이 땅 높이에 난다 — 탑 평지 · 언덕 꼭대기에도 나고 하늘에 뜬 풀이 없다 | ③ `level-dress-door-after` · `hilltop-after` · `scan-trunk-after` | 탑 문 앞 · 봉화 언덕 꼭대기 풀밭에 풀, 화면 어디에도 뜬 풀 없음 | ✅ 11-08 — 탑 문 앞 · 봉화 언덕 꼭대기에 풀, 뜬 풀 없음(맵을 새 재질로 다시 만든 뒤. 그 전에는 ❌ — [레벨 디자인 「8」 풀 지도](../dev/level-design#풀-지도-—-랜드스케이프는-처음부터-새-재질로-2026-11-08)) | `level-dress-door/hilltop/scan-trunk-after.jpg` |
 | QA-LVL-006 | — | 랜드마크 · POI · 길 · 측정 자리가 그대로이고 손 소품이 막지 않는다 | ② `check_openbeta.ps1` · `check_tutorial.ps1`(맵 · 걷기 · 표식) · ③ 스크린숏 | PASS, 소품이 길 · POI 블록 위에 없다 | ✅ 11-08 — `openbeta` PASS · `tutorial` PASS(맵 · 시작 자리 · 걷기 · 헤엄 · 표식), 자동화 179/179. 전체 `run_all.ps1` 에서 맵과 무관한 2인 스크립트 `taming` 만 ❌ — 이미 열린 [BUG-007](./bugs)(고정 시계, 「탄 채 시전」 한 줄, `L_M1_Sandbox`), `storage` 는 1회 실패 뒤 다시 돌려 PASS | `Saved\QA\summary.txt` · `openbeta.txt` · `tutorial.txt` |
-| QA-LVL-007 | — | 구름 카드가 하늘 컨트롤러 밤낮과 따로 놀지 않는다(밤에 어두움) | ③ `grim.Time.Set 23` 뒤 스크린숏(`level-dress-night`) | 밤 하늘에서 구름이 빛나지 않는다 | ⏸ 11-08 — `grim.Time.Set 23` 에도 장면 전체가 낮처럼 밝다([BUG-008](./bugs) 밤이 낮처럼 밝음). 구름은 장면과 같은 밝기로 빛나 보이지 않지만 어두운 밤 판단은 BUG-008 뒤 | `level-dress-night-after.jpg` |
+| QA-LVL-007 | — | 구름 카드가 하늘 컨트롤러 밤낮과 따로 놀지 않는다(밤에 어두움) | ③ `grim.Time.Set 23` 뒤 스크린숏(`level-dress-night`) | 밤 하늘에서 구름이 빛나지 않는다 | ✅ 11-18 — [BUG-008](./bugs) 고친 뒤 밤(0.02) 그림에서 구름 카드는 어두운 회색으로 하늘보다 조금 밝을 뿐 빛나지 않는다(11-08: ⏸ — 장면 전체가 낮처럼 밝아 판단 못 함) | `night-meadow-after.jpg`([QA — 생존 「밤 화면」](./survival#밤-화면-q101)) · `level-dress-night-after.jpg`(고치기 전) |
 | QA-LVL-008 | R16 | 성능 예산 안 | ① `measure.ps1 -Label level-dress -Settle 25`(전체) | QA-PRF-001~008 모두 예산 안 | ✅ 11-08 — GPU 3.80 ~ 5.14 ms · 게임 2.44 ~ 2.94 · 렌더 4.73 ~ 6.13 · p95 ≤ 7.2 · 끊김 0 · 드로 콜 ≤ 1,068 · 2.93 GB · 대역폭 ≤ 5.4 kB/s | `Saved\Perf\level-dress\summary.md`, [QA — 성능 측정 기록](./perf#측정-기록) |
 | QA-LVL-009 | — | 쓰는 팩 파일만 저장소에 | `add_pack_assets.ps1 -DryRun` | 팩별 개수 · 크기, 맵 · 우리 에셋이 참조하는 것만 | ✅ 11-08 — 116 개 202.2 MB: StyleHex 107 개 127.5 MB · BlackCherry 6 개 71.6 MB · HandPaintedClouds 3 개 3.2 MB(그루터기는 134 MB 라 맵에서 뺌) | `Saved\PackDeps\summary.txt` · `used_pack_files.txt` |
 
-**결과(11-08)**: 통과 8 · 실패 0 · 보류 1(QA-LVL-007 — BUG-008).
+**결과(11-08)**: 통과 8 · 실패 0 · 보류 1(QA-LVL-007 — BUG-008). 11-18 BUG-008 을 고친 뒤 QA-LVL-007 ✅ → 통과 9 · 보류 0.
 
 ![밤 23시 — 장면이 낮처럼 밝다(BUG-008), 구름 카드는 장면과 같은 밝기](/qa/level-dress-night-after.jpg)
 

@@ -83,6 +83,17 @@ struct GRIMOIRE_API FGrimCaptureTuning
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture", meta = (ClampMin = "0", ClampMax = "1"))
 	float GiantPenalty = 0.3f;
 
+	/**
+	 * 거대 · 우두머리에 잘 듣는 계약(Q133 — 파크툼 막시마, 6서클 · M6 뒤): 이 이름의 마법 정의로 거대 개체에 걸면 GiantPenalty 가 없고
+	 * 속성 일치 몫(ElementMatchBonus)을 받는다(무속성이라 어느 생물에게나). 거대가 아니면 기본 파크툼과 같다.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture")
+	TArray<FName> GiantPactSpells = { TEXT("DA_Spell_Pactum_Maxima") };
+
+	/** 전설 등급 종의 요구 서클(Q134 — 모두 7). 0 이면 종 정의의 TamingCircle 그대로. 어려움은 등급 배율 · 거대 · 사는 곳으로 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture|Circle", meta = (ClampMin = "0"))
+	int32 LegendaryRequiredCircle = 7;
+
 	/** 최종 상한(하한은 없다 — 서클이 너무 모자라면 정확히 0) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Capture", meta = (ClampMin = "0", ClampMax = "1"))
 	float MaxChance = 0.95f;

@@ -32,7 +32,6 @@ Vitality,생기,HP 자연 회복 +n%,Defense,Holy,Body|Ring,,HealthRegen,%,15,3,
 Robust,강건,최대 HP +n,Defense,Earth,Body|Cloak,,MaxHealth,pt,15,3,15,27,38,60,Player,5,True
 Warmth,온기,추위저항 +n,Survival,Fire,Head|Body|Hands,Climate,ColdResist,grade,1,3,1,2,3,4,Player,6,True
 Coolness,서늘함,더위저항 +n,Survival,Ice,Head|Body|Hands,Climate,HeatResist,grade,1,3,1,2,3,4,Player,6,True
-Satiety,포만,배고픔이 쌓이는 속도 −n%,Survival,Plant,Body|Ring,,HungerDrain,%,-10,3,-10,-18,-25,-35,Player,5,True
 Hardy,건강,질병에 걸릴 확률 −n%(질병 저항 +n),Survival,Holy,Head|Ring,,DiseaseResist,%,20,3,20,36,50,60,Player,5,True
 RainWard,비막이,비 · 눈 · 물에 젖는 속도와 젖음 지속 −n%,Survival,Water,Head|Cloak,,WetBuildup,%,-20,3,-20,-36,-50,-60,Player,5,True
 ManaVessel,마나 그릇,최대 마나 +n,Mana,Arcane,Head|Necklace,,MaxMana,pt,15,3,15,27,38,60,Player,5,True

@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "GameplayAbilitySpecHandle.h"
 #include "Net/Serialization/FastArraySerializer.h"
+#include "Engine/NetSerialization.h"
 #include "Magic/GrimProficiencyTypes.h"
 #include "Magic/GrimCircleTypes.h"
 #include "Core/GrimSaveTypes.h"
@@ -236,6 +237,16 @@ public:
 	/** 서버: 의미 있는 명중 — XPPerMeaningfulHit(같은 대상 반복 감쇠). */
 	void AwardHitXP(const UGrimSpellDefinition* Spell, const AActor* Target);
 
+	/**
+	 * 서버 → 시전자 화면: 지침으로 빗나갔다(Q132) — 그 자리에 「MISS」 피해 숫자(AGrimMissText). 연출만, 판정은 서버가 끝냈다.
+	 * 같은 자리에 잦게 오면(물줄기) MissText.MinInterval 안의 것은 건너뛴다.
+	 */
+	UFUNCTION(Client, Unreliable)
+	void ClientShowMiss(FVector_NetQuantize Location);
+
+	/** 이 기기에서 받은 빗나감 알림 수(테스트 · 디버그) */
+	int32 GetMissNoticeCount() const { return MissNoticeCount; }
+
 	/** 서버: 경험을 그대로 더한다(감쇠 · 배율 없음). 등급이 오르면 알림. */
 	void AddProficiencyXP(const UGrimSpellDefinition* Spell, float Amount);
 
@@ -327,6 +338,11 @@ protected:
 	FGrimRepeatTracker RepeatTracker;
 
 	bool bInitialized = false;
+
+	/** 「MISS」 글 — 받은 수, 마지막으로 띄운 때 · 자리 */
+	int32 MissNoticeCount = 0;
+	double LastMissTextTime = -1000.0;
+	FVector LastMissTextLocation = FVector::ZeroVector;
 
 	FDelegateHandle ActorInfoReadyHandle;
 

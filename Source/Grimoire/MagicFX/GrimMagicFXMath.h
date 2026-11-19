@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "MagicFX/GrimMagicFXTypes.h"
 
 /**
@@ -84,4 +85,21 @@ namespace GrimMagicFXMath
 
 	/** 원뿔 파동 크기(cm): X · Y = 끝 지름, Z = 길이. */
 	GRIMOIRE_API FVector CalcConeWaveSize(float Range, float HalfAngleDegrees);
+
+	// ---- 연출 묶음 고르기 (Q113) ----
+
+	/** 태그로 찾되 없으면 부모 태그로 거슬러(Element.Water.Ice → Element.Water → Element). 끝까지 없으면 nullptr. */
+	template <typename ValueType>
+	const ValueType* FindByTagOrParent(const TMap<FGameplayTag, ValueType>& Map, FGameplayTag Tag)
+	{
+		while (Tag.IsValid())
+		{
+			if (const ValueType* Found = Map.Find(Tag))
+			{
+				return Found;
+			}
+			Tag = Tag.RequestDirectParent();
+		}
+		return nullptr;
+	}
 }

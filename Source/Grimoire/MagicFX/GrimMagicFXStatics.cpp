@@ -118,6 +118,7 @@ UGrimSpellVisualSet* UGrimMagicFXStatics::ResolveVisualSet(const FGameplayCuePar
 	}
 
 	FGameplayTag Element = FindElementTag(Parameters);
+	const UGrimSpellDefinition* Definition = GetDefinition(Parameters);
 	if (!Element.IsValid())
 	{
 		// 최소 복제 큐처럼 파라미터가 비어 오면 시전자가 고른 마법으로 짐작한다.
@@ -129,21 +130,33 @@ UGrimSpellVisualSet* UGrimMagicFXStatics::ResolveVisualSet(const FGameplayCuePar
 				return FromSelected;
 			}
 			Element = Selected->Element;
+			Definition = Definition ? Definition : Selected;
 		}
 	}
 
+	const bool bBolt = Definition && (Definition->Delivery == EGrimSpellDelivery::Bolt || Definition->Delivery == EGrimSpellDelivery::Lob);
+	return FindDefaultVisualSet(Element, bBolt);
+}
+
+UGrimSpellVisualSet* UGrimMagicFXStatics::FindDefaultVisualSet(const FGameplayTag& Element, bool bBolt, bool bUseFallback)
+{
 	const UGrimMagicFXSettings* Settings = UGrimMagicFXSettings::Get();
+	auto Load = [](const TSoftObjectPtr<UGrimSpellVisualSet>* Soft) { return Soft ? Soft->LoadSynchronous() : nullptr; };
 	if (Element.IsValid())
 	{
-		if (const TSoftObjectPtr<UGrimSpellVisualSet>* Found = Settings->DefaultVisualSets.Find(Element))
+		if (bBolt)
 		{
-			if (UGrimSpellVisualSet* VisualSet = Found->LoadSynchronous())
+			if (UGrimSpellVisualSet* VisualSet = Load(GrimMagicFXMath::FindByTagOrParent(Settings->DefaultBoltVisualSets, Element)))
 			{
 				return VisualSet;
 			}
 		}
+		if (UGrimSpellVisualSet* VisualSet = Load(GrimMagicFXMath::FindByTagOrParent(Settings->DefaultVisualSets, Element)))
+		{
+			return VisualSet;
+		}
 	}
-	return Settings->FallbackVisualSet.LoadSynchronous();
+	return bUseFallback ? Settings->FallbackVisualSet.LoadSynchronous() : nullptr;
 }
 
 FLinearColor UGrimMagicFXStatics::ResolveColor(const UGrimSpellVisualSet* VisualSet, const FGameplayCueParameters& Parameters)

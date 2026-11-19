@@ -30,12 +30,13 @@ enum class EGrimSleepResult : uint8
 	Woke,
 };
 
-/** 질병 종류(최소 2종). */
+/** 질병 종류 — 배탈(날것) · 감기(오래 추움) · 열병(오래 더움 — Q115). */
 UENUM(BlueprintType)
 enum class EGrimDisease : uint8
 {
 	Stomach,
 	Cold,
+	Fever,
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGrimOnSleepResult, EGrimSleepResult, Result);
@@ -55,10 +56,12 @@ class GRIMOIRE_API UGrimSurvivalComponent : public UActorComponent, public IGrim
 public:
 	UGrimSurvivalComponent();
 
-	// 세이브 (IGrimSaveParticipant — Player 「Survival.Vitals」 v1): HP · 최대 HP · 배고픔 · 체온 · 피곤함 · 질병 저항(기본값),
-	// 질병 남은 시간(배탈 · 감기), 젖은 채 추운 누적, 부활 지점. 잠 · 쓰러짐은 저장하지 않는다(다시 들어오면 깨어 있다).
+	// 세이브 (IGrimSaveParticipant — Player 「Survival.Vitals」 v2): HP · 최대 HP · 배고픔 · 체온 · 피곤함 · 질병 저항(기본값),
+	// 질병 남은 시간(배탈 · 감기 · 열병), 체온 질병 시계(추위 · 더위), 부활 지점. 잠 · 쓰러짐은 저장하지 않는다(다시 들어오면 깨어 있다).
+	// v1(젖은 채 추운 누적 하나 · 열병 없음)도 읽는다.
 	virtual EGrimSaveScope GetSaveScope() const override { return EGrimSaveScope::Player; }
 	virtual FName GetSaveId() const override { return TEXT("Survival.Vitals"); }
+	virtual int32 GetSaveVersion() const override { return 2; }
 	virtual void WriteSaveData(FArchive& Ar) override;
 	virtual void ReadSaveData(FArchive& Ar, int32 Version) override;
 
@@ -223,8 +226,9 @@ private:
 	bool bAttributesInitialized = false;
 	double LastTickWorldSeconds = 0.0;
 
-	/** 젖은 채 추운 시간(감기 굴림 주기). */
-	float WetColdSeconds = 0.f;
+	/** 체온 질병 시계(R29 · Q115): 추위 · 더위 모자람 3 이상이 이어진 시간 — 다 차면 감기 · 열병. */
+	float ColdExposureSeconds = 0.f;
+	float HeatExposureSeconds = 0.f;
 
 	FGrimSurvivalStatus LastStatus;
 	FActiveGameplayEffectHandle PenaltyHandle;

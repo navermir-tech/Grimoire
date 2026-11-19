@@ -45,10 +45,11 @@ FGrimClimateExposure FGrimSurvivalModel::ComputeDeficit(const FGrimClimateExposu
 	return Result;
 }
 
-float FGrimSurvivalModel::ComputeTargetBodyTemperature(const FGrimClimateExposure& Deficit, const FGrimSurvivalRules& Rules)
+float FGrimSurvivalModel::ComputeTargetBodyTemperature(const FGrimClimateExposure& Deficit, const FGrimSurvivalRules& Rules, bool bFever)
 {
 	const float Target = Rules.Vital.NormalBodyTemperature
-		+ (Deficit.Heat - Deficit.Cold) * Rules.Climate.BodyTemperaturePerDeficit;
+		+ (Deficit.Heat - Deficit.Cold) * Rules.Climate.BodyTemperaturePerDeficit
+		+ (bFever ? Rules.Disease.FeverBodyTemperatureRise : 0.f);
 	return FMath::Clamp(Target, Rules.Vital.MinBodyTemperature, Rules.Vital.MaxBodyTemperature);
 }
 
@@ -81,6 +82,7 @@ FGrimSurvivalStatus FGrimSurvivalModel::EvaluateStatus(float Hunger, const FGrim
 	Status.bHyperthermiaSevere = Status.HeatGrade >= Severe;
 
 	Status.bExhausted = Fatigue >= Rules.Fatigue.ExhaustedThreshold;
+	Status.bTired = !Status.bExhausted && Fatigue >= Rules.Fatigue.TiredThreshold;
 	return Status;
 }
 
@@ -125,7 +127,7 @@ FGrimSurvivalModifiers FGrimSurvivalModel::ComputeModifiers(const FGrimSurvivalS
 	return Modifiers;
 }
 
-float FGrimSurvivalModel::ComputeFatigueDelta(float Fatigue, float DeltaSeconds, bool bSleeping, bool bDowned, bool bNight, bool bModerateExposure, const FGrimSurvivalRules& Rules)
+float FGrimSurvivalModel::ComputeFatigueDelta(float Fatigue, float DeltaSeconds, bool bSleeping, bool bDowned, bool bNight, bool bModerateExposure, const FGrimSurvivalRules& Rules, bool bFever)
 {
 	const FGrimFatigueTuning& Tuning = Rules.Fatigue;
 	const float Dt = FMath::Max(0.f, DeltaSeconds);
@@ -147,7 +149,34 @@ float FGrimSurvivalModel::ComputeFatigueDelta(float Fatigue, float DeltaSeconds,
 	{
 		Rate *= Rules.Climate.ModerateFatigueRateScale;
 	}
+	if (bFever)
+	{
+		Rate *= Rules.Disease.FeverFatigueRateScale;
+	}
 	return FMath::Min(FMath::Max(0.f, Tuning.MaxFatigue - Fatigue), Rate * Dt);
+}
+
+float FGrimSurvivalModel::ComputeTiredMissChance(float Fatigue, const FGrimSurvivalRules& Rules)
+{
+	const FGrimFatigueTuning& Tuning = Rules.Fatigue;
+	if (Fatigue < Tuning.TiredThreshold || Fatigue >= Tuning.ExhaustedThreshold)
+	{
+		return 0.f;
+	}
+	const float Span = FMath::Max(Tuning.ExhaustedThreshold - Tuning.TiredThreshold, KINDA_SMALL_NUMBER);
+	const float Alpha = FMath::Clamp((Fatigue - Tuning.TiredThreshold) / Span, 0.f, 1.f);
+	return FMath::Clamp(FMath::Lerp(Tuning.TiredMissChanceMin, Tuning.TiredMissChanceMax, Alpha), 0.f, 1.f);
+}
+
+float FGrimSurvivalModel::ComputeTiredCastTime(float CastTime, float Fatigue, const FGrimSurvivalRules& Rules)
+{
+	const FGrimFatigueTuning& Tuning = Rules.Fatigue;
+	const bool bTired = Fatigue >= Tuning.TiredThreshold && Fatigue < Tuning.ExhaustedThreshold;
+	if (!bTired || CastTime <= 0.f || CastTime < Tuning.TiredCastTimeMinSeconds)
+	{
+		return FMath::Max(CastTime, 0.f);
+	}
+	return CastTime * FMath::Max(Tuning.TiredCastTimeScale, 1.f);
 }
 
 FGrimSurvivalDeltas FGrimSurvivalModel::ComputeTick(const FGrimSurvivalInputs& Inputs, float DeltaSeconds, const FGrimSurvivalRules& Rules)
@@ -165,10 +194,10 @@ FGrimSurvivalDeltas FGrimSurvivalModel::ComputeTick(const FGrimSurvivalInputs& I
 	Deltas.Hunger = -FMath::Min(FMath::Max(0.f, Inputs.Hunger), Vital.HungerDrainPerMinute / 60.f * DrainScale * Dt);
 
 	// 체온 게이지: 모자람이 정한 목표 쪽으로 수렴.
-	const float Target = ComputeTargetBodyTemperature(Deficit, Rules);
+	const float Target = ComputeTargetBodyTemperature(Deficit, Rules, Inputs.bFeverSick);
 	Deltas.BodyTemperature = StepBodyTemperature(Inputs.BodyTemperature, Target, Dt, Vital) - Inputs.BodyTemperature;
 
-	Deltas.Fatigue = ComputeFatigueDelta(Inputs.Fatigue, Dt, Inputs.bSleeping, Inputs.bDowned, Inputs.bNight, Status.IsModerateExposure(), Rules);
+	Deltas.Fatigue = ComputeFatigueDelta(Inputs.Fatigue, Dt, Inputs.bSleeping, Inputs.bDowned, Inputs.bNight, Status.IsModerateExposure(), Rules, Inputs.bFeverSick);
 
 	// HP: 쓰러져 있으면 그대로(일으키거나 시간이 끝날 때까지). 굶주림 · 심한 체온 이상이면 감소, 아니고 배고프지 않으면 회복.
 	if (!Inputs.bDowned)
@@ -206,22 +235,21 @@ float FGrimSurvivalModel::ComputeDiseaseChance(float BaseChance, float DiseaseRe
 	return FMath::Clamp(BaseChance * (1.f - FMath::Clamp(DiseaseResist, 0.f, 100.f) / 100.f), 0.f, 1.f);
 }
 
-int32 FGrimSurvivalModel::AccumulateWetCold(float& AccumulatedSeconds, float DeltaSeconds, bool bWetAndCold, const FGrimDiseaseTuning& Disease)
+bool FGrimSurvivalModel::AccumulateExposureSickness(float& AccumulatedSeconds, float DeltaSeconds, int32 DeficitGrade, const FGrimSurvivalRules& Rules)
 {
-	if (!bWetAndCold)
+	const int32 Severe = FMath::Max(1, FMath::Max(Rules.Climate.ModerateDeficit, Rules.Climate.SevereDeficit));
+	if (DeficitGrade < Severe)
 	{
 		AccumulatedSeconds = 0.f;
-		return 0;
+		return false;
 	}
-	const float Period = FMath::Max(1.f, Disease.WetColdSecondsPerRoll);
 	AccumulatedSeconds += FMath::Max(0.f, DeltaSeconds);
-	int32 Rolls = 0;
-	while (AccumulatedSeconds >= Period)
+	if (AccumulatedSeconds >= FMath::Max(1.f, Rules.Disease.ExposureSicknessSeconds))
 	{
-		AccumulatedSeconds -= Period;
-		++Rolls;
+		AccumulatedSeconds = 0.f;
+		return true;
 	}
-	return Rolls;
+	return false;
 }
 
 bool FGrimSurvivalModel::ShouldSkipNight(int32 SleepingCount, int32 PlayerCount, float Ratio, bool bNight)

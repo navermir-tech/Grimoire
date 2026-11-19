@@ -39,6 +39,12 @@ public:
 	/** 객체의 VisualSet 필드(하드 · 소프트 참조 모두)를 리플렉션으로 읽는다. 객체가 VisualSet 이면 그대로. */
 	static UGrimSpellVisualSet* FindVisualSetOnObject(const UObject* Object);
 
+	/**
+	 * 속성 기본 연출 묶음(Q113): bBolt 면 DefaultBoltVisualSets 를 먼저, 그다음 DefaultVisualSets — 각각 정확한 태그 → 부모 태그로 거슬러.
+	 * 둘 다 없으면 bUseFallback 일 때 FallbackVisualSet(무속성), 아니면 nullptr.
+	 */
+	static UGrimSpellVisualSet* FindDefaultVisualSet(const FGameplayTag& Element, bool bBolt, bool bUseFallback = true);
+
 	/** 큐 파라미터의 Element.* 태그. 없으면 SourceObject(정의)의 Element. */
 	static FGameplayTag FindElementTag(const FGameplayCueParameters& Parameters);
 

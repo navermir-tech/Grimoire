@@ -162,6 +162,25 @@ struct GRIMOIRE_API FGrimFatigueTuning
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0"))
 	float NightGainScale = 1.5f;
 
+	/** 이 값 이상(탈진 전까지)이면 Status.Tired 「지침」(Q132): 시전 시간이 있는 마법이 느려지고, 맞혀도 가끔 빗나간다(「MISS」). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue")
+	float TiredThreshold = 50.f;
+
+	/** 지침: 시전 시간(정의의 CastWindup)에 곱한다. 쿨다운은 바꾸지 않는다(Q132). 수치 제안 ×1.3(Q165) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "1"))
+	float TiredCastTimeScale = 1.3f;
+
+	/** 시전 시간이 이 값(초) 이상인 마법만 「시전 시간이 있는 마법」 — 그보다 짧은 시전 대기는 즉발로 보고 늘리지 않는다(Q132 · Q166) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0", Units = "s"))
+	float TiredCastTimeMinSeconds = 0.25f;
+
+	/** 지침 빗나감 확률: 피곤함 TiredThreshold 에서 Min, 탈진 문턱 바로 아래에서 Max 로 곧게(제안 10 % → 30 % — Q165) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0", ClampMax = "1"))
+	float TiredMissChanceMin = 0.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue", meta = (ClampMin = "0", ClampMax = "1"))
+	float TiredMissChanceMax = 0.3f;
+
 	/** 이 값 이상이면 Status.Exhausted. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fatigue")
 	float ExhaustedThreshold = 80.f;
@@ -175,7 +194,7 @@ struct GRIMOIRE_API FGrimFatigueTuning
 	float SleepRecoveryPerSecond = 5.f;
 };
 
-/** 질병 (R03) — 최소 2종. 빛(신성) 치료는 나중, 지금은 시간으로 낫는다. */
+/** 질병 (R03 · R29) — 배탈 · 감기 · 열병. 빛(신성) 치료 · 약초는 나중, 지금은 시간으로 낫는다. */
 USTRUCT(BlueprintType)
 struct GRIMOIRE_API FGrimDiseaseTuning
 {
@@ -196,20 +215,34 @@ struct GRIMOIRE_API FGrimDiseaseTuning
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stomach", meta = (ClampMin = "0"))
 	float StomachHungerDrainScale = 2.f;
 
-	// 감기 Status.Sick.Cold — 젖은 채 추위(추위 모자람 ≥ 1)
-	/** 젖은 채 추운 시간이 이만큼 쌓일 때마다 한 번 굴린다. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cold", meta = (ClampMin = "1"))
-	float WetColdSecondsPerRoll = 60.f;
+	// 체온 질병(R29 · Q115): 모자람이 심한 단계(Climate.SevereDeficit, 3) 이상인 채로 이만큼 이어지면 — 추위는 감기, 더위는 열병.
+	// 모자람이 그 아래로 내려가면 시계는 처음부터. 걸리면(또는 이미 앓고 있으면) 다시 처음부터 잰다.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Exposure", meta = (ClampMin = "1", Units = "s"))
+	float ExposureSicknessSeconds = 300.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cold", meta = (ClampMin = "0", ClampMax = "1"))
-	float WetColdChance = 0.35f;
+	/** 시간이 차면 걸릴 확률(× (1 − 질병 저항/100)). 1 = 반드시 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Exposure", meta = (ClampMin = "0", ClampMax = "1"))
+	float ExposureSicknessChance = 1.f;
 
+	// 감기 Status.Sick.Cold — 오래 추움
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cold", meta = (ClampMin = "0"))
 	float ColdDurationSeconds = 300.f;
 
 	/** 감기 중 초당 마나 회복 감소(회복이 도는 동안만 — 배고프면 회복이 이미 멈춰 있다). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cold", meta = (ClampMin = "0"))
 	float ColdManaRegenPenaltyPerSecond = 1.f;
+
+	// 열병 Status.Sick.Fever — 오래 더움(감기와 대칭 제안: 같은 시간으로 낫고, 「열 = 체온 ↑」 + 몸이 빨리 지친다)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fever", meta = (ClampMin = "0"))
+	float FeverDurationSeconds = 300.f;
+
+	/** 열병 중 목표 체온에 더한다(℃) — 게이지가 올라 보인다(판정은 등급이라 패널티 단계는 그대로) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fever", meta = (ClampMin = "0"))
+	float FeverBodyTemperatureRise = 1.5f;
+
+	/** 열병 중 피곤함이 쌓이는 배율 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fever", meta = (ClampMin = "1"))
+	float FeverFatigueRateScale = 1.5f;
 };
 
 /** 잠 · 밤 건너뛰기. */
@@ -218,7 +251,7 @@ struct GRIMOIRE_API FGrimSleepTuning
 {
 	GENERATED_BODY()
 
-	/** 서버 옵션: 접속자 중 잠든 비율이 이 값 이상이면 밤을 건너뛴다(1 = 전원). */
+	/** 서버 옵션(Q114): 접속자 중 잠든 비율이 이 값 이상이면 밤을 건너뛴다. 기본 1 = 전원(밤이 있다), 서버 주인만 낮춘다. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sleep", meta = (ClampMin = "0.01", ClampMax = "1"))
 	float SleepSkipRatio = 1.f;
 

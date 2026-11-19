@@ -12,6 +12,7 @@ namespace GrimSurvivalTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Hyperthermia, "Status.Hyperthermia", "더위 모자람 2 이상 — 과열. 마나 소모 늘어남, 피곤함 가속");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Hyperthermia_Severe, "Status.Hyperthermia.Severe", "더위 모자람 3 이상 — 열사병. HP 감소");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Tired, "Status.Tired", "피곤함 50 이상 — 지침. 시전 시간이 있는 마법이 느려지고 맞혀도 가끔 빗나간다(「MISS」 — Q132)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Exhausted, "Status.Exhausted", "피곤함 80 이상 — 탈진. 달리기 · 마법 시전 불가, 지친 걸음(R29)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sleeping, "Status.Sleeping", "자는 중(침대 · 침낭). 움직이지 못한다");
 
@@ -19,5 +20,6 @@ namespace GrimSurvivalTags
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sick, "Status.Sick", "질병(하위 태그가 종류). 빛 마법 정화가 이 태그를 지운다(나중)");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sick_Stomach, "Status.Sick.Stomach", "배탈 — 날것 섭취. 배고픔이 빨리 준다");
-	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sick_Cold, "Status.Sick.Cold", "감기 — 젖은 채 추위. 마나 회복 감소, 시전 가끔 끊김(마법 쪽이 읽는다)");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sick_Cold, "Status.Sick.Cold", "감기 — 추위 모자람 3 이상이 5분(R29 · Q115). 마나 회복 감소");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Status_Sick_Fever, "Status.Sick.Fever", "열병 — 더위 모자람 3 이상이 5분(R29 · Q115). 체온 게이지 오름, 피곤함이 빨리 쌓임");
 }

@@ -41,7 +41,9 @@ FGrimCaptureChance GrimTamingMath::CalcCaptureChance(const FGrimCaptureInput& In
 	Out.Asleep = Input.bAsleep ? Tuning.AsleepBonus : 0.f;
 	Out.Exhausted = Input.bExhausted ? Tuning.ExhaustedBonus : 0.f;
 	Out.Food = Input.bFedFavorite ? FMath::Max(Tuning.FavoriteFoodBonus, Tuning.FedBonus) : (Input.bFed ? Tuning.FedBonus : 0.f);
-	Out.Element = Input.bElementMatch ? Tuning.ElementMatchBonus : 0.f;
+	// 파크툼 막시마(Q133): 거대 개체에는 속성이 맞은 것처럼 몫을 받는다(무속성 — 어느 생물에게나).
+	const bool bGiantPactHit = Input.bGiantPact && Input.bGiant;
+	Out.Element = (Input.bElementMatch || bGiantPactHit) ? Tuning.ElementMatchBonus : 0.f;
 	Out.Wand = FMath::Clamp((Input.WandElementPower - 1.f) * Tuning.WandAffinityScale, 0.f, Tuning.WandAffinityMaxBonus);
 
 	Out.Proficiency = FMath::Max(0.f, Input.ProficiencyBonus);
@@ -51,7 +53,7 @@ FGrimCaptureChance GrimTamingMath::CalcCaptureChance(const FGrimCaptureInput& In
 	// 등급 · 거대는 곱(팰월드 종별 배율 · 우두머리 ×0.7 처럼) — 낮은 확률을 음수로 밀어내지 않는다.
 	const int32 SizeIndex = static_cast<int32>(Input.SizeClass);
 	const float SizePenalty = Tuning.SizeClassPenalty.IsValidIndex(SizeIndex) ? Tuning.SizeClassPenalty[SizeIndex] : 0.f;
-	Out.GradeScale = FMath::Clamp(1.f - SizePenalty, 0.f, 1.f) * (Input.bGiant ? FMath::Clamp(1.f - Tuning.GiantPenalty, 0.f, 1.f) : 1.f);
+	Out.GradeScale = FMath::Clamp(1.f - SizePenalty, 0.f, 1.f) * (Input.bGiant && !bGiantPactHit ? FMath::Clamp(1.f - Tuning.GiantPenalty, 0.f, 1.f) : 1.f);
 
 	Out.CircleScale = CalcCircleScale(Input.CasterCircle - Input.RequiredCircle, Tuning);
 	Out.bCircleTooLow = Out.CircleScale <= 0.f;
@@ -59,6 +61,16 @@ FGrimCaptureChance GrimTamingMath::CalcCaptureChance(const FGrimCaptureInput& In
 	Out.Raw = FMath::Max(0.f, Out.Ease) * Out.GradeScale * Out.CircleScale;
 	Out.Total = FMath::Clamp(Out.Raw, 0.f, FMath::Clamp(Tuning.MaxChance, 0.f, 1.f));
 	return Out;
+}
+
+int32 GrimTamingMath::ResolveRequiredCircle(EGrimCreatureSizeClass SizeClass, int32 SpeciesCircle, const FGrimCaptureTuning& Tuning)
+{
+	// Q134: 전설은 모두 같은 요구 서클 — 어려움은 등급 배율 · 거대 · 사는 곳으로 낸다.
+	if (SizeClass == EGrimCreatureSizeClass::Legendary && Tuning.LegendaryRequiredCircle > 0)
+	{
+		return Tuning.LegendaryRequiredCircle;
+	}
+	return FMath::Max(1, SpeciesCircle);
 }
 
 float GrimTamingMath::CalcCircleScale(int32 CircleGap, const FGrimCaptureTuning& Tuning)

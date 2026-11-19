@@ -303,6 +303,7 @@ void UGrimSurvivalComponent::SurvivalTick()
 	Inputs.bDowned = IsDowned();
 	Inputs.bStomachSick = !bCheat && ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Sick_Stomach);
 	Inputs.bColdSick = !bCheat && ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Sick_Cold);
+	Inputs.bFeverSick = !bCheat && ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Sick_Fever);
 
 	FGrimSurvivalDeltas Deltas = FGrimSurvivalModel::ComputeTick(Inputs, DeltaSeconds, Rules);
 	if (bCheat)
@@ -339,19 +340,23 @@ void UGrimSurvivalComponent::SurvivalTick()
 		ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetHungerAttribute()), Deficit, Fatigue, Rules);
 	UpdateStatusTags(ASC, LastStatus);
 
-	// 질병: 젖은 채 추우면(추위 모자람 1 이상) 주기마다 감기 굴림.
+	// 체온 질병(R29 · Q115): 모자람 3 이상이 5분 이어지면 추위는 감기, 더위는 열병. 3 아래로 내려가면 시계는 처음부터.
+	// 젖음은 추위 등급(+1)으로만 거든다 — 따로 굴리지 않는다.
 	if (bCheat)
 	{
 		CureAllDiseases();
-		WetColdSeconds = 0.f;
+		ColdExposureSeconds = 0.f;
+		HeatExposureSeconds = 0.f;
 	}
 	else
 	{
-		const bool bWetAndCold = UGrimElementalStatics::GetStateIntensity(Pawn, GrimTags::State_Wet) > 0.f && Deficit.Cold >= 1;
-		const int32 Rolls = FGrimSurvivalModel::AccumulateWetCold(WetColdSeconds, DeltaSeconds, bWetAndCold, Rules.Disease);
-		for (int32 i = 0; i < Rolls; ++i)
+		if (FGrimSurvivalModel::AccumulateExposureSickness(ColdExposureSeconds, DeltaSeconds, Deficit.Cold, Rules))
 		{
-			RollDisease(EGrimDisease::Cold, Rules.Disease.WetColdChance);
+			RollDisease(EGrimDisease::Cold, Rules.Disease.ExposureSicknessChance);
+		}
+		if (FGrimSurvivalModel::AccumulateExposureSickness(HeatExposureSeconds, DeltaSeconds, Deficit.Heat, Rules))
+		{
+			RollDisease(EGrimDisease::Fever, Rules.Disease.ExposureSicknessChance);
 		}
 	}
 
@@ -508,6 +513,7 @@ void UGrimSurvivalComponent::UpdateStatusTags(UAbilitySystemComponent* ASC, cons
 	SetLooseTag(ASC, GrimSurvivalTags::Status_Warm, Status.bWarm);
 	SetLooseTag(ASC, GrimSurvivalTags::Status_Hyperthermia, Status.bHyperthermia);
 	SetLooseTag(ASC, GrimSurvivalTags::Status_Hyperthermia_Severe, Status.bHyperthermiaSevere);
+	SetLooseTag(ASC, GrimSurvivalTags::Status_Tired, Status.bTired);
 	SetLooseTag(ASC, GrimSurvivalTags::Status_Exhausted, Status.bExhausted);
 }
 
@@ -747,20 +753,35 @@ void UGrimSurvivalComponent::ApplyDisease(EGrimDisease Disease)
 		return;
 	}
 	const FGrimDiseaseTuning& Tuning = GetDefault<UGrimSurvivalSettings>()->Disease;
-	const bool bStomach = Disease == EGrimDisease::Stomach;
-	const FGameplayTag Tag = bStomach ? GrimSurvivalTags::Status_Sick_Stomach : GrimSurvivalTags::Status_Sick_Cold;
-	if (ASC->HasMatchingGameplayTag(Tag))
+	FGameplayTag Tag;
+	TSubclassOf<UGameplayEffect> EffectClass;
+	float Duration = 0.f;
+	switch (Disease)
+	{
+	case EGrimDisease::Stomach:
+		Tag = GrimSurvivalTags::Status_Sick_Stomach;
+		EffectClass = UGrimDiseaseStomachEffect::StaticClass();
+		Duration = Tuning.StomachDurationSeconds;
+		break;
+	case EGrimDisease::Cold:
+		Tag = GrimSurvivalTags::Status_Sick_Cold;
+		EffectClass = UGrimDiseaseColdEffect::StaticClass();
+		Duration = Tuning.ColdDurationSeconds;
+		break;
+	case EGrimDisease::Fever:
+		Tag = GrimSurvivalTags::Status_Sick_Fever;
+		EffectClass = UGrimDiseaseFeverEffect::StaticClass();
+		Duration = Tuning.FeverDurationSeconds;
+		break;
+	}
+	if (!EffectClass || ASC->HasMatchingGameplayTag(Tag))
 	{
 		return;
 	}
 
-	const TSubclassOf<UGameplayEffect> EffectClass = bStomach
-		? TSubclassOf<UGameplayEffect>(UGrimDiseaseStomachEffect::StaticClass())
-		: TSubclassOf<UGameplayEffect>(UGrimDiseaseColdEffect::StaticClass());
 	const FGameplayEffectSpecHandle Spec = ASC->MakeOutgoingSpec(EffectClass, 1.f, ASC->MakeEffectContext());
 	if (Spec.IsValid())
 	{
-		const float Duration = bStomach ? Tuning.StomachDurationSeconds : Tuning.ColdDurationSeconds;
 		Spec.Data->SetSetByCallerMagnitude(UGrimDiseaseEffect::DurationMagnitudeName, Duration);
 		ASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
 		UE_LOG(LogGrimSurvival, Log, TEXT("%s 질병 %s — %.0f초"), *GetNameSafe(GetOwner()), *Tag.ToString(), Duration);
@@ -970,7 +991,8 @@ void UGrimSurvivalComponent::ServerDebugCommand_Implementation(const FString& Co
 	}
 	else if (Command == TEXT("Sick"))
 	{
-		ApplyDisease(A >= 1.f ? EGrimDisease::Cold : EGrimDisease::Stomach);
+		// 0 = 배탈, 1 = 감기, 2 = 열병
+		ApplyDisease(A >= 2.f ? EGrimDisease::Fever : A >= 1.f ? EGrimDisease::Cold : EGrimDisease::Stomach);
 	}
 	else if (Command == TEXT("Cure"))
 	{
@@ -1005,7 +1027,7 @@ void UGrimSurvivalComponent::ServerDebugCommand_Implementation(const FString& Co
 #endif
 }
 
-// ── 세이브 (Survival.Vitals v1) ──
+// ── 세이브 (Survival.Vitals v2 — v1 은 열병 · 더위 시계 없이 젖은 채 추운 누적 하나) ──
 
 namespace GrimSurvivalSaveLocal // 유니티 빌드 이름 충돌 방지
 {
@@ -1033,24 +1055,37 @@ void UGrimSurvivalComponent::WriteSaveData(FArchive& Ar)
 	float DiseaseResist = Base(UGrimVitalAttributeSet::GetDiseaseResistAttribute());
 	float StomachSeconds = ASC ? GrimSurvivalSaveLocal::RemainingFor(ASC, GrimSurvivalTags::Status_Sick_Stomach) : 0.f;
 	float ColdSeconds = ASC ? GrimSurvivalSaveLocal::RemainingFor(ASC, GrimSurvivalTags::Status_Sick_Cold) : 0.f;
-	float SavedWetColdSeconds = WetColdSeconds;
+	float FeverSeconds = ASC ? GrimSurvivalSaveLocal::RemainingFor(ASC, GrimSurvivalTags::Status_Sick_Fever) : 0.f;
+	float SavedColdExposure = ColdExposureSeconds;
+	float SavedHeatExposure = HeatExposureSeconds;
 	bool bSavedRespawn = bHasRespawnPoint;
 	FTransform SavedRespawn = RespawnTransform;
 
 	Ar << MaxHealth << Health << Hunger << BodyTemperature << Fatigue << DiseaseResist;
-	Ar << StomachSeconds << ColdSeconds << SavedWetColdSeconds;
+	Ar << StomachSeconds << ColdSeconds << SavedColdExposure;
 	Ar << bSavedRespawn << SavedRespawn;
+	// v2
+	Ar << FeverSeconds << SavedHeatExposure;
 }
 
 void UGrimSurvivalComponent::ReadSaveData(FArchive& Ar, int32 Version)
 {
 	float MaxHealth = 0.f, Health = 0.f, Hunger = 0.f, BodyTemperature = 0.f, Fatigue = 0.f, DiseaseResist = 0.f;
-	float StomachSeconds = 0.f, ColdSeconds = 0.f, SavedWetColdSeconds = 0.f;
+	float StomachSeconds = 0.f, ColdSeconds = 0.f, SavedColdExposure = 0.f, FeverSeconds = 0.f, SavedHeatExposure = 0.f;
 	bool bSavedRespawn = false;
 	FTransform SavedRespawn = FTransform::Identity;
 	Ar << MaxHealth << Health << Hunger << BodyTemperature << Fatigue << DiseaseResist;
-	Ar << StomachSeconds << ColdSeconds << SavedWetColdSeconds;
+	// v1 의 세 번째 값은 「젖은 채 추운 누적」(옛 감기 규칙, 60초 주기) — 새 시계와 뜻이 달라 버린다.
+	Ar << StomachSeconds << ColdSeconds << SavedColdExposure;
 	Ar << bSavedRespawn << SavedRespawn;
+	if (Version >= 2)
+	{
+		Ar << FeverSeconds << SavedHeatExposure;
+	}
+	else
+	{
+		SavedColdExposure = 0.f;
+	}
 
 	UAbilitySystemComponent* ASC = GetASC();
 	if (!ASC || !GetOwner()->HasAuthority() || Ar.IsError())
@@ -1066,7 +1101,8 @@ void UGrimSurvivalComponent::ReadSaveData(FArchive& Ar, int32 Version)
 	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetFatigueAttribute(), Fatigue);
 	ASC->SetNumericAttributeBase(UGrimVitalAttributeSet::GetDiseaseResistAttribute(), DiseaseResist);
 	bAttributesInitialized = true;
-	WetColdSeconds = SavedWetColdSeconds;
+	ColdExposureSeconds = SavedColdExposure;
+	HeatExposureSeconds = SavedHeatExposure;
 
 	// 질병: 지금 것을 지우고 남은 시간만큼 다시 건다(치트 중이면 ApplyDisease 처럼 걸지 않는다).
 	CureAllDiseases();
@@ -1075,6 +1111,7 @@ void UGrimSurvivalComponent::ReadSaveData(FArchive& Ar, int32 Version)
 		const TPair<TSubclassOf<UGameplayEffect>, float> Diseases[] = {
 			{ UGrimDiseaseStomachEffect::StaticClass(), StomachSeconds },
 			{ UGrimDiseaseColdEffect::StaticClass(), ColdSeconds },
+			{ UGrimDiseaseFeverEffect::StaticClass(), FeverSeconds },
 		};
 		for (const TPair<TSubclassOf<UGameplayEffect>, float>& Disease : Diseases)
 		{
@@ -1094,8 +1131,8 @@ void UGrimSurvivalComponent::ReadSaveData(FArchive& Ar, int32 Version)
 	bHasRespawnPoint = bSavedRespawn;
 	RespawnTransform = SavedRespawn;
 	RefreshPenalty();
-	UE_LOG(LogGrimSurvival, Log, TEXT("%s 세이브 읽음: HP %.1f/%.1f 배고픔 %.1f 체온 %.2f 피곤함 %.1f 배탈 %.0f초 감기 %.0f초 부활 지점 %s"),
-		*GetNameSafe(GetOwner()), Health, MaxHealth, Hunger, BodyTemperature, Fatigue, StomachSeconds, ColdSeconds,
+	UE_LOG(LogGrimSurvival, Log, TEXT("%s 세이브 읽음(v%d): HP %.1f/%.1f 배고픔 %.1f 체온 %.2f 피곤함 %.1f 배탈 %.0f초 감기 %.0f초 열병 %.0f초 부활 지점 %s"),
+		*GetNameSafe(GetOwner()), Version, Health, MaxHealth, Hunger, BodyTemperature, Fatigue, StomachSeconds, ColdSeconds, FeverSeconds,
 		bHasRespawnPoint ? *RespawnTransform.GetLocation().ToCompactString() : TEXT("없음"));
 }
 
@@ -1137,11 +1174,13 @@ void UGrimSurvivalComponent::DrawDebug(UCanvas* Canvas, APlayerController* Playe
 		{ GrimSurvivalTags::Status_Warm, TEXT("Warm") },
 		{ GrimSurvivalTags::Status_Hyperthermia, TEXT("Hyperthermia") },
 		{ GrimSurvivalTags::Status_Hyperthermia_Severe, TEXT("Heatstroke") },
+		{ GrimSurvivalTags::Status_Tired, TEXT("Tired") },
 		{ GrimSurvivalTags::Status_Exhausted, TEXT("Exhausted") },
 		{ GrimSurvivalTags::Status_Sleeping, TEXT("Sleeping") },
 		{ GrimSurvivalTags::Status_Downed, TEXT("Downed") },
 		{ GrimSurvivalTags::Status_Sick_Stomach, TEXT("Stomachache") },
 		{ GrimSurvivalTags::Status_Sick_Cold, TEXT("Cold") },
+		{ GrimSurvivalTags::Status_Sick_Fever, TEXT("Fever") },
 		{ GrimTags::State_Wet, TEXT("Wet") },
 		{ GrimTags::State_Burning, TEXT("Burning") },
 	};
