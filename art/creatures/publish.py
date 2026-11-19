@@ -4,6 +4,7 @@
     python -X utf8 art/creatures/publish.py 1 2 3 4    # 지역을 골라서
 
 그림이 아직 없는 종은 「그림 없음」 카드로 둔다. 전설의 동행 장면 시안은 raw/<id>-b.png(있으면 같은 카드에 둘째 그림).
+옛 판 raw/<id>-v1.png 가 있으면 카드 아래 접힌 칸에 둔다(비교용). 카드의 「FX」 줄은 make_prompts.py 의 MAGIC.
 문서 그림은 LFS 가 아니므로 JPG(가로 1536, 품질 85)로 줄인다. 명단 · 설명의 정본은 make_prompts.py 의 CREATURES.
 """
 import html
@@ -15,7 +16,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
-from make_prompts import CREATURES, FUNCTIONS, REGIONS  # noqa: E402
+from make_prompts import CREATURES, FUNCTIONS, MAGIC, REGIONS  # noqa: E402
 
 OUT_IMG = os.path.join(ROOT, "docs", "public", "art", "creatures")
 OUT_MD = os.path.join(ROOT, "docs", "art", "creature-concepts.md")
@@ -41,6 +42,9 @@ STYLE = """<style>
 .creature-card .tag.boss { background: var(--vp-c-red-soft); }
 .creature-card .meta { margin-top: 6px; font-size: 12.5px; color: var(--vp-c-text-2); }
 .creature-card .alt { padding: 4px 12px; font-size: 12px; color: var(--vp-c-text-2); border-top: 1px solid var(--vp-c-divider); }
+.creature-card details.old { border-top: 1px solid var(--vp-c-divider); font-size: 12px; color: var(--vp-c-text-2); }
+.creature-card details.old summary { padding: 4px 12px; cursor: pointer; }
+.creature-card .fx { margin-top: 6px; font-size: 12.5px; }
 </style>"""
 
 
@@ -80,6 +84,7 @@ def card(c):
     cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
     has = publish_image(cid)
     has_b = publish_image(cid + "-b")
+    olds = [j for j in (cid + "-v1", cid + "-b-v1") if publish_image(j)]
     tags = ""
     if rarity == "전설":
         tags += '<span class="tag legend">전설</span>'
@@ -93,6 +98,10 @@ def card(c):
     if has_b:
         lines.append(f'<div class="alt">시안 B — 길들인 뒤 동행 장면</div>')
         lines.append(shot(cid + "-b", esc(name) + " 시안 B"))
+    if olds:
+        lines.append('<details class="old"><summary>옛 판(v1, 2026-11-18) 보기</summary>')
+        lines += [shot(j, esc(name) + " 옛 판") for j in olds]
+        lines.append("</details>")
     lines.append('<div class="body">')
     lines.append(f'<span class="name">{esc(name)}</span> <code>{cid}</code>{tags}<br>')
     lines.append(f"{esc(adapt)}")
@@ -100,6 +109,8 @@ def card(c):
         f'<div class="meta">크기 {esc(size)}({esc(height)}) · 속성 {main} · {sub} · {esc(rarity)}<br>'
         f"원전 {esc(src)}<br>기능 {esc(func_plain(cid))}<br>{esc(tame_text(use))}</div>"
     )
+    if cid in MAGIC:
+        lines.append(f'<div class="fx"><b>FX:</b> {esc(MAGIC[cid]["fx"])}</div>')
     lines += ["</div>", "</div>"]
     return "\n".join(lines), int(has) + int(has_b)
 
@@ -115,7 +126,9 @@ def main():
         "",
         "# 마법 생물 콘셉트 아트 — 오픈 베타 후보",
         "",
-        "> 상태: **검토용 v1** · 2026-11-18 · GPT 이미지(Codex CLI). 아트 방향은 [Painterly High-Fidelity Stylized Realism](../spec/art-direction), 생물 톤 규칙은 [지역별 생물 명단 — 톤 · 겉모습 규칙](../spec/creature-roster#톤-·-겉모습-규칙).",
+        "> 상태: **검토용 v2** · 2026-11-19 · GPT 이미지(Codex CLI). v1(2026-11-18)이 「실제 동물에 뿔 · 이끼를 얹은」 느낌이라 「킥」 규칙으로 다시 그렸다 — 종마다 **있을 수 없는 특징 하나**(몸 일부가 속성 재질 · 떠 있는 부위 · 몸에서 나는 빛)와 **자기 마법을 쓰는 순간**. 몸은 메시 · 재질로 만들 수 있는 또렷한 형태이고, 흩어지는 것(안개 · 물방울 · 불티 · 음파)은 카드의 **FX** 줄에 적은 대로 나이아가라 효과로 낸다. 옛 판은 카드 아래 「옛 판 보기」에 접어 두었다.",
+        ">",
+        "> 아트 방향은 [Painterly High-Fidelity Stylized Realism](../spec/art-direction), 생물 톤 규칙은 [지역별 생물 명단 — 톤 · 겉모습 규칙](../spec/creature-roster#톤-·-겉모습-규칙).",
         ">",
         "> **쓰임**: 오픈 베타 30종(Q50)을 그림을 보고 고른다. 1번 지역 10종은 다 들어가고, 2 · 3번 지역 16종에서 골라 채운다 — **셋을 다 넣어도 26종**이라 30종에는 4종이 모자란다(4번 지역부터 당겨 오거나 종 수를 줄이는 것은 정할 일).",
         ">",
