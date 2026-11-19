@@ -184,6 +184,9 @@ private:
 
 	TWeakObjectPtr<AGrimItemPickup> TargetPickup;
 	TWeakObjectPtr<AGrimCookingPot> TargetPot;
+	/** 픽업 · 냄비가 없을 때의 F 대상(IGrimInteractable — 꾸밈 소품 · 채집 셀)과 그 안의 무엇 */
+	TWeakObjectPtr<AActor> TargetInteractable;
+	int32 TargetInteractToken = INDEX_NONE;
 
 	bool bBagOpen = false;
 	bool bBagDirty = true;

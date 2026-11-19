@@ -2,7 +2,7 @@
 
 > 스펙: [세계 · 환경](../spec/world) (R04)
 >
-> 상태: M1 · M2(갈래 W) 구현됨(2026-11-06 코드 대조). 코드 `Source/Grimoire/Environment/`.
+> 상태: M1 · M2(갈래 W) 구현됨(2026-11-06 코드 대조), 밤 화면(Q101) 2026-11-18. 코드 `Source/Grimoire/Environment/`.
 
 ## 시간 `UGrimTimeOfDaySubsystem`
 
@@ -21,9 +21,50 @@
 
 - 레벨에 하나 놓는다(배치 스크립트 `Scripts/Tutorial/tower_greybox.py` · `Scripts/Terrain/build_openbeta.py` · `Scripts/Integration/place_m1_props.py` 가 `Sky` 로 놓는다). 자기 컴포넌트로 해 · 달 Directional Light(대기 태양 인덱스 0 · 1), Sky Atmosphere, Sky Light(실시간 캡처), Exponential Height Fog 를 가진다 — 레벨의 다른 해 · 하늘 · 안개는 뺀다. 복제하지 않고 각 머신이 서브시스템 시각으로 틱마다 갱신한다.
 - 해 궤도 각 `GetSunAngleDegrees`: 해돋이 0° → 정오 90° → 해넘이 180° → 자정 270°(낮 · 밤이 각자 반 바퀴). 궤도는 `SunriseYawDegrees` 에서 떠서 `OrbitTiltDegrees` 만큼 기운 천정을 지난다. 달은 해의 맞은편.
-- 밝기: 해 · 달은 지평선 근처 `HorizonFade` 에서 부드럽게 켜지고 꺼진다(`SunIntensity` 10 lux, `MoonIntensity` 0.4 lux). Sky Light 는 낮 1 · 밤 0.25.
+- 밝기: 해 · 달은 지평선 근처 `HorizonFade` 에서 부드럽게 켜지고 꺼진다(`SunIntensity` 10 lux, `MoonIntensity` 0.4 lux). Sky Light 는 낮 1 · 밤 0.25. 해 세기 · 하늘빛은 낮 섞임 `FGrimTimeOfDayMath::GetDayBlend`(해 높이의 사인이 −`HorizonFade` → +`HorizonFade` 로 오르는 동안 스무스스텝), 달 세기 · 밤 화면은 밤 섞임 `GetNightBlend`(해가 지평선에서 2 × `HorizonFade` 아래로 내려가는 동안 스무스스텝 — 해넘이 순간에는 0)를 따른다.
 - **그림자 캐시**: 해 · 달 빛은 방향이 `SunRotationStepDegrees`(기본 0.1°, 48분 하루면 약 0.8초) 넘게 바뀔 때만 돌린다 — 방향광이 돌 때마다 가상 섀도 맵 캐시가 통째로 무효가 된다(GPU 그림자 2 ~ 2.6 ms → 0.4 ~ 0.6 ms, [성능](./performance#측정-기록)). 콘솔 `Grim.Sky.SunRotationStep <도>`(0 = 매 프레임).
-- 에디터에서는 `PreviewTimeOfDay` 로 미리 본다. 날씨 연출은 아래 「날씨 — 연출」. 볼류메트릭 구름 · `MPC_Environment`(젖음 머티리얼) · 바람(풀 · 나무)은 아직 없다.
+- **밤 화면**은 아래 절. 에디터에서는 `PreviewTimeOfDay` 로 미리 본다(밤 화면도 같이 걸린다). 날씨 연출은 아래 「날씨 — 연출」. 볼류메트릭 구름 · `MPC_Environment`(젖음 머티리얼) · 바람(풀 · 나무)은 아직 없다.
+
+### 밤 화면 (Q101 · BUG-008, 2026-11-18)
+
+목표: **달빛 아래 땅 · 나무 · 캐릭터 윤곽이 또렷하고 색은 많이 빠진 밤**(호그와트 레거시 밤 정도), 횃불 · 모닥불 · 불 마법 곁은 확실히 밝게. 낮 · 해질녘 · 등불 켠 실내는 그대로.
+
+- **원인**: 자동 노출 범위가 엔진 기본(`r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange=True` → EV100 −10 ~ 20)이라, 달빛(0.4 lux)만 받는 장면을 해 뜬 낮(10 lux)과 같은 밝기까지 끌어올렸다 — 밤이 낮처럼 보였다. 자동 노출을 끄면 반대로 캄캄했다.
+- **고친 방법**: `AGrimSkyController` 의 무한 범위 후처리 컴포넌트 `NightLook`(`UPostProcessComponent`, `bUnbound`). 틱마다 `ApplyNightLook(밤 섞임)` 이 값을 정한다.
+  - **밤 섞임** `FGrimTimeOfDayMath::GetNightBlend` 는 **해가 지평선 아래로 내려간 뒤에야** 오른다 — 해 높이 사인 0 에서 0, −2 × `HorizonFade`(−0.16, 해가 약 10° 아래 · 48분 하루에서 해넘이 뒤 약 1분)에서 1(스무스스텝). 달 세기도 같은 값을 따른다.
+  - **낮 · 해넘이 순간(섞임 0)에는 가중치 0** → 엔진이 이 후처리를 건너뛴다(낮 · 노을 화면은 그대로).
+  - 해가 진 뒤에는 가중치 1 로 걸고 값을 **직접** 섞는다: 노출 하한 = `TwilightExposureMinEV100` → `NightExposureMinEV100`, 채도 = 1 → 밤 값. 해넘이 노출 하한은 해넘이 장면의 평균 노출(큰길에서 EV100 약 −5.3)보다 조금 낮아 넘어가는 순간 화면이 튀지 않는다.
+
+| 시각(큰길 200 m) | 장면 평균 EV100 · 전 | 노출 하한 · 후 |
+|---|---|---|
+| 한낮 0.45 | +0.8 | 걸지 않음 |
+| 해 낮음 0.80 | −4.0 | 걸지 않음 |
+| 해넘이 0.8125 | −5.3 | 걸지 않음 |
+| 막 진 뒤 0.819 | −6.5 | 약 −4.7 |
+| 어스름 0.83 | −5.2 | 약 −2.3 |
+| 한밤 0.02 | −4.3 | −2 |
+
+  (`ShowFlag.VisualizeHDR 1` 로 읽은 값. 하한이 장면보다 높을수록 그만큼 어둡게 보인다 — 한밤은 약 2.3 EV, 다섯 배쯤 어둡다.)
+- 처음 시도에서 밟은 것(2026-11-18):
+  - 밤 섞임을 「1 − 낮 섞임」(지평선에서 절반)으로 했더니 30° 로 올린 달이 지는 해와 같이 켜져 노을이 하얗게 떴다(시험 그림 평균 밝기 93 → 152).
+  - 노출 하한을 엔진 가중치에 맡기면(−10 에서 선형) 어스름 초반에는 거의 묶이지 않아, 막 진 뒤(EV100 −6.5) 장면을 자동 노출이 한낮처럼 끌어올렸다(밝기 126, 노을 89 보다 밝음).
+- **거는 값**(`UGrimEnvironmentSettings` 「Night」 = `Config/DefaultGame.ini` `[/Script/Grimoire.GrimEnvironmentSettings]`):
+
+| 키 | 값 | 뜻 |
+|---|---|---|
+| `NightExposureMinEV100` | −2 | 밤 자동 노출 **하한**. 장면이 이보다 어두우면 더 끌어올리지 않는다 → 달빛 장면은 어두운 채로 남는다. 이보다 밝은 곳(등불 켠 탑 안 · 모닥불 곁)은 하한에 닿지 않아 예전처럼 자동 노출이 맞춘다. 낮추면 밤이 밝아지고 올리면 어두워진다(1 = 두 배) |
+| `TwilightExposureMinEV100` | −5.5 | 해가 막 진 때의 노출 하한 — 밤 섞임을 따라 위 값으로 오른다 |
+| `NightSaturation` | 0.85 | 밤 화면 전체 채도 |
+| `NightShadowSaturation` | 0.4 | 어두운 영역 채도 — 달빛만 받는 땅 · 나무는 색이 빠지고, 불빛을 받은 밝은 곳은 색이 남는다 |
+| `NightShadowsMax` | 0.3 | 「어두운 영역」으로 치는 밝기 상한(노출 뒤 선형 밝기, 중간 회색 0.18 · 엔진 기본 0.09) |
+
+- **실내는 뺀다**: 카메라 위가 막혔고(날씨의 지붕 판정 `IsSheltered` 와 같은 30 m 위 트레이스) 둘레 수평 `IndoorProbeDirections`(8) 방향 중 `IndoorWallsRequired`(6) 이상이 `IndoorProbeDistance`(40 m) 안에서 막히면 실내 — 밤 섞임에 (1 − 실내 정도)를 곱한다. 판정은 `IndoorProbeIntervalSeconds`(0.25초)마다, 실내 정도는 `IndoorBlendSeconds`(1초) 동안 옮겨 간다(문을 드나들 때 튀지 않게). 처음엔 실내도 묶여 등불 켠 탑 홀이 밤에 어두워졌다(평균 밝기 154 → 138, 낮은 158 그대로) — 홀의 장면 노출이 밤 하한(−2)보다 조금 낮았다. 나무 아래는 지붕은 있어도 둘레가 트여 바깥으로 남는다. 트레이스는 로컬 화면에서만(전용 서버 없음) 1초에 9 × 4 번.
+- **달빛 최저 높이** `MoonMinElevationDegrees`(하늘 컨트롤러, 기본 30°): 달은 해의 맞은편이지만 이보다 낮으면 같은 방위에서 이 높이로 비춘다(`FGrimTimeOfDayMath::GetMoonDirection`). 해가 막 진 뒤 · 뜨기 전에는 맞은편 달이 지평선에 붙어 빛이 땅을 스치기만 해서, 노출 하한을 묶자 해질녘이 한밤보다 훨씬 캄캄해졌다(시험 그림 평균 밝기 2.5 대 42). 달 원반도 그 높이에 보인다.
+- 달빛 · 밤 하늘빛 세기(`MoonIntensity` 0.4 lux · `NightSkyLightIntensity` 0.25)와 안개는 바꾸지 않았다 — 밤 밝기는 노출 하한으로 맞춘다.
+- **불빛**: 모닥불(120 cd) · 마른 풀(60 cd) · 양초(15 cd)(`Source/Grimoire/Interaction/GrimElementalObject.cpp`)는 값 그대로다. 예전에는 자동 노출이 밤 장면을 낮만큼 올려 불빛이 하얗게 날아갔고, 이제는 어두운 둘레 속에서 불 곁만 밝다.
+- 복제 없음(클라이언트 화면 전용). 전용 서버에서는 값만 들고 아무 일도 없다.
+- 값 고르기: 콘솔 `Grim.Sky.Set <속성> <값>`(개발 빌드, 이 프로세스에만) — 환경 설정의 속성이면 거기에, 아니면 하늘 컨트롤러 속성(`MoonIntensity` 등)에 넣는다. 화면은 `Scripts/Environment/shoot_night.ps1`(낮 · 해질녘 넷 · 밤 · 불씨 · 탑 앞 · 모닥불 · 탑 안 밤 · 낮을 같은 자리에서, `-Tag` 로 전후를 나눠 · `-ExtraCmds` 로 값을 바꿔 · 장면마다 평균 밝기를 출력). 노출 값은 `-ExtraCmds "ShowFlag.VisualizeHDR 1"` 로 그림에 찍힌다 — [QA — 생존](../qa/survival#밤-화면-q101).
+- 테스트 `Grimoire.Environment.Sky.NightBlend`: 낮 · 해넘이 순간 0 · 밤 1 · 하루를 0.6초 간격으로 걸어 섞임이 한 번에 5 % 넘게 튀지 않음 · 낮은 달 최저 높이로 올림 · 해넘이 노출 하한 ≤ 밤 노출 하한 · 노출 하한이 엔진 기본보다 높음.
 
 ## 기후 지역 `AGrimClimateRegionVolume` + 기후 표
 
@@ -35,6 +76,10 @@
 - **볼륨**: 상자(`UBoxComponent` `Bounds`, 충돌 없음 · 복제 없음 — 레벨에 놓인 그대로 모든 머신에 있다) + `RegionId` + `BlendDistance`(기본 20m). 가중치는 바깥 0, 경계에서 안쪽으로 `BlendDistance` 들어가면 1(`FGrimWeatherMath::GetBoxBlendWeight`, 회전 · 크기 반영). 겹친 볼륨 합이 1 을 넘으면 나눠 합 1, 남는 몫은 기본 지역(`NormalizeRegionWeights`). 같은 `RegionId` 볼륨 여럿은 날씨 하나를 함께 쓴다. 표에 없는 id 는 경고하고 무시한다.
 - 볼륨은 `BeginPlay` 에 서브시스템에 등록한다(지역 수만큼이라 적다 — 상호작용 사물 목록과는 다르다).
 - 지금 맵에 놓인 것: 탑 · 오픈 베타 맵의 `Climate_Meadow`(`Scripts/Tutorial/tower_greybox.py` · `Scripts/Terrain/build_openbeta.py`). 다른 지역 볼륨은 시험 배치 스크립트만 놓는다(아래).
+
+## 풀 제외 볼륨 `AGrimGrassExclusionVolume`
+
+구현: `Source/Grimoire/Environment/GrimGrassExclusionVolume.h`. 상자 안에 랜드스케이프 그래스(풀 · 꽃 포기)가 나지 않는다 — 건물 바닥 메시를 랜드스케이프 위에 깐 곳(탑 1층 방 · 현관 · 앞마당 포장)에 놓는다. 엔진 `ALandscapeProxy::AddExclusionBox` 에 상자 바운드(월드 축 정렬)를 등록하고(`PostRegisterAllComponents` · 에디터에서 옮기면 다시), 내려갈 때 지운다. 에디터 · 게임 · 런타임 풀 지도 생성(`grass.GrassMap.UseRuntimeGeneration=1`) 모두에 먹는다. 충돌 · 복제 없음. 탑 구역에는 `Scripts/Tutorial/tower_art_dress.py` 가 셋 놓는다(`TA_NoGrass_*`) — [마법탑 구역 아트 시범](../art/tower-art). 콘솔 `grass.DrawExclusionVolumes 1` 로 상자를 본다.
 
 ## 날씨 `UGrimWeatherSubsystem`
 
@@ -119,4 +164,5 @@
 `Source/Grimoire/Environment/Tests/`:
 
 - 시간 · 기온(M1): `Grimoire.Environment.TimeOfDay.Extrapolation` · `.TimeOfDay.Night` · `.Temperature.TimeCurve`
+- 밤 화면(Q101): `Grimoire.Environment.Sky.NightBlend`
 - 날씨 · 기후(M2): `Grimoire.Environment.Weather.Transition`(마르코프 · 전용 날씨 허용 · 강수 변환 · 빈도) · `.Weather.Blend`(시간 블렌드) · `.Weather.Lightning`(가중 추첨 · 점수) · `.Climate.RegionBlend`(상자 가중치 · 정규화) · `.Climate.Exposure`(등급 · 반올림 · 서로 깎기 · 한낮) · `.Climate.Table`(CSV 를 읽어 스펙 예 · 허용되지 않는 전이 없음 · 기온 곡선)

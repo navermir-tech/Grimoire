@@ -44,7 +44,7 @@ namespace GrimBaseCreatureBoxTest // 유니티 빌드 이름 충돌 방지
 
 using namespace GrimBaseCreatureBoxTest;
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimBaseCreatureBoxDataTest, "Grimoire.Base.CreatureBox.Data", PureFlags)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimBaseCreatureBoxDataTest, "Grimoire.Base.CreatureBox.Data", GrimBaseCreatureBoxTest::PureFlags)
 bool FGrimBaseCreatureBoxDataTest::RunTest(const FString& Parameters)
 {
 	// 생물 탭: ini 한 줄로 등록, 장비(10) 다음 · 시설 탭(20~) 앞

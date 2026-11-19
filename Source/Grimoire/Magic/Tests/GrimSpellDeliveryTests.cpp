@@ -132,16 +132,20 @@ bool FGrimDeliveryStreamArcTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-// 볼트 발사 빛줄기(Q85): 완드 끝부터 볼트 속력 × 시간, 당긴 만큼은 다 덮고, 맞을 곳에서 멈춘다.
+// 볼트 발사 빛줄기(Q85 · Q110): 원격 지연으로 앞당긴 볼트만, 완드 끝부터 당긴 틈만큼 긋고 맞을 곳에서 멈춘다. 혼자 · 호스트(당김 0)는 긋지 않는다.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimDeliveryLaunchStreakTest, "Grimoire.Magic.Delivery.LaunchStreak", GrimDeliveryTestFlags)
 bool FGrimDeliveryLaunchStreakTest::RunTest(const FString& Parameters)
 {
 	using namespace GrimSpellDelivery;
-	TestEqual(TEXT("먼 표적: 7500 × 0.1 = 750"), CalcLaunchStreakLength(0.f, 7500.f, 0.1f, 0.f), 750.f, 1e-3f);
-	TestEqual(TEXT("가까운 표적(4 m)에서 멈춤"), CalcLaunchStreakLength(0.f, 7500.f, 0.1f, 400.f), 400.f, 1e-3f);
-	TestEqual(TEXT("원격 지연으로 당긴 11 m 는 다 덮는다"), CalcLaunchStreakLength(1100.f, 7500.f, 0.1f, 0.f), 1100.f, 1e-3f);
-	TestEqual(TEXT("당겼어도 맞은 곳까지만"), CalcLaunchStreakLength(1100.f, 7500.f, 0.1f, 600.f), 600.f, 1e-3f);
-	TestEqual(TEXT("시간 0 · 당김 0 = 긋지 않음"), CalcLaunchStreakLength(0.f, 7500.f, 0.f, 0.f), 0.f, 1e-6f);
+	TestEqual(TEXT("혼자 · 호스트(당김 0): 틈이 있어도 긋지 않음"), CalcLaunchStreakLength(0.f, 120.f, 0.f), 0.f, 1e-6f);
+	TestEqual(TEXT("혼자 · 호스트: 가까운 표적에도 긋지 않음"), CalcLaunchStreakLength(0.f, 0.f, 400.f), 0.f, 1e-6f);
+	TestEqual(TEXT("원격 지연 0.15초(불씨 ≈ 11 m) 당김: 틈 전부"), CalcLaunchStreakLength(0.15f, 1100.f, 0.f), 1100.f, 1e-3f);
+	TestEqual(TEXT("당겼어도 맞은 곳까지만"), CalcLaunchStreakLength(0.15f, 1100.f, 600.f), 600.f, 1e-3f);
+	TestEqual(TEXT("맞을 곳이 틈보다 멀면 틈까지"), CalcLaunchStreakLength(0.08f, 600.f, 900.f), 600.f, 1e-3f);
+	TestEqual(TEXT("당김은 있는데 틈 0 = 긋지 않음"), CalcLaunchStreakLength(0.08f, 0.f, 0.f), 0.f, 1e-6f);
+	// 당김 = 원격 지연 − 시전 대기(상한 0.15) — 호스트 · 지연이 대기 안이면 0 이라 긋지 않는다.
+	TestEqual(TEXT("지연 0.03 < 대기 0.1 → 당김 0 → 긋지 않음"), CalcLaunchStreakLength(SplitLag(0.03f, 0.1f, 0.15f).AdvanceSeconds, 300.f, 0.f), 0.f, 1e-6f);
+	TestEqual(TEXT("지연 0.18 > 대기 0.1 → 당김 0.08 → 그음"), CalcLaunchStreakLength(SplitLag(0.18f, 0.1f, 0.15f).AdvanceSeconds, 600.f, 0.f), 600.f, 1e-3f);
 	return true;
 }
 

@@ -7,6 +7,8 @@
 #include "Base/GrimBaseStations.h"
 #include "Base/GrimBuilderComponent.h"
 #include "Base/GrimEquipmentComponent.h"
+#include "Base/GrimStructureComponent.h"
+#include "Base/GrimRepairProjectile.h"
 #include "Core/GrimAbilitySystemComponent.h"
 #include "Core/GrimPlayerState.h"
 #include "Factions/GrimFactionTypes.h"
@@ -198,6 +200,68 @@ bool FGrimRepairUnlockTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("세이브: 막시마 앎"), ReloadedBuilder->KnowsBaseRepairSkill());
 		Reloaded->Destroy();
 	}
+	Player->Destroy();
+	return true;
+}
+
+// Q123: 조각 · 시설 하나씩 고치기는 레스티투오(수리 볼트)를 배운 사람만 — 가방 재료, 재료 1개 = 최대 내구도 25 %. 배우지 않았으면 개별 수리 없음.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimRepairPieceTest, "Grimoire.Base.Repair.Piece", GrimRepairUnlockTestsLocal::WorldFlags)
+bool FGrimRepairPieceTest::RunTest(const FString& Parameters)
+{
+	using namespace GrimRepairUnlockTestsLocal;
+	const UGrimBaseSettings* Settings = UGrimBaseSettings::Get();
+	TestEqual(TEXT("ini: 재료 1개 = 25%"), Settings->RepairFractionPerMaterial, 0.25f, 1e-5f);
+
+	FRepairTestWorld TestWorld;
+	UWorld* World = TestWorld.World;
+	AGrimPlayerState* Player = SpawnPlayer(World, 2);
+	UGrimBuilderComponent* Builder = UGrimBuilderComponent::FindForActor(Player);
+	UGrimInventoryComponent* Bag = UGrimInventoryComponent::FindForActor(Player);
+	UAbilitySystemComponent* ASC = Player ? Player->GetAbilitySystemComponent() : nullptr;
+	if (!TestNotNull(TEXT("건축 컴포넌트"), Builder) || !TestNotNull(TEXT("가방"), Bag) || !TestNotNull(TEXT("ASC"), ASC))
+	{
+		return false;
+	}
+	FNoticeCounter Notices(ASC);
+	// 시설 하나(작업대 몸 — 볼트가 맞으면 장비가 아니라 몸을 고친다). 건축처럼 스폰 전에 조각 ID 를 정한다.
+	const FTransform At(FVector(300.f, 0.f, 0.f));
+	AGrimWorkbench* Station = World->SpawnActorDeferred<AGrimWorkbench>(AGrimWorkbench::StaticClass(), At, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	UGrimStructureComponent* Structure = UGrimStructureComponent::FindOn(Station);
+	if (!TestNotNull(TEXT("시설"), Station) || !TestNotNull(TEXT("내구도"), Structure))
+	{
+		return false;
+	}
+	Structure->InitializePiece(TEXT("Workbench"));
+	Station->FinishSpawning(At);
+	if (!TestFalse(TEXT("수리 재료가 있다"), Structure->GetRepairItem().IsNone()))
+	{
+		return false;
+	}
+	const FName Material = Structure->GetRepairItem();
+	const float Max = Structure->GetMaxHealth();
+	Structure->SetHealth(Max * 0.4f);
+	Bag->AddItem(FGrimItemInstance(Material, 10), false);
+
+	// 배우지 않았으면 개별 수리 없음 — 잠김 알림, 재료 · 내구도 그대로
+	TestFalse(TEXT("레스티투오 모름"), Builder->KnowsRepairSpell());
+	TestEqual(TEXT("잠김 → 0"), Builder->PerformRepair(Station, true, false), 0);
+	TestEqual(TEXT("잠김 알림"), Notices.Count(EGrimCastFailReason::RepairLocked), 1);
+	TestEqual(TEXT("재료 그대로"), Bag->CountOf(Material), 10);
+	TestEqual(TEXT("내구도 그대로"), Structure->GetHealth(), Max * 0.4f, 0.01f);
+
+	// 배우면 수리 볼트(bFromSpell)로 하나씩 — 40 % → 재료 3개(25 % 씩) → 가득
+	UGrimSpellDefinition* Restituo = Settings->RepairSpell.LoadSynchronous();
+	if (!TestNotNull(TEXT("레스티투오"), Restituo) || !TestTrue(TEXT("2서클 — 배움"), Player->GetSpellbook()->LearnSpell(Restituo)))
+	{
+		return false;
+	}
+	TestEqual(TEXT("수리 볼트가 쓰는 투사체 = 수리 볼트"), GetNameSafe(Restituo->ProjectileClass.Get()), FString(TEXT("GrimRepairProjectile")));
+	const int32 Used = Builder->PerformRepair(Station, true, false);
+	TestEqual(TEXT("재료 3개"), Used, 3);
+	TestEqual(TEXT("가방 재료 − 3"), Bag->CountOf(Material), 7);
+	TestEqual(TEXT("가득"), Structure->GetHealth(), Max, 0.01f);
+	TestEqual(TEXT("가득이면 더 쓰지 않는다"), Builder->PerformRepair(Station, true, false), 0);
+
 	Player->Destroy();
 	return true;
 }

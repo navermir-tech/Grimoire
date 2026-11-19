@@ -349,16 +349,41 @@ bool FGrimSurvivalDiseaseTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("저항 50"), FGrimSurvivalModel::ComputeDiseaseChance(0.3f, 50.f), 0.15f, 1e-5f);
 	TestEqual(TEXT("저항 100 = 면역"), FGrimSurvivalModel::ComputeDiseaseChance(0.3f, 100.f), 0.f, 1e-5f);
 
-	// 젖은 채 추운 시간이 주기를 채울 때마다 한 번 굴린다. 조건이 풀리면 처음부터.
+	// 체온 질병(R29 · Q115): 모자람 3 이상이 5분 이어지면 한 번. 3 아래로 내려가면 처음부터.
+	const int32 Severe = Rules.Climate.SevereDeficit;
+	TestEqual(TEXT("심한 단계 = 모자람 3"), Severe, 3);
+	TestEqual(TEXT("5분"), Disease.ExposureSicknessSeconds, 300.f);
 	float Seconds = 0.f;
-	int32 Rolls = 0;
-	for (int32 i = 0; i < FMath::RoundToInt32(Disease.WetColdSecondsPerRoll * 2.5f); ++i)
+	int32 Onsets = 0;
+	for (int32 i = 0; i < 299; ++i)
 	{
-		Rolls += FGrimSurvivalModel::AccumulateWetCold(Seconds, 1.f, true, Disease);
+		Onsets += FGrimSurvivalModel::AccumulateExposureSickness(Seconds, 1.f, Severe, Rules) ? 1 : 0;
 	}
-	TestEqual(TEXT("2.5 주기 → 2번"), Rolls, 2);
-	TestEqual(TEXT("말린 뒤엔 0"), FGrimSurvivalModel::AccumulateWetCold(Seconds, 1.f, false, Disease), 0);
-	TestEqual(TEXT("쌓인 시간 초기화"), Seconds, 0.f);
+	TestEqual(TEXT("4분 59초 — 아직"), Onsets, 0);
+	TestTrue(TEXT("5분 — 걸린다"), FGrimSurvivalModel::AccumulateExposureSickness(Seconds, 1.f, Severe + 1, Rules));
+	TestEqual(TEXT("걸리면 시계는 처음부터"), Seconds, 0.f);
+	for (int32 i = 0; i < 200; ++i)
+	{
+		FGrimSurvivalModel::AccumulateExposureSickness(Seconds, 1.f, Severe, Rules);
+	}
+	TestFalse(TEXT("모자람 2 로 내려가면"), FGrimSurvivalModel::AccumulateExposureSickness(Seconds, 1.f, Severe - 1, Rules));
+	TestEqual(TEXT("시계 초기화"), Seconds, 0.f);
+	float Mild = 0.f;
+	for (int32 i = 0; i < 1000; ++i)
+	{
+		Onsets += FGrimSurvivalModel::AccumulateExposureSickness(Mild, 1.f, 2, Rules) ? 1 : 0;
+	}
+	TestEqual(TEXT("모자람 2 는 아무리 오래도 병이 나지 않는다"), Onsets, 0);
+
+	// 열병(Q115 — 감기와 대칭 제안): 목표 체온이 오르고 피곤함이 빨리 쌓인다.
+	const FGrimClimateExposure NoDeficit;
+	TestEqual(TEXT("열병 체온 ↑"), FGrimSurvivalModel::ComputeTargetBodyTemperature(NoDeficit, Rules, true) - FGrimSurvivalModel::ComputeTargetBodyTemperature(NoDeficit, Rules),
+		Disease.FeverBodyTemperatureRise, 1e-4f);
+	const float Plain = FGrimSurvivalModel::ComputeFatigueDelta(0.f, 60.f, false, false, false, false, Rules);
+	TestEqual(TEXT("열병 피곤함 가속"), FGrimSurvivalModel::ComputeFatigueDelta(0.f, 60.f, false, false, false, false, Rules, true), Plain * Disease.FeverFatigueRateScale, 1e-4f);
+	FGrimSurvivalInputs FeverInputs = MakeComfortInputs(Rules);
+	FeverInputs.bFeverSick = true;
+	TestTrue(TEXT("틱: 열병이면 체온이 오른다"), FGrimSurvivalModel::ComputeTick(FeverInputs, 10.f, Rules).BodyTemperature > 0.f);
 
 	// 감기: 마나 회복이 도는 동안만 깎는다.
 	FGrimSurvivalInputs Inputs = MakeComfortInputs(Rules);
@@ -375,10 +400,50 @@ bool FGrimSurvivalDiseaseTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// 지침(Q132): 피곤함 50 이상 · 탈진 전 — 시전 시간이 있는 마법만 느려지고(즉발 · 쿨다운 그대로), 맞혀도 확률로 빗나간다.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimSurvivalTiredTest, "Grimoire.Survival.Tired", GrimSurvivalTestsPrivate::PureFlags)
+bool FGrimSurvivalTiredTest::RunTest(const FString& Parameters)
+{
+	const FGrimSurvivalRules Defaults;
+	TestEqual(TEXT("지침 문턱 50"), Defaults.Fatigue.TiredThreshold, 50.f);
+	const FGrimSurvivalRules Rules = UGrimSurvivalSettings::GetRules();
+	const FGrimFatigueTuning& F = Rules.Fatigue;
+	TestEqual(TEXT("ini: 지침 50"), F.TiredThreshold, 50.f);
+	TestEqual(TEXT("ini: 시전 시간 ×1.3(제안)"), F.TiredCastTimeScale, 1.3f, 1e-4f);
+	const FGrimClimateExposure None;
+
+	auto Status = [&Rules, &None](float Fatigue) { return FGrimSurvivalModel::EvaluateStatus(100.f, None, Fatigue, Rules); };
+	TestFalse(TEXT("49 — 보통"), Status(49.f).bTired);
+	TestTrue(TEXT("50 — 지침"), Status(50.f).bTired);
+	TestTrue(TEXT("79 — 지침"), Status(79.f).bTired);
+	TestFalse(TEXT("80 — 탈진(지침 아님)"), Status(80.f).bTired);
+	TestTrue(TEXT("80 — 탈진"), Status(80.f).bExhausted);
+	TestTrue(TEXT("지침은 이동 · 시전 속도 배율을 건드리지 않는다"), FGrimSurvivalModel::ComputeModifiers(Status(60.f), false, false, Rules).IsIdentity());
+
+	// 빗나감 확률: 50 에서 Min, 탈진 문턱으로 갈수록 Max 쪽.
+	TestEqual(TEXT("49 → 0"), FGrimSurvivalModel::ComputeTiredMissChance(49.f, Rules), 0.f);
+	TestEqual(TEXT("50 → Min"), FGrimSurvivalModel::ComputeTiredMissChance(50.f, Rules), F.TiredMissChanceMin, 1e-4f);
+	TestEqual(TEXT("65 → 가운데"), FGrimSurvivalModel::ComputeTiredMissChance(65.f, Rules), (F.TiredMissChanceMin + F.TiredMissChanceMax) * 0.5f, 1e-4f);
+	TestTrue(TEXT("79 → Max 에 가깝다"), FGrimSurvivalModel::ComputeTiredMissChance(79.f, Rules) > F.TiredMissChanceMax - 0.02f);
+	TestEqual(TEXT("탈진 → 0(시전이 막힌다)"), FGrimSurvivalModel::ComputeTiredMissChance(85.f, Rules), 0.f);
+	TestTrue(TEXT("굴림: 확률 아래면 빗나감"), FGrimSurvivalModel::RollMiss(0.2f, 0.19f));
+	TestFalse(TEXT("굴림: 확률 위면 맞음"), FGrimSurvivalModel::RollMiss(0.2f, 0.2f));
+	TestFalse(TEXT("확률 0 은 빗나가지 않음"), FGrimSurvivalModel::RollMiss(0.f, 0.f));
+
+	// 시전 시간: 시전 시간이 있는 마법만, 즉발(짧은 시전 대기)은 그대로.
+	TestEqual(TEXT("보통 — 1초 그대로"), FGrimSurvivalModel::ComputeTiredCastTime(1.f, 30.f, Rules), 1.f, 1e-4f);
+	TestEqual(TEXT("지침 — 1초 × 1.3"), FGrimSurvivalModel::ComputeTiredCastTime(1.f, 60.f, Rules), 1.3f, 1e-4f);
+	TestEqual(TEXT("지침 — 즉발(불씨 시전 대기 0.1초)은 그대로"), FGrimSurvivalModel::ComputeTiredCastTime(0.1f, 60.f, Rules), 0.1f, 1e-4f);
+	TestEqual(TEXT("지침 — 0초는 0"), FGrimSurvivalModel::ComputeTiredCastTime(0.f, 60.f, Rules), 0.f, 1e-4f);
+	TestEqual(TEXT("문턱(0.25초)부터 시전 시간"), FGrimSurvivalModel::ComputeTiredCastTime(F.TiredCastTimeMinSeconds, 60.f, Rules), F.TiredCastTimeMinSeconds * F.TiredCastTimeScale, 1e-4f);
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimSurvivalSleepTest, "Grimoire.Survival.Sleep", GrimSurvivalTestsPrivate::PureFlags)
 bool FGrimSurvivalSleepTest::RunTest(const FString& Parameters)
 {
 	const FGrimSurvivalRules Rules;
+	TestEqual(TEXT("ini: 밤 건너뛰기 기본 전원(Q114 — 서버 옵션)"), GetDefault<UGrimSurvivalSettings>()->Sleep.SleepSkipRatio, 1.f);
 
 	// 잠든 비율.
 	TestTrue(TEXT("혼자 자면 건너뜀"), FGrimSurvivalModel::ShouldSkipNight(1, 1, 1.f, true));
@@ -467,8 +532,13 @@ bool FGrimSurvivalEffectsTest::RunTest(const FString& Parameters)
 	{
 		TestEqual(TEXT("지속 시간"), Active->GetDuration(), 300.f, 1e-3f);
 	}
+	FGameplayEffectSpecHandle Fever = ASC->MakeOutgoingSpec(UGrimDiseaseFeverEffect::StaticClass(), 1.f, ASC->MakeEffectContext());
+	Fever.Data->SetSetByCallerMagnitude(UGrimDiseaseEffect::DurationMagnitudeName, 300.f);
+	ASC->ApplyGameplayEffectSpecToSelf(*Fever.Data.Get());
+	TestTrue(TEXT("열병 태그(Q115)"), ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Sick_Fever));
 	ASC->RemoveActiveEffectsWithGrantedTags(FGameplayTagContainer(GrimSurvivalTags::Status_Sick));
 	TestFalse(TEXT("Status.Sick 로 모두 낫는다"), ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Sick_Cold));
+	TestFalse(TEXT("열병도 낫는다"), ASC->HasMatchingGameplayTag(GrimSurvivalTags::Status_Sick_Fever));
 
 	// 저항 버프.
 	FGameplayEffectSpecHandle Resist = ASC->MakeOutgoingSpec(UGrimClimateResistEffect::StaticClass(), 1.f, ASC->MakeEffectContext());

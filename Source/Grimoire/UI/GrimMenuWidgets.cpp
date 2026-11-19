@@ -1,5 +1,6 @@
 #include "UI/GrimMenuWidgets.h"
 #include "UI/GrimUIData.h"
+#include "UI/GrimCredits.h"
 #include "Online/GrimMenuSubsystem.h"
 #include "Online/GrimOnlineSettings.h"
 #include "Online/GrimUserOptions.h"
@@ -12,6 +13,7 @@
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/ScrollBox.h"
+#include "Components/ScrollBoxSlot.h"
 #include "Components/SizeBox.h"
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
@@ -136,8 +138,33 @@ void UGrimMenuSettingsPanel::BuildTree()
 	using namespace GrimMenuWidgetsLocal;
 	const UGrimOnlineSettings* Settings = UGrimOnlineSettings::Get();
 
-	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Root"));
-	WidgetTree->RootWidget = Column;
+	UVerticalBox* Root = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Root"));
+	WidgetTree->RootWidget = Root;
+
+	// 탭 줄: 설정 · 크레딧 확인
+	UHorizontalBox* TabRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	Root->AddChildToVerticalBox(TabRow)->SetHorizontalAlignment(HAlign_Fill);
+	TabButtons.Reset();
+	for (const TPair<int32, FText>& Tab : { TPair<int32, FText>(TabOptions, LOCTEXT("TabOptions", "설정")), TPair<int32, FText>(TabCredits, LOCTEXT("TabCredits", "크레딧 확인")) })
+	{
+		UGrimIdButton* Button = MakeButton(WidgetTree, Tab.Value, Tab.Key, nullptr, 14);
+		Button->OnIdClicked.BindUObject(this, &UGrimMenuSettingsPanel::HandleTabButton);
+		UHorizontalBoxSlot* TabSlot = TabRow->AddChildToHorizontalBox(Button);
+		TabSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		TabSlot->SetPadding(FMargin(Tab.Key == TabOptions ? 0.f : 3.f, 0.f, Tab.Key == TabOptions ? 3.f : 0.f, 0.f));
+		TabButtons.Add(Button);
+	}
+
+	Tabs = WidgetTree->ConstructWidget<UWidgetSwitcher>(UWidgetSwitcher::StaticClass());
+	AddRow(Root, Tabs, 8.f);
+
+	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Tabs->AddChild(Column);
+
+	CreditsList = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	CreditsList->SetAlwaysShowScrollbar(true);
+	Tabs->AddChild(GrimUIData::MakeSizeBox(WidgetTree, CreditsList, 0.f, 330.f));
+	BuildCredits();
 
 	NameBox = MakeTextBox(WidgetTree, LOCTEXT("NameHint", "친구에게 보이는 이름"));
 	AddRow(Column, MakeLabeled(WidgetTree, LOCTEXT("NameLabel", "표시 이름"), NameBox));
@@ -175,6 +202,84 @@ void UGrimMenuSettingsPanel::BuildTree()
 	LookSlider = AddSlider(LOCTEXT("LookSens", "시점 감도"), Settings->LookSensitivityRange, LookValueText);
 
 	AddRow(Column, GrimUIData::MakeText(WidgetTree, LOCTEXT("SettingsNote", "저장하면 바로 적용된다. 이름은 다음 접속부터 친구에게 보인다."), 11, Faint), 10.f);
+
+	ShowTab(TabOptions);
+}
+
+void UGrimMenuSettingsPanel::BuildCredits()
+{
+	using namespace GrimMenuWidgetsLocal;
+	const FGrimCredits& Credits = FGrimCreditsData::Get();
+
+	auto AddLine = [this](const FString& Text, int32 Size, const FLinearColor& Color, bool bBold, float Top)
+	{
+		UTextBlock* Line = GrimUIData::MakeText(WidgetTree, FText::FromString(Text), Size, Color, bBold);
+		Line->SetAutoWrapText(true);
+		CreditsList->AddChild(Line);
+		if (UScrollBoxSlot* LineSlot = Cast<UScrollBoxSlot>(Line->Slot))
+		{
+			LineSlot->SetPadding(FMargin(0.f, Top, 12.f, 0.f));
+		}
+	};
+
+	AddLine(Credits.Game.IsEmpty() ? LOCTEXT("CreditsGame", "그리모리 (Grimoire)").ToString() : Credits.Game, 17, Gold, true, 0.f);
+	if (!Credits.IntroKo.IsEmpty())
+	{
+		AddLine(Credits.IntroKo, 12, Ink, false, 6.f);
+	}
+	if (!Credits.IntroEn.IsEmpty())
+	{
+		AddLine(Credits.IntroEn, 11, Faint, false, 2.f);
+	}
+	if (Credits.Attributions.Num() == 0)
+	{
+		AddLine(LOCTEXT("CreditsMissing", "크레딧을 읽지 못했다 — 게임 폴더의 CREDITS.txt 를 본다").ToString(), 12, ErrorInk, false, 10.f);
+	}
+	for (const FGrimCreditEntry& Entry : Credits.Attributions)
+	{
+		AddLine(FString::Printf(TEXT("%s — %s"), *Entry.Asset, *Entry.Author), 15, Gold, true, 14.f);
+		AddLine(Entry.Store.IsEmpty() ? Entry.AssetUrl : FString::Printf(TEXT("%s: %s"), *Entry.Store, *Entry.AssetUrl), 11, Faint, false, 2.f);
+		AddLine(FString::Printf(TEXT("%s — %s"), *Entry.License, *Entry.LicenseUrl), 11, Faint, false, 2.f);
+		AddLine(FText::Format(LOCTEXT("CreditsModified", "고친 점: {0}"), FText::FromString(Entry.ModifiedKo)).ToString(), 12, Ink, false, 4.f);
+		AddLine(FGrimCreditsData::MakeAttributionLine(Entry), 11, Faint, false, 4.f);
+	}
+	for (int32 Index = 0; Index < Credits.Notices.Num(); ++Index)
+	{
+		AddLine(Credits.Notices[Index], 11, Faint, false, Index == 0 ? 18.f : 2.f);
+	}
+}
+
+int32 UGrimMenuSettingsPanel::GetCreditLineCount() const
+{
+	return CreditsList ? CreditsList->GetChildrenCount() : 0;
+}
+
+void UGrimMenuSettingsPanel::HandleTabButton(int32 Id)
+{
+	ShowTab(Id);
+}
+
+void UGrimMenuSettingsPanel::ShowTab(int32 Tab)
+{
+	using namespace GrimMenuWidgetsLocal;
+	EnsureBuilt();
+	CurrentTab = Tab == TabCredits ? TabCredits : TabOptions;
+	if (Tabs)
+	{
+		Tabs->SetActiveWidgetIndex(CurrentTab);
+	}
+	for (int32 Index = 0; Index < TabButtons.Num(); ++Index)
+	{
+		if (UGrimIdButton* Button = TabButtons[Index])
+		{
+			// 고른 탭은 금빛 · 나머지는 보통 버튼 색
+			Button->SetBackgroundColor(Button->Id == CurrentTab ? FLinearColor(0.62f, 0.48f, 0.22f, 1.f) : ButtonColor);
+		}
+	}
+	if (CurrentTab == TabCredits && CreditsList)
+	{
+		CreditsList->ScrollToStart();
+	}
 }
 
 void UGrimMenuSettingsPanel::LoadFromOptions()
@@ -478,6 +583,17 @@ FReply UGrimMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const F
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
+void UGrimMainMenuWidget::OpenSettings(int32 Tab)
+{
+	if (!SettingsPanel)
+	{
+		return;
+	}
+	SettingsPanel->LoadFromOptions();
+	SettingsPanel->ShowTab(Tab);
+	ShowPage(PageSettings);
+}
+
 void UGrimMainMenuWidget::FocusFirst()
 {
 	if (FirstFocus.IsValidIndex(CurrentPage) && FirstFocus[CurrentPage])
@@ -719,6 +835,7 @@ void UGrimMainMenuWidget::HandleButton(int32 Id)
 	}
 	case B_Settings:
 		SettingsPanel->LoadFromOptions();
+		SettingsPanel->ShowTab(UGrimMenuSettingsPanel::TabOptions);
 		ShowPage(PageSettings);
 		break;
 	case B_Quit:
@@ -855,6 +972,20 @@ void UGrimPauseMenuWidget::ResetToMain()
 	Refresh();
 }
 
+void UGrimPauseMenuWidget::ShowSettings(int32 Tab)
+{
+	if (!SettingsPanel || !Pages)
+	{
+		return;
+	}
+	PendingConfirm = 0;
+	SettingsPanel->LoadFromOptions();
+	SettingsPanel->ShowTab(Tab);
+	Pages->SetActiveWidgetIndex(1);
+	NoticeText->SetText(FText::GetEmpty());
+	FocusFirst();
+}
+
 void UGrimPauseMenuWidget::FocusFirst()
 {
 	UWidget* Target = (Pages && Pages->GetActiveWidgetIndex() == 1) ? static_cast<UWidget*>(SettingsSaveButton) : static_cast<UWidget*>(ResumeButton);
@@ -975,10 +1106,7 @@ void UGrimPauseMenuWidget::HandleButton(int32 Id)
 		RequestClose();
 		break;
 	case P_Settings:
-		SettingsPanel->LoadFromOptions();
-		Pages->SetActiveWidgetIndex(1);
-		NoticeText->SetText(FText::GetEmpty());
-		FocusFirst();
+		ShowSettings(UGrimMenuSettingsPanel::TabOptions);
 		break;
 	case P_Invite:
 	{

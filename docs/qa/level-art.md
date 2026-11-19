@@ -24,11 +24,11 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set dress -Tag after
 | QA-LVL-004 | — | 랜드스케이프 풀(StyleHex 풀 · 꽃 · 풀포기)이 풀밭에만 나고 길 · 모래 · 바위 비탈에는 안 난다 | ③ 스크린숏 `level-dress-path100/path200/pond-after` | 길 · 연못 모래 위 풀 없음, 풀밭은 빽빽, 45 m 밖에서 사라짐 | ✅ 11-08 — 길 · 연못 모래 위 풀 없음, 풀밭 빽빽, 멀리는 맨 땅 색 | `level-dress-path100/path200/pond-after.jpg` |
 | QA-LVL-005 | — | 풀이 땅 높이에 난다 — 탑 평지 · 언덕 꼭대기에도 나고 하늘에 뜬 풀이 없다 | ③ `level-dress-door-after` · `hilltop-after` · `scan-trunk-after` | 탑 문 앞 · 봉화 언덕 꼭대기 풀밭에 풀, 화면 어디에도 뜬 풀 없음 | ✅ 11-08 — 탑 문 앞 · 봉화 언덕 꼭대기에 풀, 뜬 풀 없음(맵을 새 재질로 다시 만든 뒤. 그 전에는 ❌ — [레벨 디자인 「8」 풀 지도](../dev/level-design#풀-지도-—-랜드스케이프는-처음부터-새-재질로-2026-11-08)) | `level-dress-door/hilltop/scan-trunk-after.jpg` |
 | QA-LVL-006 | — | 랜드마크 · POI · 길 · 측정 자리가 그대로이고 손 소품이 막지 않는다 | ② `check_openbeta.ps1` · `check_tutorial.ps1`(맵 · 걷기 · 표식) · ③ 스크린숏 | PASS, 소품이 길 · POI 블록 위에 없다 | ✅ 11-08 — `openbeta` PASS · `tutorial` PASS(맵 · 시작 자리 · 걷기 · 헤엄 · 표식), 자동화 179/179. 전체 `run_all.ps1` 에서 맵과 무관한 2인 스크립트 `taming` 만 ❌ — 이미 열린 [BUG-007](./bugs)(고정 시계, 「탄 채 시전」 한 줄, `L_M1_Sandbox`), `storage` 는 1회 실패 뒤 다시 돌려 PASS | `Saved\QA\summary.txt` · `openbeta.txt` · `tutorial.txt` |
-| QA-LVL-007 | — | 구름 카드가 하늘 컨트롤러 밤낮과 따로 놀지 않는다(밤에 어두움) | ③ `grim.Time.Set 23` 뒤 스크린숏(`level-dress-night`) | 밤 하늘에서 구름이 빛나지 않는다 | ⏸ 11-08 — `grim.Time.Set 23` 에도 장면 전체가 낮처럼 밝다([BUG-008](./bugs) 밤이 낮처럼 밝음). 구름은 장면과 같은 밝기로 빛나 보이지 않지만 어두운 밤 판단은 BUG-008 뒤 | `level-dress-night-after.jpg` |
+| QA-LVL-007 | — | 구름 카드가 하늘 컨트롤러 밤낮과 따로 놀지 않는다(밤에 어두움) | ③ `grim.Time.Set 23` 뒤 스크린숏(`level-dress-night`) | 밤 하늘에서 구름이 빛나지 않는다 | ✅ 11-18 — [BUG-008](./bugs) 고친 뒤 밤(0.02) 그림에서 구름 카드는 어두운 회색으로 하늘보다 조금 밝을 뿐 빛나지 않는다(11-08: ⏸ — 장면 전체가 낮처럼 밝아 판단 못 함) | `night-meadow-after.jpg`([QA — 생존 「밤 화면」](./survival#밤-화면-q101)) · `level-dress-night-after.jpg`(고치기 전) |
 | QA-LVL-008 | R16 | 성능 예산 안 | ① `measure.ps1 -Label level-dress -Settle 25`(전체) | QA-PRF-001~008 모두 예산 안 | ✅ 11-08 — GPU 3.80 ~ 5.14 ms · 게임 2.44 ~ 2.94 · 렌더 4.73 ~ 6.13 · p95 ≤ 7.2 · 끊김 0 · 드로 콜 ≤ 1,068 · 2.93 GB · 대역폭 ≤ 5.4 kB/s | `Saved\Perf\level-dress\summary.md`, [QA — 성능 측정 기록](./perf#측정-기록) |
 | QA-LVL-009 | — | 쓰는 팩 파일만 저장소에 | `add_pack_assets.ps1 -DryRun` | 팩별 개수 · 크기, 맵 · 우리 에셋이 참조하는 것만 | ✅ 11-08 — 116 개 202.2 MB: StyleHex 107 개 127.5 MB · BlackCherry 6 개 71.6 MB · HandPaintedClouds 3 개 3.2 MB(그루터기는 134 MB 라 맵에서 뺌) | `Saved\PackDeps\summary.txt` · `used_pack_files.txt` |
 
-**결과(11-08)**: 통과 8 · 실패 0 · 보류 1(QA-LVL-007 — BUG-008).
+**결과(11-08)**: 통과 8 · 실패 0 · 보류 1(QA-LVL-007 — BUG-008). 11-18 BUG-008 을 고친 뒤 QA-LVL-007 ✅ → 통과 9 · 보류 0.
 
 ![밤 23시 — 장면이 낮처럼 밝다(BUG-008), 구름 카드는 장면과 같은 밝기](/qa/level-dress-night-after.jpg)
 
@@ -242,3 +242,30 @@ powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld4 -RunSeconds 1500
 | ![](/qa/ld4-wall-mill-lane.jpg) | ![](/qa/ld4-wall-field.jpg) | ![](/qa/ld4-sector-aerial.jpg) |
 
 사람 눈에 남는 것: 물 깊이 페이드 값(`FadeDistance` 35)은 그대로라 얕은 곳 색은 비치는 바닥을 따른다. 어귀에서 연못 쪽으로 넘어가며 젖은 흙(개울 바닥) → 모래(연못 바닥)로 색이 천천히 바뀐다(경계는 없다).
+
+## 마법탑 구역 아트 시범 (2026-11-18)
+
+무엇을 어디에: [마법탑 구역 아트 시범](../art/tower-art) · [레벨 디자인 「12」](../dev/level-design#_12-마법탑-구역-아트-시범-2026-11-18). 브랜치 `claude/tower-artstyle-3be908`.
+
+```powershell
+$Cmd = "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Environment\tower_art_import.py" -unattended -nop4 -nosplash -nullrhi
+& $Cmd "$PWD\Grimoire.uproject" -run=pythonscript -script="$PWD\Scripts\Tutorial\tower_art_dress.py" -unattended -nop4 -nosplash -nullrhi
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set tower -Tag after -RunSeconds 700
+powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set tower -Tag after-dusk -TimeOfDay 0.74 -Only "aerial|road|yard" -RunSeconds 400
+python Scripts/QA/compare_concept.py
+powershell -File Scripts\Perf\measure.ps1 -Label tower-after -Only Render -Settle 25 -Tower
+```
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-LVL-049 | — | 키트 · 텍스처 · 재질이 스크립트로 다시 만들어진다 | ② `blender_tower_kit.py`(블렌더 경고 없음) · `tower_art_import.py` 로그 | GLB 43 · 「텍스처 21 · 재질 인스턴스 15 · 메시 43」, 「슬롯 … 에 맞는 인스턴스 없음」 없음 | ✅ 11-18 — 블렌더 경고 0, GLB 43. 가져오기 「텍스처 21 · 재질 인스턴스 15 · 메시 43」, 슬롯 경고 0, 「축 검사 −30.0 cm」(블렌더 +Y → 언리얼 −Y) | `Saved/TowerArt/import.log` |
+| QA-LVL-050 | — | 탑 구역 입히기가 다시 돌려도 같은 결과(쌓이지 않는다) | ② `tower_art_dress.py` 두 번 → 로그 「지난 TowerArt 액터 N 지움」 · 「지난 외부 액터 파일 N 지움」 | 두 번째 실행의 지운 수 = 첫 실행의 놓은 수, 외부 액터 파일 수 그대로 | ✅ 11-18 — 두 번 돌려 「지난 TowerArt 액터 305 지움」 · 「외부 액터 파일 305 지움」, 외부 액터 파일 2,324 그대로, 폴리지 뺀 수 23 → 23(처음 판은 공유 메시 폴리지가 돌릴 때마다 불어나는 버그 — 고치고 맵 파일을 되돌린 뒤 다시) | `Saved/TowerArt/dress_fix1.log` · `dress_fix2.log` |
+| QA-LVL-051 | R08 | 탑 안팎 길 · 게임 액터가 그대로 동작(튜토리얼 처음부터 끝까지) | ② `check_tutorial.ps1` · `check_openbeta.ps1` | PASS | ✅ 11-18 — `run_all`: tutorial PASS · openbeta PASS · save · join · castfail · circle · appearance · cheats PASS(탑 문 · 길 · 게임 액터 그대로) | `Saved/QA/summary.txt` |
+| QA-LVL-052 | R08 | 1층 방 안 · 현관 · 마당 포장에 풀이 나지 않는다(BUG-010) | ③ `tower-hall/start/library/kitchen/yard-after` | 방 바닥은 판석 · 마루, 풀 포기 없음. 마당 밖 풀밭은 그대로 | ✅ 11-18 — 홀 · 시작 방 · 서고 · 주방 · 현관 · 마당 포장에 풀 없음(전 그림은 방 안 가득), 마당 밖 풀밭 그대로 — BUG-010 고침 | `tower-*-after.jpg` |
+| QA-LVL-053 | — | 콘셉트와 견줘 화풍(양피지색 마름돌 · 남색 슬레이트 · 놋쇠 · 푸른 그늘)이 읽힌다 | ③ `tower-compare-*.jpg` 를 직접 열어 본다 | 색 · 재질 밀도가 콘셉트 쪽, 그레이박스 · 팩과 확연히 다름. 다른 점은 [아트 시범 「콘셉트와 다른 점」](../art/tower-art#콘셉트와-다른-점) | ✅ 11-18 — 직접 열어 봄: 양피지색 마름돌 · 남색 슬레이트 · 놋쇠 · 배너 · 판석이 콘셉트 쪽, 그레이박스와 확연히 다름. 실루엣은 둥근 기단 때문에 콘셉트보다 넓다(Q180), 잎 · 덩굴 없음 | `tower-compare-*.jpg` |
+| QA-LVL-054 | — | 해 질 녘 창 · 유리 구 · 놋쇠가 따뜻하게 빛난다(콘셉트 tower-dusk) | ③ `tower-*-after-dusk` | 창이 따뜻한 빛, 하늘 · 노출은 밤 세션 몫이라 판정 밖 | ⏸ 11-18 — `-TimeOfDay 0.74` 그림도 낮 하늘 · 밝기(BUG-008, 밤 밝기 세션 몫). 창 · 관측실 유리 · 놋쇠 구 등은 따뜻하게 빛남 | `tower-*-after-dusk.jpg` |
+| QA-LVL-055 | — | 숨긴 그레이박스 · 뺀 팩 인스턴스가 기록되고 되돌릴 수 있다 | ② `tower_art_removed.json` · `GRIM_TOWER_ART_REVERT=1` 로 한 번 → 다시 입히기 | 되돌리면 전 상태(그레이박스 보임 · 인스턴스 돌아옴), 다시 입히면 후 상태 | ✅ 11-18 — 되돌리기: 액터 305 지움 · 외부 액터 파일 2,324 → 2,019(맨 처음과 같음) · JSON 지움, 다시 입히기 2,324 | `Saved/TowerArt/revert.log` |
+| QA-LVL-056 | R16 | 성능 예산 안 — 특히 탑 문 앞 · 홀 · 앞마당 | ① `measure.ps1 -Tower` 전(`tower-before`) · 후(`tower-after`) | QA-PRF 예산 안, 문 앞 자리 GPU · 드로 콜 증가가 작다 | ✅ 11-18 — 문 앞 GPU 4.34 → 4.95 ms · 홀 4.67 → 4.88 · 마당 4.42 → 5.19, 렌더 스레드 ≤ 6.2, 드로 콜 ≤ 1,512(홀 · 마당 +900 ~ 1,000 — 다음 줄일 곳). 모두 예산 안 | [아트 시범 「성능」](../art/tower-art#성능) |
+| QA-LVL-057 | — | 자동화 테스트 전체 통과 | ② `Scripts/QA/run_all.ps1` | 자동화 모두 통과(알려진 BUG 만) | ✅ 11-18 — 자동화 189/189. FAIL 셋(creatures · storage · taming)은 이 브랜치가 건드리지 않은 `L_M1_Sandbox` 2인 스크립트 — creatures · storage 는 혼자 다시 돌려 PASS, taming 은 알려진 BUG-007 | `Saved/QA/summary.txt` |
+| QA-LVL-058 | R08 | 시작 자리(PlayerStart)를 막는 충돌이 덮지 않아 게임을 켜면 탑 시작 방에 선다 · 탑 아트 메시는 충돌 없음(막는 건 숨긴 그레이박스 · `TA_Block_*`) — [BUG-013](./bugs) | ② `check_openbeta.ps1`(「시작 자리 PlayerStart 를 씀」 · 「시작 자리에 섬」 두 줄 — 첫 탐침 플레이어가 (−150, 800) 3 m 안, 아래에 땅) · 게임 안 캡슐 트레이스(시작 방 8 방향 · 몸통 바깥 12 방향) · ③ `shoot_qa.ps1 -Set Zones` | 로그에 `FindPlayerStart: PATHS NOT DEFINED` 없음, 시작 방 벽(숨긴 그레이박스)이 2 ~ 7 m 에서 막고 몸통은 `TA_Block_Drum_*` 가 반지름 약 21 m 에서 막되 정문은 열림, 배너 그림 배경이 탑 시작 방 | ✅ 11-19 — 탑 아트 메시 232 개를 충돌 프로필 `NoCollision` 으로(`Scripts/Tutorial/tower_art_fix_collision.py`, 막는 상자 64 그대로). 플레이어 (−150, 800, 4598) · 땅 4500. 시작 방 트레이스 196 ~ 696 cm(`Wall_Start*` · `Wall_North` · `Wall_HallNorth`), 몸통 11 방향 `TA_Block_Drum_*`, 0° 는 정문을 지나 홀의 스승까지. `check_openbeta` · `check_tutorial` PASS | `Saved/TerrainCheck/openbeta.log` · [QA-ZON-008](./world-zones) 그림 |

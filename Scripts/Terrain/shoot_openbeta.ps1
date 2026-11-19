@@ -11,10 +11,11 @@
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld4 -RunSeconds 1500 # 레벨 디자인 4차(「11」) — 전망대 · 개울 · 어귀 · 능선 · 돌담 → docs/public/qa/ld4-<자리>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag day -RunSeconds 700                 # 물 재질(Q126) — docs/public/qa/water-<자리>-<Tag>.jpg
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set water -Tag dusk -TimeOfDay 0.74 -RunSeconds 700 # 같은 자리 황혼
+#   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set tower -Tag after -RunSeconds 700                  # 마법탑 아트 시범 — docs/public/qa/tower-<자리>-<Tag>.jpg(-TimeOfDay 0.74 = 해 질 녘)
 #   powershell -File Scripts\Terrain\shoot_openbeta.ps1 -Set ld2 -RunSeconds 900   # 레벨 디자인 2차(docs/dev/level-design.md 「9」) — 구간마다 눈높이 · 하늘
 #                                                                               → docs/public/qa/ld2-<자리>.jpg(앞 다섯은 level-dress-*-after 와 같은 자리 = 전 · 후)
 param(
-	[ValidateSet("v3", "v2", "dress", "ld2", "ld3", "ld4", "water")]
+	[ValidateSet("v3", "v2", "dress", "ld2", "ld3", "ld4", "water", "tower")]
 	[string]$Set = "v3",
 	[string]$Tag = "after",
 	# 시각 고정(0 자정 · 0.5 정오, Grim.Creature.Time) — 음수면 건드리지 않는다(시작 시각대로)
@@ -183,9 +184,23 @@ $ShotsWater = @(
 	@("water-pond-aerial-$Tag", 21500, -28500, "+4500", 40, -60, $false),  # 연못 · 어귀 하늘에서
 	@("water-creek-aerial-$Tag", 34000, -20500, "+17000", 0, -89.9, $false) # 개울 전체 하늘에서
 )
-$Shots = if ($Set -eq "ld4") { $ShotsLd4 } elseif ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "water") { $ShotsWater } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
+# tower — 마법탑 아트 시범(docs/art/tower-art.md): 콘셉트 tower-exterior · tower-dusk · tower-yard · tower-in-* 와 견줄 자리 → docs/public/qa/tower-<자리>-<Tag>.jpg
+$ShotsTower = @(
+	@("tower-aerial-$Tag", 5200, -4200, "+2300", 141, -17, $false),      # 비스듬히 높은 데서(콘셉트 tower-exterior 구도)
+	@("tower-road-$Tag", 6500, 1200, "+180", 190, 9, $false),           # 큰길에서 올려다봄(콘셉트 tower-dusk 구도)
+	@("tower-yard-$Tag", 4700, -600, "+180", 165, 3, $false),           # 앞마당에서 현관 쪽(콘셉트 tower-yard 구도)
+	@("tower-porch-$Tag", 3300, 420, "+170", 202, 6, $false),           # 현관 앞 가까이
+	@("tower-hall-$Tag", 1450, -150, "+170", 180, -4, $false),          # 1층 홀 — 동문 안에서 서쪽(콘셉트 tower-in-hall)
+	@("tower-start-$Tag", 450, 700, "+170", 153, -8, $false),           # 시작 방(tower-in-startroom)
+	@("tower-library-$Tag", -600, -200, "+170", 170, -2, $false),       # 서고(tower-in-library)
+	@("tower-kitchen-$Tag", 900, 650, "+170", 48, -6, $false),          # 주방(tower-in-kitchen)
+	@("tower-lanterns-$Tag", 4900, 350, "+180", 30, -2, $false),        # 앞마당 → 큰길(넓게)
+	@("tower-lanternrow-$Tag", 5600, -500, "+170", 12, -3, $false),     # 석등 줄(큰길 52 · 70 · 88 m 양옆) 따라
+	@("tower-brazier-$Tag", 8350, 4950, "+190", 58, -10, $false)         # 꺼진 화로 제단(Poi_Yard_Brazier) 가까이
+)
+$Shots = if ($Set -eq "tower") { $ShotsTower } elseif ($Set -eq "ld4") { $ShotsLd4 } elseif ($Set -eq "ld3") { $ShotsLd3 } elseif ($Set -eq "water") { $ShotsWater } elseif ($Set -eq "v2") { $ShotsV2 } elseif ($Set -eq "dress") { $ShotsDress } elseif ($Set -eq "ld2") { $ShotsLd2 } else { $ShotsV3 }
 if ($Only) { $Shots = @($Shots | Where-Object { $_[0] -match $Only }) }   # 다듬는 중에는 몇 장만
-$Settled = @("dress", "ld2", "ld3", "ld4", "water") -contains $Set   # 풀이 자랄 시간을 두고 docs/public/qa 에 두는 세트
+$Settled = @("dress", "ld2", "ld3", "ld4", "water", "tower") -contains $Set   # 풀이 자랄 시간을 두고 docs/public/qa 에 두는 세트
 if ($Settled) { $ArtDir = Join-Path $Root "docs\public\qa" }
 
 $Cmds = @()

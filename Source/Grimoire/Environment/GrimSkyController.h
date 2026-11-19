@@ -8,6 +8,7 @@ class UDirectionalLightComponent;
 class USkyAtmosphereComponent;
 class USkyLightComponent;
 class UExponentialHeightFogComponent;
+class UPostProcessComponent;
 class UNiagaraComponent;
 class UNiagaraSystem;
 struct FGrimWeatherProfile;
@@ -62,6 +63,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Sky")
 	FLinearColor MoonColor = FLinearColor(0.55f, 0.65f, 1.f);
 
+	/** 달빛의 최저 높이(도). 달은 해의 맞은편이지만 이보다 낮으면 같은 방위에서 이 높이로 비춘다 —
+	 *  해가 막 진 뒤에 달빛이 땅을 스치기만 해 한밤보다 어두워지지 않게(Q101). 0 = 늘 해의 맞은편 */
+	UPROPERTY(EditAnywhere, Category = "Sky", meta = (ClampMin = "0", ClampMax = "80"))
+	float MoonMinElevationDegrees = 30.f;
+
 	/** 하늘빛 세기: 낮 · 밤. */
 	UPROPERTY(EditAnywhere, Category = "Sky", meta = (ClampMin = "0"))
 	float DaySkyLightIntensity = 1.f;
@@ -82,6 +88,12 @@ private:
 	UFUNCTION()
 	void HandleLightningStrike(FVector Location);
 
+	/** 밤 화면(자동 노출 하한 · 채도)을 밤 섞임(0 = 낮, 1 = 밤)만큼 건다. 값은 UGrimEnvironmentSettings 「Night」 */
+	void ApplyNightLook(float NightBlend);
+
+	/** 카메라가 실내(지붕 + 둘레 벽)인지 몇 번에 한 번 트레이스로 보고 IndoorAlpha 를 부드럽게 옮긴다(로컬 화면 전용) */
+	void UpdateIndoor(const class UGrimWeatherSubsystem* Weather, const FVector& ViewLocation, float DeltaSeconds);
+
 	void UpdatePrecipitation(UNiagaraComponent* Component, float Amount, const FVector& ViewLocation);
 	bool GetViewLocation(FVector& OutLocation) const;
 
@@ -91,6 +103,10 @@ private:
 	float WeatherFogAdd = 0.f;
 	float BaseFogDensity = 0.02f;
 	float FlashRemaining = 0.f;
+	/** 실내 정도(0 = 바깥, 1 = 실내) — 밤 화면을 이만큼 뺀다 */
+	float IndoorAlpha = 0.f;
+	bool bIndoorTarget = false;
+	float IndoorProbeRemaining = 0.f;
 	/** 마지막으로 빛에 준 해 방향(영 벡터 = 아직 안 줌) — SunRotationStepDegrees */
 	FVector AppliedSunDir = FVector::ZeroVector;
 
@@ -123,4 +139,8 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	TObjectPtr<UExponentialHeightFogComponent> HeightFog;
+
+	/** 밤 화면 후처리(무한 범위). 해가 진 뒤 바깥에서만 가중치 1(값은 ApplyNightLook 이 섞는다), 낮 · 노을 · 실내는 0 이라 걸리지 않는다 */
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<UPostProcessComponent> NightLook;
 };

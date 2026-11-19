@@ -149,6 +149,8 @@ struct FGrimCaptureInput
 	int32 RequiredCircle = 1;
 	EGrimCreatureSizeClass SizeClass = EGrimCreatureSizeClass::Small;
 	bool bGiant = false;
+	/** 거대 · 우두머리에 잘 듣는 계약(파크툼 막시마 — Q133, 설정 GiantPactSpells) */
+	bool bGiantPact = false;
 	/** 계약 마법 숙련도 추가 효과(Q26 — ProficiencyExtraEffect 값, 확률 몫) */
 	float ProficiencyBonus = 0.f;
 	/** 장신구 자리(M4) */

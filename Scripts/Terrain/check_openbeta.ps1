@@ -64,6 +64,16 @@ foreach ($Name in $Checks.Keys) {
 	if (-not $Ok) { $Failed++ }
 	Write-Output ("{0} {1}" -f ($(if ($Ok) { "[OK]  " } else { "[FAIL]" })), $Name)
 }
+# 시작 자리(BUG-013): 엔진이 PlayerStart 를 썼는가 — 막는 충돌이 PlayerStart 캡슐을 덮으면 엔진이 버리고 폰을 원점(땅 밑)에 만든다.
+# PlayerStart 는 Scripts/Tutorial/tower_greybox.py 의 시작 방(-150, 800). 첫 탐침(15초, 아직 안 옮김)의 플레이어가 그 둘레 3 m 안 · 아래에 땅이 있어야 한다.
+$NoStart = $Text -and $Text.Contains("FindPlayerStart: PATHS NOT DEFINED")
+if ($NoStart) { $Failed++ }
+Write-Output ("{0} 시작 자리 PlayerStart 를 씀(FindPlayerStart 경고 없음)" -f ($(if (-not $NoStart) { "[OK]  " } else { "[FAIL]" })))
+# 탐침 줄: 「플레이어 (x, y, z) 아래 땅  4500 (…)」 — 땅이 없으면 「아래 땅 없음 0 ()」
+$First = [regex]::Match($Text, "\[Probe\] 플레이어 \((-?\d+), (-?\d+), (-?\d+)\) 아래 땅 (없음)? *(-?\d+)")
+$Ok = $First.Success -and ([math]::Abs([int]$First.Groups[1].Value + 150) -le 300) -and ([math]::Abs([int]$First.Groups[2].Value - 800) -le 300) -and (-not $First.Groups[4].Success)
+if (-not $Ok) { $Failed++ }
+Write-Output ("{0} 시작 자리에 섬 {1}" -f ($(if ($Ok) { "[OK]  " } else { "[FAIL]" })), $(if ($First.Success) { "($($First.Groups[1].Value), $($First.Groups[2].Value), $($First.Groups[3].Value)) 아래 땅 $(if ($First.Groups[4].Success) { '없음' } else { $First.Groups[5].Value })" } else { "탐침 줄 없음" }))
 # 그림(렌더) 높이 범위가 충돌 높이와 맞는가 — -nullrhi 로 만든 랜드스케이프는 -256 m 근처에 그려져 안 보인다
 $Bounds = [regex]::Match($Text, "그림 높이 (-?\d+) ~ (-?\d+) cm")
 $Ok = $Bounds.Success -and ([int]$Bounds.Groups[1].Value -gt -5000) -and ([int]$Bounds.Groups[2].Value -gt 5000)

@@ -16,8 +16,10 @@ class UVerticalBox;
 class UWidgetSwitcher;
 
 /**
- * 설정 칸(메인 메뉴 · Esc 메뉴가 같이 쓴다): 표시 이름, 소프트 락온(Q18), 줌 조준 누르기/토글(R24), 조준 감도, 시점 감도.
- * 값은 FGrimUserOptions(GameUserSettings.ini). 저장 · 뒤로 버튼은 부모가 둔다.
+ * 설정 칸(메인 메뉴 · Esc 메뉴가 같이 쓴다). 위에 탭 둘:
+ *  - 「설정」: 표시 이름, 소프트 락온(Q18), 줌 조준 누르기/토글(R24), 조준 감도, 시점 감도. 값은 FGrimUserOptions(GameUserSettings.ini).
+ *  - 「크레딧 확인」(Q137): CC BY 저작자 표시 · 엔진 표기를 스크롤로 — Content/Grimoire/Data/Credits.json(FGrimCreditsData).
+ * 저장 · 뒤로 버튼은 부모가 둔다(크레딧 탭에서 저장을 눌러도 설정 값이 그대로 저장될 뿐이다).
  */
 UCLASS()
 class GRIMOIRE_API UGrimMenuSettingsPanel : public UUserWidget
@@ -25,22 +27,45 @@ class GRIMOIRE_API UGrimMenuSettingsPanel : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	enum ETab : int32 { TabOptions = 0, TabCredits = 1 };
+
 	/** 보관 값 → 칸 */
 	void LoadFromOptions();
 
 	/** 칸 → 보관 + 지금 컨트롤러에 적용 */
 	void SaveAndApply();
 
+	/** 탭을 바꾼다(부모가 설정을 열 때 TabOptions 로) */
+	void ShowTab(int32 Tab);
+
+	int32 GetTab() const { return CurrentTab; }
+
+	/** 크레딧 탭에 쌓은 줄 수(테스트) */
+	int32 GetCreditLineCount() const;
+
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
 private:
 	void BuildTree();
+	void BuildCredits();
 	void EnsureBuilt();
 	void RefreshValueTexts();
+	void HandleTabButton(int32 Id);
 
 	UFUNCTION()
 	void HandleSliderChanged(float Value);
+
+	UPROPERTY()
+	TObjectPtr<UWidgetSwitcher> Tabs;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UGrimIdButton>> TabButtons;
+
+	UPROPERTY()
+	TObjectPtr<UScrollBox> CreditsList;
+
+	int32 CurrentTab = TabOptions;
 
 	UPROPERTY()
 	TObjectPtr<UEditableTextBox> NameBox;
@@ -76,6 +101,9 @@ class GRIMOIRE_API UGrimMainMenuWidget : public UUserWidget
 
 public:
 	void FocusFirst();
+
+	/** 설정 페이지를 연다(Tab = UGrimMenuSettingsPanel::ETab — 개발 콘솔 Grim.Online.Settings) */
+	void OpenSettings(int32 Tab);
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
@@ -195,6 +223,9 @@ class GRIMOIRE_API UGrimPauseMenuWidget : public UUserWidget
 public:
 	void ResetToMain();
 	void FocusFirst();
+
+	/** 설정 페이지를 연다(Tab = UGrimMenuSettingsPanel::ETab) */
+	void ShowSettings(int32 Tab);
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;

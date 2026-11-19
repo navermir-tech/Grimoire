@@ -42,6 +42,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
 	TObjectPtr<UFXSystemAsset> Trail;
 
+	/** 볼트 꼬리에 덧그리는 속성 결(Q87 — 어둠은 연기 가닥, 흙은 돌가루 불티). 투사체에 Trail 과 함께 붙는다. 비우면 없음 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
+	TObjectPtr<UFXSystemAsset> TrailAccent;
+
 	/** 맞은 곳 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
 	TObjectPtr<UFXSystemAsset> Impact;
@@ -51,16 +55,12 @@ public:
 	bool bHideProjectileMesh = false;
 
 	/**
-	 * 볼트 발사 빛줄기(Q85): 볼트가 보이기 시작할 때 완드 끝부터 한 번 긋는 빛줄기(연출만, 판정 없음).
-	 * 가까운 표적은 비행이 몇 프레임이라 꼬리가 거의 안 보이고, 원격 시전자의 볼트는 지연만큼 앞에서 나타난다 — 그 구간을 잇는다.
+	 * 볼트 발사 빛줄기(Q85 · Q110): 원격 시전자의 지연을 당겨 볼트가 완드 앞에서 나타날 때만, 완드 끝부터 볼트 자리까지(맞을 곳이
+	 * 더 가까우면 거기까지) 한 번 긋는 빛줄기(연출만, 판정 없음). 혼자 · 호스트는 완드 끝에서 날아가므로 긋지 않는다.
 	 * 시스템 +Z = 날아가는 쪽, 사용자 변수 Length(cm) · DrawTime(초) · Color 를 투사체가 넣는다. 비우면 긋지 않는다.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX")
 	TObjectPtr<UFXSystemAsset> LaunchStreak;
-
-	/** 발사 빛줄기 길이 = 볼트 속력 × 이 시간(맞을 곳이 더 가까우면 거기까지) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FX", meta = (ClampMin = "0", Units = "s"))
-	float LaunchStreakSeconds = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sound")
 	TObjectPtr<USoundBase> CastSound;

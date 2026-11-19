@@ -69,6 +69,9 @@ public:
 
 	const FGrimElementalStateArray& GetStates() const { return States; }
 
+	/** 서버: 상태를 모두 지우고 NewStates 로 둔다(다시 나기 · 아침에 되돌리기 — 반응 규칙을 거치지 않는다). 남은 시간은 무한 */
+	void ResetStates(const TMap<FGameplayTag, float>& NewStates);
+
 	/** 서버: 시간 제한 상태를 DeltaSeconds 만큼 진행한다(타이머가 부른다. 테스트는 직접 부른다) */
 	void AdvanceTime(float DeltaSeconds);
 

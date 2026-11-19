@@ -7,6 +7,7 @@
 #include "Magic/GrimWand.h"
 #include "Core/GrimPlayerState.h"
 #include "Core/GrimSpellFXTypes.h"
+#include "MagicFX/GrimMagicFXStatics.h"
 #include "AbilitySystemComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -69,6 +70,22 @@ void AGrimSpellProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	DOREPLIFETIME_CONDITION(AGrimSpellProjectile, Definition, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AGrimSpellProjectile, HomingTarget, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(AGrimSpellProjectile, LaunchAdvanceSeconds, COND_InitialOnly);
+}
+
+const UGrimSpellVisualSet* AGrimSpellProjectile::GetVisualSet() const
+{
+	if (CachedVisualSetFor != Definition)
+	{
+		CachedVisualSetFor = Definition;
+		CachedVisualSet = nullptr;
+		if (Definition)
+		{
+			CachedVisualSet = Definition->VisualSet ? Definition->VisualSet.Get()
+				: UGrimMagicFXStatics::FindDefaultVisualSet(Definition->Element, true, false);
+		}
+	}
+	return CachedVisualSet;
 }
 
 void AGrimSpellProjectile::InitSpell(const UGrimSpellDefinition* InDefinition, UAbilitySystemComponent* InSourceASC, const FGameplayEffectSpecHandle& InDamageSpec, AActor* InHomingTarget)
@@ -99,6 +116,7 @@ void AGrimSpellProjectile::InitFake(const UGrimSpellDefinition* InDefinition, AA
 void AGrimSpellProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+	LaunchOrigin = GetActorLocation();
 
 	if (APawn* InstigatorPawn = GetInstigator())
 	{
@@ -123,7 +141,11 @@ void AGrimSpellProjectile::BeginPlay()
 	else
 	{
 		StartTrail();
-		SpawnLaunchStreak();
+		// 서버(호스트)의 보이는 사본은 CatchUp 에서 당긴 뒤 긋는다 — 여기서는 복제받은 사본만(당긴 시간이 함께 온다).
+		if (!HasAuthority())
+		{
+			SpawnLaunchStreak();
+		}
 	}
 
 	SetActorTickEnabled(HomingTarget.IsValid() && Definition && Definition->HomingStrength > 0.f);
@@ -185,6 +207,7 @@ void AGrimSpellProjectile::CatchUp(float Seconds)
 	{
 		return;
 	}
+	LaunchAdvanceSeconds = Seconds;
 	// 유도 한 번 + 그만큼 이동(스윕 · 겹침 판정 포함). UT 의 CatchupTick 과 같은 방식.
 	if (AActor* Target = HomingTarget.Get(); Target && Definition && Definition->HomingStrength > 0.f)
 	{
@@ -192,6 +215,12 @@ void AGrimSpellProjectile::CatchUp(float Seconds)
 			Definition->HomingStrength, UGrimMagicSettings::Get()->HomingMaxAngle, Seconds);
 	}
 	Movement->TickComponent(Seconds, LEVELTICK_All, nullptr);
+
+	// 호스트 화면: 원격 시전자의 볼트가 완드 앞에서 나타난다 — 그 틈을 긋는다(Q110). 당기는 중에 맞아 사라져도 맞은 곳까지.
+	if (!IsHiddenForLocalCaster())
+	{
+		SpawnLaunchStreak();
+	}
 }
 
 void AGrimSpellProjectile::OnRep_Definition()
@@ -212,7 +241,8 @@ void AGrimSpellProjectile::ApplyDefinitionVisuals()
 		// 기본 구 메시는 지름 100.
 		Mesh->SetRelativeScale3D(FVector(Definition->Radius / 50.f));
 	}
-	Mesh->SetVisibility(!(Definition->VisualSet && Definition->VisualSet->bHideProjectileMesh));
+	const UGrimSpellVisualSet* VisualSet = GetVisualSet();
+	Mesh->SetVisibility(!(VisualSet && VisualSet->bHideProjectileMesh));
 
 	if (Definition->Delivery == EGrimSpellDelivery::Lob)
 	{
@@ -232,53 +262,63 @@ void AGrimSpellProjectile::ApplyDefinitionVisuals()
 
 	if (UMaterialInstanceDynamic* MID = Mesh->CreateDynamicMaterialInstance(0))
 	{
-		const FLinearColor Color = Definition->VisualSet ? Definition->VisualSet->ElementColor : Definition->Color;
+		const FLinearColor Color = VisualSet ? VisualSet->ElementColor : Definition->Color;
 		MID->SetVectorParameterValue(TEXT("Color"), Color);
 	}
 }
 
-void AGrimSpellProjectile::StartTrail()
+UFXSystemComponent* AGrimSpellProjectile::SpawnAttachedFX(UFXSystemAsset* Asset, const FLinearColor& Color)
 {
-	if (TrailComponent || !Definition || !Definition->VisualSet || !Definition->VisualSet->Trail || GetNetMode() == NM_DedicatedServer)
-	{
-		return;
-	}
-	UFXSystemAsset* Trail = Definition->VisualSet->Trail;
-	const FLinearColor Color = Definition->VisualSet->ElementColor;
-	if (UNiagaraSystem* Niagara = Cast<UNiagaraSystem>(Trail))
+	if (UNiagaraSystem* Niagara = Cast<UNiagaraSystem>(Asset))
 	{
 		UNiagaraComponent* Component = UNiagaraFunctionLibrary::SpawnSystemAttached(Niagara, Collision, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
 		if (Component)
 		{
 			UGrimSpellVisualSet::TintNiagara(Component, Color);
 		}
-		TrailComponent = Component;
+		return Component;
 	}
-	else if (UParticleSystem* Cascade = Cast<UParticleSystem>(Trail))
+	if (UParticleSystem* Cascade = Cast<UParticleSystem>(Asset))
 	{
 		UParticleSystemComponent* Component = UGameplayStatics::SpawnEmitterAttached(Cascade, Collision, NAME_None, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, true);
 		if (Component)
 		{
 			Component->SetColorParameter(TEXT("Color"), Color);
 		}
-		TrailComponent = Component;
+		return Component;
+	}
+	return nullptr;
+}
+
+void AGrimSpellProjectile::StartTrail()
+{
+	const UGrimSpellVisualSet* VisualSet = GetVisualSet();
+	if (TrailComponent || !VisualSet || GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+	TrailComponent = SpawnAttachedFX(VisualSet->Trail, VisualSet->ElementColor);
+	if (VisualSet->TrailAccent)
+	{
+		TrailAccentComponent = SpawnAttachedFX(VisualSet->TrailAccent, VisualSet->ElementColor);
 	}
 }
 
 void AGrimSpellProjectile::SpawnLaunchStreak()
 {
-	const UGrimSpellVisualSet* VisualSet = Definition ? Definition->VisualSet.Get() : nullptr;
+	const UGrimSpellVisualSet* VisualSet = GetVisualSet();
 	UNiagaraSystem* Streak = VisualSet ? Cast<UNiagaraSystem>(VisualSet->LaunchStreak) : nullptr;
 	UWorld* World = GetWorld();
-	if (!Streak || !World || GetNetMode() == NM_DedicatedServer || Definition->BoltSpeed <= 0.f)
+	// Q110: 원격 지연으로 앞당긴 볼트만. 혼자 · 호스트(당김 0)는 볼트가 완드 끝에서 날아가므로 긋지 않는다.
+	if (!Streak || !World || GetNetMode() == NM_DedicatedServer || Definition->BoltSpeed <= 0.f || LaunchAdvanceSeconds <= 0.f)
 	{
 		return;
 	}
 
-	// 시작 = 시전자 완드 끝(없으면 볼트 자리). 원격 시전자의 볼트는 지연을 당긴 만큼 앞에서 나타난다 — 그 틈(Gap)도 잇는다.
+	// 시작 = 시전자 완드 끝(없으면 스폰 자리). 볼트는 지연을 당긴 만큼 앞에서 나타난다 — 그 틈(Gap)을 잇는다.
 	const FVector BoltLocation = GetActorLocation();
 	const FVector Forward = GetActorForwardVector();
-	FVector Start = BoltLocation;
+	FVector Start = LaunchOrigin;
 	const APawn* InstigatorPawn = GetInstigator();
 	if (const AGrimPlayerState* PlayerState = InstigatorPawn ? InstigatorPawn->GetPlayerState<AGrimPlayerState>() : nullptr)
 	{
@@ -289,8 +329,7 @@ void AGrimSpellProjectile::SpawnLaunchStreak()
 		}
 	}
 	const float Gap = FVector::Dist(Start, BoltLocation);
-	const float Ahead = FMath::Max(Definition->BoltSpeed * VisualSet->LaunchStreakSeconds - Gap, 0.f);
-	const FVector Aim = BoltLocation + Forward * Ahead;
+	const FVector Aim = BoltLocation;
 	const FVector Direction = (Aim - Start).GetSafeNormal(UE_SMALL_NUMBER, Forward);
 
 	// 그 사이에 맞을 것(지형 · 사물 · 폰)이 있으면 거기까지만 — 가까운 표적에서 빛줄기가 표적을 뚫고 지나가지 않게.
@@ -313,7 +352,7 @@ void AGrimSpellProjectile::SpawnLaunchStreak()
 		}
 	}
 
-	const float Length = GrimSpellDelivery::CalcLaunchStreakLength(Gap, Definition->BoltSpeed, VisualSet->LaunchStreakSeconds, HitDistance);
+	const float Length = GrimSpellDelivery::CalcLaunchStreakLength(LaunchAdvanceSeconds, Gap, HitDistance);
 	if (Length <= 1.f)
 	{
 		return;

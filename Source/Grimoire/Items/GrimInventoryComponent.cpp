@@ -14,6 +14,7 @@
 #include "Creatures/GrimCreatureStorageMath.h"
 #include "Creatures/GrimCreatureStorageSettings.h"
 #include "Interaction/GrimElementalObject.h"
+#include "Core/GrimInteractable.h"
 #include "Magic/GrimSpellbookComponent.h"
 #include "Magic/GrimSpellDefinition.h"
 #include "Quest/GrimQuestComponent.h"
@@ -616,6 +617,14 @@ void UGrimInventoryComponent::Server_PickUp_Implementation(AGrimItemPickup* Pick
 void UGrimInventoryComponent::Server_InteractPot_Implementation(AGrimCookingPot* Pot)
 {
 	InteractWithPot(Pot, true);
+}
+
+void UGrimInventoryComponent::Server_Interact_Implementation(AActor* Target, int32 Token)
+{
+	if (IGrimInteractable* Interactable = Cast<IGrimInteractable>(Target))
+	{
+		Interactable->Interact(GetPawn(), Token);
+	}
 }
 
 void UGrimInventoryComponent::ServerDebugCommand_Implementation(const FString& Command, const FString& Arg, int32 A, int32 B)

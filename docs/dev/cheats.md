@@ -42,7 +42,7 @@
 | `Grim.Creature.Time <0~1> [지연초]` | 시각(0 자정 · 0.5 정오). 검은 개는 밤에만 나온다 |
 | `Grim.At <초> <명령 …>` | 명령을 몇 초 뒤 실행 — 점검 스크립트가 `-ExecCmds` 로 맵이 뜬 뒤 · 시전 도중에 무엇을 할 때(`Grim.At 20 HighResShot 1280x720`) |
 | `Grim.Cam <X> <Y> <Z> <피치> <요> [FOV]` | 그 자리 고정 카메라로 본다(캐릭터는 계속 조종 · 시전). 인자 없으면 캐릭터 카메라로. 이펙트를 옆에서 찍을 때 |
-| `Grim.FX.Bolt <마법 정의> <X> <Y> <Z> <요> [피치] [터질 거리cm]` | 시전 없이 볼트 연출만 날린다(판정 없음, 섬광 · 발사 빛줄기 · 몸통 · 터짐). 예: `Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 225` — `Scripts/MagicFX/capture_bolt.ps1` 가 `slomo` 와 함께 쓴다 |
+| `Grim.FX.Bolt <마법 정의> <X> <Y> <Z> <요> [피치] [터질 거리cm] [당김초]` | 시전 없이 볼트 연출만 날린다(판정 없음, 섬광 · 몸통 · 덧그림 · 터짐). 정의에 연출 묶음이 없으면(파크툼) 속성 기본 묶음(Q113). `당김초` > 0 이면 원격 시전자의 지연 당김처럼 그만큼 앞에서 나타나고 그 틈에 발사 빛줄기를 긋는다 — 0(기본)은 혼자 · 호스트처럼 긋지 않는다(Q110). 예: `Grim.FX.Bolt DA_Spell_Ember 30 -1000 150 0 0 1500 0.15` — `Scripts/MagicFX/capture_bolt.ps1` 가 `slomo` 와 함께 쓴다 |
 | `Grim.FX.Spawn <마법 정의> <Muzzle\|Trail\|Impact\|Launch> <X> <Y> <Z> <요> [피치] [초] [이름=값 …]` | 시전 없이 연출 묶음의 Niagara 하나를 그 자리 · 방향(+Z)에 띄운다. 값은 사용자 변수(수 또는 `x,y,z`). 예: `Grim.FX.Spawn DA_Spell_Breeze Trail 30 -1000 120 0 0 0 ConeRange=1000 ConeHalfAngle=30` — 시전하면 조준 = 카메라라 `Grim.Cam` 옆 · 위 시점에서 쓸 수 없는 물줄기 · 미풍을 볼 때(`capture_bolt.ps1 -FxCmd`) |
 
 생물은 서식 구역(수백 m)에 무리로 기록만 되어 있다가 **플레이어 60m 안**에 들어오면 나온다(설정 `Ecosystem.SpawnRadius`). 구역 한가운데에 서도 무리가 멀면 아무것도 안 보인다 — `Grim.Creature.Mark 1` 의 노란 기둥을 따라가거나 `Grim.Go <종>` 을 쓴다.
@@ -134,7 +134,7 @@
 |---|---|
 | `grim.Survival.Sleep` · `grim.Survival.Wake` | 눕기(반경 안 침대가 있으면 그 침대 = 부활 지점) · 일어나기 |
 | `grim.Survival.Down` · `grim.Survival.Revive` · `grim.Survival.Die` | 쓰러짐(`Status.Downed`) · 일으키기 · 바로 사망 → 마지막 침대(없으면 PlayerStart)에서 부활 |
-| `grim.Survival.Fatigue <값>` · `grim.Survival.EatRaw` · `grim.Survival.Sick <0 배탈\|1 감기>` · `grim.Survival.Cure` | 피곤함 · 날것 먹기(배탈 굴림) · 질병 걸기 · 모두 낫기 |
+| `grim.Survival.Fatigue <값>` · `grim.Survival.EatRaw` · `grim.Survival.Sick <0 배탈\|1 감기\|2 열병>` · `grim.Survival.Cure` | 피곤함 · 날것 먹기(배탈 굴림) · 질병 걸기 · 모두 낫기 |
 | `grim.Survival.SpawnBed [1 = 침낭]` | (서버) 앞 1.5m 에 침대 |
 | `grim.Survival.Resist <더위> <추위>` | 시험용 저항 버프(장비 M4 전). `0 0` 이면 뗀다 |
 | `grim.Survival.Dump` · `grim.Survival.At <초> <명령 …>` | 생존 상태 로그 · 몇 초 뒤 생존 명령(명령은 앞 `grim.Survival.` 를 뺀 이름) |
@@ -154,6 +154,7 @@
 | `Grim.Interaction.Dump [지연초]` | 속성 사물 상태 · 불꽃 · 빛 로그 |
 | `Grim.Interaction.ReloadReactions` | 반응 규칙표 `ElementalReactions.csv` 다시 읽기 |
 | `Grim.Sky.SunRotationStep <도>` | (콘솔 변수) 해 · 달 빛을 돌리는 최소 각. 음수 = 액터 값, 0 = 매 프레임(성능 비교용) |
+| `Grim.Sky.Set <속성> <값>` | 밤 화면 · 하늘 값을 실행 중에 바꿔 본다(이 프로세스에만, 저장 안 함). 환경 설정 속성(`NightExposureMinEV100` · `TwilightExposureMinEV100` · `NightSaturation` · `NightShadowSaturation` · `NightShadowsMax` · `Indoor*`)이면 거기에, 아니면 하늘 컨트롤러 속성(`MoonIntensity` · `MoonMinElevationDegrees` · `NightSkyLightIntensity` 등)에. 예: `Grim.Sky.Set NightExposureMinEV100 -1` — [환경 「밤 화면」](../systems/environment#밤-화면-q101-·-bug-008-2026-11-18) |
 
 ## 아이템 · 요리
 
@@ -170,6 +171,22 @@
 | `Grim.Items.BagMouse <칸>` | (로컬) 열린 가방 칸에 슬레이트 더블클릭 입력(이동 · 누름 · 뗌 · 더블클릭 · 뗌)을 흘린다. 화면이 그려진 뒤에만 된다 |
 | `Grim.Items.At <초> <하위 명령 …>` · `Grim.Items.Dump` | 몇 초 뒤 아이템 명령(`Give` · `Dump` …) · 가방 · 픽업 · 냄비 로그 |
 | `Grim.Items.Reload` | 아이템 · 요리 표 다시 읽기 |
+
+## 초원 꾸밈
+
+코드 `Source/Grimoire/Dressing/GrimDressingDebug.cpp`. 2인 확인 `Scripts/Dressing/net_check_meadow.ps1`. 소품 id 는 `Content/Grimoire/Data/ReactiveProps.csv`, 채집점은 `HarvestNodes.csv` — [초원 꾸밈 구현](../systems/meadow-dressing).
+
+| 명령 | 효과 |
+|---|---|
+| `Grim.Meadow Dump` | 이 프로세스(서버 · 클라이언트 각자)의 소품 · 셀 상태 — 처음과 다른 것만 한 줄씩 + 종류별 합계 · 도감 줄 수 |
+| `Grim.Meadow Spawn <PropId> [앞 cm] [Host\|Client\|All]` | (서버) 플레이어 앞에 반응 소품. 음수면 뒤 |
+| `Grim.Meadow SpawnCell <Kind> [앞 cm] [Host\|Client\|All]` | (서버) 플레이어마다 앞에 채집점 하나씩 든 셀 하나 |
+| `Grim.Meadow Hit <Element> <세기> [반경 cm, 0 = 전부] [PropId]` | (서버) 플레이어 둘레 소품에 속성 자극. 예: `Grim.Meadow Hit Element.Wind 1 0 D01_WindCotton` |
+| `Grim.Meadow Dawn` | (서버) 해 뜸 처리 — 아침에 되돌리는 소품 · 다시 나는 채집점 |
+| `Grim.Meadow Interact` | F 와 같다(가장 가까운 소품 · 채집점 — 클라이언트면 서버 RPC) |
+| `Grim.Meadow Go <PropId\|Cell> [번째] [거리 cm]` | (서버) 그 소품 · 셀 첫 점을 바라보는 자리로 순간 이동(스크린숏) |
+| `Grim.Meadow Reload` | 표 셋 다시 읽기(놓인 소품에 다시 입힌다) |
+| `Grim.Journal` | 내 도감(임시 목록) |
 
 ## 레벨 · 성장 트리 · UI
 
@@ -204,6 +221,8 @@
 | `Grim.Terrain.ViewFrom <X> <Y> <Z> <Yaw> <Pitch> [지연초] [스크린숏 이름]` | 그 카메라로 보고, 이름을 주면 4초 뒤 `Saved/TerrainCheck/<이름>.png` |
 | `Grim.Terrain.Walk <지연초> <걷는초> [Yaw]` · `Grim.Terrain.Probe [지연초]` | 걸려 보고 처음 · 끝 위치 로그 · 땅 높이 · 프록시 수 · 시간 · 날씨 로그 |
 | `Grim.DevLabels 0/1` · `Grim.DevLabels.MaxDistance <cm>` | (콘솔 변수) 떠 있는 개발 글씨 보이기 · 숨기는 거리(0 = 액터 값 250 m) |
+| `Grim.Zones Where` · `Dump` · `Reset` · `Show <구역> [1/0]` · `Reload` | 구역 이름 표시(Q130): 지금 자리의 구역 · (서버) 본 구역 · (서버) 본 구역을 잊어 「처음」 배너 다시 보기 · 배너만 띄우기 · 구역 표 다시 읽기. 지연은 `Grim.Zones.At <초> <명령…>` — [구역 이름 표시 — 콘솔](../systems/world-zones#콘솔-개발-빌드) |
+| `Grim.Online.Settings [0/1]` | 설정 화면을 연다(0 = 설정 탭, 1 = 크레딧 확인 탭). 메인 메뉴가 떠 있으면 그 설정, 아니면 Esc 메뉴의 설정 |
 | `Grim.DevLabels.Sections 0/1` | (콘솔 변수) 하늘에 떠 있는 **구역 이름**(레벨 디자인 2차 — 「마탑 곶」「봉화 언덕」 …)만 끄고 켜기. 기본 1. `Grim.DevLabels 0` 이면 이것도 숨는다. `MaxDistance` 덮어쓰기를 받지 않는다(구역 이름 4.5 km · 마탑 구간 소구역 이름 1.6 km 까지 보임). 출시 빌드는 늘 숨김 — [지형 — 하늘 구역 이름](../systems/terrain#하늘-구역-이름-레벨-디자인-2차) |
 
 ## 세이브 · 접속 · 성능

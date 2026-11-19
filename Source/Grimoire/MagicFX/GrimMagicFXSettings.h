@@ -23,11 +23,21 @@ public:
 
 	virtual FName GetCategoryName() const override { return TEXT("Game"); }
 
-	/** 마법 정의에 VisualSet 이 없을 때 속성(Element.*)으로 고르는 기본 연출 묶음 */
+	/**
+	 * 마법 정의에 VisualSet 이 없을 때 속성(Element.*)으로 고르는 기본 연출 묶음. 정확한 태그가 없으면 부모 태그로 거슬러 찾는다
+	 * (Element.Water.Ice → Element.Water, Element.Dark.Shadow → Element.Dark — Q113).
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "VisualSet", meta = (Categories = "Element"))
 	TMap<FGameplayTag, TSoftObjectPtr<UGrimSpellVisualSet>> DefaultVisualSets;
 
-	/** 속성도 모를 때 */
+	/**
+	 * 볼트 · 포물선 마법(파크툼 등)은 이것을 먼저 본다(같은 거슬러 찾기). 볼트 빛 언어(NS_Bolt_*)에 속성색만 바꾼 묶음 —
+	 * 물줄기 · 미풍 묶음(줄기 · 부채꼴 몸통)이 볼트에 붙지 않게(Q87 · Q113).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "VisualSet", meta = (Categories = "Element"))
+	TMap<FGameplayTag, TSoftObjectPtr<UGrimSpellVisualSet>> DefaultBoltVisualSets;
+
+	/** 속성도 모를 때(무속성 묶음 — 모르는 것이 불로 보이지 않게, Q113) */
 	UPROPERTY(Config, EditAnywhere, Category = "VisualSet")
 	TSoftObjectPtr<UGrimSpellVisualSet> FallbackVisualSet;
 

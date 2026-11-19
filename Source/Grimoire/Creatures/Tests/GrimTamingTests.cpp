@@ -210,6 +210,49 @@ bool FGrimTamingChanceTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+// Q133: 파크툼 막시마로 거대 개체에 걸면 거대 깎기(×0.7)가 없고 속성 일치 몫(+0.25)을 받는다. Q134: 전설 요구 서클은 모두 7.
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingGiantPactTest, "Grimoire.Taming.GiantPact", TamingPureFlags)
+bool FGrimTamingGiantPactTest::RunTest(const FString& Parameters)
+{
+	const FGrimCaptureTuning Tuning = MakeCaptureTuning();
+	FGrimCaptureInput In;
+	In.SizeClass = EGrimCreatureSizeClass::Large;
+	In.RequiredCircle = 4;
+	In.CasterCircle = 6;
+	In.bGiant = true;
+
+	const FGrimCaptureChance Plain = GrimTamingMath::CalcCaptureChance(In, Tuning, 0.3f);
+	In.bGiantPact = true;
+	const FGrimCaptureChance Maxima = GrimTamingMath::CalcCaptureChance(In, Tuning, 0.3f);
+	TestEqual(TEXT("다른 파크툼: 거대 ×0.7"), Plain.GradeScale, (1.f - Tuning.SizeClassPenalty[2]) * (1.f - Tuning.GiantPenalty), 1e-5f);
+	TestEqual(TEXT("막시마: 거대 깎기 없음"), Maxima.GradeScale, 1.f - Tuning.SizeClassPenalty[2], 1e-5f);
+	TestEqual(TEXT("막시마: 속성 일치 몫(무속성 — 어느 생물에게나)"), Maxima.Element, Tuning.ElementMatchBonus, 1e-5f);
+	TestEqual(TEXT("다른 파크툼: 속성 몫 없음"), Plain.Element, 0.f);
+	TestTrue(TEXT("막시마가 거대에 더 잘 듣는다"), Maxima.Total > Plain.Total);
+
+	In.bGiant = false;
+	const FGrimCaptureChance NotGiant = GrimTamingMath::CalcCaptureChance(In, Tuning, 0.3f);
+	In.bGiantPact = false;
+	TestEqual(TEXT("거대가 아니면 막시마도 기본 파크툼과 같다"), NotGiant.Total, GrimTamingMath::CalcCaptureChance(In, Tuning, 0.3f).Total, 1e-6f);
+	In.bGiant = true;
+	In.bGiantPact = true;
+	In.bElementMatch = true;
+	TestEqual(TEXT("속성 일치와 겹쳐도 몫은 한 번"), GrimTamingMath::CalcCaptureChance(In, Tuning, 0.3f).Element, Tuning.ElementMatchBonus, 1e-5f);
+
+	// Q134: 전설 요구 서클
+	const FGrimCaptureTuning& Ini = UGrimTamingSettings::Get()->Capture;
+	TestEqual(TEXT("ini: 전설 요구 7서클"), Ini.LegendaryRequiredCircle, 7);
+	TestTrue(TEXT("ini: 막시마 이름"), Ini.GiantPactSpells.Contains(FName(TEXT("DA_Spell_Pactum_Maxima"))));
+	TestEqual(TEXT("전설: 종 값 9 → 7"), GrimTamingMath::ResolveRequiredCircle(EGrimCreatureSizeClass::Legendary, 9, Ini), 7);
+	TestEqual(TEXT("전설: 종 값 10 → 7"), GrimTamingMath::ResolveRequiredCircle(EGrimCreatureSizeClass::Legendary, 10, Ini), 7);
+	TestEqual(TEXT("대형은 종 값 그대로"), GrimTamingMath::ResolveRequiredCircle(EGrimCreatureSizeClass::Large, 5, Ini), 5);
+	TestEqual(TEXT("종 값 0 → 최소 1"), GrimTamingMath::ResolveRequiredCircle(EGrimCreatureSizeClass::Small, 0, Ini), 1);
+	FGrimCaptureTuning Off = Ini;
+	Off.LegendaryRequiredCircle = 0;
+	TestEqual(TEXT("0 이면 종 값"), GrimTamingMath::ResolveRequiredCircle(EGrimCreatureSizeClass::Legendary, 9, Off), 9);
+	return true;
+}
+
 // Q118: 서클 곡선(팰월드 포획 곡선의 아래 반쪽 9제곱) — 모서리 · 사용자 목표(1서클 전설 0, 6서클 아주 낮음, 점점 오름) · ini.
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGrimTamingCircleCurveTest, "Grimoire.Taming.CircleCurve", TamingPureFlags)
 bool FGrimTamingCircleCurveTest::RunTest(const FString& Parameters)

@@ -197,9 +197,11 @@ FGrimCaptureInput UGrimTamingSubsystem::GatherCaptureInput(const UGrimSpellDefin
 	Input.bFed = Taming && Taming->WasFedBy(Caster, bFavorite);
 	Input.bFedFavorite = Input.bFed && bFavorite;
 	Input.bElementMatch = Spell && IsPactElementMatch(Spell->Element, Creature);
-	Input.RequiredCircle = Species->TamingCircle;
+	const FGrimCaptureTuning& Tuning = UGrimTamingSettings::Get()->Capture;
+	Input.RequiredCircle = GrimTamingMath::ResolveRequiredCircle(Species->SizeClass, Species->TamingCircle, Tuning);
 	Input.SizeClass = Species->SizeClass;
 	Input.bGiant = Creature->GetInstance().bGiant;
+	Input.bGiantPact = Spell && Tuning.GiantPactSpells.Contains(Spell->GetFName());
 	(void)CreatureASC;
 
 	if (CasterASC)

@@ -15,6 +15,9 @@
 #include "Core/GrimElementalTypes.h"
 #include "Core/GrimSpellFXTypes.h"
 #include "Core/GrimTargetingTypes.h"
+#include "Survival/GrimSurvivalModel.h"
+#include "Survival/GrimSurvivalSettings.h"
+#include "Survival/GrimVitalAttributeSet.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
@@ -493,9 +496,10 @@ void UGrimSpellAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 
 		if (Definition->UsesProjectile())
 		{
-			if (Definition->CastWindup > 0.f)
+			const float CastTime = GetCastTime(Definition, ASC);
+			if (CastTime > 0.f)
 			{
-				Timers.SetTimer(FakeBoltTimer, this, &ThisClass::SpawnFakeBolt, Definition->CastWindup, false);
+				Timers.SetTimer(FakeBoltTimer, this, &ThisClass::SpawnFakeBolt, CastTime, false);
 			}
 			else
 			{
@@ -506,7 +510,7 @@ void UGrimSpellAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		// 한 번 쏘는 마법은 서버가 끝낸다(판정 전에 끝나면 서버가 못 쏜다). 끝 복제가 안 오면 스스로.
 		if (!Definition->bChanneled)
 		{
-			Timers.SetTimer(SafetyTimer, this, &ThisClass::OnSafetyTimeout, Definition->CastWindup + 2.f, false);
+			Timers.SetTimer(SafetyTimer, this, &ThisClass::OnSafetyTimeout, GetCastTime(Definition, ASC) + 2.f, false);
 		}
 		UE_LOG(LogGrimMagic, Display, TEXT("[Client] %s 시전(%s) 대상=%s 조준=%s 가짜볼트=%d"), *Definition->GetName(), DeliveryName(Definition->Delivery),
 			*GetNameSafe(Aim.Target.Get()), *Aim.AimPoint.ToCompactString(), Definition->UsesProjectile() ? 1 : 0);
@@ -580,7 +584,7 @@ void UGrimSpellAbility::BeginAuthorityCast(const FGrimAimResult& Aim, float OneW
 		Spellbook->AwardCastXP(Definition, Aim.Target.Get());
 	}
 
-	const GrimSpellDelivery::FLagSplit Lag = GrimSpellDelivery::SplitLag(OneWayLatency, Definition->CastWindup, UGrimMagicSettings::Get()->MaxLagCompensation);
+	const GrimSpellDelivery::FLagSplit Lag = GrimSpellDelivery::SplitLag(OneWayLatency, GetCastTime(Definition, ASC), UGrimMagicSettings::Get()->MaxLagCompensation);
 	UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s 시전(%s) 대상=%s 지연=%.3fs 대기=%.3fs 당김=%.3fs"), *Definition->GetName(), DeliveryName(Definition->Delivery),
 		*GetNameSafe(Aim.Target.Get()), OneWayLatency, Lag.WaitSeconds, Lag.AdvanceSeconds);
 
@@ -1237,6 +1241,29 @@ UAbilitySystemComponent* UGrimSpellAbility::FindTargetASC(AActor* Actor)
 	return nullptr;
 }
 
+float UGrimSpellAbility::GetCastTime(const UGrimSpellDefinition* Definition, const UAbilitySystemComponent* ASC)
+{
+	if (!Definition)
+	{
+		return 0.f;
+	}
+	const float Fatigue = ASC && ASC->HasAttributeSetForAttribute(UGrimVitalAttributeSet::GetFatigueAttribute())
+		? ASC->GetNumericAttribute(UGrimVitalAttributeSet::GetFatigueAttribute()) : 0.f;
+	return FGrimSurvivalModel::ComputeTiredCastTime(Definition->CastWindup, Fatigue, UGrimSurvivalSettings::GetRules());
+}
+
+bool UGrimSpellAbility::RollTiredMiss(const UAbilitySystemComponent* SourceASC, const UAbilitySystemComponent* TargetASC, float Roll)
+{
+	// 생물 · 플레이어(ASC 가 있는 것)에게만. 사물 자극은 피곤해도 그대로(R16).
+	if (!SourceASC || !TargetASC || SourceASC == TargetASC || !SourceASC->HasAttributeSetForAttribute(UGrimVitalAttributeSet::GetFatigueAttribute()))
+	{
+		return false;
+	}
+	const float Fatigue = SourceASC->GetNumericAttribute(UGrimVitalAttributeSet::GetFatigueAttribute());
+	const float Chance = FGrimSurvivalModel::ComputeTiredMissChance(Fatigue, UGrimSurvivalSettings::GetRules());
+	return FGrimSurvivalModel::RollMiss(Chance, Roll >= 0.f ? Roll : FMath::FRand());
+}
+
 void UGrimSpellAbility::ApplySpellHit(const UGrimSpellDefinition* Definition, UAbilitySystemComponent* SourceASC, const FGameplayEffectSpecHandle& DamageSpec, AActor* Instigator, AActor* HitActor, float StimulusIntensity)
 {
 	if (!Definition || !HitActor || !HitActor->HasAuthority())
@@ -1245,6 +1272,20 @@ void UGrimSpellAbility::ApplySpellHit(const UGrimSpellDefinition* Definition, UA
 	}
 	// 숙련도(Q26): 반응 여부는 자극을 주기 전에 본다.
 	const bool bMeaningfulHit = UGrimSpellbookComponent::IsMeaningfulHit(Definition, SourceASC, HitActor);
+
+	// 지침(Q132): 맞는 판정이 난 뒤 확률로 빗나간다 — 피해 · 상태 · 숙련도 경험 없음, 시전자 화면에 「MISS」.
+	if (RollTiredMiss(SourceASC, FindTargetASC(HitActor)))
+	{
+		if (UGrimSpellbookComponent* Spellbook = UGrimSpellbookComponent::FindForASC(SourceASC))
+		{
+			FVector Origin;
+			FVector Extent;
+			HitActor->GetActorBounds(true, Origin, Extent);
+			Spellbook->ClientShowMiss(Origin + FVector(0.f, 0.f, Extent.Z + 30.f));
+		}
+		UE_LOG(LogGrimMagic, Display, TEXT("[Server] %s → %s 빗나감(지침)"), *Definition->GetName(), *HitActor->GetName());
+		return;
+	}
 
 	if (UAbilitySystemComponent* TargetASC = FindTargetASC(HitActor); TargetASC && DamageSpec.IsValid())
 	{

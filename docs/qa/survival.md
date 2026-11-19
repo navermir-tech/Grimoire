@@ -1,8 +1,8 @@
 # QA — 생존 · 밤낮 · 날씨
 
-[QA 절차](../dev/qa) · 스펙 [생존](../spec/survival) · [세계 · 환경](../spec/world), 설계 [생존](../systems/survival) · [환경 · 날씨](../systems/environment). 마지막 실행 **2026-11-08**(브랜치 `claude/answers-q116-032c8c` — Q102 · Q116~Q120 항목만, 나머지 행은 적힌 날짜 그대로)(main `a6da3f7` 기준).
+[QA 절차](../dev/qa) · 스펙 [생존](../spec/survival) · [세계 · 환경](../spec/world), 설계 [생존](../systems/survival) · [환경 · 날씨](../systems/environment). 마지막 실행 **2026-11-18**(QA-SUR-004 · 037 · 038 — 브랜치 `claude/align-decisions-1c6ee9`), 그 전 **2026-11-08**(브랜치 `claude/answers-q116-032c8c` — Q102 · Q116~Q120 항목만, 나머지 행은 적힌 날짜 그대로)(main `a6da3f7` 기준).
 
-다시 돌리기: `powershell -File Scripts\QA\run_all.ps1 -Only automation,survival,weather,items` · 화면 `Scripts\QA\shoot_qa.ps1`.
+다시 돌리기: `powershell -File Scripts\QA\run_all.ps1 -Only automation,survival,weather,items` · 지침 「MISS」 · 열병 화면 `Scripts\Survival\capture_tired_fever.ps1` · 화면 `Scripts\QA\shoot_qa.ps1` · 밤 화면 `Scripts\Environment\shoot_night.ps1 -Tag after`.
 
 ## 생존 스탯 (R03 · R25 · R29)
 
@@ -11,8 +11,8 @@
 | QA-SUR-001 | R03 | 배고픔 감소 · HP · 마나 회복(배고프면 HP 회복 없음) · 어트리뷰트 범위 | ① `Grimoire.Survival.Hunger` · `.Effects` · `.AttributeClamp` · `.Penalty` | 통과 | ✅ 11-06 | 자동화 153/153 |
 | QA-SUR-002 | R25 | 지역 · 날씨 등급 − 장비 저항 = 실제 등급(저항 3 이면 추위 등급이 있어도 태그 없음) | ① `Grimoire.Survival.Climate.Exposure` · `.Climate.Status` · `Grimoire.Environment.Climate.*` + ④ `net_check_survival.ps1`(클라이언트 저항 0 3) | 통과, 밤 건너뛴 뒤 클라이언트 `Cold=0` · 태그 없음 | ✅ 11-06 | `survival.txt` |
 | QA-SUR-003 | R29 | **체온은 그 존에 들어가면 등급이 즉시** 적용(게이지가 천천히 따라가지 않음) | 코드 · 설정 확인 | 등급 즉시, 수렴 없음 | ❌ [BUG-003](./bugs) | `Grimoire.Survival.BodyTemperature.Converge` 가 아직 2분 지수 수렴을 시험 · `BodyTemperatureTimeConstantSeconds=120` |
-| QA-SUR-004 | R29 | 체온 모자람 3 이상이 5분 → 감기(추위) · **열병**(더위) | ① `Grimoire.Survival.Disease` | 통과 + 열병 질병이 있다 | ❌ [BUG-003](./bugs) — 감기는 있음, 열병(새 질병) 없음 | 질병 표에 열병 없음(`Heatstroke` 는 더위 2단계 상태 글자) |
-| QA-SUR-005 | R29 · Q116 | 피곤함: **탈진(≥ 80) = 달리기 불가 · 지친 걸음 · 마법 시전 불가**(주먹질은 됨), 강제 기절 없음. 탈진 전 「시전 속도 · 명중 저하」는 Q132 | ① `Grimoire.Survival.Fatigue` · `.Penalty` · `Grimoire.Magic.Proficiency.Spellbook`(차단 태그) · `Grimoire.Magic.CastFailure.Classify` + ④ `net_check_survival.ps1`(피곤함 85 → 슬롯 1 → 기본 공격) | 탈진에서 걸음 ×0.7 · 시전 배율 그대로 · 슬롯 마법은 「마법 실패 Exhausted」 · 기본 공격은 주먹질, 설정에 기절 키 없음 | ✅ 11-08(브랜치 `claude/answers-q116-032c8c`) — 서버 · 클라이언트 덤프 `Fatigue=85.0 Move=0.70 Cast=1.00 Walk=350 tags=Status.Exhausted`(걸음 500 → 350), 슬롯 1 → `[Server] 마법 실패 … Exhausted` · `[Client] 마법 실패 알림 Exhausted: 너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다` · 양쪽 피식 연출, 기본 공격 → 양쪽 `주먹질`. 탈진 전 저하는 아직 없음(Q132) | `survival.txt` · 자동화 181/181 |
+| QA-SUR-004 | R29 · Q115 | 체온 모자람 3 이상이 5분 → 감기(추위) · **열병**(더위), 3 아래로 내려가면 시계 처음부터, 모자람 2 는 아무리 오래도 없음. 열병 = 체온 게이지 +1.5 ℃ · 피곤함 ×1.5 · 300초(감기와 대칭 제안). 옛 「젖은 채 60초 35 %」 없음 | ① `Grimoire.Survival.Disease` · `.Effects` · ③ `Scripts\Survival\capture_tired_fever.ps1`(열병을 걸고 생존 디버그 글, 20초 뒤 다시) | 통과, 화면에 `Status Fever` · 체온이 오름 · 피곤함이 빨리 쌓임 | ✅ 11-18(브랜치 `claude/align-decisions-1c6ee9`) — 자동화 통과, 화면 `Status Fever` · 20초 뒤 체온 37.24 ℃(목표 38.5 로 2분 수렴 — 계산 37.23) · 피곤함 0 → 0.8(보통이면 0.55, ×1.5) | `qa-surv-fever.jpg` · 로그 `질병 Status.Sick.Fever — 300초` |
+| QA-SUR-005 | R29 · Q116 | 피곤함: **탈진(≥ 80) = 달리기 불가 · 지친 걸음 · 마법 시전 불가**(주먹질은 됨), 강제 기절 없음. 탈진 전 「지침」은 QA-SUR-037 · 038(Q132) | ① `Grimoire.Survival.Fatigue` · `.Penalty` · `Grimoire.Magic.Proficiency.Spellbook`(차단 태그) · `Grimoire.Magic.CastFailure.Classify` + ④ `net_check_survival.ps1`(피곤함 85 → 슬롯 1 → 기본 공격) | 탈진에서 걸음 ×0.7 · 시전 배율 그대로 · 슬롯 마법은 「마법 실패 Exhausted」 · 기본 공격은 주먹질, 설정에 기절 키 없음 | ✅ 11-08(브랜치 `claude/answers-q116-032c8c`) — 서버 · 클라이언트 덤프 `Fatigue=85.0 Move=0.70 Cast=1.00 Walk=350 tags=Status.Exhausted`(걸음 500 → 350), 슬롯 1 → `[Server] 마법 실패 … Exhausted` · `[Client] 마법 실패 알림 Exhausted: 너무 지쳐 마법을 쓸 수 없다 — 잠을 자야 풀린다` · 양쪽 피식 연출, 기본 공격 → 양쪽 `주먹질`. 탈진 전 저하는 아직 없음(Q132) | `survival.txt` · 자동화 181/181 |
 | QA-SUR-006 | R29 | 질병 = 상태별 디버프 총칭, 치료 수단 태그(약초 · 치료 마법 · 질병별 물약 · 정화) | ① `Grimoire.Survival.Disease` + 설정 확인 | 질병 정의가 데이터(질병마다 치료 수단 태그) | ❌ [BUG-003](./bugs) — 테스트는 통과하지만 질병은 복통 · 감기 둘이 `Disease=(…)` 고정 칸이고, 치료 수단 태그 · 질병 표가 없다 | `Config/DefaultGame.ini` `Disease=(RawFoodStomachChance … ColdDurationSeconds …)` |
 
 ## 잠 · 쓰러짐 · 부활 (R29 — 2인)
@@ -35,8 +35,62 @@
 | QA-SUR-021 | R04 · R16 | 2인 날씨: 맑음 → 비(야외 양초가 꺼지고 젖음) → 뇌우 → 낙뢰 | ④ `Scripts\Environment\net_check_weather.ps1` | 클라이언트에도 `날씨 Meadow: Clear -> Rain`, 양초 `Wet=2.00`, `Rain -> Thunderstorm`, `낙뢰 연출` 2번 | ✅ 11-06 | `weather.txt` — 서버 낙뢰 `GrimCandle_2 (500, 250, 0)` · `땅 (-1973, 1150, 0)` = 클라이언트 `낙뢰 연출` 같은 두 자리 |
 | QA-SUR-022 | R04 | 날씨 블렌드 · 전환 · 낙뢰 후보 · 지역 볼륨 섞기 | ① `Grimoire.Environment.Weather.*` · `.Climate.RegionBlend` · `.Climate.Table` | 통과 | ✅ 11-06 | 자동화 |
 | QA-SUR-023 | R04 | 비가 시야(100 km → 200 m) · 락온 거리(×0.90 → 뇌우 ×0.85) · 추위 등급(+1)을 바꾼다 | ④ 같은 스크립트의 위치 탐침 | `시야 20000, 락온 x0.90 … 날씨 0/1` | ✅ 11-06 | `weather.txt` |
-| QA-SUR-024 | R04 | 화면: 밤 하늘 | ③ 장면 `qa-night`(`Grim.Creature.Time 0.02`) | 어두운 하늘 · 달빛 | ❌ [BUG-008](./bugs) — 자동 노출이 밤을 낮처럼 끌어올림(노출을 고정하면 캄캄함) | `qa-night.jpg` · `qa-night-fixed-exposure.jpg` |
+| QA-SUR-024 | R04 · Q101 | 화면: 밤 하늘 | ③ 장면 `qa-night`(`Grim.Creature.Time 0.02`) — 자세한 것은 아래 「밤 화면」 | 어두운 하늘 · 달빛 | ✅ 11-18 — [BUG-008](./bugs) 고침, QA-SUR-037~043 | `night-meadow-after.jpg`(아래 `qa-night.jpg` 는 고치기 전) |
 | QA-SUR-025 | R04 | 화면: 비 | ③ 장면 `qa-rain`(`Grim.Weather.Set All Rain 0`) | 빗줄기 · 젖은 표면 | ❌ [BUG-009](./bugs) — 하늘이 조금 흐려질 뿐 빗줄기가 안 보인다 | `qa-rain.jpg` |
+
+## 밤 화면 (Q101)
+
+2026-11-18, 브랜치 `claude/night-exposure-1a1880`. 목표: 달빛 아래 땅 · 나무 · 캐릭터 윤곽이 또렷하고 색은 많이 빠진 밤(호그와트 레거시 밤 정도), 불 곁은 확실히 밝게, 낮 · 노을 · 탑 안은 그대로 — 설계 [환경 「밤 화면」](../systems/environment#밤-화면-q101-·-bug-008-2026-11-18).
+
+방법: `powershell -File Scripts\Environment\shoot_night.ps1 -Tag before|after` — L_OpenBeta 큰길 200 m(성능 자리 `path200`) · 탑 문 앞 · 탑 홀(고정 카메라)에서 같은 자리 · 같은 카메라로 12장면, 하루 길이를 늘려 시각을 멈춘다. 「전」 은 같은 스크립트로 고치기 전 코드(`c1486f6a`)를 빌드해 찍었다. 수는 그림 가운데 60 % 의 평균 밝기(0~255, 스크립트가 출력). 캐릭터 외형은 실행마다 무작위라 다르다.
+
+| ID | R | 기능 · 무엇을 | 방법 | 기대 결과 | 결과 | 증거 |
+|---|---|---|---|---|---|---|
+| QA-SUR-037 | Q101 | 밤 섞임: 낮 · 해넘이 순간 0, 한밤 1, 하루 내내 한 번에 튀지 않음, 낮은 달은 최저 높이로, 해넘이 노출 하한 ≤ 밤 하한 | ① `Grimoire.Environment.Sky.NightBlend` | 통과 | ✅ 11-18 | 자동화 |
+| QA-SUR-038 | Q101 | 밤 초원(0.02): 하늘 · 땅 · 나무 · 캐릭터 윤곽이 보이고 색이 빠진다 — 낮처럼 밝지도, 캄캄하지도 않다 | ③ `night-meadow` · `night-tower` | 밝기 낮의 1/3 쯤, 실루엣 | ✅ 11-18 — 초원 150.3 → 55.8, 탑 앞 145.0 → 47.5(낮 159.7). 나무 · 길 · 캐릭터 윤곽, 풀은 회녹색, 탑 문 안 불빛만 밝다 | [그림](#밤-화면-그림) |
+| QA-SUR-039 | Q101 | 해질녘 · 새벽에 튀지 않는다: 낮 → 해 낮음 → 해넘이 → 막 진 뒤 → 어스름 → 한밤이 차례로 어두워진다 | ③ `night-day` · `night-dusk-a`~`d` · `night-meadow` | 해넘이부터 밤까지 밝기가 줄곧 줄거나 밤 수준에 머문다(노을이 하얗게 뜨거나, 막 진 뒤가 낮처럼 밝아지지 않음) | ✅ 11-18 — 159.7 · 144.6 · 89.7 · 54.0 · 39.6 · 55.8(전: 161.4 · 145.0 · 93.3 · 31.8 · 39.6 · 150.3 — 전에는 막 진 뒤 깊이 꺼졌다가 한밤에 낮처럼 밝아졌다) | 같음 |
+| QA-SUR-040 | Q101 | 낮 · 노을은 그대로 | ③ `night-day` · `night-dusk-a` · `night-dusk-b` 전후 | 밝기 · 색이 같다(±4) | ✅ 11-18 — 161.4 → 159.7 · 145.0 → 144.6 · 93.3 → 89.7. 그림도 같은 노을색(가중치 0 이라 후처리를 건너뜀) | 같음 |
+| QA-SUR-041 | Q101 | 탑 안(등불 켠 홀)은 밤 · 낮 모두 그대로 | ③ `night-room-night` · `night-room-day` 전후 | 같다(±3) | ✅ 11-18 — 밤 154.0 → 153.9, 낮 158.2 → 158.0. 실내 판정(지붕 + 둘레 벽)을 넣기 전에는 밤 홀이 138 로 어두워졌다 | 같음 |
+| QA-SUR-042 | Q101 | 모닥불 · 불 마법 곁이 확실히 밝다 | ③ `night-campfire`(옆 고정 카메라) · `night-ember-cast`(완드 섬광, 게임 0.1초) · `night-ember-hit`(땅에 맞음, 0.2초) | 어두운 둘레 속에서 불 곁 땅 · 캐릭터가 밝고 따뜻한 색 | ✅ 11-18 — 모닥불 177.5(곁 땅 · 캐릭터가 하얗게 밝다 — 조금 과하다), 불씨 섬광 80.7 · 터짐 90.6(같은 자리 불 없이 약 64), 맞은 둘레 땅이 주황 | 같음 |
+| QA-SUR-043 | — | 성능: 후처리 1개 · 실내 트레이스(초당 36) · 불씨 점광원(그림자 없음, 0.6초)이 예산 안 | `Scripts\Perf\measure.ps1 -Only Render -Settle 25` 낮 · 밤(`-ExtraCmds "Grim.Creature.Time 0.02 6"`) 전후 | GPU ≤ 7 ms · 게임 ≤ 9 ms · 렌더 ≤ 10 ms | ⚠️ 11-18 — GPU 전 4.18 ~ 4.69 → 후 4.17 ~ 4.85 ms(낮 · 밤), 게임 스레드 2.77 ~ 3.44 → 2.89 ~ 3.73 ms 로 예산 안. 렌더 스레드는 다른 세션이 같은 PC 에서 게임을 띄운 동안 재서(측정 스크립트 경고) 자리마다 5.5 ~ 11.2 ms 로 흔들렸다 — 방해 없던 자리(낮 문 앞 5.83 · 언덕 5.45, 밤 생물 자리 5.69)는 전(5.2 ~ 6.2)과 같다. 합친 뒤 조용할 때 다시 잰다 | `Saved\Perf\night-before*` · `night-after*` |
+
+### 밤 화면 그림
+
+같은 자리 · 같은 카메라의 전(`-before`) · 후(`-after`).
+
+![밤 초원 — 전: 자동 노출이 낮처럼 끌어올림](/qa/night-meadow-before.jpg)
+
+![밤 초원 — 후: 달빛 아래 윤곽 · 색 빠짐](/qa/night-meadow-after.jpg)
+
+![탑 문 앞 밤 — 전](/qa/night-tower-before.jpg)
+
+![탑 문 앞 밤 — 후: 문 안 불빛만 밝다](/qa/night-tower-after.jpg)
+
+![불씨가 땅에 맞은 순간 — 전](/qa/night-ember-hit-before.jpg)
+
+![불씨가 땅에 맞은 순간 — 후: 맞은 둘레가 주황으로 밝다](/qa/night-ember-hit-after.jpg)
+
+![불씨 완드 섬광 — 후](/qa/night-ember-cast-after.jpg)
+
+![모닥불 — 전](/qa/night-campfire-before.jpg)
+
+![모닥불 — 후](/qa/night-campfire-after.jpg)
+
+![해넘이 0.8125 — 전](/qa/night-dusk-b-before.jpg)
+
+![해넘이 0.8125 — 후(그대로)](/qa/night-dusk-b-after.jpg)
+
+![막 진 뒤 0.819 — 전](/qa/night-dusk-c-before.jpg)
+
+![막 진 뒤 0.819 — 후](/qa/night-dusk-c-after.jpg)
+
+![어스름 0.83 — 후](/qa/night-dusk-d-after.jpg)
+
+![탑 홀 밤 — 전](/qa/night-room-night-before.jpg)
+
+![탑 홀 밤 — 후(그대로)](/qa/night-room-night-after.jpg)
+
+![한낮 — 후(그대로)](/qa/night-day-after.jpg)
 
 ## 먹기 · 요리 (R03 · R16)
 
@@ -49,12 +103,18 @@
 | QA-SUR-034 | R03 | 더블클릭 사용: 한 번 = 고르기만, 두 번 = 음식 하나 먹음(배고픔 · 「먹었다」 알림), 재료 · 빈 칸 = 줄지 않고 알림도 없음, 장비 = 입기(「입었다」 알림), 옮기기 중의 누름은 쓰지 않음 | ① `Grimoire.Items.BagDoubleClick.Use` | 통과 | ✅ 11-08 | 자동화 |
 | QA-SUR-035 | R03 · R13 | 2인: 클라이언트 화면의 더블클릭이 `Server_UseItem` 으로 서버에서 처리되고 소유자에게 복제된다(호스트도 같은 입력) | ④ `Scripts\Items\net_check_bag_doubleclick.ps1` | 끝 줄 `NETCHECK_RESULT fail=0` | ✅ 11-08 | PASS 10 · 클라 고기 3 → 3 → 3 → 2 · 배고픔 29.9 → 59.8 · 털 3 그대로 · 두건 입음 · 서버 「먹었다」 2줄(클라 · 호스트) |
 | QA-SUR-036 | R03 | 화면: 실제 칸 단추에 OS 마우스 메시지 경로로 더블클릭 입력 — 개수 ×3 → ×2, 배고픔 막대 30 → 60, 「먹었다」 알림, 재료는 고르기만 | ③ `Scripts\QA\shoot_qa.ps1 -Set Bag`(`Grim.Items.BagMouse`) | 그림과 `shoot.log` 의 덤프 | ✅ 11-08 · [그림](#그림) | `[BagInput] 칸 0 슬레이트 더블클릭 라우팅 됨` → 덤프 `RoastedJackalopeMeat×2` · Hunger 59.9 |
+| QA-SUR-037 | R29 · Q132 | 지침(피곤함 50~79 `Status.Tired`): 이동 · 시전 속도 배율은 그대로, 시전 시간이 있는 마법(0.25초 이상)만 ×1.3 · 즉발(불씨 0.1초)은 그대로, 빗나감 확률 50 에서 10 % → 탈진 문턱 쪽 30 %, 탈진에선 굴리지 않음. 서버 굴림은 생물 · 플레이어에게만(사물 자극은 늘) | ① `Grimoire.Survival.Tired` · `Grimoire.Magic.Tired.Miss`(굴림 0 · 0.99, 2,000번 ≈ 20 %, 시전 시간) | 통과 | ✅ 11-18 — 수치는 제안(Q165), 「시전 속도」 보정의 뜻은 Q166 | 자동화 195/195 |
+| QA-SUR-038 | Q132 | 화면: 지침에서 생물을 맞혔는데 빗나가면 맞은 자리 위에 「MISS」가 떠올라 사라지고 피해가 없다(로그 `빗나감(지침)`), 맞으면 그대로 | ③ `Scripts\Survival\capture_tired_fever.ps1 -Casts 20`(초원, 재칼로프 셋 8 m, 피곤함 79 고정, 불씨 연사 — 쏠 때마다 장면) | 몇 발이 빗나가고 그 장면에 「MISS」 글 | ✅ 11-18 — 17발 맞음 중 5발 빗나감(≈ 29 %, 피곤함 79 의 기대 30 %), 빗나간 장면에 흰 「MISS」가 터짐 위에 뜬다. 처음엔 기본 글 머티리얼이 불씨 터짐 빛을 받아 주황 덩어리로 뭉개졌다 → 빛을 받지 않는 `UnlitText` 로(데이터 `MissText.Material`) | `qa-surv-miss.jpg` · `Saved\TiredCapture\game.log` |
 
 ## 그림
 
-![QA-SUR-024 — 밤(Grim.Creature.Time 0.02) — 자동 노출로 낮처럼 보인다](/qa/qa-night.jpg)
+![QA-SUR-038 — 지침 빗나감: 맞은 자리 위 「MISS」(초원, 피곤함 79)](/qa/qa-surv-miss.jpg)
 
-![QA-SUR-024 — 같은 밤, 자동 노출을 끔(r.EyeAdaptationQuality 0)](/qa/qa-night-fixed-exposure.jpg)
+![QA-SUR-004 — 열병: 생존 디버그 글 `Status Fever`, 20초 뒤 체온 37.24 ℃ · 피곤함 0.8](/qa/qa-surv-fever.jpg)
+
+![QA-SUR-024 — 고치기 전(11-06) 밤 — 자동 노출로 낮처럼 보인다](/qa/qa-night.jpg)
+
+![QA-SUR-024 — 고치기 전(11-06) 같은 밤, 자동 노출을 끔(r.EyeAdaptationQuality 0) — 캄캄하다](/qa/qa-night-fixed-exposure.jpg)
 
 ![QA-SUR-025 — 비(Grim.Weather.Set All Rain 0)](/qa/qa-rain.jpg)
 

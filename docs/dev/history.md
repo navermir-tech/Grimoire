@@ -35,9 +35,15 @@
 | 11-07 | 서클 세 축 Q122 (코드) | 서클 표 `Circles.csv` — 격 차이 위력 · 마나, 슬롯 세트 · 장비 등급 해금, 숙련도 승급 자격, 봉인된 책, 그리모어 「서클」 탭 | 브랜치 `claude/zen-goldwasser-c0e153` |
 | 11-08 | 사용자 답 Q102 · Q116~Q120 (코드) | 생성 화면 정면 카메라(얼굴 · 전신 · 끌어서 돌림), 탈진 = 마법만 차단 · 지친 걸음 · 기절 삭제, 길들이기 서클 문턱 → 팰월드식 9제곱 확률 곡선(`CalcCircleScale`) · 파크툼 벤투스 1서클, 기본 공격 연타 창 = 마지막 발부터 1초 · 슬롯 마법이 끊지 않음 | 브랜치 `claude/answers-q116-032c8c`(메인이 합침) |
 | 11-09 | 물 재질 Q126 | Water Materials 팩(CC BY) `M_River` 인스턴스로 개울 · 연못 물 표면 교체, 크레딧 문서, 호 길이 UV 연속화 | [물 재질 Q126](#물-재질-q126-2026-11-09) |
+| 11-18 | 마법탑 구역 아트 시범 (Q96) | 탑 외관 · 1층 · 앞마당을 자체 제작 에셋으로 — 블렌더 모듈 키트 43 · 절차 텍스처 21 · `M_GrimEnv_Master` + 인스턴스 15, 그레이박스 · 팩은 숨김(충돌 유지), 풀 제외 볼륨(BUG-010) | [마법탑 구역 아트 시범](../art/tower-art) · 브랜치 `claude/tower-artstyle-3be908` |
 | 11-09 | 초원 꾸밈 기획 (문서) | 소품을 마법 반응으로 — 요소 32 · 장면 8 · 분포 규칙 · 1차 11(Q150~Q157), 다른 게임 조사 근거 | [초원 꾸밈](../spec/meadow-dressing) |
+| 11-18 | 밤 화면 Q101 | 해가 진 뒤 자동 노출 하한(−5.5 → −2 EV100) · 채도 빼기, 달빛 최저 높이 30°, 불씨 섬광 · 터짐 빛 — 달빛 아래 실루엣, 낮 · 노을 · 탑 안 그대로(BUG-008) | [밤 화면 Q101](#밤-화면-q101-—-달빛-아래-실루엣-2026-11-18) |
+| 11-18 | 마법 · 생존 결정 맞추기 (코드) | 발사 빛줄기는 원격 지연 당김에만(Q110) · 연출 묶음 부모 태그로 · 무속성 · 땅 · 어둠 볼트 묶음 + 연기 가닥 · 돌가루(Q113 · Q87) · 열병 + 모자람 3 이상 5분 질병(Q115) · 지침 = 시전 시간 · 「MISS」(Q132) · 막시마 · 전설 7서클 규칙(Q133 · Q134) · 「포만」 · 쿠스토디아 막시마 줄 삭제(Q53 · Q61) | [마법 · 생존 결정 맞추기](#마법-·-생존-결정-맞추기-2026-11-18) |
 | 11-18 | 사용자 답 Q46~Q110 (문서) | 전설도 길들일 수 있다(Q48) · 피곤함 · 배고픔은 인챈트로 못 막고 커피 · 에너지 드링크로(Q53) · 인챈트 칸 · 단계는 데이터에(Q51) · 묶음 알리는 법(Q54) · 보관은 크기 무관(Q61) · 천둥새도 잡는다(Q162) · 마법탑 아트풍 시범(Q96) · Q85 빛줄기는 원격만(Q110) 등, 새 미결 Q160 · Q161 · Q163 · Q164 | [사용자 답 Q46~Q110](#사용자-답-q46-q110-→-문서-2026-11-18) |
 | 11-18 | 사용자 답 Q111~Q150 (문서) | 낙뢰는 빛 자극 하나(Q111) · 밤 건너뛰기 비율은 서버 옵션 기본 전원(Q114) · 열병 추가 · 그늘 더위 −1 없음(Q115) · 피곤함 「지침」 = 시전 시간 · 맞은 뒤 빗나감 MISS(Q132) — 시전 속도와 쿨다운 용어 정리 · 레스티투오 하나씩 수리(Q123) · 「개인만 무료」 받아 둘 14 개(Q128) · 크레딧은 설정 안 탭(Q137) · **지도 · 미니맵 스펙 새로**(Q130), 새 미결 Q165~Q169 | [사용자 답 Q111~Q150](#사용자-답-q111-q150-→-문서-2026-11-18) |
+| 11-18 | 초원 꾸밈 1차 묶음 (Q150) | 반응 소품 공통 액터 · 채집 셀 관리자 · 도감 임시 목록 · F 대상 약속, 요소 11 을 `L_OpenBeta` 마탑 구간에 배치 스크립트로(소품 140 · 채집점 80 · 꽃 524), `EFT_Grim_Ambient` | 브랜치 `claude/meadow-dressing-1-e6c026` |
+| 11-18 | 구역 이름 · 크레딧 탭 (Q130 · Q137, 코드) | 구역에 처음 들어서면 화면 위쪽에 이름 + 한 줄(젤다 · 엘든 링식, 본 구역은 플레이어 세이브), 레이아웃 `Sections` 에 큰 구역 경계 · 게임 문구, 설정 → 「크레딧 확인」 탭(정본 `Credits.json` → 문서 표 · `CREDITS.txt`) | [구역 이름 · 크레딧](#구역-이름-·-크레딧-탭-q130-·-q137-2026-11-18) |
+| 11-19 | 합치기 묶음 통합 확인 | 탑 아트 시범 · 초원 꾸밈 1차 · 결정 맞추기(밤 화면) · 구역 이름 · 크레딧 탭을 한 브랜치에 모아 빌드 · 자동화 209 · 2인 · 성능(`merge-1119`) 확인. 시작 자리를 못 써 땅 밑에 생기던 것(BUG-013 — 탑 아트 메시 충돌이 켜져 몸통이 PlayerStart 를 덮음)을 고치고 `check_openbeta` 에 시작 자리 확인을 더함 | [QA — 성능](../qa/perf) · [BUG-013](../qa/bugs) · 브랜치 `claude/meadow-dressing-1-e6c026` |
 
 ## M0 · 셋업 (2026-11-04 ~ 05)
 
@@ -227,6 +233,37 @@
   - 검색 색인은 `<hN>…<a href="#…"></a></hN>` 이 한 줄일 때만 절로 나눈다 — 카드 제목 줄에 줄바꿈을 넣으면 번호 검색이 페이지 맨 위로 간다.
   - 한글 머리글 `id` 는 NFD(자모 분리)다 — `getElementById('미결-질문')` 처럼 NFC 문자열로는 못 찾는다.
 
+## 마법 · 생존 결정 맞추기 (2026-11-18)
+
+- **무엇을**: 사용자 답(2026-11-18)과 어긋난 마법 · 생존 코드 · 데이터를 맞췄다. 브랜치 `claude/align-decisions-1c6ee9`(밤 화면 Q101 브랜치 위).
+  - **Q110** 볼트 발사 빛줄기는 원격 시전자의 지연을 당긴 볼트에만, 완드 끝부터 볼트 자리(틈)까지 — 혼자 · 호스트는 긋지 않는다. 당긴 시간을 투사체 `LaunchAdvanceSeconds`(처음 한 번 복제)로 보내고, 연출 묶음의 `LaunchStreakSeconds` 는 지웠다([투사체 · 시전 감각 — 발사 빛줄기](../systems/spell-feel)).
+  - **Q113 · Q87** 연출 묶음 기본값을 부모 태그로 거슬러 찾고(`GrimMagicFXMath::FindByTagOrParent`), 볼트 · 포물선은 `DefaultBoltVisualSets` 먼저 — 무속성 `VS_Arcane` · 땅 `VS_Earth`(덧그림 돌가루 `NS_Bolt_Dust`) · 어둠 `VS_Dark`(덧그림 연기 가닥 `NS_Bolt_Smoke`), 모르면 무속성. 투사체도 같은 고르기를 써서 파크툼 볼트가 바늘 빛줄기로 난다. 연출 묶음 칸 `TrailAccent` 를 더했다.
+  - **Q115** 체온 질병을 R29 대로 — 모자람 3 이상 5분 → 감기 · **열병**(새 `Status.Sick.Fever`, 감기와 대칭 제안: 300초 · 체온 게이지 +1.5 ℃ · 피곤함 ×1.5). 옛 「젖은 채 추위 60초마다 35 %」는 지웠다. 세이브 `Survival.Vitals` v2(열병 · 더위 시계, v1 도 읽음). 그늘 더위 −1 은 넣지 않았다([생존 — 질병](../systems/survival#질병)).
+  - **Q132** 지침(피곤함 50~79, `Status.Tired`): 시전 시간 0.25초 이상인 마법만 시전 시간 ×1.3(지금 마법은 모두 즉발이라 체감 없음, 쿨다운 그대로), 서버가 생물 · 플레이어에게 맞은 뒤 10 → 30 % 로 빗나감을 굴려 피해 · 상태 · 숙련도를 막고 시전자 화면에 「MISS」(`AGrimMissText`)([생존 — 피곤함](../systems/survival#피곤함)).
+  - **Q133 · Q134** 데이터 규칙: 파크툼 막시마(`GiantPactSpells`)는 거대 개체에 ×0.7 없이 속성 일치 +0.25, 전설 요구 서클은 모두 7(`LegendaryRequiredCircle`) — 전설 종 · 막시마 정의는 아직 없다([생물 — 길들이기](../systems/creatures)).
+  - **Q53 · Q61** `Enchants.csv` 의 `Satiety`(포만), `Skillbooks.csv` 의 `Skillbook_Custodia_Maxima` 줄을 지우고 스킬북 표를 다시 뽑았다(90권). 레스티투오 설명에 「하나씩 수리」(Q123)를 넣었다.
+  - **Q123** 은 코드가 이미 그 규칙(Q121 때)이라 테스트만 더했다. **Q114** `SleepSkipRatio` 기본 1 을 테스트로 확인.
+- **어떻게**: 순수 계산은 `FGrimSurvivalModel`(`AccumulateExposureSickness` · `ComputeTiredMissChance` · `ComputeTiredCastTime`) · `GrimSpellDelivery::CalcLaunchStreakLength` · `GrimTamingMath::ResolveRequiredCircle` 로 떼어 자동화 테스트. 새 Niagara 는 사양 파일 `art/fx/specs/spell/bolt_accent.json` → `make_spell_fx.py`(`GRIM_FX_SPEC=bolt_accent`), 묶음은 `make_magicfx_assets.py`(`GRIM_FX_STEPS=visual_sets`). 화면은 `Grim.FX.Bolt … <당김초>`(새 인자) · `Scripts/Survival/capture_tired_fever.ps1`(새).
+- **확인**: 자동화 195/195(새 `Grimoire.MagicFX.VisualSet.Resolve` · `Grimoire.Survival.Tired` · `Grimoire.Magic.Tired.Miss` · `Grimoire.Taming.GiantPact` · `Grimoire.Base.Repair.Piece`, 고친 `Grimoire.Magic.Delivery.LaunchStreak` · `Grimoire.Survival.Disease` · `.Sleep` · `.Effects` · `Grimoire.MagicFX.Assets`), 화면 [QA — 이펙트](../qa/fx) 012 · 014, [QA — 생존](../qa/survival) 004 · 037 · 038.
+- **함정**:
+  - 투사체의 발사 빛줄기를 `BeginPlay` 에서만 그으면 서버(호스트 화면)는 `CatchUp` 전이라 틈이 늘 0 이다 — 서버 사본은 당긴 직후에 긋는다.
+  - 새 워크트리는 LFS 파일이 포인터로만 있다 — 헤드리스 스크립트가 「Invalid value for PACKAGE_FILE_TAG」로 에셋을 못 연다. `git lfs checkout`(공유 저장소에서 꺼냄, 1.9 GB)부터.
+  - NiagaraToolsets 의 Fountain 템플릿 이미터에는 `ScaleSpriteSize` 모듈이 없다 — 끄기를 시키면 설정 실패로 센다.
+  - 「시전 속도」 보정(완드 · 추위 · 성장 트리)은 코드가 여전히 쿨다운을 나눈다(Q166 미결) — 지침은 그것과 따로 시전 시간만 건드린다.
+
+## 밤 화면 Q101 — 달빛 아래 실루엣 (2026-11-18)
+
+- **무엇을**: 사용자 답(Q101 — 「호그와트 레거시 밤 정도로」)대로 밤을 「달빛 아래 땅 · 나무 · 캐릭터 윤곽이 보이고 색이 많이 빠진」 화면으로, 모닥불 · 불 마법 곁은 확실히 밝게. 낮 · 노을 · 등불 켠 탑 안은 그대로([BUG-008](../qa/bugs) 고침) — [환경 「밤 화면」](../systems/environment#밤-화면-q101-·-bug-008-2026-11-18).
+- **어떻게**: 하늘 컨트롤러에 무한 범위 후처리 `NightLook` 하나. 해가 진 뒤에만(밤 섞임 `GetNightBlend` — 해가 지평선에서 약 10° 아래로 내려가는 동안 0 → 1) 자동 노출 **하한**을 해넘이 −5.5 → 밤 −2 EV100 으로 올리고 채도(전체 0.85 · 어두운 영역 0.4)를 뺀다. 하한이라 모닥불처럼 밝은 곳은 손대지 않고, 카메라가 실내(지붕 + 둘레 8 방향 중 6 이 막힘)면 뺀다. 달빛은 최저 높이 30°(`GetMoonDirection`). 불씨 연출에 빛만 내는 펄스(섬광 10 cd · 터짐 25 cd). 값은 `Config/DefaultGame.ini` 의 환경 설정 · `Scripts/MagicFX/make_magicfx_assets.py`.
+- **확인**: [QA — 생존 「밤 화면」](../qa/survival#밤-화면-q101) — 같은 자리 · 같은 카메라 전후 그림 11쌍(`Scripts/Environment/shoot_night.ps1`), 자동화 `Grimoire.Environment.Sky.NightBlend`, 렌더 측정 낮 · 밤 전후.
+- **함정**:
+  - 노출 하한을 엔진 후처리 가중치에 맡기면 −10 에서 선형으로 오른다 — 어스름 초반엔 거의 묶이지 않아 막 진 뒤(EV100 −6.5) 장면을 자동 노출이 한낮처럼 끌어올렸다. 가중치는 0/1 로만 쓰고 값을 직접 섞는다.
+  - 밤 섞임을 「1 − 낮 섞임」(지평선에서 절반)으로 하면 달이 지는 해와 같이 켜져 노을이 하얗게 뜬다 — 해가 진 뒤부터 섞는다.
+  - 달을 늘 해의 맞은편에 두면 해가 막 진 때 달빛이 땅을 스치기만 해서, 노출을 묶은 뒤엔 해질녘이 한밤보다 훨씬 캄캄했다(평균 밝기 2.5 대 42).
+  - 노출 값은 `ShowFlag.VisualizeHDR 1` 로 그림에 찍어 읽었다(장면 평균 EV100 · 하한).
+  - 등불 켠 탑 홀도 장면 노출이 밤 하한보다 조금 낮아 처음엔 어두워졌다(154 → 138) — 하한만으로는 실내를 못 지킨다. 실내 판정으로 뺐다.
+  - 이 프로젝트 해는 10 lux 뿐이라 모닥불 120 cd 는 낮에도 해보다 밝다 — 불빛 세기를 올릴 때 낮 그림도 본다.
+
 ## 물 재질 Q126 (2026-11-09)
 
 - **무엇을**: 사용자 결정(「Water Materials 팩 쓸래 … 출처 표기하고 쓰자」)대로 개울 · 합류 연못의 물 표면을 팩 재질로 바꿨다. 다른 CC BY 에셋은 아직 안 쓴다. 게임 안 크레딧 화면은 [Q137](../spec/decisions#미결-질문).
@@ -252,6 +289,15 @@
 - **에셋**: Megaplants 등 나무 · 풀은 나중에 채집 · 베기 대상이 되므로 시험 때 채집 가능한 개체로 바꿀 수 있는 구조인지 함께 본다(Q125). 「개인만 무료」 14 개를 받을 체크리스트로 정리했다([Fab 무료 에셋 — 개인만 무료 받아 둘 것](../art/fab-free-assets#개인만-무료-받아-둘-것-q128)) — 받기는 사용자가 한다.
 - **새 미결**: Q165 지침 수치 · Q166 「시전 속도」 보정의 뜻 · Q167 미니맵 모양 · 돌아감 · Q168 지도 밝히기 · Q169 실내 · 던전 · 일행 · 적 표시.
 - **남은 것(데이터 · 다른 세션 몫)**: `Content/Grimoire/Data/Skillbooks.csv` 레스티투오 설명의 「Q123 제안」 문구, 열병 · 감기 조건(Q115) · 연출 묶음 부모 태그(Q113) · 지침(Q132) 코드, 구역 이름 표시(Q130) · 크레딧 탭(Q137) 화면.
+## 구역 이름 · 크레딧 탭 Q130 · Q137 (2026-11-18)
+
+- **무엇을**: 사용자 답 Q130 「젤다랑 엘든링식으로」 · Q137 「설정 탭 안에 크레딧 확인 탭」. ① 구역(큰 구역 8 · 소구역 12)에 **처음** 들어서면 화면 위쪽 가운데에 이름 + 줄 + 한 줄 설명을 크게 띄웠다 사라진다. 다시 들어서면 큰 구역만 이름을 작게(3 분 안엔 다시 안 띄움), 소구역은 띄우지 않는다. 본 구역은 플레이어 세이브(`World.Zones`), 멀티는 플레이어마다. 미니맵 · 큰 지도가 쓸 조회(`UGrimZoneSubsystem` — 자리의 구역 · 정의 · 월드 경계 · 좌표 변환)를 뒀다. ② 메인 메뉴 · Esc 메뉴가 같이 쓰는 설정 칸에 「설정 · 크레딧 확인」 탭 — CC BY 표기 · 엔진 표기를 스크롤로. [구역 이름 표시 · 크레딧 탭](../systems/world-zones).
+- **어떻게**: 정본은 레이아웃 `Sections`(하늘 글씨와 같은 데이터)에 큰 구역 `Polygon`(맞닿게 손으로) · 게임 문구 `Subtitle` 을 더하고, `Scripts/Terrain/export_zones.py` 가 게임용 `Content/Grimoire/Data/WorldZones.json` 을 만든다(테스트가 둘을 비교). 소구역은 자기 큰 구역 안의 보로노이. 서버가 0.5 초마다 폰 자리를 보고(1 초 머물러야 들어섬 — 경계 깜빡임 막기) 소유 클라이언트에 RPC, 컴포넌트는 퀘스트처럼 런타임에 PlayerState 에 붙인다(Core 안 고침). 크레딧은 `Content/Grimoire/Data/Credits.json` 하나를 정본으로 게임이 읽고, `Scripts/Docs/credits.mjs` 가 `docs/art/credits.md` 의 표 · 표기 문구와 출시본 `CREDITS.txt` 를 만든다(`docs:check` 가 어긋남을 잡는다).
+- **확인**: 자동화 197/197(새 `Grimoire.World.Zones.*` 6 · `Grimoire.UI.Credits.*` 2), 헤드리스 `Scripts/QA/check_zones.ps1`(세이브 두 번 켜기) · `Scripts/QA/net_check_zones.ps1`(2인), 화면 `Scripts/QA/shoot_qa.ps1 -Set Zones` · `-Set MenuCredits` — [QA — 구역 이름 · 크레딧](../qa/world-zones).
+- **함정**:
+  - 레이아웃 `Zones` 의 `TowerSector` 다각형은 서쪽(x 650 ~ 860 m)에서 북쪽으로 y 1,000 m 를 넘는다 — 그 위에 「y 1,000 m 까지 목초지」를 그리면 다각형이 꼬여 겹친다. 경계는 서로 맞닿게(같은 꼭짓점 · 같은 변 위 점) 그리고, 테스트(`DataMatchesLayout` — 50 m 격자 빈틈 · 겹침)로 확인한다.
+  - 레이아웃의 `Note` 에는 개발용 POI 번호(「S1 꺼진 화로 제단」)가 있어 게임 문구로 못 쓴다 — `Subtitle` 을 따로 둔다.
+  - 이 워크트리도 처음엔 LFS 가 포인터뿐이라 입력 · 캐릭터 에셋을 쓰는 테스트 4 개가 실패하고 생물 보관 테스트에서 죽었다 — `git lfs checkout` 뒤 197/197.
 
 ## 사용자 답 Q46~Q110 → 문서 (2026-11-18)
 
@@ -266,3 +312,17 @@
 - **무엇을**: 오픈 베타 30종 고르기(Q50)용 생물 콘셉트 28장 — 1번 지역 10종 · 2번 8종 · 3번 8종 각 한 장, 전설 오초 · 천둥새는 「길들인 뒤 동행 장면」 시안 B 를 하나 더(Q48 답: 전설도 길들인다). 새 페이지 [마법 생물 콘셉트 — 오픈 베타 후보](../art/creature-concepts). 1번 지역 키 아트 `r1-key-aerial` 을 정본 탑 `tower-exterior` 에 맞춰 다시 그렸다(Q95) — 이전 판은 `r1-key-aerial-v1.jpg` 로 [1번 지역 콘셉트](../art/region1-concepts) 그림 아래 접어 남김.
 - **어떻게**: 프롬프트는 `art/creatures/make_prompts.py`(전설은 「길들이고 싶은」 줄 `LEGEND_APPEAL` · 동행 장면 `<id>-b`), 페이지 · JPG 는 `art/creatures/publish.py`(지역별 표 + 그림 카드). 키 아트는 `art/region1/make_prompts.py` 에서 탑 모양을 글로 박고 `tower-exterior` 그림을 참고(`-i`)로 줬다.
 - **함정**: 동시에 3개씩 돌리면 codex 가 「모든 세션의 최근 그림」을 `raw/` 로 복사해 28장 중 3장이 남의 그림이었다 — `art/tools/run_codex_job.sh` 가 이제 자기 세션 폴더 그림과 비교해 다르면 바꾼다. VitePress 페이지의 HTML `<a href>` 에는 base(`/Grimoire/`)가 안 붙는다(`img src` 는 붙음) — `withBase` 로 붙였다.
+
+## 초원 꾸밈 1차 묶음 (2026-11-18)
+
+- **무엇을**: 사용자 답 Q150 「제안대로」 — 기획안의 1차 11 개(D01 바람솜꽃 · D02 마른 풀 · D03 목마른 들꽃 · D04 돌 등잔 · D10 곁가지 · 돌멩이 · D16 나비 · D20 식은 모닥불 · D21 흩날리는 책장 · D26 외딴 꽃나무 · D27 색 꽃밭 · D29 떠 있는 돌)를 만들어 마탑 구간에 놓았다. Q151~Q157 은 제안을 잠정값으로 표에 — [초원 꾸밈 구현](../systems/meadow-dressing).
+- **어떻게**: 소품마다 클래스를 만들지 않고 `AGrimReactiveProp`(표 `ReactiveProps.csv` 한 행) + 속성 상태 단일 시스템(규칙표에 다섯 행). 줍는 것은 `AGrimHarvestCell`(256 m 셀 · ISM · FastArray). 도감은 PlayerState 에 런타임으로 붙는 `UGrimJournalComponent`, F 는 Core 의 `IGrimInteractable` 로 가방 위젯에 끼웠다. 에셋은 블렌더 스크립트(메시 8) · PIL(나비 · 솜) · 팩 재질 인스턴스. 배치는 `Scripts/Dressing/meadow_place.py`(시드 고정, 탑 둘레 260 m · 길 · 물 · POI · 전망대 터 · 바닷가 비움).
+- **확인**: [QA — 초원 꾸밈](../qa/meadow) — 자동화 195/195(새 `Grimoire.Dressing.*` 6), 2인 `net_check_meadow.ps1` fail=0, 요소별 전 · 후 스크린숏, 성능 전 · 후.
+- **함정**:
+  - 파이썬 `StaticMesh.static_materials` 배열 원소를 고쳐 다시 넣어도 칸이 비었다 — `set_material(0, …)`.
+  - `MaterialEditingLibrary.set_material_instance_*_parameter_value` 의 돌려준 값은 늘 False — 이름 목록으로 확인한다.
+  - 팩 꽃 재질의 `Custom Color` 는 꽃잎 색을 바꾸지 못했다(`Desaturate Texture?` 를 켜도) — 색 꽃밭 · 시든 꽃 색은 [Q205](../spec/decisions#미결-질문).
+  - 마탑 구간 다각형이 남쪽 바닷가까지 들어온다 — 첫 배치에서 꽃이 모래 위에 놓였다. 땅 높이 · 해안선으로 거른다.
+  - 같은 PC 의 두 인스턴스는 같은 PlayerId(GameUserSettings.ini)를 읽는다 — 사람별 확인은 `-GrimPlayerId=` 를 따로 준다.
+  - 이름 붙은 `Grim.Terrain.ViewFrom` 은 4 초 뒤에 찍는다, 그리고 `-ExecCmds` 지연은 맵 로딩 전부터 센다 — 반응 전 · 후 그림은 그만큼 띄운다.
+

@@ -15,6 +15,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { checkCredits } from './credits.mjs'
 
 const Root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const Args = new Set(process.argv.slice(2))
@@ -138,6 +139,9 @@ for (const file of walk(path.join(Root, 'docs'), (n) => n.endsWith('.md'))) {
     }
   })
 }
+
+// 크레딧 표(docs/art/credits.md)가 정본 데이터(Content/Grimoire/Data/Credits.json)와 같은가 — Scripts/Docs/credits.mjs
+for (const problem of checkCredits()) errors.push(`docs/art/credits.md  크레딧  ${problem}`)
 
 if (!Quiet) {
   for (const e of errors) console.log(`오류  ${e}`)

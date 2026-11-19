@@ -15,6 +15,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Misc/App.h"
+#include "UObject/UObjectIterator.h"
 
 namespace GrimMenuSubsystemLocal // 유니티 빌드 이름 충돌 방지
 {
@@ -33,6 +34,26 @@ namespace GrimMenuSubsystemLocal // 유니티 빌드 이름 충돌 방지
 					Menu.SetPauseMenuOpen(FCString::Atoi(*Args[0]) != 0);
 				}
 			});
+		}));
+
+	FAutoConsoleCommand GSettingsCommand(TEXT("Grim.Online.Settings"),
+		TEXT("설정 화면을 연다. [탭: 0 = 설정(기본), 1 = 크레딧 확인]. 메인 메뉴가 떠 있으면 메인 메뉴의 설정, 아니면 Esc 메뉴의 설정"),
+		FConsoleCommandWithArgsDelegate::CreateLambda([](const TArray<FString>& Args)
+		{
+			const int32 Tab = Args.Num() > 0 ? FCString::Atoi(*Args[0]) : 0;
+			bool bMainMenu = false;
+			for (TObjectIterator<UGrimMainMenuWidget> It; It; ++It)
+			{
+				if (It->IsInViewport())
+				{
+					It->OpenSettings(Tab);
+					bMainMenu = true;
+				}
+			}
+			if (!bMainMenu)
+			{
+				UGrimMenuSubsystem::ForEach([Tab](UGrimMenuSubsystem& Menu) { Menu.OpenPauseSettings(Tab); });
+			}
 		}));
 }
 
@@ -158,6 +179,15 @@ void UGrimMenuSubsystem::HandleMenuKey()
 void UGrimMenuSubsystem::TogglePauseMenu()
 {
 	SetPauseMenuOpen(!bPauseOpen);
+}
+
+void UGrimMenuSubsystem::OpenPauseSettings(int32 Tab)
+{
+	SetPauseMenuOpen(true);
+	if (PauseMenu && bPauseOpen)
+	{
+		PauseMenu->ShowSettings(Tab);
+	}
 }
 
 void UGrimMenuSubsystem::SetPauseMenuOpen(bool bOpen)

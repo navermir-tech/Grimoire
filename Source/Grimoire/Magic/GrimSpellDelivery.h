@@ -75,10 +75,10 @@ namespace GrimSpellDelivery
 	GRIMOIRE_API float CalcArcTimeToPoint(const FVector& Start, const FVector& Velocity, const FVector& Point, float Fallback);
 
 	/**
-	 * 볼트 발사 빛줄기 길이(Q85): 완드 끝부터 볼트가 이미 가 있는 곳(Gap — 원격 지연을 당긴 만큼)과 BoltSpeed × Seconds 중 긴 쪽,
-	 * 그 사이에 맞을 곳이 있으면(HitDistance > 0) 거기까지. 0 이하면 긋지 않는다.
+	 * 볼트 발사 빛줄기 길이(Q85 · Q110): 원격 시전자의 지연을 당긴 볼트(AdvanceSeconds > 0)만 완드 끝부터 볼트가 이미 가 있는 곳(Gap)까지,
+	 * 그 사이에 맞을 곳이 있으면(HitDistance > 0) 거기까지. 당김이 없으면(혼자 · 호스트) 0 = 긋지 않는다.
 	 */
-	GRIMOIRE_API float CalcLaunchStreakLength(float Gap, float BoltSpeed, float Seconds, float HitDistance);
+	GRIMOIRE_API float CalcLaunchStreakLength(float AdvanceSeconds, float Gap, float HitDistance);
 
 	/** 원뿔 판정: Point 가 Origin 에서 Range 안이고 Direction 과의 각이 HalfAngleDeg 이하 */
 	GRIMOIRE_API bool IsInCone(const FVector& Origin, const FVector& Direction, float HalfAngleDeg, float Range, const FVector& Point);

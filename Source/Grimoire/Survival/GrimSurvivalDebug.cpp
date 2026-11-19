@@ -190,7 +190,7 @@ static FAutoConsoleCommandWithWorldAndArgs GGrimSurvivalEatRawCommand(
 
 static FAutoConsoleCommandWithWorldAndArgs GGrimSurvivalSickCommand(
 	TEXT("grim.Survival.Sick"),
-	TEXT("질병을 건다. 0 = 배탈, 1 = 감기. 예: grim.Survival.Sick 1"),
+	TEXT("질병을 건다. 0 = 배탈, 1 = 감기, 2 = 열병. 예: grim.Survival.Sick 2"),
 	GrimSurvivalConsolePrivate::Make(TEXT("Sick")));
 
 static FAutoConsoleCommandWithWorldAndArgs GGrimSurvivalCureCommand(

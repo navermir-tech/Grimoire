@@ -88,6 +88,16 @@ public:
 	UGrimDiseaseColdEffect();
 };
 
+/** GE_Disease_Fever — 열병(Status.Sick.Fever, Q115). */
+UCLASS()
+class GRIMOIRE_API UGrimDiseaseFeverEffect : public UGrimDiseaseEffect
+{
+	GENERATED_BODY()
+
+public:
+	UGrimDiseaseFeverEffect();
+};
+
 /**
  * GE_ClimateResist — 더위 · 추위저항 가산(무한). 장비(M4) 전 시험용: 콘솔 grim.Survival.Resist.
  * 장비 · 인챈트 · 마법 버프도 같은 모양(HeatResist · ColdResist 에 더하는 GE)으로 만든다.

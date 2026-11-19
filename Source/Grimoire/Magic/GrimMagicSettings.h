@@ -7,6 +7,7 @@
 
 class UGrimSpellDefinition;
 class AGrimWand;
+class UMaterialInterface;
 
 /** 상성 표의 한 칸: 공격 속성이 대상 속성을 칠 때의 피해 배율 (R07). */
 USTRUCT(BlueprintType)
@@ -22,6 +23,37 @@ struct GRIMOIRE_API FGrimElementAffinity
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Affinity", meta = (ClampMin = "0"))
 	float Multiplier = 1.f;
+};
+
+/** 빗나감 「MISS」 피해 숫자(Q132 — 지침): 맞은 자리 위에 떠올라 사라지는 글. 시전자 화면에만(연출). */
+USTRUCT(BlueprintType)
+struct GRIMOIRE_API FGrimMissTextTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss")
+	FText Text = NSLOCTEXT("GrimMagic", "MissText", "MISS");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss")
+	FLinearColor Color = FLinearColor(0.85f, 0.85f, 0.9f, 1.f);
+
+	/** 글 높이(cm, 월드) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss", meta = (ClampMin = "1", Units = "cm"))
+	float WorldSize = 40.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss", meta = (Units = "cm"))
+	float RiseSpeed = 80.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss", meta = (ClampMin = "0.1", Units = "s"))
+	float Lifetime = 1.f;
+
+	/** 같은 자리(2 m 안)에 이 시간 안에 또 빗나가면(물줄기 판정 여러 번) 글을 더 띄우지 않는다 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss", meta = (ClampMin = "0", Units = "s"))
+	float MinInterval = 0.35f;
+
+	/** 글 머티리얼 — 빛을 받지 않는 것(엔진 UnlitText). 기본 글 머티리얼은 불씨 터짐 빛에 하얗게 떠 글자가 뭉개졌다(2026-11-18 화면) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Miss")
+	TSoftObjectPtr<UMaterialInterface> Material = TSoftObjectPtr<UMaterialInterface>(FSoftObjectPath(TEXT("/Engine/EngineMaterials/UnlitText.UnlitText")));
 };
 
 /**
@@ -125,4 +157,8 @@ public:
 	/** TargetData 검증: 조준점 · 대상이 폰에서 사거리 + 이만큼 안이어야 한다. */
 	UPROPERTY(Config, EditAnywhere, Category = "AimValidation", meta = (ClampMin = "0", Units = "cm"))
 	float AimRangeSlack = 300.f;
+
+	/** 지침 빗나감 「MISS」 글(Q132). 확률 · 시전 시간은 생존 설정 Fatigue */
+	UPROPERTY(Config, EditAnywhere, Category = "Tired")
+	FGrimMissTextTuning MissText;
 };

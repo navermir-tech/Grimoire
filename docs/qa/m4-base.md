@@ -74,6 +74,7 @@
 | F6 | 회귀: 거점 2인(레스티투오를 배워 작업대 · 벽 수리) | ④ `Scripts/Base/net_check_base.ps1` | 털 두건 수리 · 벽 150/150 등 M4 기록과 같음 | ✅ 11-07 — 1 · 2회차는 이 워크트리에 앞선 점검이 남긴 세이브(`Saved/SaveGames`)로 호스트가 다른 자리에서 시작해 거점 핵이 샌드박스 소품과 겹쳐(`놓기 거절 BaseCore: 무언가와 겹친다 StaticMeshActor_1`) 아무것도 못 지음 — 세이브를 치우고 3회차 통과(수리와 무관, 스크립트가 세이브를 지우지 않는 문제) | `Saved/NetCheck/base_server.log` — `cores=1 pieces=10 structures=17`, 밤 0.921 → 0.194(day 1), `장비 수리 FurHood: 재료 JackalopeFur ×3 → 101/108(수리 1번)`, `수리 GrimBuildPiece_2: Wood ×3 → 150/150`, 철거 뒤 9 · 16 |
 | F7 | 화면: 작업대 옆 「수리」 탭(잠김 한 줄 · 장비 목록 · 단추), 거점 탭 「전체 수리 (잠김)」 글 | ③ 사람 눈 | 잠김 · 열림 글이 바뀐다 | ⏸ 11-07 — `Grim.Base.Bag` 가 「수리」 탭을 아직 열지 못해 장면을 못 만듦(탭 글은 ① 의 같은 함수 `UGrimRepairTab::DescribeLock`) | — |
 | F8 | 2인: 마렌과 대화해 「대리 수리 (솔)」 메뉴를 고름 | ④ | `대리 수리: … 재료 몫 n → m Solidus` | ⏸ 11-07 — 헤드리스에서 NPC 메뉴를 고르는 명령이 없다(서비스 함수는 F2 에서 확인) | — |
+| F9 | Q123: 조각 · 시설 **하나씩** 수리는 레스티투오를 배운 사람만 — 배우기 전 수리 볼트 판정(`PerformRepair(…, bFromSpell)`)은 잠김 알림 · 재료 · 내구도 그대로, 배운 뒤 40 % 시설이 가방 재료 3개(25 % 씩)로 가득, 가득이면 더 쓰지 않음. 레스티투오 정의의 투사체 = `GrimRepairProjectile` | ① `Grimoire.Base.Repair.Piece` | 통과 | ✅ 11-18(브랜치 `claude/align-decisions-1c6ee9`) — 코드는 Q121 때 이미 이 규칙이었고(제안대로 확정) 테스트를 더함 | 자동화 195/195 |
 
 ## 다시 돌리기
 
