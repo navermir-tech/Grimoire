@@ -14,6 +14,7 @@
 | QA-DOC-006 | | 라이트 · 다크 양쪽에서 읽힌다 | ② 두 테마로 카드 뱃지 · 왼쪽 띠 · 글자를 본다 | 대비가 무너지지 않는다 | ✅ 2026-11-08 | 그림 아래 |
 | QA-DOC-007 | Q50 | [마법 생물 콘셉트](../art/creature-concepts) 그림 카드가 다 뜨고 크게 보기 링크가 맞는다 | ① `npm run docs:build` 뒤 `dist/art/creature-concepts.html` 의 `href` · ③ `docs:dev` 로 열어 모든 `img` 의 `naturalWidth` | 카드 26 · 그림 28 · 깨진 그림 0, 링크가 `/Grimoire/art/creatures/<id>.jpg` | ✅ 2026-11-18 | 카드 26 · 그림 28 · broken 0, href `/Grimoire/art/creatures/jackalope.jpg` |
 | QA-DOC-008 | Q50 | 생물 카드가 데스크톱 · 모바일에서 넘치지 않는다 | ③ 1440 · 375 폭에서 `scrollWidth` · 카드 오른쪽 끝 · `grid-template-columns` | 페이지 넘침 없음, 데스크톱 3열 · 모바일 1열 | ✅ 2026-11-18 | 1440: `scrollWidth = clientWidth` 1425, 3열 331 px · 375: 375 = 375, 1열 327 px, 넘친 카드 0 |
+| QA-DOC-009 | Q215 | [마스코트 콘셉트 시안](../art/mascot-concepts) 그림 7장(비교 + 시안 6)이 다 뜨고 크게 보기 링크가 맞고, 미결 Q215~Q219 카드가 보인다 | ① `npm run docs:build` 뒤 `dist/art/mascot-concepts.html` 의 `href` · `img src` · ③ `docs:dev` 로 열어 모든 `img` 의 `naturalWidth`, 375 폭에서 `scrollWidth`, 「미결 질문」 `#q215`~`#q219` | 그림 7 · 깨진 그림 0, 링크가 `/Grimoire/art/mascot/<id>.jpg`, 모바일 넘침 0, 카드 5개 보임 | ✅ 2026-11-19 | 그림 7 · broken 0, href `/Grimoire/art/mascot/pageling.jpg` 외 6, 375 폭 `scrollWidth = clientWidth = 375`, 카드 q215~q219 모두 보임 |
 
 ## 그림
 
