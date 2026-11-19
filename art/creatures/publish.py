@@ -84,7 +84,7 @@ def card(c):
     cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
     has = publish_image(cid)
     has_b = publish_image(cid + "-b")
-    olds = [j for j in (cid + "-v2", cid + "-v1", cid + "-b-v1") if publish_image(j)]
+    olds = [j for j in (cid + "-v3", cid + "-v2", cid + "-v1", cid + "-b-v1") if publish_image(j)]
     tags = ""
     if rarity == "전설":
         tags += '<span class="tag legend">전설</span>'
@@ -99,7 +99,7 @@ def card(c):
         lines.append(f'<div class="alt">시안 B — 길들인 뒤 동행 장면</div>')
         lines.append(shot(cid + "-b", esc(name) + " 시안 B"))
     if olds:
-        lines.append('<details class="old"><summary>옛 판 보기 — v1(2026-11-18)' + (' · v2' if any(j.endswith('-v2') for j in olds) else '') + '</summary>')
+        lines.append('<details class="old"><summary>옛 판 보기 — v1(2026-11-18)' + ''.join(' · ' + v for v in ('v2', 'v3') if any(j.endswith('-' + v) for j in olds)) + '</summary>')
         lines += [shot(j, esc(name) + " 옛 판") for j in olds]
         lines.append("</details>")
     lines.append('<div class="body">')

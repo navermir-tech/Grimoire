@@ -313,7 +313,7 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 |---|---|---|---|---|---|
 | **라이쥬 번개족제비** `raiju` | 뇌수 → 뇌우 때만 나오는 담비. 번개 털은 빛 마법 재료 | 소형(몸길이 0.5 m) | 라이쥬(일본 — 번개와 함께 떨어지는 짐승) | 없음(동행 · 전투) | 드묾(조건부) |
 | **할시온 물총새** `halcyon` | 그대로. 둥지 근처는 파도 · 바람이 약해진다 | 소형(몸길이 0.3 m) | 할시온(그리스 신화 — 파도를 잠재우는 새) | 없음(동행 · 전투) | 보통 |
-| **세이렌** `siren` | 사람 머리의 새 → 사람 느낌이 살짝 드는 어인(인어형, 2026-11-19 사용자). 노래로 홀리는 습성 그대로 — 노래가 들리면 걸음이 끌려간다 | 중형(몸길이 2.0 m) | 세이렌(그리스 신화) | 방범(노래로 침입자를 붙잡음) | 보통 |
+| **세이렌** `siren` | 사람 머리의 새 → 사람 아닌 얼굴의 어인(인어형, 다리 없음, 2026-11-19 사용자). 노래로 홀리는 습성 그대로 — 노래가 들리면 걸음이 끌려간다 | 중형(몸길이 2.4 m(꼬리가 2/3)) | 세이렌(그리스 신화) | 방범(노래로 침입자를 붙잡음) | 보통 |
 | **페리톤** `peryton` | 사슴 머리 + 큰 새 몸. 그림자가 사람 모양이라는 원전 설정은 뺌 | 대형(어깨 1.6 m) | 페리톤(중세 전설 — 사슴 머리의 새) | 날것(활공) | 보통 |
 | **번개매** `thunder-hawk` | 전설의 천둥새 대신 그 혈통의 큰 매 종 | 대형(날개 폭 5 m) | 창작 — 천둥새(북미 원주민 전승 ☆)의 아래 혈통 | 날것(비행) | 드묾 |
 | **폭풍 해파리** `storm-jelly` | 폭풍 바람을 타고 하늘을 떠다니는 해파리. 뇌우 뒤 해안에 내려앉는다 | 중형(우산 지름 1 m) | 창작 | 없음(동행 · 전투) | 드묾(조건부) |
@@ -347,15 +347,16 @@ M3 기존 종. 무섭지 않게 — 보통 늑대보다 큰 검은 늑대, 불�
 </div>
 <div class="creature-card">
 <a class="shot" :href="withBase('/art/creatures/siren.jpg')" target="_blank"><img src="/art/creatures/siren.jpg" alt="세이렌" loading="lazy"></a>
-<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2</summary>
+<details class="old"><summary>옛 판 보기 — v1(2026-11-18) · v2 · v3</summary>
+<a class="shot" :href="withBase('/art/creatures/siren-v3.jpg')" target="_blank"><img src="/art/creatures/siren-v3.jpg" alt="세이렌 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/siren-v2.jpg')" target="_blank"><img src="/art/creatures/siren-v2.jpg" alt="세이렌 옛 판" loading="lazy"></a>
 <a class="shot" :href="withBase('/art/creatures/siren-v1.jpg')" target="_blank"><img src="/art/creatures/siren-v1.jpg" alt="세이렌 옛 판" loading="lazy"></a>
 </details>
 <div class="body">
 <span class="name">세이렌</span> <code>siren</code><br>
-사람 머리의 새 → 사람 느낌이 살짝 드는 어인(인어형, 2026-11-19 사용자). 노래로 홀리는 습성 그대로 — 노래가 들리면 걸음이 끌려간다
-<div class="meta">크기 중형(몸길이 2.0 m) · 속성 바람 · 물 · 보통<br>원전 세이렌(그리스 신화)<br>기능 방범(노래로 침입자를 붙잡음)<br>4서클 벤투스 · 거점 경비(노래로 침입자를 붙잡음) · 비늘</div>
-<div class="fx"><b>FX:</b> 빛나는 음파 리본 · 꼬리 둘레 물보라</div>
+사람 머리의 새 → 사람 아닌 얼굴의 어인(인어형, 다리 없음, 2026-11-19 사용자). 노래로 홀리는 습성 그대로 — 노래가 들리면 걸음이 끌려간다
+<div class="meta">크기 중형(몸길이 2.4 m(꼬리가 2/3)) · 속성 바람 · 물 · 보통<br>원전 세이렌(그리스 신화)<br>기능 방범(노래로 침입자를 붙잡음)<br>4서클 벤투스 · 거점 경비(노래로 침입자를 붙잡음) · 비늘</div>
+<div class="fx"><b>FX:</b> 빛나는 음파 리본 · 꼬리 끝 물보라</div>
 </div>
 </div>
 <div class="creature-card">
