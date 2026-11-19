@@ -20,10 +20,15 @@ code=$?
 end=$(date +%s)
 # codex 가 그림을 만들고 raw/ 로 못 옮길 때(윈도 명령 길이 제한)가 있다 — 이 작업의 세션 폴더에서 직접 가져온다.
 # 「가장 최근 그림」 을 집으면 동시에 돌린 다른 작업 그림이 섞인다(2026-11-05 분탑) — 세션 id 로만 찾는다.
-if [[ ! -f "raw/$JOB.png" ]]; then
-  SESSION=$(grep -m1 -o 'session id: [0-9a-f-]*' "logs/$JOB.log" | awk '{print $3}')
-  LAST=$(ls -t "$HOME/.codex/generated_images/$SESSION/"*.png 2>/dev/null | head -1)
-  if [[ -n "$SESSION" && -n "$LAST" ]]; then cp "$LAST" "raw/$JOB.png"; fi
+# codex 가 raw/ 로 옮겼어도 「모든 세션 중 최근 그림」 을 집어 남의 그림일 때가 있다(2026-11-18 생물 28장 중 3장) —
+# 이 세션 폴더의 그림과 같지 않으면 이 세션의 마지막 그림으로 바꾼다.
+SESSION=$(grep -m1 -o 'session id: [0-9a-f-]*' "logs/$JOB.log" | awk '{print $3}')
+SDIR="$HOME/.codex/generated_images/$SESSION"
+LAST=$(ls -t "$SDIR/"*.png 2>/dev/null | head -1)
+if [[ -n "$SESSION" && -n "$LAST" ]]; then
+  OWN=no
+  if [[ -f "raw/$JOB.png" ]]; then for P in "$SDIR/"*.png; do cmp -s "$P" "raw/$JOB.png" && OWN=yes; done; fi
+  if [[ $OWN == no ]]; then cp "$LAST" "raw/$JOB.png"; echo "$JOB 세션 그림으로 바꿈" >&2; fi
 fi
 if [[ -f "raw/$JOB.png" ]]; then out="raw/$JOB.png"; else out="MISSING"; fi
 echo "$JOB exit=$code secs=$((end - start)) output=$out"

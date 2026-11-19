@@ -260,3 +260,9 @@
 - **새 미결**: Q160 전설 길들이기 조건 · Q161 전설 재등장 · 번식 · Q163 들풀 반지 새 효과 · Q164 음료 이름 · 회복량 · 재료 · 시설.
 - **코드에서 확인한 것**: 전설을 막는 코드는 없다(종 정의 `bTameable` 기본 참, 포획 곡선에 전설 몫이 이미 있음). 인챈트 칸 · 단계 숫자는 코드에 박혀 있지 않다(세는 코드가 아직 없음, 서클별 후보 단계는 `Circles.csv`). **발사 빛줄기는 결정(Q110)과 다르다** — `AGrimSpellProjectile::SpawnLaunchStreak` 가 혼자 · 호스트를 포함한 모든 볼트에 약 7.5 m 를 긋는다([투사체 · 시전 감각](../systems/spell-feel)).
 - **남은 것(데이터 · 다른 세션 몫)**: `Content/Grimoire/Data/Enchants.csv` 의 `Satiety` 줄 · `Content/Grimoire/Data/Skillbooks.csv` 의 `Skillbook_Custodia_Maxima` 줄 지우기, 생물 명단 정본 `art/creatures/make_prompts.py` 의 전설 줄(「길들이기 불가」)을 명단 문서에 맞추기 — 문서의 전설 줄은 손으로 먼저 고쳤다. 발사 빛줄기를 원격 · 고지연일 때만 긋게 고치기(Q110 — 코드 세션).
+
+## 생물 콘셉트 · 키 아트 다시 (2026-11-18, Q50 · Q95)
+
+- **무엇을**: 오픈 베타 30종 고르기(Q50)용 생물 콘셉트 28장 — 1번 지역 10종 · 2번 8종 · 3번 8종 각 한 장, 전설 오초 · 천둥새는 「길들인 뒤 동행 장면」 시안 B 를 하나 더(Q48 답: 전설도 길들인다). 새 페이지 [마법 생물 콘셉트 — 오픈 베타 후보](../art/creature-concepts). 1번 지역 키 아트 `r1-key-aerial` 을 정본 탑 `tower-exterior` 에 맞춰 다시 그렸다(Q95) — 이전 판은 `r1-key-aerial-v1.jpg` 로 [1번 지역 콘셉트](../art/region1-concepts) 그림 아래 접어 남김.
+- **어떻게**: 프롬프트는 `art/creatures/make_prompts.py`(전설은 「길들이고 싶은」 줄 `LEGEND_APPEAL` · 동행 장면 `<id>-b`), 페이지 · JPG 는 `art/creatures/publish.py`(지역별 표 + 그림 카드). 키 아트는 `art/region1/make_prompts.py` 에서 탑 모양을 글로 박고 `tower-exterior` 그림을 참고(`-i`)로 줬다.
+- **함정**: 동시에 3개씩 돌리면 codex 가 「모든 세션의 최근 그림」을 `raw/` 로 복사해 28장 중 3장이 남의 그림이었다 — `art/tools/run_codex_job.sh` 가 이제 자기 세션 폴더 그림과 비교해 다르면 바꾼다. VitePress 페이지의 HTML `<a href>` 에는 base(`/Grimoire/`)가 안 붙는다(`img src` 는 붙음) — `withBase` 로 붙였다.

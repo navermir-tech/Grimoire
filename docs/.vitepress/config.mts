@@ -88,6 +88,7 @@ export default defineConfig({
             { text: '마법사 의상 — 튜토리얼 NPC 시안', link: '/art/costumes-tutorial' },
             { text: '1번 지역 콘셉트 아트', link: '/art/region1-concepts' },
             { text: '1번 지역 — 필요한 3D 모델', link: '/art/region1-assets' },
+            { text: '마법 생물 콘셉트 — 오픈 베타 후보', link: '/art/creature-concepts' },
             { text: 'Fab 무료 에셋 후보', link: '/art/fab-free-assets' },
             { text: '크레딧 — 출처 표기', link: '/art/credits' },
           ],

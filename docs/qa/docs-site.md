@@ -12,6 +12,8 @@
 | QA-DOC-004 | | 사이트 검색이 카드 단위로 찾는다 | ② 검색창에 `Q12` | 「미결 질문 > Q12 …」 결과가 나오고 주소가 `#q12` | ✅ 2026-11-08 | 결과 2번째가 `/Grimoire/spec/decisions#q12` |
 | QA-DOC-005 | | 셀 안 Markdown 이 그대로 렌더되고 다른 표는 안 바뀐다 | ② Q100 · Q102 의 링크 · 인라인 코드, 같은 페이지 「결정 기록」 표, 다른 페이지의 표 | 링크 · 코드 정상. 표로 남는다 | ✅ 2026-11-08 | Q100 링크 `../qa/character` · 코드 `Scripts/Character/make_input.py`, 「결정 기록」은 `table` 그대로, [세계](../spec/world) 표 4개 그대로 |
 | QA-DOC-006 | | 라이트 · 다크 양쪽에서 읽힌다 | ② 두 테마로 카드 뱃지 · 왼쪽 띠 · 글자를 본다 | 대비가 무너지지 않는다 | ✅ 2026-11-08 | 그림 아래 |
+| QA-DOC-007 | Q50 | [마법 생물 콘셉트](../art/creature-concepts) 그림 카드가 다 뜨고 크게 보기 링크가 맞는다 | ① `npm run docs:build` 뒤 `dist/art/creature-concepts.html` 의 `href` · ③ `docs:dev` 로 열어 모든 `img` 의 `naturalWidth` | 카드 26 · 그림 28 · 깨진 그림 0, 링크가 `/Grimoire/art/creatures/<id>.jpg` | ✅ 2026-11-18 | 카드 26 · 그림 28 · broken 0, href `/Grimoire/art/creatures/jackalope.jpg` |
+| QA-DOC-008 | Q50 | 생물 카드가 데스크톱 · 모바일에서 넘치지 않는다 | ③ 1440 · 375 폭에서 `scrollWidth` · 카드 오른쪽 끝 · `grid-template-columns` | 페이지 넘침 없음, 데스크톱 3열 · 모바일 1열 | ✅ 2026-11-18 | 1440: `scrollWidth = clientWidth` 1425, 3열 331 px · 375: 375 = 375, 1열 327 px, 넘친 카드 0 |
 
 ## 그림
 

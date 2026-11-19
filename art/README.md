@@ -9,6 +9,12 @@
 - **여러 작업을 동시에 돌리면 결과가 섞일 수 있다**(2026-11-05 분탑 4장: G 자리에 F 와 같은 숲 서원 그림이 들어옴 — 각 세션이 「최근 생성 그림」을 복사하다 다른 세션 것을 집은 것으로 보임). 동시에 돌렸으면 결과를 꼭 눈으로 보고, 틀린 것만 혼자 다시 돌린다.
 - 여러 장은 `bash art/tools/run_batch.sh <절대경로>/<작업 폴더> 3 <작업…>` — 이미 `raw/<작업>.png` 가 있으면 건너뛴다. 다시 그릴 것은 png 를 `raw/rejected/` 로 옮기고 다시 돌린다(1번 지역 콘셉트: `art/region1/`).
 - 작업 폴더는 절대 경로로 넘긴다. 셸 작업 폴더가 바뀐 상태에서 상대 경로로 부르면 스크립트를 못 찾는다.
+- codex 가 `raw/` 로 옮겨도 남의 세션 그림일 수 있다(2026-11-18 생물 28장 중 3장) — `run_codex_job.sh` 가 끝에 자기 세션 폴더(`~/.codex/generated_images/<세션>/`) 그림과 비교해 다르면 그 세션의 마지막 그림으로 바꾼다. 그래도 다 뽑은 뒤 대조 시트로 한 번 본다.
+- 다시 그린 그림은 `raw/rejected/<작업>-v1.png` 로 옮기고, 문서 JPG 도 `<작업>-v1.jpg` 로 이름을 바꿔 남긴다(1번 지역 키 아트 — `art/region1/publish.py` 의 `PREVIOUS`).
+
+## 마법 생물 콘셉트
+
+`art/creatures/` — 명단 · 프롬프트 `make_prompts.py`(정본 `CREATURES`), 페이지 `publish.py` → [마법 생물 콘셉트](../docs/art/creature-concepts.md)(`python -X utf8 art/creatures/publish.py [지역 …]`, 기본 1~3번). 전설은 동행 장면 시안 `<id>-b` 가 하나 더 있다.
 
 ## 환경 에셋 만들기 (GPT → Tripo → 블렌더 → 언리얼)
 

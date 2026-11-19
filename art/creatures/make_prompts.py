@@ -224,13 +224,32 @@ def element_line(main, sub):
     return f"주 {main}({ELEMENT_COLOR[main]}) · 부 {sub}({ELEMENT_COLOR[sub]})"
 
 
+# 전설(한 마리뿐인 개체)도 잡을 수 있는 생물이다(Q48 답, 2026-11-18). 명단의 「잡을 수 없고 …」 문장은 그림 프롬프트에서 빼고 이 줄을 넣는다.
+LEGEND_APPEAL = (
+    "- 전설 생물: 세상에 하나뿐이지만 **길들여 데리고 다닐 수 있는** 생물이다. 위엄 있으면서도 사람 곁에 설 수 있는 온화함이 보이게 — "
+    "차분하고 지혜로운 눈길, 살짝 낮춘 머리, 공격 자세가 아닌 느긋한 자세. 보는 사람이 「이 생물을 길들여 곁에 두고 싶다」고 느끼는 매력. "
+    "적 · 보스 · 괴수처럼 위협적으로 그리지 않는다."
+)
+
+
+def legend_adapt(adapt):
+    """전설의 「각색」에서 옛 설정(잡을 수 없음)을 뺀다."""
+    parts = [x for x in adapt.replace(". ", ".\n").split("\n") if "잡을 수 없" not in x]
+    return " ".join(parts) or adapt
+
+
 def concept_prompt(c):
     cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
+    legend = ""
+    if rarity == "전설":
+        adapt = legend_adapt(adapt)
+        legend = LEGEND_APPEAL + "\n"
     return (
         f"$imagegen\n"
         f"그리모리 마법 생물 콘셉트 아트 — {reg}번 지역 「{REGIONS[reg][0]}」의 「{name}」(바탕: {src}).\n"
         f"- 생김새: {look}\n"
         f"- 각색: {adapt}\n"
+        f"{legend}"
         f"- 성격 · 사는 곳: {temper}. {habitat}. 분류 {size} · {role}.\n"
         f"- 속성: {element_line(main, sub)}.\n"
         f"- 크기: {height}. 생물 옆에 같은 축척으로 키 1.8 m 사람 실루엣(얼굴 없는 회색 단색 실루엣)을 세운다. 아주 큰 생물이면 실루엣이 작게 보여도 된다.\n"
@@ -239,6 +258,26 @@ def concept_prompt(c):
         f"- 가로 1536 × 1024 한 장.\n"
         f"{STYLE}"
         f"- 결과 PNG 를 raw/{cid}.png 로 복사한다.\n"
+    )
+
+
+def companion_prompt(c):
+    """전설의 둘째 시안 — 길들인 뒤 마법사 곁에 있는 장면(`<id>-b`). 「데리고 다니고 싶은」 매력을 본다."""
+    cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
+    place = habitat.split(" / ")[0]
+    return (
+        f"$imagegen\n"
+        f"그리모리 마법 생물 콘셉트 아트 — {reg}번 지역 「{REGIONS[reg][0]}」의 전설 생물 「{name}」(바탕: {src})을 **길들인 뒤의 동행 장면**.\n"
+        f"- 생김새: {look}\n"
+        f"- 크기: {height}.\n"
+        f"- 장면: 사는 곳({place})에서, 짙은 남색 로브를 입은 마법사 한 명(뒷모습이나 옆모습, 작게, 얼굴 클로즈업 금지)이 생물 바로 곁에 서서 손을 내밀거나 "
+        f"나란히 걷는다. 생물은 머리를 낮춰 마법사를 지그시 바라본다 — 믿음과 유대가 보이는 조용한 순간. 사람과 생물의 크기 차이가 한눈에 읽히게.\n"
+        f"- 속성: {element_line(main, sub)}.\n"
+        f"- 구도: 생물 전신이 다 보이는 3/4 시점의 넓은 장면, 서식지 배경(회화적 대기 원근 · 볼류메트릭 빛). 생물이 주인공이고 배경은 받쳐 주기만.\n"
+        f"{LEGEND_APPEAL}\n"
+        f"- 가로 1536 × 1024 한 장.\n"
+        f"{STYLE}"
+        f"- 결과 PNG 를 raw/{cid}-b.png 로 복사한다.\n"
     )
 
 
@@ -265,6 +304,9 @@ def write():
             f.write(concept_prompt(c))
         with open(os.path.join(out, cid + "-sheet.txt"), "w", encoding="utf-8", newline="\n") as f:
             f.write(sheet_prompt(c))
+        if c[13] == "전설":  # 전설은 동행 장면 시안(<id>-b)을 하나 더
+            with open(os.path.join(out, cid + "-b.txt"), "w", encoding="utf-8", newline="\n") as f:
+                f.write(companion_prompt(c))
         # 4면 시트는 콘셉트 그림을 참고로 준다(같은 개체 유지).
         with open(os.path.join(out, cid + "-sheet.refs"), "w", encoding="utf-8", newline="\n") as f:
             f.write(os.path.join(HERE, "raw", cid + ".png"))
