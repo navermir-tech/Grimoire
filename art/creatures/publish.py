@@ -17,6 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 from make_prompts import CREATURES, FUNCTIONS, MAGIC, NEW_GROUP, NEW_SPECIES, REGIONS  # noqa: E402
+from ideas import CARBUNCLE_DRAFTS, CRITERIA, CUT_IDEAS, IDEA_GROUP, IDEAS  # noqa: E402
 
 OUT_IMG = os.path.join(ROOT, "docs", "public", "art", "creatures")
 OUT_MD = os.path.join(ROOT, "docs", "art", "creature-concepts.md")
@@ -115,6 +116,103 @@ def card(c):
     return "\n".join(lines), int(has) + int(has_b)
 
 
+def board(jobs, labels, out_job, cols):
+    """여러 그림을 한 장에 모은다(이름표 포함) — 「모아 본 그림」. raw 가 하나라도 없으면 만들지 않는다."""
+    from PIL import ImageDraw, ImageFont
+    srcs = [os.path.join(HERE, "raw", j + ".png") for j in jobs]
+    if not all(os.path.exists(s) for s in srcs):
+        return False
+    tw, th, pad, bar = 768, 512, 12, 44
+    rows = (len(jobs) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * (tw + pad) + pad, rows * (th + bar + pad) + pad), (24, 24, 28))
+    try:
+        font = ImageFont.truetype("C:/Windows/Fonts/malgunbd.ttf", 26)
+    except OSError:
+        font = ImageFont.load_default()
+    draw = ImageDraw.Draw(sheet)
+    for i, (s, label) in enumerate(zip(srcs, labels)):
+        x, y = pad + (i % cols) * (tw + pad), pad + (i // cols) * (th + bar + pad)
+        sheet.paste(Image.open(s).convert("RGB").resize((tw, th), Image.LANCZOS), (x, y + bar))
+        draw.text((x + 4, y + 6), label, fill=(240, 236, 228), font=font)
+    sheet.save(os.path.join(OUT_IMG, out_job + ".jpg"), quality=QUALITY, optimize=True)
+    return True
+
+
+def idea_card(job, title, hook, rows, fx=""):
+    has = publish_image(job)
+    lines = ['<div class="creature-card">', shot(job, esc(title)) if has else '<div class="none">그림 없음</div>']
+    if publish_image(job + "-t1"):  # 첫 판(다른 순간)이 따로 있으면 둘째 그림으로
+        lines += ['<div class="alt">첫 판 — 다른 순간</div>', shot(job + "-t1", esc(title) + " 첫 판")]
+        has += 1
+    lines += ['<div class="body">',
+             f'<span class="name">{esc(title)}</span> <code>{job}</code><br>', f"<b>「{esc(hook)}」</b>",
+             '<div class="meta">' + "<br>".join(esc(r) for r in rows) + "</div>"]
+    if fx:
+        lines.append(f'<div class="fx"><b>FX:</b> {esc(fx)}</div>')
+    lines += ["</div>", "</div>"]
+    return "\n".join(lines), int(has)
+
+
+def ideas_section():
+    """새 종 후보 2차(ideas.py) — 카벙클 시안 A/B/C · 새 후보 · 쳐낸 후보 · 1차 판(접어 둠)."""
+    done = 0
+    lines = [f"## {IDEA_GROUP} {{#new-species}}", "",
+             "2026-11-20 사용자 피드백 — 1차 새 종 5종(2026-11-19, 참고 그림 5장의 보석 · 유리 느낌) 중 **카벙클은 「귀엽다, 다듬자」**, "
+             "나머지 넷은 **「너무 뻔하다」**(유리 도마뱀 · 날개 뱀 · 새 같은 용 · 머리 여럿 뱀 — 이미 본 판타지 원형에 보석 재질만 입혔다). "
+             "그래서 이번에는 시트부터 그리지 않고, 글로 후보 27개를 쓰고 아래 기준으로 쳐낸 뒤 남은 7개를 큰 그림 한 장씩(마법 쓰는 순간) 그렸다. "
+             "**고르는 건 사용자다** — 카벙클 시안은 [Q220](../spec/decisions#미결-질문), 새 후보는 Q221. 고른 뒤에 4면 시트를 그린다. "
+             "정본은 `art/creatures/ideas.py`.", "",
+             "**「뻔하지 않다」 기준** — 그리기 전에 글로 통과시켰다:", ""]
+    lines += [f"{i}. {esc(c)}" for i, c in enumerate(CRITERIA, 1)]
+    # 카벙클
+    lines += ["", "### 카벙클 시안 — 하나를 고른다(Q220) {#carbuncle-drafts}", "",
+              "지킨 것: 여우 · 고양이 얼굴 · 큰 귀 · 흰 가슴털 · 무지갯빛 투명 날개 넷 · 지느러미 꼬리 · 회화적인 빛. "
+              "고친 것: 파이널판타지 카벙클(긴 귀 · 푸른 몸 · 이마의 붉은 보석)과 거리를 두려고 **보석 자리 · 색 · 모양과 귀 모양을 모두 바꿨고**, "
+              "흔한 잠자리 날개를 **보석을 깎은 면(패싯) 같은 얇은 판**으로, 크기가 읽히게 사람 실루엣을 바로 옆에, 아래 띠에 **표정 넷**(보석 빛이 기분)을 넣었다. "
+              "원전 고리: 남미 · 스페인 광부 전승 — 동굴에서 보석이 등불처럼 빛나고, 얻으면 부자가 되지만 결코 잡히지 않는다.", ""]
+    if board(["carbuncle"] + [d["id"] for d in CARBUNCLE_DRAFTS], ["지금 판(1차)"] + [d["label"] for d in CARBUNCLE_DRAFTS], "carbuncle-drafts", 2):
+        lines += ['<div class="creature-card" style="margin:12px 0">' + shot("carbuncle-drafts", "카벙클 시안 모아 보기") + "</div>", ""]
+    lines += ["| 시안 | 고리 한 줄 | 몸 · 보석 · 귀 · 날개 |", "|---|---|---|",
+              "| 지금 판(1차) | 이마 보석으로 빛을 모은다 | 푸른 털 · 이마 붉은 보석 · 큰 귀 · 잠자리 날개 넷 |"]
+    for d in CARBUNCLE_DRAFTS:
+        lines.append(f"| **{d['label']}** | 「{d['hook']}」 | {d['body']} · {d['gem']} · {d['ears']} · {d['wings']} |")
+    lines += ["", '<div class="creature-grid">']
+    for d in CARBUNCLE_DRAFTS:
+        text, n = idea_card(d["id"], "카벙클 " + d["label"], d["hook"], [d["moment"]], d["fx"])
+        done += n
+        lines.append(text)
+    lines += ["</div>", ""]
+    # 새 후보
+    lines += [f"### 새 후보 {len(IDEAS)} — 고른다(Q221) {{#ideas}}", ""]
+    if board([d["id"] for d in IDEAS], [f"{i}. {d['name']}" for i, d in enumerate(IDEAS, 1)], "ideas-board", 3):
+        lines += ['<div class="creature-card" style="margin:12px 0">' + shot("ideas-board", "새 후보 모아 보기") + "</div>", ""]
+    lines += ["| # | 이름 | 고리 한 줄 | 대비 | 닿는 시스템 | 제안 지역 · 크기 |", "|---|---|---|---|---|---|"]
+    for i, d in enumerate(IDEAS, 1):
+        lines.append(f"| {i} | **{d['name']}** `{d['id']}` | 「{d['hook']}」 | {d['contrast']} | {d['system']} | {d['region']}. {REGIONS[d['region']][0]} · {d['height']} |")
+    lines += ["", '<div class="creature-grid">']
+    for d in IDEAS:
+        rows = [f"속성 {d['main']} · {d['sub']} · {d['size']}({d['height']}) · {d['temper']}", f"원전 {d['src']}",
+                f"길들이기 · 쓰임 {d['use']}", f"개수 {d['counts']}", f"겹침 확인: {d['distinct']}"]
+        text, n = idea_card(d["id"], d["name"], d["hook"], rows, d["fx"])
+        done += n
+        lines.append(text)
+    lines += ["</div>", ""]
+    # 쳐낸 후보
+    lines += [f"### 쳐낸 후보 {len(CUT_IDEAS)}", "", "| 후보 | 고리 · 생김새 | 쳐낸 까닭 |", "|---|---|---|"]
+    lines += [f"| {a} | {b} | {c} |" for a, b, c in CUT_IDEAS]
+    # 1차 판
+    old = [c for c in NEW_SPECIES if c[0] != "carbuncle"]
+    lines += ["", "### 1차 판(2026-11-19) — 접어 둠", "",
+              "「뻔하다」로 쳐낸 1차 넷. 이름 · 설명은 `make_prompts.py` 의 `NEW_SPECIES` 에 남겨 두었다(카벙클 지금 판은 위 시안 표의 「지금 판」).", "",
+              '<details class="old"><summary>1차 판 보기 — ' + " · ".join(c[2] for c in old) + "</summary>", "", '<div class="creature-grid">']
+    for c in old:
+        text, n = card(c)
+        done += n
+        lines.append(text)
+    lines += ["</div>", "", "</details>", ""]
+    return done, lines
+
+
 def main():
     regions = [int(a) for a in sys.argv[1:]] or [1, 2, 3]
     os.makedirs(OUT_IMG, exist_ok=True)
@@ -152,7 +250,7 @@ def main():
         legend = " · ".join(c[2] for c in rs if c[13] == "전설") or "—"
         boss = " · ".join(c[2] for c in rs if "보스" in c[10]) or "—"
         lines.append(f"| [{reg}. {REGIONS[reg][0]}](#region-{reg}) | {len(rs)} | {legend} | {boss} | {'전부' if reg == 1 else '고른다'} |")
-    lines.append(f"| [{NEW_GROUP}](#new-species) | {len(NEW_SPECIES)} | — | — | 후보(Q212) |")
+    lines.append(f"| [{IDEA_GROUP}](#new-species) | 카벙클 시안 {len(CARBUNCLE_DRAFTS)} + 후보 {len(IDEAS)} | — | — | 고른다(Q220 · Q221) |")
     lines.append("")
     done = 0
     for reg in regions:
@@ -169,21 +267,9 @@ def main():
             done += n
             lines.append(text)
         lines += ["</div>", ""]
-    # 새 종 후보(지역 명단 밖) — 오픈 베타에 넣을지 · 지역은 Q212 · Q213
-    lines += [f"## {NEW_GROUP} — {len(NEW_SPECIES)}종 {{#new-species}}", "",
-              "2026-11-19 사용자 「이런 느낌의 동물들도 추가해줘」(참고 그림 5장 — 느낌만 옮겨 새로 설계, 그림은 올리지 않음). "
-              "처음부터 판타지 생물 — 보석 · 유리 같은 얇은 막, 스스로 빛나는 무늬, 화려한 색. **아직 지역 명단 밖의 후보**다: "
-              "오픈 베타 30종에 넣을지는 [Q212](../spec/decisions#미결-질문), 지역(아래 「제안 지역」)은 Q213, 늪 히드라를 보스로 둘지는 Q214.", "",
-              "| 이름 | 제안 지역 | 한 줄 | 크기 | 원전 | 기능 | 희귀도 |", "|---|---|---|---|---|---|---|"]
-    for c in NEW_SPECIES:
-        cid, reg, name, src, adapt, main, sub, size, height, temper, role, habitat, use, rarity, look = c
-        lines.append(f"| **{name}** `{cid}` | {reg}. {REGIONS[reg][0]} | {adapt} | {size}({height}) | {src} | {func_plain(cid)} | {rarity} |")
-    lines += ["", '<div class="creature-grid">']
-    for c in NEW_SPECIES:
-        text, n = card(c)
-        done += n
-        lines.append(text)
-    lines += ["</div>", ""]
+    n, more = ideas_section()
+    done += n
+    lines += more
     with open(OUT_MD, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines))
     print(f"그림 {done}장 · 종 {len(rows)} → {OUT_MD}")
