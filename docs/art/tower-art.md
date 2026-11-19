@@ -68,6 +68,7 @@ $Cmd = "C:\Program Files\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor-Cm
 - `build_openbeta.py` · `dress_openbeta.py` 로 맵을 다시 만들면 2) 를 다시 돌린다.
 - 새 액터는 모두 태그 `TowerArt` · 폴더 `TowerArt/…` · 이름 `TA_*`, 늘 로드(먼 데서 보이는 랜드마크 · 시작 자리 — 그레이박스와 같다).
 - 그레이박스 · 팩 소품은 **지우지 않고 보이지만 않게** 했다(태그 `TowerArtHidden`, 충돌은 남음). 새 메시는 충돌이 없고, 새로 생긴 막는 곳(둥근 기단 · 현관 벽 · 통로 벽 · 더 놓은 책장 · 헛간 · 우물 · 석등 · 등 기둥 · 통)만 숨긴 상자 충돌(`TA_Block_*`)을 놓았다.
+  - **고침 11-19(BUG-013)**: 처음 놓은 메시 232 개는 `set_collision_enabled(NO_COLLISION)` 만으로는 저장 뒤 충돌이 켜진 채였다. 몸통 `SM_Tower_Drum` 의 단순 충돌이 1층 방을 채워 PlayerStart 를 덮었고, 엔진이 시작 자리를 버려 폰이 원점 땅 밑에 생겼다. 충돌 **프로필**을 `NoCollision` 으로 바꿔야 남는다 — `tower_art_dress.py` 의 `place()` 를 고쳤고, 이미 놓인 맵은 `Scripts/Tutorial/tower_art_fix_collision.py` 로 고쳤다. 확인은 `Scripts/Terrain/check_openbeta.ps1` 의 시작 자리 두 줄([QA-LVL-058](../qa/level-art)).
 - 탑 동문(X 16 m) → 통로(기단 벽 두께 안) → 현관 → 앞마당으로 길이 이어진다. 1층 방 배치 · 문 · 게임 액터 자리는 그대로다.
 - 방 안 · 현관 · 마당 풀은 `AGrimGrassExclusionVolume`(`Source/Grimoire/Environment/GrimGrassExclusionVolume.h`, `TA_NoGrass_*`)이 엔진 `ALandscapeProxy::AddExclusionBox` 로 막는다 — BUG-010 고침.
 

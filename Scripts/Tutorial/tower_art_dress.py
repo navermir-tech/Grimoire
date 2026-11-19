@@ -198,6 +198,8 @@ def place(name, x, y, z, yaw=0.0, folder="Exterior", scale=(1.0, 1.0, 1.0), labe
     actor = actor_subsystem.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(x, y, z), unreal.Rotator(0, 0, yaw))
     comp = actor.static_mesh_component
     comp.set_static_mesh(mesh(name))
+    # 프로필로 끈다 — set_collision_enabled 만으로는 저장된 액터에 충돌이 남았다(BUG-013, 몸통 충돌이 시작 자리를 덮음)
+    comp.set_collision_profile_name("NoCollision")
     comp.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
     comp.set_editor_property("cast_shadow", shadow)
     comp.set_mobility(unreal.ComponentMobility.STATIC)
