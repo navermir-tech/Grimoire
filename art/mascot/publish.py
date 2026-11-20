@@ -2,7 +2,8 @@
 
     python -X utf8 art/mascot/publish.py
 
-v2(지금): make_prompts.py 의 CANDIDATES(그린 후보) · REJECTED(쳐낸 후보). 비교 그림 mascot-compare.jpg(4 × 2).
+v3(2026-11-20, 한국 신화에서 출발): make_prompts_v3.py 의 CANDIDATES · REJECTED. 비교 그림 mascot-compare-v3.jpg(3 × 3 — v3 8 + 비교용 v2 끄적이).
+v2(2026-11-20, 고리 먼저): make_prompts.py 의 CANDIDATES · REJECTED. 비교 그림 mascot-compare.jpg(4 × 2).
 v1(반려, 2026-11-19): make_prompts_v1.py 의 DIRECTIONS — 페이지 아래 「옛 판(반려)」 접힘, 비교 그림 mascot-compare-v1.jpg.
 문서 그림은 LFS 가 아니므로 JPG(가로 1536, 품질 85)로 줄인다.
 """
@@ -16,6 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 from make_prompts import CANDIDATES, REJECTED  # noqa: E402
+from make_prompts_v3 import CANDIDATES as V3, REJECTED as V3_REJECTED  # noqa: E402
 from make_prompts_v1 import DIRECTIONS as V1  # noqa: E402
 
 OUT_IMG = os.path.join(ROOT, "docs", "public", "art", "mascot")
@@ -45,7 +47,7 @@ def publish_image(job):
 
 
 def compare(items, out, cols):
-    """후보를 한 장에 — 칸 768 × 512 + 위 이름 띠. items = [(id, 제목, 한 줄)]."""
+    """후보를 한 장에 — 칸 768 × 512 + 위 이름 띠. items = [(id, 띠 제목, 한 줄)]."""
     cw, ch, band = 768, 512, 64
     rows = (len(items) + cols - 1) // cols
     sheet = Image.new("RGB", (cw * cols, (ch + band) * rows), (236, 232, 226))
@@ -55,7 +57,7 @@ def compare(items, out, cols):
     for i, (job, title, line) in enumerate(items):
         x, y = (i % cols) * cw, (i // cols) * (ch + band)
         draw.rectangle([x, y, x + cw, y + band], fill=(38, 34, 52))
-        draw.text((x + 16, y + 6), f"{i + 1}. {title}", font=big, fill=(245, 230, 190))
+        draw.text((x + 16, y + 6), title, font=big, fill=(245, 230, 190))
         draw.text((x + 16, y + 38), line, font=small, fill=(200, 196, 214))
         src = os.path.join(HERE, "raw", job + ".png")
         if os.path.exists(src):
@@ -89,65 +91,21 @@ STYLE = """<style>
 </style>"""
 
 
-def main():
-    os.makedirs(OUT_IMG, exist_ok=True)
-    have = {c["id"]: publish_image(c["id"]) for c in CANDIDATES}
-    compare([(c["id"], c["title"], short_hook(c)) for c in CANDIDATES], "mascot-compare.jpg", 4)
-    L = [
-        "---",
-        "aside: false",
-        "---",
-        "",
-        "# 마스코트 후보",
-        "",
-        "> 상태: **v2 후보 8개 — 검토용** · 2026-11-20 · GPT 이미지(Codex CLI). 사용자 요청(2026-11-19) 「팰월드 까부냥, 포켓몬 피카츄처럼 게임 얼굴이 될 오리지널 마법 생물 — **오픈 베타에 꼭 넣는다**」.",
-        ">",
-        "> v1 시안 6개(아래 「옛 판(반려)」)는 사용자가 「너무 틀에 박힌 느낌」으로 반려했다 — 여섯이 모두 「귀여운 실제 동물 + 붙인 게임 소품 + 인형 비율」 한 공식이었다. v2 는 **고리(행동 · 성격 · 플레이어와의 관계)부터** 33개를 글로 쓰고 기준으로 쳐내 8개를 그렸다. 사용자가 좋아한 카벙클 · 켈피 · 맨드레이크처럼 귀여움을 인형 비율이 아니라 마법 생물다움과 행동에서 끌어낸다.",
-        ">",
-        "> 고를 것은 [미결 Q215](../spec/decisions#q215)(어느 후보 — 하나 또는 몇 개를 더 다듬기). 고른 뒤에 4면 시트를 그리고 [지역별 생물 명단](../spec/creature-roster)에 넣는다.",
-        "",
-        "<script setup>",
-        "import { withBase } from 'vitepress'  // 그림 링크(href)는 base(/Grimoire/)가 저절로 붙지 않는다",
-        "</script>",
-        "",
-        STYLE,
-        "",
-        "## 한눈에",
-        "",
-        '<div class="mascot-shot">' + shot("mascot-compare", "마스코트 후보 8개 비교") + "</div>",
-        "",
-        "| # | 후보 | 고리 — 「걔 ○○한다?」 | 대비 | 그리모리와 닿는 곳 |",
-        "|---|---|---|---|---|",
-    ]
-    for i, c in enumerate(CANDIDATES, 1):
-        L.append(f"| {i} | [**{c['title']}**](#{c['id']}) | {cell(c['hook'])} | {cell(c['contrast'])} | {cell(c['tie'])} |")
-    L += [
-        "",
-        "## 기준",
-        "",
-        "그리기 전에 글로 통과시켰다(2026-11-20 메인 세션 정리).",
-        "",
-        "| # | 기준 |",
-        "|---|---|",
-        "| 1 | 「실제 동물 + 붙인 마법 소품」 금지 — 마법이 꾸밈이 아니라 몸의 구조이거나 존재 이유 |",
-        "| 2 | **한 줄 고리** — 플레이어가 「걔 ○○한다?」 하고 남에게 말할 행동 · 성격 · 플레이어와의 관계 |",
-        "| 3 | **대비 하나** — 귀여운데 이상하다 · 작은데 위험하다 · 아름다운데 묘하다(공포 아님) · 하찮은 것이 마법적이다 |",
-        "| 4 | 실루엣으로 알아보고, 피카츄 · 이브이 · 까부냥 · 램볼 · 커비 · 토토로 · 파이널판타지 카벙클 · 모그리 등과 겹치지 않는다 |",
-        "| 5 | 그리모리 정체성과 닿는다 — 마법서 · 서클 · 마나 · 파크툼 계약 · 마법탑 · 생존 |",
-        "| 6 | 구현 가능성(몸은 메시 · 재질, 흩어지는 것은 FX)과 [아트 방향](../spec/art-direction)(회화적 3D 스타일라이즈드) |",
-        "",
-        "그림은 시트가 아니라 **그 생물다운 순간 한 장**이다. 사람은 손 · 발 · 소매만 보인다(크기 비교). 그린 뒤 「캡처해서 남에게 보여 주고 싶은가 · 카벙클 · 켈피 옆에서 지지 않는가 · 또 동물 + 소품이 아닌가」로 스스로 평가해, 넷(불발이 · 갉작이 · 도장이 · 안 깬 알)은 첫 판을 버리고 다시 그렸다.",
-        "",
-    ]
-    for i, c in enumerate(CANDIDATES, 1):
-        L += [f"## {i}. {c['title']} {{#{c['id']}}}", "", f"**{c['hook']}**", ""]
+
+
+def candidate_sections(cands, have, level, extra=()):
+    """후보마다 그림 + 표. extra = 표 맨 위에 더할 (이름, 키) — v3 의 「출발한 신화」."""
+    L = []
+    for i, c in enumerate(cands, 1):
+        L += [f"{level} {i}. {c['title']} {{#{c['id']}}}", "", f"**{c['hook']}**", ""]
         if have[c["id"]]:
             L += ['<div class="mascot-shot">' + shot(c["id"], esc(c["title"])) + "</div>", ""]
         else:
             L += ["*(그림 없음)*", ""]
+        L += ["| | |", "|---|---|"]
+        for label, key in extra:
+            L.append(f"| {label} | {cell(c[key])} |")
         L += [
-            "| | |",
-            "|---|---|",
             f"| 이름 후보 | {cell(' · '.join(c['names']))} |",
             f"| 대비 | {cell(c['contrast'])} |",
             f"| 그리모리와 닿는 곳 | {cell(c['tie'])} |",
@@ -159,8 +117,93 @@ def main():
         if c.get("review"):
             L.append(f"| **그림 평가** | {cell(c['review'])} |")
         L.append("")
+    return L
+
+
+def main():
+    os.makedirs(OUT_IMG, exist_ok=True)
+    have = {c["id"]: publish_image(c["id"]) for c in CANDIDATES + V3}
+    compare([(c["id"], f"{i}. {c['title']}", short_hook(c)) for i, c in enumerate(CANDIDATES, 1)], "mascot-compare.jpg", 4)
+    doodle = next(c for c in CANDIDATES if c["id"] == "doodle")
+    compare([(c["id"], f"{i}. {c['title']}", short_hook(c)) for i, c in enumerate(V3, 1)]
+            + [("doodle", "비교 · v2 끄적이", short_hook(doodle))], "mascot-compare-v3.jpg", 3)
+    L = [
+        "---",
+        "aside: false",
+        "---",
+        "",
+        "# 마스코트 후보",
+        "",
+        "> 상태: **v3 한국 신화 후보 8개 + v2 후보 8개 — 검토용** · 2026-11-20 · GPT 이미지(Codex CLI). 사용자 요청(2026-11-19) 「팰월드 까부냥, 포켓몬 피카츄처럼 게임 얼굴이 될 오리지널 마법 생물 — **오픈 베타에 꼭 넣는다**」.",
+        ">",
+        "> - **v3**(위): 사용자 「해태나 동양적인 마스코트 하나를 정하는건 어때? 한국인이 개발한거니까 그정도 국뽕은 괜찮지 않을까??」 → 한국 신화에서 출발해 **우리가 지은 이름 · 생김새의 창작 생물** 8개. 카벙클은 마스코트로 쓰지 않는다(파이널판타지 · 뿌요뿌요가 대표 캐릭터로 써 왔고 민담 이름이라 독점할 수 없다 — 주요 종으로 남는다).",
+        "> - **v2**(아래): v1 이 「너무 틀에 박힌 느낌」으로 반려된 뒤 고리(행동 · 성격 · 플레이어와의 관계)부터 쓴 8개. 반려되지 않았다.",
+        "> - v1 시안 6개는 맨 아래 「옛 판(반려)」에 접어 두었다.",
+        ">",
+        "> 고를 것은 [미결 Q215](../spec/decisions#q215)(v2 · v3 가운데 어느 후보). 고른 뒤에 4면 시트를 그리고 [지역별 생물 명단](../spec/creature-roster)에 넣는다.",
+        "",
+        "<script setup>",
+        "import { withBase } from 'vitepress'  // 그림 링크(href)는 base(/Grimoire/)가 저절로 붙지 않는다",
+        "</script>",
+        "",
+        STYLE,
+        "",
+        "## 기준",
+        "",
+        "그리기 전에 글로 통과시켰다(2026-11-20 메인 세션 정리). v2 · v3 공통.",
+        "",
+        "| # | 기준 |",
+        "|---|---|",
+        "| 1 | 「실제 동물 + 붙인 마법 소품」 금지 — 마법이 꾸밈이 아니라 몸의 구조이거나 존재 이유 |",
+        "| 2 | **한 줄 고리** — 플레이어가 「걔 ○○한다?」 하고 남에게 말할 행동 · 성격 · 플레이어와의 관계 |",
+        "| 3 | **대비 하나** — 귀여운데 이상하다 · 작은데 위험하다 · 아름다운데 묘하다(공포 아님) · 하찮은 것이 마법적이다 |",
+        "| 4 | 실루엣으로 알아보고, 피카츄 · 이브이 · 까부냥 · 램볼 · 커비 · 토토로 · 파이널판타지 카벙클 · 모그리 등과 겹치지 않는다 |",
+        "| 5 | 그리모리 정체성과 닿는다 — 마법서 · 서클 · 마나 · 파크툼 계약 · 마법탑 · 생존 |",
+        "| 6 | 구현 가능성(몸은 메시 · 재질, 흩어지는 것은 FX)과 [아트 방향](../spec/art-direction)(회화적 3D 스타일라이즈드) |",
+        "| v3 | 한국 신화에서 출발하되 원전을 그대로 옮기지 않는다 — 서양식 마법 세계(마탑 · 마법서 · 서클)와 섞고, 민화 · 단청의 색과 선은 2D 그림체가 아니라 **몸의 재질 · 무늬**(돌 · 쇠 · 싸리 · 청자 · 나전 · 먹 · 비단)로. 「해태」 그대로(해태제과 · 서울 해치) · 케이팝 데몬 헌터스의 민화 호랑이 · 까치 · 모코코 · 카카오 · 라인프렌즈 · 쿠키런과 겹치지 않고, 무속 · 종교 상징을 가볍게 쓰지 않는다 |",
+        "",
+        "그림은 시트가 아니라 **그 생물다운 순간 한 장**이다. 사람은 손 · 발 · 소매만 보인다(크기 비교). 그린 뒤 「캡처해서 남에게 보여 주고 싶은가 · 카벙클 · 끄적이 옆에서 지지 않는가 · 신화를 그대로 옮기거나 또 동물 + 소품이 되지 않았는가」로 스스로 평가해, 못 미친 그림은 다시 그렸다.",
+        "",
+        "## v3 — 한국 신화에서 출발한 후보 {#v3}",
+        "",
+        '<div class="mascot-shot">' + shot("mascot-compare-v3", "v3 한국 신화 후보 8개와 v2 끄적이 비교") + "</div>",
+        "",
+        "아홉째 칸은 비교용 v2 끄적이다.",
+        "",
+        "| # | 후보 | 출발한 신화 | 고리 — 「걔 ○○한다?」 | 대비 |",
+        "|---|---|---|---|---|",
+    ]
+    for i, c in enumerate(V3, 1):
+        L.append(f"| {i} | [**{c['title']}**](#{c['id']}) | {cell(c['myth'])} | {cell(c['hook'])} | {cell(c['contrast'])} |")
+    L.append("")
+    L += candidate_sections(V3, have, "###", extra=(("출발한 신화", "myth"),))
     L += [
-        f"## 쳐낸 후보 — {len(REJECTED)}개",
+        f"### v3 쳐낸 후보 — {len(V3_REJECTED)}개",
+        "",
+        f"한국 신화 · 민속에서 고리를 먼저 쓴 {len(V3) + len(V3_REJECTED)}개 가운데 기준으로 쳐낸 것. 고리가 좋은 것은 남은 후보에 녹였다.",
+        "",
+        "| 후보 | 출발한 신화 | 고리 | 쳐낸 까닭 |",
+        "|---|---|---|---|",
+    ]
+    for name, myth, hook, why in V3_REJECTED:
+        L.append(f"| {cell(name)} | {cell(myth)} | {cell(hook)} | {cell(why)} |")
+    L += [
+        "",
+        "## v2 — 고리 먼저 쓴 후보 {#v2}",
+        "",
+        "v1 여섯이 모두 「귀여운 실제 동물 + 붙인 게임 소품 + 인형 비율」 한 공식이라 반려된 뒤, 고리부터 33개를 글로 쓰고 기준으로 쳐내 8개를 그렸다. 넷(불발이 · 갉작이 · 도장이 · 안 깬 알)은 첫 판을 버리고 다시 그렸다.",
+        "",
+        '<div class="mascot-shot">' + shot("mascot-compare", "v2 마스코트 후보 8개 비교") + "</div>",
+        "",
+        "| # | 후보 | 고리 — 「걔 ○○한다?」 | 대비 | 그리모리와 닿는 곳 |",
+        "|---|---|---|---|---|",
+    ]
+    for i, c in enumerate(CANDIDATES, 1):
+        L.append(f"| {i} | [**{c['title']}**](#{c['id']}) | {cell(c['hook'])} | {cell(c['contrast'])} | {cell(c['tie'])} |")
+    L.append("")
+    L += candidate_sections(CANDIDATES, have, "###")
+    L += [
+        f"### v2 쳐낸 후보 — {len(REJECTED)}개",
         "",
         f"고리를 먼저 쓴 후보 {len(CANDIDATES) + len(REJECTED)}개 가운데 기준으로 쳐낸 것. 고리가 좋은 것은 남은 후보에 녹였다.",
         "",
@@ -188,13 +231,13 @@ def main():
         "",
         "## 만든 과정",
         "",
-        "- 후보 · 프롬프트의 정본 `art/mascot/make_prompts.py`(`CANDIDATES` · `REJECTED` · 공통 `RULES` · `STYLE`), 프롬프트 `art/mascot/prompts/`, 이 페이지 · JPG · 비교 그림은 `art/mascot/publish.py`. 원본 PNG `art/mascot/raw/`(버린 첫 판은 `raw/rejected/`)는 git 에 올리지 않는다.",
+        "- 후보 · 프롬프트의 정본: v3 `art/mascot/make_prompts_v3.py`(`CANDIDATES` · `REJECTED` · 한국 신화 규칙 `KOREAN`), v2 `art/mascot/make_prompts.py`(`CANDIDATES` · `REJECTED` · 공통 `RULES` · `STYLE`), v1 `make_prompts_v1.py`. 프롬프트 `art/mascot/prompts/`, 이 페이지 · JPG · 비교 그림은 `art/mascot/publish.py`. 원본 PNG `art/mascot/raw/`(버린 첫 판은 `raw/rejected/`)는 git 에 올리지 않는다.",
         "- 그리기는 생물 콘셉트와 같은 `art/tools/run_codex_job.sh` — 그림 하나에 codex 세션 하나, 자기 세션 폴더의 그림인지 비교한다. 같은 파이프라인을 쓰는 다른 세션과 섞이지 않게 한 번에 2장까지만 돌렸다.",
         "",
     ]
     with open(OUT_MD, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(L))
-    print(f"그림 {sum(have.values())}/{len(CANDIDATES)} → {OUT_MD}")
+    print(f"그림 {sum(have.values())}/{len(have)} → {OUT_MD}")
 
 
 if __name__ == "__main__":
